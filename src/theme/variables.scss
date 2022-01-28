@@ -2,8 +2,140 @@
 // http://ionicframework.com/docs/theming/
 
 /** Ionic CSS Variables **/
+@font-face {
+  font-family: 'Cabin';
+  font-style: normal;
+  font-weight: normal;
+  src: url('../assets/fonts/Cabin/Cabin-Variable.ttf');
+}
+
+// Shared Variables
+// --------------------------------------------------
+// To customize the look and feel of this app, you can override
+// the Sass variables found in Ionic's source scss files.
+// To view all the possible Ionic variables, see:
+// http://ionicframework.com/docs/v2/theming/overriding-ionic-variables/
+
+$text-color:        #f2f2f2;
+$background-color:  #222;
+
+
+// Named Color Variables
+// --------------------------------------------------
+// Named colors makes it easy to reuse colors on various components.
+// It's highly recommended to change the default colors
+// to match your app's branding. Ionic uses a Sass map of
+// colors so you can add, rename and remove colors as needed.
+// The "primary" color is the only required color in the map.
+
+$colors: (
+  "primary":    #488aff,
+  "secondary":  #32db64,
+  "danger":     #f53d3d,
+  "light":      #f4f4f4,
+  "dark":       #222
+);
+$color-red: #FF0000;
+$color-green: #00FF00;
+$color-black: #222;
+$dailychk : #488aff;
+
+.daily-chk{
+  color: $dailychk;
+}
+.welcometxt1{
+ 
+  font-size: 45px;
+ 
+  padding-top: 54px;
+  color: #ffffff;
+}
+.welcometxt2{
+  font-size: 26px;
+  
+  padding-top: 20px;
+  color: #ffffff;
+}
+.welcomebg{
+
+ padding: 0px 30px !important;
+  background: url("../assets/images/welcome_bg.jpg") !important;
+  background-size: 100% 100%;
+  position: fixed; 
+  top: 50; 
+  left: 0; 
+
+  /* Preserve aspet ratio */
+  min-width: 100%;
+  min-height: 100%;
+}
+.sc-ion-input-ios-h {
+  --padding-top: 10px;
+  --padding-end: 10px;
+  --padding-bottom: 10px;
+  --padding-start: 10px;
+  font-size: inherit;
+  border: 1px solid #222;
+  border-radius: 5px;
+}
+.container{
+  background-color: $color-black;
+}
+.dailycheck_btn{
+  width:100%;
+  font-size: 12px;
+  border-radius: 0px !important;
+  height: 50px;
+}
+.bottom-layout{
+  position: fixed;
+  bottom: 40px;
+  left: 50%;
+  width: 100%;
+  transform: translateX(-50%);
+  text-align: center;
+}
+.learnmore{
+  font-size: 12px;
+  padding: 0px 30px;
+  padding-top: 20px;
+  color: #ffffff;
+}
+$theme-colors: (
+  "success": #28a745,
+  "info": #17a2b8,
+  "warning": #ffc107,
+);
+$h2color : #f2f2f2;
+ion-label{
+  color : $h2color;
+}
+.toolbar{
+  padding-left: 20px !important;
+}
+ion-content{
+  padding: 0px 30px !important;
+  background: #222 !important;
+}
+ion-header{
+  background-color: #000000 !important;
+  height: 70px;
+  padding-left: 30px;
+  display:flex;
+  align-items: center;
+  ion-label{
+    font-size: 15px !important;
+  }
+}
+button{
+  font-size: 12px !important;
+}
+ion-label{
+  font-size: 16px !important;
+}
 :root {
   /** primary **/
+  --ion-font-family: 'Cabin';
   --ion-color-primary: #3880ff;
   --ion-color-primary-rgb: 56, 128, 255;
   --ion-color-primary-contrast: #ffffff;
@@ -83,6 +215,7 @@
    */
 
   body {
+    --ion-font-family: 'Cabin';
     --ion-color-primary: #428cff;
     --ion-color-primary-rgb: 66,140,255;
     --ion-color-primary-contrast: #ffffff;
