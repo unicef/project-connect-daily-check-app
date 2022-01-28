@@ -1,27 +1,70 @@
-#container {
-  text-align: center;
+@import '../../theme/variables.scss';
+app-home {
+  .toolbar-background {
+    background: transparent;
+    border-color: transparent;
+  }
 
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+  .slide-zoom {
+    height: 100%;
+  }
+ion-header{
+  background-color: #000000 !important;
+  height: 70px;
+}
+.welcomebg{
+  background: url("../../assets/images/welcome_bg.jpg") !important;   
 }
 
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
+ion-content{
+  ion-label{
+    font-size: 15px;
+  }
 }
-
-#container p {
-  font-size: 16px;
-  line-height: 22px;
-
-  color: #8c8c8c;
-
-  margin: 0;
+.learnmore{
+  font-family:Cabin;
+  font-size: 12px !important;
 }
+  div.slide-title {
+    margin-top: 2.8rem;
+    padding: 0 20px;
+    text-align: left;
+    font-size: 45px !important;    
+    line-height: 44px;
+  }
+.dailycheck_btn{
+  width:100%;
+}
+  .slide-image {
+    max-height: 40%;
+    max-width: 60%;
+    margin: 36px 0;
+  }
+  .bottom-layout{
+    position: absolute;   
+    bottom:40px;
+    padding: 0px 20px;
+    width: 100%;
+    text-align: center;
+  }
+  .top-layout{
+    position: absolute; 
+    top:40px;
+    
+  }
+  b {
+    font-weight: 500;
+  }
 
-#container a {
-  text-decoration: none;
+  p {
+    padding: 0 20px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #f2f2f2;
+    text-align: left;
+    b {
+      color: #000000;
+    }
+  }
+
 }
