@@ -1,5 +1,5 @@
 @import '../../theme/variables.scss';
-app-searchschool{
+app-schooldetails{
   /* .container {
     text-align: center;
     background: $color-black;
@@ -11,11 +11,13 @@ app-searchschool{
   } */
  
     .container{
-     
+      padding: 0px 30px;
       background: $color-black;
       height: 100%;
     }
-  
+  .top-layout{
+    margin-top:50px;
+  }
   .container strong {
     font-size: 20px;
     line-height: 26px;

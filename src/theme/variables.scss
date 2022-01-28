@@ -39,7 +39,7 @@ $color-red: #FF0000;
 $color-green: #00FF00;
 $color-black: #222;
 $dailychk : #488aff;
-
+$color-blue:#2779FF;
 .daily-chk{
   color: $dailychk;
 }
@@ -47,7 +47,7 @@ $dailychk : #488aff;
  
   font-size: 45px;
  
-  padding-top: 54px;
+  padding-top: 24px;
   color: #ffffff;
 }
 .welcometxt2{
@@ -82,10 +82,19 @@ $dailychk : #488aff;
   background-color: $color-black;
 }
 .dailycheck_btn{
-  width:100%;
+  max-width:390px;
+  min-width: 320px;
   font-size: 12px;
   border-radius: 0px !important;
   height: 50px;
+  span{
+    font-size: 24px;
+    padding-left: 5px;
+  }
+}
+.top-layout{
+  
+  padding-top: 30px;
 }
 .bottom-layout{
   position: fixed;
@@ -95,20 +104,62 @@ $dailychk : #488aff;
   transform: translateX(-50%);
   text-align: center;
 }
+
 .learnmore{
   font-size: 12px;
   padding: 0px 30px;
   padding-top: 20px;
   color: #ffffff;
+  span{
+    font-size: 24px;
+    padding-left: 5px;
+  }
 }
+
 $theme-colors: (
   "success": #28a745,
   "info": #17a2b8,
   "warning": #ffc107,
 );
-$h2color : #f2f2f2;
+$h2color : #fff;
 ion-label{
   color : $h2color;
+}
+.noschoolid-link {
+  color: $h2color;
+  padding-top:20px;
+  text-align: center;
+  font-size: 12px;
+}
+.school-label {
+  color: $h2color;
+  padding-top:20px;
+  font-size: 12px;
+}
+.freq-txt{
+  text-align: left;
+  color: $color-blue;
+  padding:20px 30px;
+}
+.schoolid-input{
+  color: $h2color;
+  margin-top:20px;
+  border:1px solid #fff
+}
+.provide-id{
+  color: $h2color;
+  font-size: 20px;
+}
+.accordion-sec{
+  padding: 0px 30px;
+}
+.search-btn{
+  margin-top:20px;
+  max-width:390px;
+  min-width: 320px;
+  font-size: 12px;
+  border-radius: 3px !important;
+  height: 50px;
 }
 .toolbar{
   padding-left: 20px !important;
@@ -125,6 +176,20 @@ ion-header{
   align-items: center;
   ion-label{
     font-size: 15px !important;
+  }
+}
+app-searchschool{
+  .container{
+    padding: 0px 30px;
+    background: #222;
+    height: 100%;
+  }
+}
+app-searchcountry{
+  ion-content{
+    padding: 0px 30px;
+    background: #222;
+    height: 100%;
   }
 }
 button{
