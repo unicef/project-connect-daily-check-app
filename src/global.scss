@@ -24,3 +24,50 @@
 @import "~@ionic/angular/css/text-alignment.css";
 @import "~@ionic/angular/css/text-transformation.css";
 @import "~@ionic/angular/css/flex-utils.css";
+
+@import './theme/variables.scss';
+ion-header{
+    background-color: #000000 !important;
+    height: 70px;
+    padding-left: 30px;
+    display:flex;
+    align-items: center;
+    ion-label{
+      font-size: 15px !important;
+    }
+  }
+.dailycheck_btn{
+    max-width:390px;
+    min-width: 320px;
+    font-size: 12px;
+    border-radius: 0px !important;
+    height: 50px;
+    span{
+      font-size: 24px;
+      padding-left: 5px;
+    }
+  }
+  .top-layout{  
+    padding-top: 30px;
+  }
+  .bottom-layout{
+    position: fixed;
+    bottom: 40px;
+    left: 50%;
+    width: 100%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+  .sc-ion-input-ios-h {
+    --padding-top: 10px;
+    --padding-end: 10px;
+    --padding-bottom: 10px;
+    --padding-start: 10px;
+    font-size: inherit;
+    border: 1px solid #222;
+    border-radius: 5px;
+  }
+
+  ion-label{
+    color: $h2color;
+  }

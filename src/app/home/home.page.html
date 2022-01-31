@@ -1,20 +1,20 @@
-<ion-header [translucent]="true">
-  <ion-toolbar>
-    <ion-title>
-      Blank
-    </ion-title>
-  </ion-toolbar>
+<ion-header no-shadow>
+  <ion-navbar>
+    <ion-label>PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
+  </ion-navbar>
 </ion-header>
 
-<ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">Blank</ion-title>
-    </ion-toolbar>
-  </ion-header>
-
-  <div id="container">
-    <strong>Ready to create an app?</strong>
-    <p>Start with Ionic <a target="_blank" rel="noopener noreferrer" href="https://ionicframework.com/docs/components">UI Components</a></p>
+<ion-content no-bounce >
+  
+     <!--  <img [src]="slide.image" class="slide-image" /> -->
+     <div class="welcomebg1">
+     <div class="top-layout"> 
+      <div class="welcometxt1" >Welcome to Project Connect <span class="daily-chk">Daily Check</span></div>
+      <div class="welcometxt2">Help your school get better connectivity. Share your school's internet status with Project Connectivity everyday.</div>
+      </div>
+      <div class="bottom-layout">
+      <ion-button color="primary" block onclick="gotoDailyCheck()" class="dailycheck_btn">SET UP DAILY CHECK <span class="rightArr">&rsaquo;</span></ion-button>
+      <div class="learnmore">LEARN MORE ABOUT PROJECT CONNECT <span class="rightArr">&rsaquo;</span></div>     
+    </div>
   </div>
 </ion-content>

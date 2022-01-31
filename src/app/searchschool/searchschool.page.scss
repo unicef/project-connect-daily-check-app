@@ -1,0 +1,61 @@
+@import '../../theme/variables.scss';
+
+    .container{
+     padding: 0px 30px;
+      background: $color-black;
+      height: 100%;
+    }
+    .school-label {
+      color: $h2color;
+      padding-top:20px;
+      font-size: 12px;
+    }
+  
+  .container a {
+    text-decoration: none;
+  }
+  ion-label{
+    font-size: 12px;
+  }
+  .provide-id{
+    margin-top: 20px;
+  }
+  .school-label{
+    margin-top: 20px;
+  }
+  .schoolid-input{
+    margin-top: 20px;
+  }
+
+  .freq-txt{
+    text-align: left;
+    color: $color-blue;
+    padding:20px 30px;
+  }
+  .schoolid-input{
+    color: $h2color;
+    margin-top:20px;
+    border:1px solid #fff
+  }
+  .provide-id{
+    color: $h2color;
+    font-size: 20px;
+  }
+  .accordion-sec{
+    padding: 0px 30px;
+  }
+  .noschoolid-link {
+    color: $h2color;
+    padding-top:20px;
+    text-align: center;
+    font-size: 12px;
+  }
+  
+  .search-btn{
+    margin-top:20px;
+    max-width:390px;
+    min-width: 320px;
+    font-size: 12px;
+    border-radius: 3px !important;
+    height: 50px;
+  }

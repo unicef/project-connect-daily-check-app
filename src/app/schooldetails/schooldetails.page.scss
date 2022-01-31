@@ -1,0 +1,47 @@
+@import '../../theme/variables.scss';
+
+ 
+    .container{
+      padding: 0px 30px;
+      background: $color-black;
+      height: 100%;
+    }
+  
+  .container strong {
+    font-size: 20px;
+    line-height: 26px;
+  }
+  .container p {
+    font-size: 16px;
+    line-height: 22px;
+    color: #8c8c8c;
+    margin: 0;
+  }
+  .container a {
+    text-decoration: none;
+  }
+  ion-label{
+    font-size: 12px;
+  }
+  .provide-id{
+    margin-top: 20px;
+  }
+  .school-label{
+    margin-top: 20px;
+  }
+  .schoolid-input{
+    margin-top: 20px;
+  }
+  .label-txt{
+    color: $h2color;
+    font-size: 20px;
+  }
+  .ionList{
+    padding-top: 20px;
+  }
+  .noSchoolList-txt{
+    padding-top: 20px;
+    color: $h2color;
+    font-size: 12px;
+  }
+
