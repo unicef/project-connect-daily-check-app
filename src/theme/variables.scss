@@ -8,7 +8,12 @@
   font-weight: normal;
   src: url('../assets/fonts/Cabin/Cabin-Variable.ttf');
 }
-
+@font-face {
+  font-family: 'Roboto';
+  font-style: normal;
+  font-weight: normal;
+  src: url('../assets/fonts/Roboto/Roboto-Regular.ttf');
+}
 // Shared Variables
 // --------------------------------------------------
 // To customize the look and feel of this app, you can override
@@ -40,11 +45,13 @@ $background-color:  #222;
 ); */
 $color-red: #FF0000;
 $color-green: #00FF00;
-$color-black: #222222;
-
+$color-black: #141923;
+$color-grey:#B6BBC6;
 $color-blue:#2779FF;
 $dailychk : #488aff;
-
+$color-yes:#51E12B;
+$color-no:#FF615B;
+$line-color:#42516E;
 $theme-colors: (
   "success": #28a745,
   "info": #17a2b8,

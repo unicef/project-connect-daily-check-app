@@ -38,6 +38,20 @@
   }
   .ionList{
     padding-top: 20px;
+    --ion-background-color:#111D12;
+    ion-label{
+      color: $h2color;
+      font-family: Roboto;
+      padding: 10px 0px;
+      font-size: 19px;
+       .schoolAddress{
+         font-size: 14px;
+       }
+    }
+
+    ion-item{
+      --padding-start: 0px !important;
+    }
   }
   .noSchoolList-txt{
     padding-top: 20px;

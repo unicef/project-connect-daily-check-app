@@ -1,7 +1,3 @@
-
- 
-
- 
 ion-header{
   background-color: #000000 !important;
   height: 70px;
@@ -11,24 +7,20 @@ ion-header{
  padding: 0px 30px !important;
  background: url("../../assets/images/welcome_bg.jpg") !important;
  background-size: 100% 100%;
- position: fixed; 
- 
+ position: fixed;  
  left: 0; 
-
  /* Preserve aspet ratio */
  min-width: 100%;
  min-height: 100%;
 }
 .welcometxt1{
  
-  font-size: 45px;
- 
+  font-size: 45px; 
   padding-top: 24px;
   color: #ffffff;
 }
 .welcometxt2{
-  font-size: 26px;
-  
+  font-size: 26px;  
   padding-top: 20px;
   color: #ffffff;
 }
@@ -37,7 +29,6 @@ ion-content{
     font-size: 15px;
   }
 }
-
 .learnmore{
   font-family:Cabin;
   font-size: 12px;
@@ -49,7 +40,7 @@ ion-content{
     padding-left: 5px;
   }
 }
-  div.slide-title {
+div.slide-title {
     margin-top: 2.8rem;
     padding: 0 20px;
     text-align: left;
@@ -59,31 +50,18 @@ ion-content{
 .dailycheck_btn{
   width:100%;
 }
-  .slide-image {
-    max-height: 40%;
-    max-width: 60%;
-    margin: 36px 0;
-  }
-  .bottom-layout{
-    position: absolute;   
-    bottom:100px;
-    padding: 0px 20px;
-    width: 100%;
-    text-align: center;
-  }
- 
-  b {
-    font-weight: 500;
-  }
+.slide-image {
+  max-height: 40%;
+  max-width: 60%;
+  margin: 36px 0;
+}
+.bottom-layout{
+  position: absolute;   
+  bottom:100px;
+  padding: 0px 20px;
+  width: 100%;
+  text-align: center;
+}
 
-  p {
-    padding: 0 20px;
-    font-size: 14px;
-    line-height: 1.5;
-    color: #f2f2f2;
-    text-align: left;
-    b {
-      color: #000000;
-    }
-  }
+
 

@@ -50,7 +50,17 @@
     text-align: center;
     font-size: 12px;
   }
-  
+  ion-accordion-group{
+    --ion-background-color: #111D12 !important;
+    ion-label{
+      color: $h2color;
+      
+    }
+    ion-item{
+      --padding-start: 0px;
+    }
+   
+  }
   .search-btn{
     margin-top:20px;
     max-width:390px;

@@ -1,0 +1,82 @@
+@import '../../theme/variables.scss'; 
+  .container{
+    
+    background: $color-black;
+    height: 100%;
+  }
+  .top-section{
+    padding: 0px 30px;
+  }
+  .bottom-section{
+    padding: 0px 30px;
+  }
+  ion-label{
+    font-size: 12px;
+  }
+  .provide-id{
+    margin-top: 20px;
+  }
+  .school-label{
+    margin-top: 20px;
+  }
+  .schoolid-input{
+    margin-top: 20px;
+  }
+  .label-txt{
+    color: $h2color;
+    font-size: 20px;
+    line-height: 31px;
+    padding-top: 20px;
+  }
+  ion-item{
+    --background: $color-black;
+    --border-color:#141923;
+  }
+ .schoolDetails{
+   width: 100%;
+   height: 204px;
+   border-radius: 10px;
+   background-color: $color-blue;
+   margin-top: 20px;
+   padding: 25px;
+ }
+ .schoolname{
+  color: $h2color;
+  font-size: 30px;
+ }
+ .schoolAddress{
+  color: $h2color;
+  font-size: 19px;
+  padding-top: 30px;
+  font-family: Roboto;
+ }
+ .schoolid{
+  color: $color-grey;
+  font-size: 16px;
+  padding-top: 10px;
+  font-family: Roboto;
+ }
+ .btn-holder{
+   display: flex;
+   justify-content: space-between;
+   margin-top: 20px;
+ }
+ .yesbtn{
+   --background:#51E12B;
+   width: 50%;
+   height: 38px;
+  color: $h2color !important;
+  --border-radius: 5px !important;
+ }
+ .nobtn{
+  --background:#FF615B;
+ width: 50%;;
+  height: 38px;
+  --border-radius: 5px !important;
+}
+  .confirm-txt{
+    padding-top: 30px;
+    color: $h2color;
+    font-size: 20px;
+  }
+
