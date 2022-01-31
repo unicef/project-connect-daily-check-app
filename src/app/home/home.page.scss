@@ -1,29 +1,53 @@
-@import '../../theme/variables.scss';
-app-home {
-  .toolbar-background {
-    background: transparent;
-    border-color: transparent;
-  }
 
-  .slide-zoom {
-    height: 100%;
-  }
+ 
+
+ 
 ion-header{
   background-color: #000000 !important;
   height: 70px;
 }
-.welcomebg{
-  background: url("../../assets/images/welcome_bg.jpg") !important;   
-}
+.welcomebg1{
+  
+ padding: 0px 30px !important;
+ background: url("../../assets/images/welcome_bg.jpg") !important;
+ background-size: 100% 100%;
+ position: fixed; 
+ 
+ left: 0; 
 
+ /* Preserve aspet ratio */
+ min-width: 100%;
+ min-height: 100%;
+}
+.welcometxt1{
+ 
+  font-size: 45px;
+ 
+  padding-top: 24px;
+  color: #ffffff;
+}
+.welcometxt2{
+  font-size: 26px;
+  
+  padding-top: 20px;
+  color: #ffffff;
+}
 ion-content{
   ion-label{
     font-size: 15px;
   }
 }
+
 .learnmore{
   font-family:Cabin;
-  font-size: 12px !important;
+  font-size: 12px;
+  padding: 0px 30px;
+  padding-top: 10px;
+  color: #ffffff;
+  span{
+    font-size: 24px;
+    padding-left: 5px;
+  }
 }
   div.slide-title {
     margin-top: 2.8rem;
@@ -42,16 +66,12 @@ ion-content{
   }
   .bottom-layout{
     position: absolute;   
-    bottom:40px;
+    bottom:100px;
     padding: 0px 20px;
     width: 100%;
     text-align: center;
   }
-  .top-layout{
-    position: absolute; 
-    top:40px;
-    
-  }
+ 
   b {
     font-weight: 500;
   }
@@ -67,4 +87,3 @@ ion-content{
     }
   }
 
-}

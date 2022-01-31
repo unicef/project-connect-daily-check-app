@@ -1,31 +1,16 @@
 @import '../../theme/variables.scss';
-app-searchschool{
-  /* .container {
-    text-align: center;
-    background: $color-black;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-  } */
- 
+
     .container{
-     
+     padding: 0px 30px;
       background: $color-black;
       height: 100%;
     }
+    .school-label {
+      color: $h2color;
+      padding-top:20px;
+      font-size: 12px;
+    }
   
-  .container strong {
-    font-size: 20px;
-    line-height: 26px;
-  }
-  .container p {
-    font-size: 16px;
-    line-height: 22px;
-    color: #8c8c8c;
-    margin: 0;
-  }
   .container a {
     text-decoration: none;
   }
@@ -42,4 +27,35 @@ app-searchschool{
     margin-top: 20px;
   }
 
-}
+  .freq-txt{
+    text-align: left;
+    color: $color-blue;
+    padding:20px 30px;
+  }
+  .schoolid-input{
+    color: $h2color;
+    margin-top:20px;
+    border:1px solid #fff
+  }
+  .provide-id{
+    color: $h2color;
+    font-size: 20px;
+  }
+  .accordion-sec{
+    padding: 0px 30px;
+  }
+  .noschoolid-link {
+    color: $h2color;
+    padding-top:20px;
+    text-align: center;
+    font-size: 12px;
+  }
+  
+  .search-btn{
+    margin-top:20px;
+    max-width:390px;
+    min-width: 320px;
+    font-size: 12px;
+    border-radius: 3px !important;
+    height: 50px;
+  }
