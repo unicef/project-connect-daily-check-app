@@ -71,3 +71,11 @@ ion-header{
   ion-label{
     color: $h2color;
   }
+
+  .toolbar-background {
+    position:relative !important
+  }
+
+  ion-toolbar{
+    --background:#000000 !important;
+  }
