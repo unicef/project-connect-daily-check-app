@@ -1,0 +1,43 @@
+import { Injectable } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
+import { catchError, map, tap } from 'rxjs/operators';
+import { Observable, throwError  } from 'rxjs';
+import { Country } from '../models/models';
+@Injectable({
+  providedIn: 'root'
+})
+export class CountryService {
+  options: any;
+  constructor(private http: HttpClient) { 
+    this.options = {
+      Observe: 'response',
+      headers: new HttpHeaders({
+        'Content-type': 'application/json'
+      })
+    };
+  }
+
+  /**
+  * Returns all countries present in the database. 
+  * @returns Country
+  */
+  getAll(): Observable<Country[]> {
+    return this.http.get(environment.restAPI + 'countries', this.options).pipe(
+      map((response:any) => response.data)
+    );
+  }
+
+  /** 
+  * Returns a Country array that can be passed to the component.
+  * Id is country id which is a mandatory parameter.
+  * @param id Country Id
+  * @returns Country
+  */
+  getById(id:number): Observable<Country[]> {
+    return this.http.get(environment.restAPI + 'countries/'+id, this.options).pipe(
+      map((response:any) => response.data)
+    );
+  }
+
+}
