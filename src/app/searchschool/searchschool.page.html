@@ -1,7 +1,7 @@
 
 <ion-header no-shadow>
   <ion-toolbar>
-    <ion-label>PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
+    <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
   </ion-toolbar>
 </ion-header>
 <ion-content>
@@ -9,14 +9,13 @@
     <div class="top-layout">
         <div class="provide-id">To get started. please provide your school ID:</div>
         <div class="school-label">SCHOOL ID</div>
-        <ion-input placeholder="Enter your school ID" class="schoolid-input"></ion-input>
-        <ion-button expand="full" primary class="search-btn">SEARCH FOR MY SCHOOL</ion-button>
+        <ion-input placeholder="Enter your school ID" class="schoolid-input" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4"></ion-input>
+        <ion-button expand="full" primary class="search-btn" (click)="searchSchoolById()" [disabled]="isDisabled">SEARCH FOR MY SCHOOL</ion-button>
         <div class="learn-more" class="noschoolid-link">I DON'T KNOW MY SCHOOL ID <span class="chevron right"></span></div>
      </div>
     <div class="bottom-layout"> 
      
-      <div class="freq-txt">Frequently asked questions </div>
-        
+      <div class="freq-txt">Frequently asked questions </div>        
         <div class="accordion-sec">  
           <ion-accordion-group > 
            <ion-accordion value="colors">

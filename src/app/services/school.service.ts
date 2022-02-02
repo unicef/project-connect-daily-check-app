@@ -3,11 +3,12 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Observable, throwError  } from 'rxjs';
-import { Country } from '../models/models';
+import { School } from '../models/models';
+
 @Injectable({
   providedIn: 'root'
 })
-export class CountryService {
+export class SchoolService {
   options: any;
   constructor(private http: HttpClient) { 
     this.options = {
@@ -19,11 +20,11 @@ export class CountryService {
   }
 
   /**
-  * Returns all countries present in the database. 
-  * @returns Country
+  * Returns all schools present in the database. 
+  * @returns School
   */
-  getAll(): Observable<Country[]> {
-    return this.http.get(environment.restAPI + 'countries', this.options).pipe(
+   getAll(): Observable<School[]> {
+    return this.http.get(environment.restAPI + 'schools', this.options).pipe(
       map((response:any) => response.data),
       tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)
@@ -31,13 +32,13 @@ export class CountryService {
   }
 
   /** 
-  * Returns a Country array that can be passed to the component.
-  * Id is country id which is a mandatory parameter.
-  * @param id Country Id
-  * @returns Country
+  * Returns a School array that can be passed to the component.
+  * Id is school id which is a mandatory parameter.
+  * @param id School Id
+  * @returns School
   */
-  getById(id:number): Observable<Country[]> {
-    return this.http.get(environment.restAPI + 'countries/'+id, this.options).pipe(
+   getById(id:number): Observable<School[]> {
+    return this.http.get(environment.restAPI + 'schools/'+id, this.options).pipe(
       map((response:any) => response.data),
       tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)
@@ -52,5 +53,4 @@ export class CountryService {
   private handleError(error: Response) {
     return throwError(error);
   }
-
 }

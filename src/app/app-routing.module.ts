@@ -15,7 +15,7 @@ const routes: Routes = [
     loadChildren: () => import('./searchcountry/searchcountry.module').then( m => m.SearchcountryPageModule)
   },
   {
-    path: 'schooldetails',
+    path: 'schooldetails/:schoolId',
     loadChildren: () => import('./schooldetails/schooldetails.module').then( m => m.SchooldetailsPageModule)
   }
   ,
