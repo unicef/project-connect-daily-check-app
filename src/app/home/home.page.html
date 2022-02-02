@@ -1,7 +1,7 @@
 <ion-header no-shadow>
-  <ion-navbar>
+  <ion-toolbar>
     <ion-label>PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
-  </ion-navbar>
+  </ion-toolbar>
 </ion-header>
 
 <ion-content no-bounce >
@@ -13,7 +13,7 @@
       <div class="welcometxt2">Help your school get better connectivity. Share your school's internet status with Project Connectivity everyday.</div>
       </div>
       <div class="bottom-layout">
-      <ion-button color="primary" block onclick="gotoDailyCheck()" class="dailycheck_btn">SET UP DAILY CHECK <span class="rightArr">&rsaquo;</span></ion-button>
+      <ion-button color="primary" block [routerLink]="['/searchschool']" class="dailycheck_btn">SET UP DAILY CHECK <span class="rightArr">&rsaquo;</span></ion-button>
       <div class="learnmore">LEARN MORE ABOUT PROJECT CONNECT <span class="rightArr">&rsaquo;</span></div>     
     </div>
   </div>
