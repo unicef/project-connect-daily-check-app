@@ -6,12 +6,14 @@
 <ion-content>
   <div class="container">    
     <div class="top-layout">      
-      <div class="label-txt">School details for ID {{schoolId | uppercase}}:</div>        
+      <div class="label-txt"><span class="result-txt">RESULTS FOR SCHOOL ID</span><br><span class="schoolID-txt">{{schoolId | uppercase}}</span></div>        
+      <div class="h-line"></div>
+      <div class="selectandconfirm">SELECT AND CONFIRM YOUR SCHOOL</div>
       <div class="ionList">
         <ion-list>
           <ion-radio-group allow-empty-selection [value]="">
             <ion-item *ngFor="let schoolInfo of schools">
-              <ion-label><span>{{schoolInfo.name}}</span><br><span>Queimadas - BA, {{schoolInfo.postal_code}} , {{schoolInfo.country}}</span></ion-label>
+              <ion-label><span class="schoolName">{{schoolInfo.name}}</span><br><span class="streetName">Via Francesco Catel 4, Testaccio</span><br><span class="schoolAddress">Queimadas - BA, {{schoolInfo.postal_code}} , {{schoolInfo.country}}</span></ion-label>
               <ion-radio mode="md" slot="start" [value]="schoolInfo.giga_id"></ion-radio>
             </ion-item>
           </ion-radio-group>  

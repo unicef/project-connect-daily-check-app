@@ -1,7 +1,5 @@
-ion-header{
-  background-color: #000000 !important;
-  height: 70px;
-}
+
+@import '../../theme/variables.scss';
 .welcomebg1{
   
  padding: 0px 30px !important;
@@ -28,6 +26,9 @@ ion-content{
   ion-label{
     font-size: 15px;
   }
+}
+.daily-chk{
+  color: $color-blue;
 }
 .learnmore{
   font-family:Cabin;

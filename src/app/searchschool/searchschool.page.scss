@@ -25,6 +25,7 @@
   }
   .schoolid-input{
     margin-top: 20px;
+    width: 100%;
   }
 
   .freq-txt{
@@ -35,37 +36,58 @@
   .schoolid-input{
     color: $h2color;
     margin-top:20px;
-    border:1px solid #fff
+    border:1px solid #fff;
+    border-radius: 5px;
   }
   .provide-id{
     color: $h2color;
     font-size: 20px;
+    text-align: center;
+    opacity: 0.8;
   }
   .accordion-sec{
     padding: 0px 30px;
   }
   .noschoolid-link {
-    color: $h2color;
+    color:#A3ACBB;
     padding-top:20px;
     text-align: center;
     font-size: 12px;
   }
-  ion-accordion-group{
-    --ion-background-color: #111D12 !important;
-    ion-label{
-      color: $h2color;
-      
-    }
-    ion-item{
-      --padding-start: 0px;
-    }
-   
-  }
+ 
   .search-btn{
     margin-top:20px;
-    max-width:390px;
-    min-width: 320px;
+   width: 100%;
     font-size: 12px;
     border-radius: 3px !important;
     height: 50px;
+    border-radius: 5px;
   }
+  .search {
+  width: 100%;
+  position: relative;
+  display: flex;
+}
+ .searchTerm {
+  width: 100%;
+  border: 3px solid #00B4CC;
+  border-right: none;
+  padding: 5px;
+  border-radius: 5px 0 0 5px;
+  outline: none;
+  color: #9DBFAF;
+}
+ .searchTerm:focus{
+  color: #00B4CC;
+}
+ .searchButton {
+  width: 40px;
+  height: 50px;
+  border: 1px solid #00B4CC;
+  background: #00B4CC;
+  text-align: center;
+  color: #fff;
+  border-radius: 0 5px 5px 0;
+  cursor: pointer;
+  font-size: 20px;
+}

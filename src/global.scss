@@ -27,7 +27,7 @@
 
 @import './theme/variables.scss';
 ion-header{
-    background-color: #000000 !important;
+    background-color: #2779FF !important;
     height: 70px;
     padding-left: 30px;
     display:flex;
@@ -37,8 +37,8 @@ ion-header{
     }
   }
 .dailycheck_btn{
-    max-width:390px;
-    min-width: 320px;
+   
+    width: 100%;
     font-size: 12px;
     border-radius: 0px !important;
     height: 50px;
@@ -67,10 +67,41 @@ ion-header{
     border: 1px solid #222;
     border-radius: 5px;
   }
-
+ion-icon{
+    color:  #42516E;
+}
   ion-label{
     color: $h2color;
   }
+  
   ion-toolbar{
-    --background: #000000 !important;
+    --background: #2779FF !important;
+    
   }
+ 
+ .header-ios ion-toolbar:last-of-type{
+    --border-width:0px !important;
+ }
+ ion-accordion-group{
+    --ion-background-color: #111D12 !important;
+    
+    ion-accordion{
+      
+        padding: 5px 15px;
+        border-bottom: 1px solid #42516E;
+       
+        ion-item{
+          --border-width: 0;
+          padding: 0px;
+          --padding-start:0px !important;
+          ion-label{
+              color: #e2e2e2 !important;
+            }
+        }
+        ion-icon{
+            margin-inline: 0px !important;
+        }
+       
+    }
+  }
+  
