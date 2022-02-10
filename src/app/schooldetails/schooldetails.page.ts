@@ -42,7 +42,7 @@ export class SchooldetailsPage {
     ); 
   }
 
-  gotoDailyCheck(){
+  confirmSchool(){
     
   }
 
