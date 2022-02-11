@@ -9,15 +9,17 @@
     <div class="top-layout">
         <div class="provide-id">To get started, please enter and search for your School ID</div>
         <!-- <div class="school-label">SCHOOL ID</div> -->
-        <ion-input placeholder="Enter your school ID" class="schoolid-input" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4"></ion-input>
-      <!--   <div class="search">
-          <input type="text" class="searchTerm" placeholder="What are you looking for?">
-          <button type="submit" class="searchButton">
-            <i class="fa fa-search"></i>
-         </button>
-       </div> -->
-        <ion-button expand="full" primary class="search-btn" (click)="searchSchoolById()" [disabled]="isDisabled">SEARCH FOR MY SCHOOL</ion-button>
-        <div class="learn-more" class="noschoolid-link">I DON'T KNOW MY SCHOOL ID <span class="chevron right"></span></div>
+<!--         <ion-input placeholder="Enter your school ID" class="schoolid-input" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4"></ion-input>
+ -->        <div class="wrap">
+          <div class="search">
+             <input type="text" class="searchTerm" placeholder="Enter your school ID" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4">
+             <button type="submit" class="searchButton" (click)="searchSchoolById()">
+               <ion-icon name="search-outline" class="searchIcon"></ion-icon>
+            </button>
+          </div>
+       </div>
+       <!--  <ion-button expand="full" primary class="search-btn" (click)="searchSchoolById()" [disabled]="isDisabled">SEARCH FOR MY SCHOOL</ion-button>-->
+        <div class="learn-more" class="noschoolid-link">I DON'T KNOW MY SCHOOL ID <span class="chevron right"></span></div> 
      </div>
     <div class="bottom-layout"> 
      

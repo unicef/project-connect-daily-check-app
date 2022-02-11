@@ -24,6 +24,11 @@ const routes: Routes = [
   }
   ,
   {
+    path: 'schoolnotfound',
+    loadChildren: () => import('./schoolnotfound/schoolnotfound.module').then( m => m.SchoolnotfoundPageModule)
+  }
+  ,
+  {
     path: '',
     redirectTo: 'home',    
     pathMatch: 'full'

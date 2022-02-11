@@ -47,34 +47,21 @@
     color:#E2E2E2;
     font-size: 10px;
   }
-  ion-list{
-    border-bottom: 1px solid #42516E;
-  }
-  .ionList{
-    padding-top: 0px;
-    --ion-background-color:#141923;
-    /* ion-list{
-      border-bottom: #42516E !important;
-    } */
-    ion-label{
+  .noschool{
+    
+    ion-img{
+      width:160px !important;
+     margin: 20px auto;
+    }
+    .unabletolocate-txt{
+      color: #51E12B;
+      text-align: center;
+      padding-top: 20px;
+    }
+    .noschool-txt{
       color: $h2color;
-      font-family: Roboto;
-      padding: 10px 0px;
-     border: none !important;
-      font-size: 16px;
-       .schoolAddress{
-         font-size: 10px;
-       }
-      .streetName{
-        font-size: 10px;
-      }
-    }
-    ion-radio{
-      margin-inline-end: 16px !important;
-    }
-    ion-item{
-      --padding-start: 0px !important;
-      --border-color:none !important;
+      text-align: center;
+      padding-top: 10px;
     }
   }
   .noSchoolList-txt{
