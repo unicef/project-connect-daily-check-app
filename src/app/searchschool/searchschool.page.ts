@@ -43,7 +43,7 @@ export class SearchschoolPage {
             this.router.navigate(['schooldetails',this.schoolId]);
           } else {
             /* Redirect to no result found page */
-            alert('No school found.');
+            this.router.navigate(['schoolnotfound',this.schoolId]);
           }
         }
       ); 

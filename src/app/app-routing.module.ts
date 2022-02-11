@@ -24,7 +24,7 @@ const routes: Routes = [
   }
   ,
   {
-    path: 'schoolnotfound',
+    path: 'schoolnotfound/:schoolId',
     loadChildren: () => import('./schoolnotfound/schoolnotfound.module').then( m => m.SchoolnotfoundPageModule)
   }
   ,
