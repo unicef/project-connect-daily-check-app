@@ -10,7 +10,6 @@
       <div class="h-line"></div>
       <div class="selectandconfirm">SELECT AND CONFIRM YOUR SCHOOL</div>
       <div class="ionList">
-
         <ion-list>
           <ion-radio-group allow-empty-selection [value]="">
             <ion-item *ngFor="let schoolInfo of schools">
@@ -22,8 +21,8 @@
       </div>
     </div>
     <div class="bottom-layout">
-      <ion-button color="primary" block (click)="gotoDailyCheck()" class="dailycheck_btn">CONFIRM SCHOOL ID</ion-button>
-      <div class="noSchoolList-txt">MY SCHOOL IS NOT ON THE LIST <span class="rightArr">&rsaquo;</span></div>     
+      <ion-button color="primary" block  (click)="gotoDailyCheck()" class="dailycheck_btn">CONFIRM SCHOOL</ion-button>
+      <div class="noSchoolList-txt">MY SCHOOL IS NOT ON THE LIST</div>     
     </div>
   </div>
 </ion-content>
