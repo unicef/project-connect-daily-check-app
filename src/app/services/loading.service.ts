@@ -7,6 +7,10 @@ export class LoadingService {
   isLoading = false;
   constructor( public loadingController: LoadingController ) { }
 
+  /**
+   * Open loading 
+   * @returns loader
+   */
   async present() {
     this.isLoading = true;
     return await this.loadingController.create({
@@ -20,6 +24,10 @@ export class LoadingService {
     });
   }
 
+  /**
+   * Close the loader
+   * @returns 
+   */
   async dismiss() {
     this.isLoading = false;
     return await this.loadingController.dismiss().then(() => console.log('dismissed'));

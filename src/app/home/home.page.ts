@@ -1,5 +1,4 @@
 import { Component, ViewChild } from '@angular/core';
-//import { IonAccordionGroup } from '@ionic/angular';
 
 @Component({
   selector: 'app-home',
@@ -7,7 +6,6 @@ import { Component, ViewChild } from '@angular/core';
   styleUrls: ['home.page.scss'],
 })
 export class HomePage {
-//  @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
   constructor() {}
 
 }
