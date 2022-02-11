@@ -11,17 +11,20 @@
       <div class="selectandconfirm">SELECT AND CONFIRM YOUR SCHOOL</div>
       <div class="ionList">
         <ion-list>
-          <ion-radio-group allow-empty-selection [value]="">
+          <ion-radio-group allow-empty-selection [value]="" [(ngModel)]="gigaId" (ngModelChange)="validateSelectedSchool($event)">
             <ion-item *ngFor="let schoolInfo of schools">
-              <ion-label><span class="schoolName">{{schoolInfo.name}}</span><br><span class="streetName">Via Francesco Catel 4, Testaccio</span><br><span class="schoolAddress">Queimadas - BA, {{schoolInfo.postal_code}} , {{schoolInfo.country}}</span></ion-label>
-              <ion-radio mode="md" slot="start" [value]="schoolInfo.giga_id"></ion-radio>
+              <ion-label>
+                <span class="schoolName">{{schoolInfo.name}}</span><br>
+                <span class="streetName" *ngIf="schoolInfo.address">{{schoolInfo.address}}</span><br>
+                <span class="schoolAddress">Queimadas - BA, {{schoolInfo.postal_code?schoolInfo.postal_code+',':''}} {{schoolInfo.country}}</span></ion-label>
+              <ion-radio mode="md" slot="start" [value]="schoolInfo.giga_id" (click)="schoolSelection(schoolInfo)"></ion-radio>
             </ion-item>
           </ion-radio-group>  
         </ion-list>
       </div>
     </div>
     <div class="bottom-layout">
-      <ion-button color="primary" block (click)="confirmSchool()" class="dailycheck_btn">CONFIRM SCHOOL ID</ion-button>
+      <ion-button color="primary" block (click)="confirmSchool()" [disabled]="isDisabled" class="dailycheck_btn">CONFIRM SCHOOL ID</ion-button>
       <div class="noSchoolList-txt">MY SCHOOL IS NOT ON THE LIST <span class="rightArr">&rsaquo;</span></div>     
     </div>
   </div>

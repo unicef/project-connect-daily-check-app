@@ -5,17 +5,35 @@ import { LoadingController } from '@ionic/angular';
 })
 export class LoadingService {
   isLoading = false;
+  loadingObj:any;
   constructor( public loadingController: LoadingController ) { }
 
   /**
    * Open loading 
    * @returns loader
    */
-  async present() {
+  async present(msg?: string, duration?: number, cssClass?: string, spinner?) {
     this.isLoading = true;
-    return await this.loadingController.create({
-      // duration: 5000,
-    }).then(a => {
+    this.loadingObj = {};
+
+    if(spinner) {
+      this.loadingObj.spinner = spinner;
+    }
+
+    if(msg){
+      this.loadingObj.message = msg;
+    }
+
+    if(duration){
+      this.loadingObj.duration = duration;
+    }
+
+    if(cssClass){
+      this.loadingObj.cssClass = cssClass;
+    }
+
+    
+    return await this.loadingController.create(this.loadingObj).then(a => {
       a.present().then(() => {
         if (!this.isLoading) {
           a.dismiss().then(() => console.log('abort presenting'));

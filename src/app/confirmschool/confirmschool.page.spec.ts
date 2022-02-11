@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
-
+import { RouterTestingModule } from '@angular/router/testing';
+import { HttpClientModule } from '@angular/common/http';
 import { ConfirmschoolPage } from './confirmschool.page';
 
 describe('ConfirmschoolPage', () => {
@@ -10,7 +11,7 @@ describe('ConfirmschoolPage', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ ConfirmschoolPage ],
-      imports: [IonicModule.forRoot()]
+      imports: [IonicModule.forRoot(),RouterTestingModule, HttpClientModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(ConfirmschoolPage);
@@ -20,5 +21,9 @@ describe('ConfirmschoolPage', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  afterEach(() => {
+    TestBed.resetTestingModule();
   });
 });

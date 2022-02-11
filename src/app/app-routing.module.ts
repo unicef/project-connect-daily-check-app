@@ -19,7 +19,7 @@ const routes: Routes = [
     loadChildren: () => import('./schooldetails/schooldetails.module').then( m => m.SchooldetailsPageModule)
   },
   {
-    path: 'confirmschool',
+    path: 'confirmschool/:schoolId',
     loadChildren: () => import('./confirmschool/confirmschool.module').then( m => m.ConfirmschoolPageModule)
   }
   ,

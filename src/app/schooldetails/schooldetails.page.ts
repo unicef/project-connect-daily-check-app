@@ -13,13 +13,17 @@ export class SchooldetailsPage {
   @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
   schools: any;
   schoolId: any;
+  selectedSchool:any;
+  isDisabled = true;
   private sub: any;
   constructor(
     private activatedroute: ActivatedRoute, 
     public loading: LoadingService,
+    private router: Router,
     private schoolService: SchoolService) {
     this.sub = this.activatedroute.params.subscribe(params => {
       this.schoolId = params.schoolId;
+      this.selectedSchool = {};
       this.searchSchoolById(this.schoolId);
     });    
   }
@@ -29,7 +33,8 @@ export class SchooldetailsPage {
    * @param id 
    */
   searchSchoolById(id){
-    this.loading.present();
+    let loadingMsg = '<ion-img src="assets/loader/loader.gif"></ion-img><p>Searching for your school</p>';
+    this.loading.present(loadingMsg, 100000, 'pdcaLoaderClass', 'null');
     this.schoolService.getById(id).subscribe(
       (response) => {
         this.schools = response;
@@ -43,7 +48,20 @@ export class SchooldetailsPage {
   }
 
   confirmSchool(){
-    
+    this.router.navigate(['confirmschool',this.selectedSchool.school_id],{state:this.selectedSchool});
+  }
+
+  schoolSelection(schoolObj){
+    this.selectedSchool = schoolObj;
+  }
+
+  validateSelectedSchool(gigaId){
+    console.log(gigaId);
+    if(gigaId){
+      this.isDisabled = false;
+    } else {
+      this.isDisabled = true;
+    }
   }
 
   ngOnDestroy() {

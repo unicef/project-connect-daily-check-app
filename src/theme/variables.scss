@@ -301,3 +301,9 @@ $h2color : #fff;
     --ion-card-background: #1e1e1e;
   }
 }
+ion-loading.pdcaLoaderClass {
+  .loading-wrapper {
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}

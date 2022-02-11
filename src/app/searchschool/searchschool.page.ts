@@ -26,7 +26,8 @@ export class SearchschoolPage {
    */
   searchSchoolById(){
     if(this.schoolId){ 
-      this.loading.present();
+      let loadingMsg = '<ion-img src="assets/loader/loader.gif"></ion-img><p>Searching for your school</p>';
+      this.loading.present(loadingMsg, 100000, 'pdcaLoaderClass', 'null');
       this.schoolService.getById(this.schoolId).subscribe(
         (response) => {
           this.schoolData = response;
