@@ -33,8 +33,8 @@ export class SchooldetailsPage {
    * @param id 
    */
   searchSchoolById(id){
-    let loadingMsg = '<ion-img src="assets/loader/loader.gif"></ion-img><p>Searching for your school</p>';
-    this.loading.present(loadingMsg, 100000, 'pdcaLoaderClass', 'null');
+    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Searching for your school...</p></div>';
+    this.loading.present(loadingMsg, 3000, 'pdcaLoaderClass', 'null');
     this.schoolService.getById(id).subscribe(
       (response) => {
         this.schools = response;

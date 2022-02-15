@@ -20,33 +20,6 @@ export class SchoolnotfoundPage {
     private schoolService: SchoolService) {
     this.sub = this.activatedroute.params.subscribe(params => {
       this.schoolId = params.schoolId;
-      this.searchSchoolById(this.schoolId);
     });    
-  }
-
-  /**
-   * Get school information by id
-   * @param id 
-   */
-  searchSchoolById(id){
-    this.loading.present();
-    this.schoolService.getById(id).subscribe(
-      (response) => {
-        this.schools = response;
-      },(err) => {
-        this.loading.dismiss();
-      },
-      () => {
-        this.loading.dismiss();
-      }
-    ); 
-  }
-
-  gotoDailyCheck(){
-    
-  }
-
-  ngOnDestroy() {
-    this.sub.unsubscribe();
   }
 }

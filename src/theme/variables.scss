@@ -303,8 +303,20 @@ $h2color : #fff;
   }
 }
 ion-loading.pdcaLoaderClass {
+  --backdrop-opacity: none;
   .loading-wrapper {
+    .loading-spinner{
+      display: none;
+    }
     background: transparent !important;
     box-shadow: none !important;
   }
+}
+p.white{
+  color:#fff !important;
+}
+ion-img.loaderGif{
+  width: 50px;
+  height:auto;
+  margin: 0 auto;
 }

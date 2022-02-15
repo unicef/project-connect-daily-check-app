@@ -26,15 +26,15 @@ export class SearchschoolPage {
    */
   searchSchoolById(){
     if(this.schoolId){ 
-      let loadingMsg = '<ion-img src="assets/loader/loader.gif"></ion-img><p>Searching for your school</p>';
-      this.loading.present(loadingMsg, 100000, 'pdcaLoaderClass', 'null');
+      let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Searching for your school...</p></div>';
+      this.loading.present(loadingMsg, 3000, 'pdcaLoaderClass', 'null');
       this.schoolService.getById(this.schoolId).subscribe(
         (response) => {
           this.schoolData = response;
         },(err) => {
           console.log('ERROR: ' + err);
           this.loading.dismiss();
-          alert('Error:No school found.');
+          this.router.navigate(['schoolnotfound',this.schoolId]);
           /* Redirect to no result found page */
         },
         () => {
