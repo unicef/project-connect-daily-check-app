@@ -35,6 +35,7 @@ ion-header{
     ion-label{
       font-size: 15px !important;
     }
+    border-radius:10px 10px 0px 0px;
   }
 .dailycheck_btn{
    
@@ -48,6 +49,14 @@ ion-header{
       padding-left: 5px;
       letter-spacing: 1;
     }
+  }
+  .h-line{
+    margin-top: 22px;
+    border-bottom: 1px solid #747474;
+    opacity: 0.5;
+  }
+  .padT30{
+    padding-top: 30px !important;
   }
   .top-layout{  
     padding-top: 30px;
@@ -86,6 +95,7 @@ ion-header{
  ion-icon{
      color: #e2e2e2;
  }
+
  ion-accordion-group{
     --ion-background-color: #141923 !important;
     
@@ -102,7 +112,7 @@ ion-header{
             }
         }
         ion-icon{
-            margin-inline: 0px !important;
+            margin-inline: -15px !important;
             color: $color-no;
         }
        

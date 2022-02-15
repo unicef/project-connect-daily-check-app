@@ -5,11 +5,15 @@
  padding: 0px 30px !important;
  background: url("../../assets/images/welcome_bg.jpg") !important;
  background-size: 100% 100%;
- position: fixed;  
+ position: absolute;  
  left: 0; 
  /* Preserve aspet ratio */
  min-width: 100%;
  min-height: 100%;
+ border-radius: 0px 0px 10px 10px;
+}
+.container{
+  border-radius: 0px 0px 10px 10px;
 }
 .welcometxt1{
  
@@ -61,7 +65,7 @@ div.slide-title {
 }
 .bottom-layout{
   position: absolute;   
-  bottom:100px;
+ 
   padding: 0px 20px;
   width: 100%;
   text-align: center;

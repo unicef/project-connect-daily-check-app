@@ -6,14 +6,16 @@
 
 <ion-content no-bounce >  
      <!--  <img [src]="slide.image" class="slide-image" /> -->
+  <div class="container">
   <div class="welcomebg1">
     <div class="top-layout"> 
       <div class="welcometxt1">Welcome to Project Connect <span class="daily-chk">Daily Check</span></div>
       <div class="welcometxt2">{{'Help your school get better connectivity. Share your school internet status with Project Connectivity everyday.'| translate}}</div>
     </div>
     <div class="bottom-layout">
-      <ion-button color="primary" block [routerLink]="['/searchschool']" class="dailycheck_btn">{{'SET UP DAILY CHECK' | translate}} <ion-icon name="chevron-forward-outline"></ion-icon></ion-button>
-      <div class="learnmore">{{'LEARN MORE ABOUT PROJECT CONNECT'| translate}} <span class="rightArr">&rsaquo;</span></div>     
+      <ion-button color="primary" block [routerLink]="['/searchschool']" class="dailycheck_btn">{{'SET UP DAILY CHECK' | translate}} </ion-button>
+      <div class="learnmore">{{'LEARN MORE ABOUT PROJECT CONNECT'| translate}} </div>     
     </div>
   </div>
+</div>
 </ion-content>

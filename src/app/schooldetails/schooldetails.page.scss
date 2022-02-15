@@ -3,6 +3,7 @@
     padding: 0px 30px;
     background: $color-black;
     height: 100%;
+    border-radius: 0px 0px 10px 10px;
   }
  
   ion-label{
@@ -20,16 +21,14 @@
   .label-txt{
     color: $h2color;
     font-size: 20px;
+    padding-left: 10px;
   }
-  .h-line{
-    margin-top: 22px;
-    border-bottom: 1px solid #747474;
-    opacity: 0.5;
-  }
+  
   .selectandconfirm{
     color: $color-blue;
     font-size: 13px;
     padding-top: 12px;
+    padding-left: 10px;
   }
   .result-txt{
     color: #2779FF;
@@ -49,6 +48,7 @@
   }
   ion-list{
     border-bottom: 1px solid #42516E;
+    padding-left: 10px;
   }
   .ionList{
     padding-top: 0px;
@@ -57,9 +57,9 @@
       border-bottom: #42516E !important;
     } */
     ion-label{
-      color: $h2color;
-      font-family: Roboto;
+      color: $h2color;      
       padding: 10px 0px;
+      font-family: Cabin;
      border: none !important;
       font-size: 16px;
        .schoolAddress{
@@ -71,6 +71,9 @@
     }
     ion-radio{
       margin-inline-end: 16px !important;
+      .item-radio-checked{
+        color: #51E12B;
+      }
     }
     ion-item{
       --padding-start: 0px !important;
