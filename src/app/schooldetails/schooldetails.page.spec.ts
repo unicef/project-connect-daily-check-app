@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { IonicModule } from '@ionic/angular';
 import { RouterTestingModule } from "@angular/router/testing";
+import { TranslateModule } from '@ngx-translate/core';
 import { SchooldetailsPage } from './schooldetails.page';
 
 describe('SchooldetailsPage', () => {
@@ -14,7 +15,8 @@ describe('SchooldetailsPage', () => {
       imports: [
         IonicModule.forRoot(),
         RouterTestingModule, 
-        HttpClientTestingModule
+        HttpClientTestingModule,
+        TranslateModule.forRoot()
       ]
     }).compileComponents();
 
