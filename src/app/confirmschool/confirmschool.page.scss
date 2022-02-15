@@ -3,6 +3,7 @@
     
     background: $color-black;
     height: 100%;
+    border-radius: 0px 0px 10px 10px;
   }
   .top-section{
     padding: 0px 30px;
@@ -28,7 +29,7 @@
     line-height: 18px;
     padding-top: 20px;
     padding-left: 15px;
-    width:68%;
+    width:77%;
   }
   ion-item{
     --background: $color-black;
@@ -66,20 +67,20 @@
    margin-top: 20px;
  }
  .yesbtn{
-   --background:#51E12B;
+   --background: #51E12B !important;
    width: 50%;
    height: 38px;
   color: $h2color !important;
   --border-radius: 5px !important;
  }
  .nobtn{
-  --background:#FF615B;
+  --background:#42516E !important;
  width: 50%;;
   height: 38px;
   --border-radius: 5px !important;
 }
   .confirm-txt{
-    padding-top: 30px;
+   
     padding-left: 15px;
     color: $h2color;
     font-size: 13px;
