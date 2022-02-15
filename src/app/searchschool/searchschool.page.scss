@@ -1,16 +1,18 @@
 @import '../../theme/variables.scss';
 
-    .container{
-     padding: 0px 30px;
-      background: $color-black;
-      height: 100%;
-    }
-    .school-label {
-      color: $h2color;
-      padding-top:20px;
-      font-size: 12px;
-    }
-  
+  .container{
+    padding: 0px 30px;
+    background: $color-black;
+    height: 100%;
+  }
+  .school-label {
+    color: $h2color;
+    padding-top:20px;
+    font-size: 12px;
+  }
+  ion-content{
+    --keyboard-offset:0px !important;
+  }
   .container a {
     text-decoration: none;
   }
@@ -27,7 +29,6 @@
     margin-top: 20px;
     width: 100%;
   }
-
   .freq-txt{
     text-align: left;
     color: $color-blue;
@@ -53,8 +54,7 @@
     padding-top:20px;
     text-align: center;
     font-size: 12px;
-  }
- 
+  } 
   .search-btn{
     margin-top:20px;
    width: 100%;
@@ -70,10 +70,10 @@
   width: 100%;
   position: relative;
   display: flex;
-  ion-icon{
-    color: #e2e2e2;
+    ion-icon{
+      color: #e2e2e2;
+    }
   }
-}
  .searchTerm {
   width: 100%;
   border: 3px solid $color-blue;
@@ -85,11 +85,7 @@
 }
  .searchTerm:focus{
   color: #00B4CC;
-  --offset-top: 0px;
-    --offset-bottom: 0px;
-    --keyboard-offset: 0px;
-    
-}
+  }
  .searchButton {
   width: 40px;
   height: 40px;
