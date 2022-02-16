@@ -24,7 +24,9 @@ export class CountryService {
   */
   getAll(): Observable<Country[]> {
     return this.http.get(environment.restAPI + 'countries', this.options).pipe(
-      map((response:any) => response.data)
+      map((response:any) => response.data),
+      tap(data => console.log(JSON.stringify(data))),
+      catchError(this.handleError)
     );
   }
 
@@ -36,8 +38,19 @@ export class CountryService {
   */
   getById(id:number): Observable<Country[]> {
     return this.http.get(environment.restAPI + 'countries/'+id, this.options).pipe(
-      map((response:any) => response.data)
+      map((response:any) => response.data),
+      tap(data => console.log(JSON.stringify(data))),
+      catchError(this.handleError)
     );
+  }
+  
+  /**
+   * Private function to handle error
+   * @param error 
+   * @returns Error
+   */
+  private handleError(error: Response) {
+    return throwError(error);
   }
 
 }

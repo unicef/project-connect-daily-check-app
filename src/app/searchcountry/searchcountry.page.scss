@@ -1,4 +1,4 @@
-app-searchcountry{
+@import '../../theme/variables.scss';
 .ionContent {
   text-align: center;
 
@@ -8,22 +8,55 @@ app-searchcountry{
   top: 50%;
   transform: translateY(-50%);
 }
-
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
+.container{
+  padding: 0px 30px;
+   background: $color-black;
+   height: 100%;
+ }
+.search-label{
+  padding: 20px 30px;
+  
 }
-
-#container p {
-  font-size: 16px;
-  line-height: 22px;
-
-  color: #8c8c8c;
-
-  margin: 0;
+.ionList{
+  padding: 10px 30px;
 }
-
-#container a {
-  text-decoration: none;
+.wrap{
+  margin-top:18px;
+  padding: 10px 30px;
 }
+.search {
+width: 100%;
+position: relative;
+display: flex;
+ion-icon{
+  color: #e2e2e2;
+}
+}
+.searchTerm {
+width: 100%;
+border: 3px solid $color-blue;
+border-right: none;
+padding: 5px;
+border-radius: 5px 0 0 5px;
+outline: none;
+color: #9DBFAF;
+}
+.searchTerm:focus{
+color: #00B4CC;
+--offset-top: 0px;
+  --offset-bottom: 0px;
+  --keyboard-offset: 0px;
+  
+}
+.searchButton {
+width: 40px;
+height: 40px;
+border: 1px solid;
+border-color: $color-blue;
+background: $color-blue;
+text-align: center;
+color: #fff;
+border-radius: 0 5px 5px 0;
+cursor: pointer;
+font-size: 20px;
 }

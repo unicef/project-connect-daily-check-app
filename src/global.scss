@@ -27,7 +27,7 @@
 
 @import './theme/variables.scss';
 ion-header{
-    background-color: #000000 !important;
+    background-color: #2779FF !important;
     height: 70px;
     padding-left: 30px;
     display:flex;
@@ -35,17 +35,28 @@ ion-header{
     ion-label{
       font-size: 15px !important;
     }
+    border-radius:10px 10px 0px 0px;
   }
 .dailycheck_btn{
-    max-width:390px;
-    min-width: 320px;
+   
+    width: 100%;
     font-size: 12px;
     border-radius: 0px !important;
     height: 50px;
+    letter-spacing: 1;
     span{
       font-size: 24px;
       padding-left: 5px;
+      letter-spacing: 1;
     }
+  }
+  .h-line{
+    margin-top: 22px;
+    border-bottom: 1px solid #747474;
+    opacity: 0.5;
+  }
+  .padT30{
+    padding-top: 30px !important;
   }
   .top-layout{  
     padding-top: 30px;
@@ -67,15 +78,44 @@ ion-header{
     border: 1px solid #222;
     border-radius: 5px;
   }
-
+  ion-icon{
+      color:  #42516E;
+  }
   ion-label{
     color: $h2color;
   }
-
-  .toolbar-background {
-    position:relative !important
-  }
-
+  
   ion-toolbar{
-    --background:#000000 !important;
+    --background: #2779FF !important;    
   }
+ 
+ .header-ios ion-toolbar:last-of-type{
+    --border-width:0px !important;
+ }
+ ion-icon{
+     color: #e2e2e2;
+ }
+
+ ion-accordion-group{
+    --ion-background-color: #141923 !important;
+    
+    ion-accordion{      
+        padding: 5px 15px;
+        border-bottom: 1px solid #42516E;
+
+        ion-item{
+          --border-width: 0;
+          padding: 0px;
+          --padding-start:0px !important;
+          ion-label{
+              color: #e2e2e2 !important;
+            }
+        }
+        ion-icon{
+            margin-inline: -15px !important;
+            color: $color-no;
+        }
+       
+    }
+  }
+  

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { SearchcountryPage } from './searchcountry.page';
-
+import { SharedModule } from '../shared/shared.module';
 import { SearchcountryPageRoutingModule } from './searchcountry-routing.module';
 
 
@@ -12,7 +12,8 @@ import { SearchcountryPageRoutingModule } from './searchcountry-routing.module';
     CommonModule,
     FormsModule,
     IonicModule,
-    SearchcountryPageRoutingModule
+    SearchcountryPageRoutingModule,
+    SharedModule
   ],
   declarations: [SearchcountryPage]
 })

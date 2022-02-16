@@ -1,16 +1,19 @@
 @import '../../theme/variables.scss';
 
-    .container{
-     padding: 0px 30px;
-      background: $color-black;
-      height: 100%;
-    }
-    .school-label {
-      color: $h2color;
-      padding-top:20px;
-      font-size: 12px;
-    }
-  
+  .container{
+    padding: 0px 30px;
+    background: $color-black;
+    height: 100%;
+    border-radius: 0px 0px 10px 10px;
+  }
+  .school-label {
+    color: $h2color;
+    padding-top:20px;
+    font-size: 12px;
+  }
+  ion-content{
+    --keyboard-offset:0px !important;
+  }
   .container a {
     text-decoration: none;
   }
@@ -25,8 +28,8 @@
   }
   .schoolid-input{
     margin-top: 20px;
+    width: 100%;
   }
-
   .freq-txt{
     text-align: left;
     color: $color-blue;
@@ -35,27 +38,65 @@
   .schoolid-input{
     color: $h2color;
     margin-top:20px;
-    border:1px solid #fff
+    border:1px solid #fff;
+    border-radius: 5px;
   }
   .provide-id{
     color: $h2color;
     font-size: 20px;
+    text-align: center;
+    opacity: 0.8;
   }
   .accordion-sec{
     padding: 0px 30px;
   }
   .noschoolid-link {
-    color: $h2color;
+    color:#A3ACBB;
     padding-top:20px;
     text-align: center;
     font-size: 12px;
-  }
-  
+  } 
   .search-btn{
     margin-top:20px;
-    max-width:390px;
-    min-width: 320px;
+   width: 100%;
     font-size: 12px;
     border-radius: 3px !important;
     height: 50px;
+    border-radius: 5px;
+  }
+  .wrap{
+    margin-top:18px;
+  }
+  .search {
+    width: 100%;
+    position: relative;
+    display: flex;
+    ion-icon{
+      color: #e2e2e2;
+    }
+  }
+ .searchTerm {
+    width: 100%;
+    border: 3px solid $color-blue;
+    border-right: none;
+    padding: 5px;
+    border-radius: 5px 0 0 5px;
+    outline: none;
+    // color: #9DBFAF;
+    color: #777777;
+  }
+ .searchTerm:focus{
+    color: #000000;
+  }
+ .searchButton {
+    width: 40px;
+    height: 40px;
+    border: 1px solid;
+    border-color: $color-blue;
+    background: $color-blue;
+    text-align: center;
+    color: #fff;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    font-size: 20px;
   }
