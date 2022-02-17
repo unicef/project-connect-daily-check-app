@@ -24,7 +24,6 @@
 @import "~@ionic/angular/css/text-alignment.css";
 @import "~@ionic/angular/css/text-transformation.css";
 @import "~@ionic/angular/css/flex-utils.css";
-
 @import './theme/variables.scss';
 ion-header{
     background-color: #2779FF !important;
@@ -37,12 +36,11 @@ ion-header{
     }
     border-radius:10px 10px 0px 0px;
   }
-.dailycheck_btn{
-   
+.dailycheck_btn{   
     width: 100%;
     font-size: 12px;
-    border-radius: 0px !important;
-    height: 50px;
+    --border-radius: 5px !important;
+    height: 40px;
     letter-spacing: 1;
     span{
       font-size: 24px;
@@ -77,45 +75,49 @@ ion-header{
     font-size: inherit;
     border: 1px solid #222;
     border-radius: 5px;
+    color:#3E434E !important;
   }
   ion-icon{
-      color:  #42516E;
+    color:  #42516E;
   }
   ion-label{
     color: $h2color;
   }
-  
+  ion-radio{
+    .radio-icon{
+    --border-width: 0px;
+    --border-style: solid;
+    --border-radius: 50%;
+      width: 30px;
+      height: 30px;
+    }
+  }
   ion-toolbar{
     --background: #2779FF !important;    
-  }
- 
+  } 
  .header-ios ion-toolbar:last-of-type{
     --border-width:0px !important;
- }
+  }
  ion-icon{
-     color: #e2e2e2;
+    color: #e2e2e2;
  }
-
  ion-accordion-group{
-    --ion-background-color: #141923 !important;
-    
+    --ion-background-color: #141923 !important;    
     ion-accordion{      
-        padding: 5px 15px;
-        border-bottom: 1px solid #42516E;
-
-        ion-item{
-          --border-width: 0;
-          padding: 0px;
-          --padding-start:0px !important;
-          ion-label{
-              color: #e2e2e2 !important;
-            }
+      padding: 5px 15px;
+      border-bottom: 1px solid #42516E;
+      ion-item{
+        --border-width: 0;
+        padding: 0px;
+        --padding-start:0px !important;
+        ion-label{
+          color: #e2e2e2 !important;
         }
-        ion-icon{
-            margin-inline: -15px !important;
-            color: $color-no;
-        }
-       
+      }
+      ion-icon{
+          margin-inline: -15px !important;
+          color: $color-no;
+      }       
     }
   }
   

@@ -29,6 +29,11 @@ const routes: Routes = [
   }
   ,
   {
+    path: 'schoolsuccess',
+    loadChildren: () => import('./schoolsuccess/schoolsuccess.module').then( m => m.SchoolsuccessPageModule)
+  }
+  ,
+  {
     path: '',
     redirectTo: 'home',    
     pathMatch: 'full'

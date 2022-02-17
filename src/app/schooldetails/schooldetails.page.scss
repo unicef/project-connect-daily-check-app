@@ -4,8 +4,7 @@
     background: $color-black;
     height: 100%;
     border-radius: 0px 0px 10px 10px;
-  }
- 
+  } 
   ion-label{
     font-size: 12px;
   }
@@ -22,8 +21,7 @@
     color: $h2color;
     font-size: 20px;
     padding-left: 10px;
-  }
-  
+  }  
   .selectandconfirm{
     color: $color-blue;
     font-size: 13px;
@@ -71,10 +69,16 @@
     }
     ion-radio{
       margin-inline-end: 16px !important;
+     
       .item-radio-checked{
         color: #51E12B;
       }
     }
+    ion-radio:checked + ion-icon {
+      background-color: $h2color;
+      color: white;
+      font-size: 45px;
+  }
     ion-item{
       --padding-start: 0px !important;
       --border-color:none !important;
