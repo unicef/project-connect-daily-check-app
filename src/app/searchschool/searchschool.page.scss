@@ -68,9 +68,9 @@
     margin-top:18px;
   }
   .search {
-  width: 100%;
-  position: relative;
-  display: flex;
+    width: 100%;
+    position: relative;
+    display: flex;
     ion-icon{
       color: #e2e2e2;
     }
@@ -88,14 +88,14 @@
   color: #3E434E;
   }
  .searchButton {
-  width: 40px;
-  height: 40px;
-  border: 1px solid;
-  border-color: $color-blue;
-  background: $color-blue;
-  text-align: center;
-  color: #fff;
-  border-radius: 0 5px 5px 0;
-  cursor: pointer;
-  font-size: 20px;
-}
+    width: 40px;
+    height: 40px;
+    border: 1px solid;
+    border-color: $color-blue;
+    background: $color-blue;
+    text-align: center;
+    color: #fff;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    font-size: 20px;
+  }
