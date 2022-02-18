@@ -6,23 +6,17 @@
     border-radius: 0px 0px 10px 10px;
   }
  .schoolsuccess{  
-  --bullet-background:#E2E2E2;
-  --bullet-background-active: #51E12B;
-  height: 450px;
+    --bullet-background: #eee;
+    --bullet-background-active: #51E12B;
+    height: 75%;
+ }
+ .swiper-slide {
+   height: 70% !important;
  }
   ion-label{
     font-size: 12px;
   }
-  .provide-id{
-    margin-top: 20px;
-  }
-  .school-label{
-    margin-top: 20px;
-  }
-  .schoolid-input{
-    margin-top: 20px;
-  }
-  .label-txt{
+ .label-txt{
     color: $h2color;
     font-size: 20px;
   }
@@ -31,51 +25,26 @@
     border-bottom: 1px solid #747474;
     opacity: 0.5;
   }
-  .selectandconfirm{
-    color: $color-blue;
-    font-size: 13px;
-    padding-top: 12px;
-  }
-  .result-txt{
-    color: #2779FF;
-    font-size: 16px;
-  }
-  .schoolID-txt{
-    color:#E2E2E2;
-    font-size: 18px;
-  }
-  .schoolName{
-    color:#E2E2E2;
-    font-size: 18px;
-  }
-  .schoolAddress{
-    color:#E2E2E2;
-    font-size: 10px;
-  }
-  .noschool{    
+  .successInfo{    
     ion-img{
       width:160px !important;
      margin: 20px auto;
     }
-    .unabletolocate-txt{
+    .success-txt{
       color: #51E12B;
       text-align: center;
-      padding-top: 20px;
+      padding-top: 0px;
     }
-    .noschool-txt{
+    .success-desc-txt{
       color: $h2color;
       text-align: center;
       padding-top: 10px;
+      font-size: 16px;
     }
-  }
-  .noSchoolList-txt{
-    padding-top: 20px;
-    color: $h2color;
-    font-size: 12px;
-  }
+  }  
   .bottom-layout{
     padding: 0px 30px;
   }
   .top-layout{
-    padding-top: 0px !important;
+    padding-top: 20px !important;
   }

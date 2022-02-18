@@ -48,6 +48,12 @@
     border-bottom: 1px solid #42516E;
     padding-left: 10px;
   }
+  ion-radio{
+    margin:-32px 20px 2px 0px !important;
+    .radio-icon{
+      --border-width: 0px !important;
+    }
+  }
   .ionList{
     padding-top: 0px;
     --ion-background-color:#141923;
