@@ -34,6 +34,16 @@ const routes: Routes = [
   }
   ,
   {
+    path: 'starttest',
+    loadChildren: () => import('./starttest/starttest.module').then( m => m.StarttestPageModule)
+  }
+  ,
+  {
+    path: 'connectivitytest',
+    loadChildren: () => import('./connectivitytest/connectivitytest.module').then( m => m.ConnectivitytestPageModule)
+  }
+  ,
+  {
     path: '',
     redirectTo: 'home',    
     pathMatch: 'full'

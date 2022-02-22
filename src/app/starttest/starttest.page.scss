@@ -1,0 +1,22 @@
+@import '../../theme/variables.scss'; 
+  .container{
+    padding: 0px 30px;
+    background: $color-black;
+    height: 100%;
+    border-radius: 0px 0px 10px 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+ .center-layout{
+      .test-btn{
+      width: 200px;
+      height: 200px;
+      line-height: 200px;
+      border-radius: 50%;
+      font-size: 15px;
+      color: #fff;
+      text-align: center;
+      background: #2779FF;
+    }
+  }

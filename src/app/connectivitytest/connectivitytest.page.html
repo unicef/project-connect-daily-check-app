@@ -1,0 +1,26 @@
+<ion-header no-shadow>
+  <ion-toolbar>
+    <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
+  </ion-toolbar>
+</ion-header>
+<ion-content> 
+  <div class="container">  
+    <div class="top-layout">
+      <div class="test-btn"></div>
+      <div class="speedval" [ngStyle]="{'color':isResultGenerated ? '#8BD432' : '#FFFFFF' }">33.90 Mb/s</div>
+      <div class="location-txt">Location <b>Macururé, Brazil</b></div>
+    </div>
+  <div class="h-line"></div>
+  <div class="result-txt" *ngIf="!isResultGenerated">Generating test results...</div>
+  <div *ngIf="isResultGenerated">   
+    <div class="result-heading">CONNECTIVITY TEST DETAILS</div>
+      <div class="test-details">     
+        <div>Time of test <b>15:45, 23 Mar 2021</b></div>
+        <div>Service provider <b>Airtel</b></div>
+        <div>Upload speed <b>23.56 Mb/s</b></div>
+        <div>Download speed <b>6.34 Mb/s</b></div>
+        <div>Latency <b>3ms</b></div>
+      </div>
+    </div>
+  </div>
+</ion-content>
