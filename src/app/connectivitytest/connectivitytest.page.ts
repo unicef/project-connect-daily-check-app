@@ -22,6 +22,6 @@ export class ConnectivitytestPage {
     this.sub = this.activatedroute.params.subscribe(params => {
       this.schoolId = params.schoolId;     
     });
-    this.isResultGenerated = false;
+    this.isResultGenerated = true;
   }
 }

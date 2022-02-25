@@ -1,20 +1,16 @@
 @import '../../theme/variables.scss'; 
-  .container{
-   
-    background: $color-black;
+  .container{   
+    background: url("../../assets/images/Background.png") !important;
+    min-width: 100%;
+    min-height: 100%;
+    background-size: 100% 100%;
     height: 100%;
     border-radius: 0px 0px 10px 10px;
-  }
- .h-line{
-    margin-top: 22px;
-    border-bottom: 1px solid #747474;
-    opacity: 0.5;
-  }
+  } 
  .bottom-layout{
     padding: 0px 30px;
   }
-  .top-layout{
-    
+  .top-layout{    
     .test-btn{
       width: 90px;
       height: 90px;
@@ -28,8 +24,7 @@
     }
     .speedval{
       font-size: 36px;
-      text-align: center;
-     
+      text-align: center;     
     }
     .location-txt{
       font-size: 16px;
@@ -48,13 +43,13 @@
     height:40px;
     background-color: $color-blue;
     text-align: left;
-    color: white;
+    color:$light-text2;
     padding: 15px 30px;
     font-size: 12px;
     letter-spacing: 1;
   }
   .test-details{
     padding: 10px 30px;  
-    color: white; 
+    color: $light-text2; 
     line-height: 24px;
   }

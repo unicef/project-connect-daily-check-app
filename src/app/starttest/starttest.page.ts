@@ -3,6 +3,8 @@ import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from "@angular/router";
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
+import { MenuController } from '@ionic/angular';
+
 
 @Component({
   selector: 'app-starttest',
@@ -18,12 +20,20 @@ export class StarttestPage {
     private activatedroute: ActivatedRoute, 
     public loading: LoadingService,
     public router:Router,
+    private menu: MenuController,
     private schoolService: SchoolService) {
     this.sub = this.activatedroute.params.subscribe(params => {
       this.schoolId = params.schoolId;
     });    
   }
+  openFirst() {
+    this.menu.enable(true, 'first');
+    this.menu.open('first');
+  }
 
+  openEnd() {
+    this.menu.open('end');
+  }
   showTestResult(){
     this.router.navigate(['connectivitytest']);
   }

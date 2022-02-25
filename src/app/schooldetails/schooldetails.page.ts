@@ -47,7 +47,9 @@ export class SchooldetailsPage {
     ); 
   }
 
-  confirmSchool(){
+  confirmSchool(schoolObj){
+    
+    this.selectedSchool = schoolObj;
     this.router.navigate(['confirmschool',this.selectedSchool.school_id],{state:this.selectedSchool});
   }
 

@@ -27,31 +27,33 @@
 @import './theme/variables.scss';
 ion-header{
     background-color: #2779FF !important;
-    height: 70px;
-    padding-left: 30px;
+    height: 70px;    
     display:flex;
     align-items: center;
     ion-label{
       font-size: 15px !important;
+      letter-spacing: 1.15px;
     }
     border-radius:10px 10px 0px 0px;
   }
 .dailycheck_btn{   
     width: 100%;
-    font-size: 12px;
+    font-size: 13px;
     --border-radius: 5px !important;
     height: 40px;
-    letter-spacing: 1;
-    span{
-      font-size: 24px;
-      padding-left: 5px;
-      letter-spacing: 1;
-    }
+  }
+  .dailycheck_btn:hover{   
+    width: 100%;
+    font-size: 13px;
+    border-radius: 5px !important;
+    height: 40px;
+    background-color:$btn-hover;
   }
   .h-line{
     margin-top: 22px;
-    border-bottom: 1px solid #747474;
-    opacity: 0.5;
+    border-bottom: 1px solid $line-color;
+    opacity: 1;
+    box-shadow: 1px -1px $line-shadow;
   }
   .padT30{
     padding-top: 30px !important;
@@ -81,7 +83,17 @@ ion-header{
     color:  #42516E;
   }
   ion-label{
-    color: $h2color;
+    color: $text-color;
+  }
+  ion-header{
+    display: flex;
+    justify-content: center;
+    ion-toolbar{
+      width: auto !important;
+      ion-label{
+        letter-spacing: 1.15px;
+      }
+    }
   }
   ion-radio{
     .radio-icon{
@@ -89,8 +101,12 @@ ion-header{
     --border-style: solid;
     --border-radius: 50%;
       width: 30px;
-      height: 30px;
+      height: 30px;      
     }
+    
+  }
+  .radio-inner{
+    background: #FFFFFF !important; 
   }
   ion-toolbar{
     --background: #2779FF !important;    
@@ -112,6 +128,7 @@ ion-header{
         --padding-start:0px !important;
         ion-label{
           color: #e2e2e2 !important;
+          font-size: 13px;
         }
       }
       ion-icon{
