@@ -25,7 +25,7 @@
 @import "~@ionic/angular/css/text-transformation.css";
 @import "~@ionic/angular/css/flex-utils.css";
 @import './theme/variables.scss';
-ion-header{
+  ion-header{
     background-color: #2779FF !important;
     height: 70px;    
     display:flex;
@@ -36,7 +36,7 @@ ion-header{
     }
     border-radius:10px 10px 0px 0px;
   }
-.dailycheck_btn{   
+  .dailycheck_btn{   
     width: 100%;
     font-size: 13px;
     --border-radius: 5px !important;
@@ -83,7 +83,8 @@ ion-header{
     color:  #42516E;
   }
   ion-label{
-    color: $text-color;
+    color: $light-text2;
+    font-weight:400;
   }
   ion-header{
     display: flex;
@@ -137,4 +138,15 @@ ion-header{
       }       
     }
   }
-  
+  .freq-txt{
+    text-align: left;
+    color: $color-blue;
+    padding:20px 30px;
+    font-size: 13px;
+  }
+  .daily-chk{
+    color: $dailychk;
+  }
+  .toolbar{
+    padding-left: 20px !important;
+  }

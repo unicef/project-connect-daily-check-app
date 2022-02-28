@@ -31,7 +31,7 @@ export class StarttestPage {
     this.menu.open('first');
   }
 
-  openEnd() {
+  closeMenu() {
     this.menu.open('end');
   }
   showTestResult(){

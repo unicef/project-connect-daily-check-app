@@ -1,0 +1,134 @@
+@import '../theme/variables.scss';
+.ionMenubg{
+    background-color: #1E2B46 !important;
+    border-radius: 10px;
+}
+.headerbar{
+    height: 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #1E2B46;
+    padding-top: 15px;
+    .closeIcon{
+       font-size: 24px;
+        margin-right: 20px;
+        color: $light-text1;
+    }
+    .backIcon{
+        font-size: 24px;
+        margin-left: 20px;
+        color: $light-text1;
+    }
+}
+.freq-ques-txt{
+    text-align: left;
+    color: #2779FF;
+    padding: 10px 25px;
+    font-size: 13px;
+}
+.menuContent{
+    #background-content{
+        --ion-background-color: #1E2B46 !important;
+    }
+}
+ion-icon{
+    padding-right: 5px;
+    font-size: 15px;
+    color:#505868;
+}
+ion-content{
+    --ion-background-color: #1E2B46 !important;   
+    ion-list{
+        ion-item{            
+            ion-label{
+                color: $light-text2;
+                font-size: 13px;
+                display: flex;
+                align-items: center;
+                .hash{
+                    font-size: 18px;
+                    color:#505868;
+                    padding-right: 5px;
+                }
+            }
+            
+        }
+    }
+    ion-accordion-group{
+        margin-left:25px;
+        margin-right:15px;
+        ion-accordion{
+            --ion-background-color:#1E2B46;
+            padding: 5px 0px;
+            border-bottom: 1px solid #353E52;
+            ion-label{
+                font-size: 13px;
+                color: $light-text2;
+                font-weight: 400px;
+            }
+            ion-list{
+                ion-label{
+                    font-size: 11px;
+                    color: $light-text2;
+                    font-weight: 400px;
+                    word-wrap: break-word;
+                }
+            }
+        }
+    }
+}
+.aboutprojConn{
+    width:252px;
+}
+.view-proj-btn{
+    width: 252px;
+    margin: 20px 15px;
+}
+.abt-prj-con-txt{
+    padding:10px 15px 0px 15px !important;
+}
+.about-proj-con-sec{
+    
+        padding: 0px 10px;
+        div{
+            padding: 10px 15px;
+        ion-label{           
+            font-size: 13px;
+            color: $light-text2;
+            font-weight: 400px;
+            line-height: 16px !important;
+        }
+        .thank-txt{
+            font-size: 11px !important;
+            color: $light-text2;
+            font-weight: 400px;
+            line-height: 14px !important;
+        }
+    }    
+}
+.your-school-id-sec{
+    padding: 10px 25px;          
+        .your-school-id{
+            padding: 0px 0px !important;
+        }
+        .schoolid{
+            font-size: 18px;
+            color: $light-text2;
+            font-weight: 400px;
+            padding-top: 20px;
+        }
+        .schoolname-txt{
+            font-size: 18px;
+            color: $light-text2;
+            font-weight: 400px;
+            padding-top: 10px;
+        }
+        .address-txt{
+            font-size: 13px;
+            color: $light-text2;
+            font-weight: 400px;
+            padding-top: 10px;
+        }
+    
+}

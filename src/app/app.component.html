@@ -1,3 +1,125 @@
-<ion-app>
-  <ion-router-outlet></ion-router-outlet>
-</ion-app>
+<ion-app>  
+   
+   <ion-menu side="end" menuId="fourth" contentId="content" class="ionMenubg"> 
+    <div class="headerbar">
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+     </div>
+     <ion-content class="menuContent">  
+      <div class="about-proj-con-sec"> 
+         <div class="freq-ques-txt abt-prj-con-txt">ABOUT PROJECT CONNECT</div>        
+          <div>
+            <ion-img src="assets/images/project-connect.jpg" class="aboutprojConn"></ion-img>
+          </div>
+          <div>
+            <ion-label text-wrap>Project Connect is mapping the connectivity of every school in the world. We aim to connect all schools to the Internet and all young people to information, opportunity and choice.</ion-label>
+          </div> 
+          <div>
+            <ion-label text-wrap class="thank-txt">Thank you for contributing to Project Connect. Find your school and learn more at our website. We add new schools every day!</ion-label>
+          </div>          
+          <ion-button class="view-proj-btn">VIEW PROJECT CONNECT</ion-button>
+    </div>
+    </ion-content> 
+  </ion-menu> 
+  <ion-menu side="end" menuId="third" contentId="content" class="ionMenubg"> 
+    <div class="headerbar">
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+     </div>
+    <ion-content class="menuContent">  
+      <div class="accordion-sec"> 
+        <div class="freq-ques-txt">FREQUENTLY ASKED QUESTIONS</div>
+        <ion-accordion-group value="numbers">
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>What is a school id?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>sample content 1</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>
+          <ion-accordion>
+            <ion-item slot="header">
+              <ion-label>How do i find my school id?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>sample content 1</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>Can I close the Daily Check <br>application window?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label text-wrap>Yes! The app runs in the background when the device power is on to collect your school’s data.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>When do my School’s connectivity<br> status checks happen?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>sample content 1</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>        
+        </ion-accordion-group>
+    </div>
+    </ion-content>
+  </ion-menu> 
+  <ion-menu side="end" menuId="second" contentId="content" class="ionMenubg">
+      <div class="headerbar">
+        <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+        <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+      </div>
+      <ion-content class="menuContent">  
+        <div class="your-school-id-sec"> 
+          <div class="freq-ques-txt your-school-id">YOUR SCHOOL ID</div>          
+            <div class="schoolid">
+              <ion-label >BA1699450453</ion-label>
+            </div>
+            <div class="h-line"></div>
+            <div class="schoolname-txt">
+              <ion-label text-wrap >Saint Andrews International Secondary School</ion-label>
+            </div>          
+            <div class="address-txt">
+              <ion-label text-wrap >Via Francesco Catel 4, Testaccio
+                Queimadas - BA, 48860-000, Brazil</ion-label>
+            </div>
+            <div class="h-line"></div>
+        </div>
+      </ion-content> 
+    </ion-menu>
+    <ion-menu side="end" menuId="first" contentId="content" class="ionMenubg">  
+      <div class="headerbar">
+       <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+       <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+      </div> 
+      <ion-content class="menuContent">  
+         <div class="accordion-sec"> 
+           <ion-list>
+             <ion-item (click)="openSecond()">
+               <ion-label><span class="hash">#</span>My School Id</ion-label>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+             </ion-item>
+             <ion-item (click)="openThird()">
+               <ion-label><ion-icon name="chatbox-outline"></ion-icon>Frequently asked questions</ion-label>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+             </ion-item>
+             <ion-item (click)="openFourth()">
+               <ion-label><ion-icon name="information-circle-outline"></ion-icon>About Project Connect</ion-label>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+             </ion-item>
+           </ion-list>
+       </div>
+       </ion-content>
+     </ion-menu> 
+  <ion-router-outlet Id="content"></ion-router-outlet>  
+</ion-app>   
