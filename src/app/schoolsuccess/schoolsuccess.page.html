@@ -5,7 +5,7 @@
 </ion-header>
 <ion-content> 
  <div class="container">  
-  <ion-slides pager="true" [options]="slideOpts" class="schoolsuccess">
+  <ion-slides pager="true" [options]="slideOpts" class="schoolsuccess" #mySlider>
     <ion-slide>
       <div class="top-layout">        
         <div class="successInfo">
@@ -35,7 +35,7 @@
     </ion-slide>
   </ion-slides>
   <div class="bottom-layout">
-    <ion-button color="primary" block [routerLink]="['/searchschool']" class="dailycheck_btn">NEXT</ion-button>   
+    <ion-button color="primary" (click)="swipeNext()" class="dailycheck_btn">NEXT</ion-button>   
   </div>
   </div>
 </ion-content>

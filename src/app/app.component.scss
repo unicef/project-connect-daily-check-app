@@ -1,7 +1,9 @@
 @import '../theme/variables.scss';
 .ionMenubg{
-    background-color: #1E2B46 !important;
+   // background-color: #1E2B46 !important;
+    background-color: rgba(30, 43, 70, 0.5) !important;
     border-radius: 10px;
+    height:93%;
 }
 .headerbar{
     height: 40px;
@@ -9,7 +11,7 @@
     justify-content: space-between;
     align-items: center;
     background-color: #1E2B46;
-    padding-top: 15px;
+    padding-top: 15px;    
     .closeIcon{
        font-size: 24px;
         margin-right: 20px;
@@ -20,16 +22,24 @@
         margin-left: 20px;
         color: $light-text1;
     }
+    .backIcon:hover{
+        background-color:#42516E;
+        border-radius: 50%;
+        width: 24px;
+        height: 26px;
+    }
 }
 .freq-ques-txt{
     text-align: left;
     color: #2779FF;
     padding: 10px 25px;
     font-size: 13px;
+    background: #1E2B46;
 }
 .menuContent{
     #background-content{
         --ion-background-color: #1E2B46 !important;
+        border-radius: 0px 0px 0px 10px !important;
     }
 }
 ion-icon{
@@ -38,7 +48,7 @@ ion-icon{
     color:#505868;
 }
 ion-content{
-    --ion-background-color: #1E2B46 !important;   
+    --ion-background-color: #1E2B46 !important;     
     ion-list{
         ion-item{            
             ion-label{
