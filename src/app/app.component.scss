@@ -1,6 +1,6 @@
 @import '../theme/variables.scss';
 .ionMenubg{
-   // background-color: #1E2B46 !important;
+    // background-color: #1E2B46 !important;
     background-color: rgba(30, 43, 70, 0.5) !important;
     border-radius: 10px;
     height:93%;
@@ -11,11 +11,18 @@
     justify-content: space-between;
     align-items: center;
     background-color: #1E2B46;
-    padding-top: 15px;    
+    padding-top: 15px;  
+    padding-bottom: 10px;  
     .closeIcon{
        font-size: 24px;
         margin-right: 20px;
         color: $light-text1;
+    }
+    .closeIcon:hover{
+        background-color: #42516E;
+        border-radius: 50%;
+        width: 29px;
+        height: 29px;
     }
     .backIcon{
         font-size: 24px;
@@ -25,8 +32,8 @@
     .backIcon:hover{
         background-color:#42516E;
         border-radius: 50%;
-        width: 24px;
-        height: 26px;
+        width: 28px;
+        height: 28px;
     }
 }
 .freq-ques-txt{
@@ -42,15 +49,15 @@
         border-radius: 0px 0px 0px 10px !important;
     }
 }
-ion-icon{
-    padding-right: 5px;
-    font-size: 15px;
-    color:#505868;
-}
+
 ion-content{
-    --ion-background-color: #1E2B46 !important;     
+    --ion-background-color: #1E2B46 !important;    
     ion-list{
-        ion-item{            
+        ion-item{      
+            padding-right: 20px;
+            .item-inner{                
+                padding-right: 0px !important;
+            }
             ion-label{
                 color: $light-text2;
                 font-size: 13px;
@@ -62,7 +69,15 @@ ion-content{
                     padding-right: 5px;
                 }
             }
-            
+            ion-icon{
+                color:#505868;
+                padding-right: 5px;
+            }
+            ion-icon[name="chevron-forward-outline"]{
+                padding-right: 5px;
+                font-size: 15px;
+                color:#505868;
+            }
         }
     }
     ion-accordion-group{
@@ -70,7 +85,7 @@ ion-content{
         margin-right:15px;
         ion-accordion{
             --ion-background-color:#1E2B46;
-            padding: 5px 0px;
+            padding: 0px;
             border-bottom: 1px solid #353E52;
             ion-label{
                 font-size: 13px;
@@ -98,8 +113,7 @@ ion-content{
 .abt-prj-con-txt{
     padding:10px 15px 0px 15px !important;
 }
-.about-proj-con-sec{
-    
+.about-proj-con-sec{    
         padding: 0px 10px;
         div{
             padding: 10px 15px;
