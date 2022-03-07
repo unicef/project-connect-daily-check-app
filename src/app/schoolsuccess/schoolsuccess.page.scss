@@ -1,13 +1,16 @@
 @import '../../theme/variables.scss'; 
+  
   .container{
-   
-    height: 100%;
-   
+    margin: 10px 25px 0px 25px;
+    height:90%;
+    min-height: 88%;   
+    background-size: 100% 100%;    
+    border-radius: 0px 0px 10px 10px;
   }
  .schoolsuccess{  
     --bullet-background: #eee;
     --bullet-background-active: #51E12B;
-    height: 75%;
+    height: 82%;
   }
  .swiper-slide {
    height: 70% !important;
@@ -19,10 +22,10 @@
     color: $text-color;
     font-size: 20px;
   }
-  .successInfo{    
+  .successInfo{
+    padding-top: 10px;
     ion-img{  
-      width: auto !important;
-      padding-top:30px;
+      width: auto !important;     
       margin: 20px auto;
       display: flex;
       justify-content: center;
@@ -51,7 +54,6 @@
   }  
   .bottom-layout{
     padding: 0px 30px;
+    bottom: 50px !important;
   }
-  .top-layout{
-    margin-top: 20px !important;
-  }
+ 

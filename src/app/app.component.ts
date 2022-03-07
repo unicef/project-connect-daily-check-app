@@ -9,7 +9,9 @@ import { MenuController } from '@ionic/angular';
 export class AppComponent {
   constructor(
     private menu:MenuController
-  ) {}
+  ) {
+    
+  }
   openSecond() {
     this.menu.enable(true, 'second');
     this.menu.open('second');
@@ -24,6 +26,7 @@ export class AppComponent {
   }
 
   closeMenu() {
+    this.menu.enable(true, 'first');
     this.menu.close();
   }
   backMenu() {
