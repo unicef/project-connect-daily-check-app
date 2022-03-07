@@ -4,7 +4,7 @@ import { ActivatedRoute, Router } from "@angular/router";
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { IonSlides} from '@ionic/angular';
-
+import { StorageService } from '../services/storage.service';
 
 @Component({
   selector: 'app-schoolsuccess',
@@ -16,16 +16,25 @@ export class SchoolsuccessPage {
   @ViewChild('mySlider')slides: IonSlides;
   schools: any;
   schoolId: any;
-  private sub: any;
+  slideOpts = {
+    speed: 400
+  };
+  isLast = false;
   constructor(
     private activatedroute: ActivatedRoute, 
-    public loading: LoadingService,    
+    public loading: LoadingService,  
+    private router: Router,  
+    private storage: StorageService,
     private schoolService: SchoolService) {
-    this.sub = this.activatedroute.params.subscribe(params => {
-      this.schoolId = params.schoolId;
-    });    
+      
   }
   swipeNext(){
     this.slides.slideNext();
+  }
+  reachedEnd(){
+    this.isLast = true;
+  }
+  moveToStartTest(){
+    this.router.navigate(['starttest']);
   }
 }

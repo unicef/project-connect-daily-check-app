@@ -13,7 +13,7 @@ import { CapitalizePipe } from './pipes/capitalize.pipe';
 
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-
+import { Network } from '@awesome-cordova-plugins/network/ngx'; 
 export function createTranslateLoader(http: HttpClient) {
     return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
@@ -61,7 +61,8 @@ export function createTranslateLoader(http: HttpClient) {
     FormatDataConsumptionMeasurementPipe,
     FormatProbabilityMeasurementPipe,
     CapitalizePipe,
-    TruncatePipe
+    TruncatePipe,
+    Network
   ]
 })
 export class SharedModule { }

@@ -11,8 +11,8 @@
     justify-content: center;
     align-items: center;
   } */
- .center-layout{
-      .test-btn{
+  .center-layout{
+    .test-btn{
       width: 200px;
       height: 200px;
       line-height: 200px;
@@ -22,6 +22,32 @@
       text-align: center;
       background: #2779FF;
     }
+  }
+  .text-center{
+    text-align: center !important;
+  }
+  .pad50{
+    padding: 50px;
+  }
+  .test-container{
+    color: #fff !important;
+  }
+  .currentRate{
+    display: inline-block;
+    font-size: 3.5em;
+    font-weight: 700;
+    padding-top: .2em;
+  }
+
+  span.currentRateLabel {
+      margin-left: .6em;
+      font-size: 1.9em;
+      font-weight: 100;
+  }
+
+  span.currentState {
+      font-size: .9em;
+      font-weight: 200;
   }
   ion-toolbar{
     ion-buttons{

@@ -2,8 +2,8 @@ import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
+import { SharedModule } from '../shared/shared.module';
 import { StarttestPage } from './starttest.page';
-
 import { StarttestPageRoutingModule } from './starttest-routing.module';
 
 
@@ -12,7 +12,8 @@ import { StarttestPageRoutingModule } from './starttest-routing.module';
     CommonModule,
     FormsModule,
     IonicModule,
-    StarttestPageRoutingModule
+    StarttestPageRoutingModule,
+    SharedModule
   ],
   declarations: [StarttestPage]
 })

@@ -8,9 +8,46 @@
   
 </ion-header>
 <ion-content> 
- <div class="container">  
- <div class="center-layout">
-<!-- <button class="test-btn" (click)="showTestResult()">START TESTING</button> -->
- </div> 
+  <div class="container">
+    <div class="start-container" *ngIf="currentState == undefined">  
+      <div class="center-layout text-center pad50">
+        <button class="test-btn" (click)="startNDT()">START TESTING</button>
+      </div> 
+    </div>
+    <div class="test-container" *ngIf="currentState !== undefined">
+      <ion-grid>
+        <ion-row  *ngIf="currentRate !== undefined">
+          <ion-col>
+            <div class="ion-text-center"> 
+              <span class="currentRate">{{currentRate | formatThroughputMeasurement}}</span>
+              <span class="currentRateLabel" *ngIf="currentRate !== undefined">Mb/s</span>
+              <span class="currentState" *ngIf="currentState !== undefined">{{currentState | translate}}</span>
+            </div>        
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col>
+            <div class="ion-text-center">
+              <div (click)="goToserverSelection()" *ngIf="mlabInformation && mlabInformation.label && onlineStatus"
+                                      class="button button-clear button-dark currentLocation">Location <strong>{{mlabInformation.label}}</strong></div>
+            </div>
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col>
+            <div class="ion-text-center">
+              <span class="currentNetwork" *ngIf="accessInformation && onlineStatus">{{accessInformation.org}}</span>
+            </div>        
+          </ion-col>
+        </ion-row>
+        <ion-row *ngIf="currentState && currentState !='Completed'">
+          <ion-col>
+            <div class="ion-text-center">
+              <p>{{'Generating test results...' | translate}}</p>
+            </div>        
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </div>
   </div>
 </ion-content>
