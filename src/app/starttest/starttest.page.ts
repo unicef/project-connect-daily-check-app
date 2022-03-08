@@ -12,7 +12,7 @@ import { MeasurementClientService } from '../services/measurement-client.service
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
-
+import { StorageService } from '../services/storage.service';
 @Component({
   selector: 'app-starttest',
   templateUrl: 'starttest.page.html',
@@ -79,7 +79,8 @@ export class StarttestPage implements OnInit {
     private sharedService: SharedService,
     private historyService: HistoryService,
     public translate: TranslateService,
-    private ref: ChangeDetectorRef
+    private ref: ChangeDetectorRef,
+    private storage: StorageService
   ) {
 
     this.onlineStatus = window.navigator.onLine;
@@ -116,6 +117,9 @@ export class StarttestPage implements OnInit {
         this.tryConnectivity();
       }
     });
+    if(!this.storage.get('schoolId')){
+      this.router.navigate(['/home']);
+    }
   }
   ngOnInit() {
     this.sharedService.on('measurement:status', this.driveGauge.bind(this));
