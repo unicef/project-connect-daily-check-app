@@ -1,16 +1,20 @@
 import { Component } from '@angular/core';
 import { MenuController } from '@ionic/angular';
-
+import { StorageService } from '../app/services/storage.service';
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
 })
 export class AppComponent {
+  school:any;
   constructor(
-    private menu:MenuController
+    private menu:MenuController,
+    private storage: StorageService
   ) {
-    
+      if(this.storage.get('schoolId')){
+        this.school = JSON.parse(this.storage.get('schoolInfo'));
+      }
   }
   openSecond() {
     this.menu.enable(true, 'second');

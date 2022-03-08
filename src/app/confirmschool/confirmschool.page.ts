@@ -34,7 +34,7 @@ export class ConfirmschoolPage {
     /* Store school id and giga id inside storage */
     this.storage.set('schoolId',this.schoolId);
     this.storage.set('gigaId',this.school.giga_id);
-    this.storage.set('schoolInfo',this.school);
+    this.storage.set('schoolInfo',JSON.stringify(this.school));
     this.router.navigate(['/schoolsuccess']);
   }
 }

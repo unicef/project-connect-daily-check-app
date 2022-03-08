@@ -1,5 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
+import { Router } from "@angular/router";
+import { StorageService } from '../services/storage.service';
 import { SettingsService } from '../../app/services/settings.service';
 @Component({
   selector: 'app-home',
@@ -7,7 +9,12 @@ import { SettingsService } from '../../app/services/settings.service';
   styleUrls: ['home.page.scss'],
 })
 export class HomePage {
-  constructor(public translate: TranslateService, private settingsService: SettingsService) {
+  constructor(
+    public router: Router,
+    public translate: TranslateService, 
+    private settingsService: SettingsService,
+    private storage: StorageService
+  ) {
     translate.setDefaultLang('en');
     let applicationLanguage = this.settingsService.get('applicationLanguage');
     if(applicationLanguage) {
@@ -16,6 +23,9 @@ export class HomePage {
       } else {
         translate.setDefaultLang(applicationLanguage.code);
       }      
+    }
+    if(this.storage.get('schoolId')){
+      this.router.navigate(['/starttest']);
     }
   }
 

@@ -133,15 +133,14 @@
         <div class="your-school-id-sec"> 
           <div class="freq-ques-txt your-school-id">YOUR SCHOOL ID</div>          
             <div class="schoolid">
-              <ion-label >BA1699450453</ion-label>
+              <ion-label *ngIf="school">{{school.school_id | uppercase}}</ion-label>
             </div>
             <div class="h-line"></div>
             <div class="schoolname-txt">
-              <ion-label text-wrap >Saint Andrews International Secondary School</ion-label>
+              <ion-label text-wrap *ngIf="school">{{school.name}}</ion-label>
             </div>          
             <div class="address-txt">
-              <ion-label text-wrap >Via Francesco Catel 4, Testaccio
-                Queimadas - BA, 48860-000, Brazil</ion-label>
+              <ion-label text-wrap *ngIf="school">{{school.address}} {{school.admin_2_name?school.admin_2_name+',':''}} {{school.admin_1_name?school.admin_1_name+',':''}} {{school.postal_code?school.postal_code+',':''}} {{school.country}}</ion-label>
             </div>
             <div class="h-line"></div>
         </div>
