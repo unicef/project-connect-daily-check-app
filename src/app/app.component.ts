@@ -17,6 +17,9 @@ export class AppComponent {
       }
   }
   openSecond() {
+    if(this.storage.get('schoolId')){
+      this.school = JSON.parse(this.storage.get('schoolInfo'));
+    }
     this.menu.enable(true, 'second');
     this.menu.open('second');
   }
