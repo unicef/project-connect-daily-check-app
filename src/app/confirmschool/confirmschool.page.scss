@@ -53,20 +53,7 @@
    display: flex;
    justify-content: space-between;
    margin-top: 20px;
- }
- .yesbtn{
-    --background: #51E12B !important;
-    width: 50%;
-    height: 38px;
-    color: $text-color !important;
-    --border-radius: 5px !important;
- }
- .nobtn{
-    --background:#42516E !important;
-    width: 50%;;
-    height: 38px;
-    --border-radius: 5px !important;
-}
+ } 
 .confirm-txt{   
   padding-left: 15px;
   color: $light-text2;

@@ -49,7 +49,6 @@
         border-radius: 0px 0px 0px 10px !important;
     }
 }
-
 ion-content{
     --ion-background-color: #1E2B46 !important;    
     ion-list{
@@ -117,11 +116,11 @@ ion-content{
         padding: 0px 10px;
         div{
             padding: 10px 15px;
+            line-height: 14px !important;
         ion-label{           
             font-size: 13px;
             color: $light-text2;
-            font-weight: 400px;
-            line-height: 16px !important;
+            font-weight: 400px;            
         }
         .thank-txt{
             font-size: 11px !important;

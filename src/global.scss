@@ -168,6 +168,8 @@
   }
   .ion-page{
     border-radius: 10px !important;
+    background-color: #fe2762;
+    color: $light-text2;
   }
   .container{
     margin: 10px 25px 0px 25px;
@@ -180,3 +182,16 @@
     width:12px !important;
     height: 12px !important;
   }
+  .yesbtn{
+    --background: #51E12B !important;
+    width: 50%;
+    height: 38px;
+    color: $text-color !important;
+    --border-radius: 5px !important;
+ }
+ .nobtn{
+    --background:#42516E !important;
+    width: 50%;;
+    height: 38px;
+    --border-radius: 5px !important;
+}

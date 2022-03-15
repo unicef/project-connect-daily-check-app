@@ -1,0 +1,13 @@
+
+@import '../theme/variables.scss'; 
+.modal-bg{
+    background:#fe2762;
+    color: $light-text2;
+    min-height:250px;
+    padding: 10px 30px !important;
+}
+.modal-close{
+    display: flex;
+    justify-content: end;
+    padding:10px;
+}
