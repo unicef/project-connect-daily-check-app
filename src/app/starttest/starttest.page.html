@@ -30,6 +30,7 @@
     <!----------   Start test progress Section END --------------->  
     <!---------   Test Result Section ----------------->  
     <div *ngIf="currentState !=undefined && currentState != 'Starting'">
+      <div class="uploadDownldSec">
       <div class="uplanddowld" *ngIf="currentState !=undefined">
         <div class="uploadsec">
           <div><ion-icon name="arrow-up-circle-outline"></ion-icon><span class="upload-txt">UPLOAD</span></div>
@@ -38,10 +39,12 @@
         <div class="downloadsec">
           <div><ion-icon name="arrow-down-circle-outline"></ion-icon><span class="download-txt">DOWNLOAD</span></div>
           <label>{{ currentRateDownload | formatThroughputMeasurement}} <span>Mb/s</span></label>
-        </div>      
-      </div>   
-      <div class="h-line" *ngIf="currentState !=undefined"></div>    
-      <div class="marT16">
+        </div>               
+      </div>
+      <div class="h-line" *ngIf="currentState !=undefined"></div>
+      </div>
+        
+      <div class="centerGauge">
         <div class="start-container">  
           <div class="center-layout text-center">
             <!-- <button class="test-btn" (click)="startNDT()" *ngIf="currentState !== 'Completed' && currentState !== undefined">START TEST</button> -->
@@ -61,7 +64,7 @@
     <!-- ------------------------------------------- -->
     <!--   Test Failed Section------------------------->
     <div class="errrorContainer" *ngIf="connectionStatus=='error' && currentState == undefined && !isErrorClosed">
-      <div class="errorMsg">
+      <div class="errorMsg" #errorMsg>
         <div class="closebtn" (click)="closeError()"><ion-icon name="close-outline"></ion-icon></div>
         <div class="errText">
         <ion-label>TEST FAILED</ion-label>
