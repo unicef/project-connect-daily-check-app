@@ -17,8 +17,16 @@
       margin: 15px;
     }
   }
-  .container{
-    margin: 0px !important;
+ 
+  .uploadDownldSec{
+    position: absolute;
+    top:50px;
+    left: 0;
+    transform: translateY(-50%);
+    width:100%;
+    .h-line{
+      margin: 20px 25px;
+    }
   }
   .loadContent{
     background: url("../../assets/loader/start-test-bg-anim.gif") !important;        
@@ -34,6 +42,13 @@
   }
   .test-container{
     color: #fff !important;
+  }
+  .centerGauge{
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100%;
   }
   .currentRate{
     display: inline-block;
@@ -79,6 +94,7 @@
     justify-content: space-between;
     color: $light-text2;
     font-size: 16px;
+    margin: 0px 25px;
     margin-top: 30px;
       .upload-txt, .download-txt{
         color: $color-blue;
@@ -106,11 +122,12 @@
       font-size: 20px;
       color: $light-text1;
     }
+  
   } 
   .start-container{
     display: flex;
     justify-content: center;
-    padding:30px 30px 10px 30px;
+    padding:0px 30px 10px 30px;
   }
   .location{
     color: $light-text2;
@@ -121,8 +138,13 @@
   }
   .test-results{
     color: $light-text2;
-    margin-top: 40px;
+    margin-bottom: 40px;
     font-size: 13px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    margin-left: 25px;
     div{
       display: flex;
       align-items: center;

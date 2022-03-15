@@ -150,7 +150,7 @@ export class StarttestPage implements OnInit {
       //this.presentAlertConfirm();
       this.connectionStatus = "error";
       this.currentRate = "error";
-      this.presentTestFailModal();
+      //this.presentTestFailModal();
     });
     this.networkService.getAccessInformation().subscribe(results => {
       this.accessInformation = results;
