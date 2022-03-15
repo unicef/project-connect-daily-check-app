@@ -56,7 +56,7 @@ export class SearchschoolPage {
    * @param schoolId 
    */
   validateSchoolId(schoolId){
-    if(schoolId && schoolId.length >=4){
+    if(schoolId && schoolId.length >=2){
       this.isDisabled = false;
     } else {
       this.isDisabled = true;

@@ -12,7 +12,7 @@
 <!--         <ion-input placeholder="Enter your school ID" class="schoolid-input" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4"></ion-input>
  -->        <div class="wrap">
           <div class="search">
-             <input type="text" class="searchTerm" placeholder="Enter your school ID" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4">
+             <input type="text" class="searchTerm" placeholder="Enter your school ID" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2">
              <button type="submit" class="searchButton" (click)="searchSchoolById()" [disabled]="isDisabled">
                <ion-icon name="search-outline" class="searchIcon"></ion-icon>
             </button>

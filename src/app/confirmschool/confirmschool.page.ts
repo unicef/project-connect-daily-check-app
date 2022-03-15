@@ -14,7 +14,7 @@ export class ConfirmschoolPage {
   @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
   school: any;
   schoolId: any;
-  private sub: any;
+  sub: any;
   constructor(
     private activatedroute: ActivatedRoute, 
     public router: Router,

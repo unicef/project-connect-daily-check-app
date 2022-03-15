@@ -13,7 +13,6 @@ import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../services/storage.service';
-import { ModalPage } from 'src/components/modal.page';
 @Component({
   selector: 'app-starttest',
   templateUrl: 'starttest.page.html',
@@ -24,8 +23,12 @@ export class StarttestPage implements OnInit {
   @ViewChild('errorMsg') el:ElementRef;
   currentState = undefined;
   currentRate = undefined;
+  currentRateUpload = undefined;
+  currentRateDownload = undefined;
+  latency = undefined;
   uploadStatus = undefined;
   uploadRate = undefined;
+  isErrorClosed = false;
   connectionInformation: any;
   lastMeasurementId: number;
   mlabInformation= {
@@ -135,7 +138,7 @@ export class StarttestPage implements OnInit {
   }
 
   measureReady() {
-    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Testing connectivityr...</p></div>';
+    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Testing connectivity...</p></div>';
     this.loading.present(loadingMsg, 3000, 'pdcaLoaderClass', 'null');
     this.tryConnectivity();
     this.isLoaded = true;
@@ -150,6 +153,7 @@ export class StarttestPage implements OnInit {
       //this.presentAlertConfirm();
       this.connectionStatus = "error";
       this.currentRate = "error";
+      this.isErrorClosed = false;
       this.presentTestFailModal();
     });
     this.networkService.getAccessInformation().subscribe(results => {
@@ -172,8 +176,10 @@ export class StarttestPage implements OnInit {
     this.menu.open('end');
   }
   closeError(){
-    this.el.nativeElement.style.display = 'none';
+    // this.el.nativeElement.style.display = 'none';
+    this.isErrorClosed = true;
   }
+
   showTestResult(){
     this.router.navigate(['connectivitytest']);
   }
@@ -189,20 +195,27 @@ export class StarttestPage implements OnInit {
     if (event === 'measurement:status') {
       if (data.testStatus === 'onstart') {
         this.currentState = 'Starting';
-        this.currentRate = undefined;        
+        this.currentRate = undefined;  
+        this.currentRateUpload = undefined;
+        this.currentRateDownload = undefined;      
       } else if (data.testStatus === 'running_c2s') {
         this.currentState = 'Running Test (Upload)';
       } else if (data.testStatus === 'interval_c2s') {
         this.currentRate = data.passedResults.c2sRate;
+        this.currentRateUpload = data.passedResults.c2sRate;
       } else if (data.testStatus === 'running_s2c') {
         this.currentState = 'Running Test (Download)';
       } else if (data.testStatus === 'interval_s2c') {
         this.currentRate = data.passedResults.s2cRate;
+        this.currentRateDownload = data.passedResults.s2cRate;
       } else if (data.testStatus === 'complete') {
         this.currentState = 'Completed';
         this.currentDate =  new Date();
         this.currentRate = data.passedResults.s2cRate;
+        this.currentRateUpload = data.passedResults.c2sRate;
+        this.currentRateDownload = data.passedResults.s2cRate;
         this.progressGaugeState.current = this.progressGaugeState.maximum;
+        this.latency = data.passedResults.MinRTT;
         this.ref.markForCheck();
         this.refreshHistory();
       } else if (data.testStatus === 'onerror') {        
@@ -230,6 +243,7 @@ export class StarttestPage implements OnInit {
     });
     await alert.present();
   }
+
   async presentAlertConfirm() {
     const alert = await this.alertController.create({
       cssClass: 'my-custom-class',
