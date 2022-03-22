@@ -42,8 +42,7 @@
         </div>               
       </div>
       <div class="h-line" *ngIf="currentState !=undefined"></div>
-      </div>
-        
+      </div>        
       <div class="centerGauge">
         <div class="start-container">  
           <div class="center-layout text-center">
@@ -71,16 +70,14 @@
         <div class="msg">The connection was interupted before testing could be completed.</div>
         </div>
       </div>
-    </div>
- 
+    </div> 
     <div class="testFailed-container" *ngIf="connectionStatus=='error' && currentState == undefined">   
       <div class="start-container">  
         <div class="center-layout text-center">   
           <div *ngIf="connectionStatus=='error'"><ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img></div>
         </div>         
       </div>
-      <div class="location">{{mlabInformation.label}}</div>  
-
+      <div class="location">{{mlabInformation.label}}</div>
       <div class="bottom-layout">  
         <div *ngIf="currentState == undefined" class="tryAgain">
           <ion-button class="dailycheck_btn" (click)="startNDT()" >TRY AGAIN</ion-button>
