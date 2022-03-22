@@ -66,11 +66,18 @@
     border-radius: 5px;
     line-height: 13px;
   }
+  ::-webkit-scrollbar {
+    scrollbar-width: thin;
+  }
   .ionList{
     margin-top: 10px;
     --ion-background-color:$background-bg-color;
     overflow-y: auto;
-    height:270px;
+  height:55%;
+  position: absolute;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  transform: translateX(-50%);
     ion-label{
       color: $text-color;     
       font-family: Cabin;
@@ -108,4 +115,7 @@
   }
 .bottom-layout{
   padding: 0px 30px;
+}
+.top-layou{
+  height:100%;
 }

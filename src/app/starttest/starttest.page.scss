@@ -16,8 +16,7 @@
       background: #2779FF;
       margin: 15px;
     }
-  }
- 
+  } 
   .uploadDownldSec{
     position: absolute;
     top:50px;
@@ -49,6 +48,7 @@
     left: 0;
     transform: translateY(-50%);
     width: 100%;
+    padding-bottom: 25px;
   }
   .currentRate{
     display: inline-block;
@@ -121,8 +121,7 @@
       padding-right: 5px;
       font-size: 20px;
       color: $light-text1;
-    }
-  
+    }  
   } 
   .start-container{
     display: flex;
@@ -161,9 +160,9 @@
     margin-top:12px !important;
   }
  .centerPos{
-  display: flex;
-  align-items: center;
-  justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
  }
  .centerAlign{
    margin: 0px auto !important;
@@ -202,10 +201,9 @@
       font-size: 24px;
     }
   }
-
   .closebtn{
     display: flex;
-    justify-content: end;
+    justify-content: flex-end;
   }
 }
 /*try again button position*/

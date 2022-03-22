@@ -138,7 +138,9 @@
       ion-icon{
           margin-inline: -15px !important;
           color: $color-no;
+          font-size: 18px;
       }
+      
       ion-list{
         ion-item{
           ion-label{
@@ -150,6 +152,10 @@
       }      
     }
   }
+  ion-accordion.accordion-expanding > [slot=header] .ion-accordion-toggle-icon, ion-accordion.accordion-expanded > [slot=header] .ion-accordion-toggle-icon {
+    transform: rotate(180deg);
+    color: white;
+}
   .freq-txt{
     text-align: left;
     color: $color-blue;
@@ -165,6 +171,9 @@
   }
   ion-content{
     --ion-background-color:#111c30;
+    .scrollable-element {
+      scrollbar-color: red yellow;
+    }
   }
   .ion-page{
     border-radius: 10px !important;

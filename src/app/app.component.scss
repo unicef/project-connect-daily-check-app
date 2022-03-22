@@ -54,6 +54,7 @@ ion-content{
     ion-list{
         ion-item{      
             padding-right: 20px;
+            cursor: pointer;
             .item-inner{                
                 padding-right: 0px !important;
             }
@@ -76,6 +77,8 @@ ion-content{
                 padding-right: 5px;
                 font-size: 15px;
                 color:#505868;
+                position: absolute;
+                right:0;
             }
         }
     }
