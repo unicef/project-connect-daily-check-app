@@ -3,6 +3,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { Router } from "@angular/router";
 import { StorageService } from '../services/storage.service';
 import { SettingsService } from '../../app/services/settings.service';
+
 @Component({
   selector: 'app-home',
   templateUrl: 'home.page.html',
@@ -28,5 +29,4 @@ export class HomePage {
       this.router.navigate(['/starttest']);
     }
   }
-
 }

@@ -36,6 +36,7 @@ export class AppComponent {
     this.menu.enable(true, 'first');
     this.menu.close();
   }
+  
   backMenu() {
     this.closeMenu();
     this.menu.enable(true, 'first');

@@ -10,6 +10,7 @@ import { FormatLatencyMeasurementPipe } from './pipes/format-latency-measurement
 import { FormatDataConsumptionMeasurementPipe } from './pipes/format-data-consumption-measurement.pipe';
 import { FormatProbabilityMeasurementPipe } from './pipes/format-probability-measurement.pipe';
 import { CapitalizePipe } from './pipes/capitalize.pipe';
+import { DatePipe } from '@angular/common';
 
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
@@ -62,7 +63,8 @@ export function createTranslateLoader(http: HttpClient) {
     FormatProbabilityMeasurementPipe,
     CapitalizePipe,
     TruncatePipe,
-    Network
+    Network,
+    DatePipe
   ]
 })
 export class SharedModule { }

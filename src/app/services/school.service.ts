@@ -44,6 +44,25 @@ export class SchoolService {
       catchError(this.handleError)
     );
   }
+
+  /**
+   * Return unique user id for perticular device
+   * @param data Object with these parameters {
+      "giga_id_school": "",
+      "mac_address": "",
+      "os": "",
+      "app_version": "",
+      "created": ""
+    }
+   * @returns 
+   */
+  registerSchoolDevice(data): Observable<{}>{
+    return this.http.post(environment.restAPI + 'dailycheckapp_schools', data ,this.options).pipe(
+      map((response:any) => response.data.user_id),
+      tap(data => console.log(JSON.stringify(data))),
+      catchError(this.handleError)
+    );
+  }
   
   /**
    * Private function to handle error
