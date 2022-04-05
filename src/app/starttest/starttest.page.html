@@ -1,15 +1,19 @@
 <ion-header no-shadow>
-  <ion-toolbar>
+  <ion-toolbar>    
     <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
     <ion-buttons slot="end">  
       <ion-menu-button color="light"></ion-menu-button>   
     </ion-buttons> 
   </ion-toolbar>  
+  <div class="closeAppBtn">
+    <ion-icon slot="icon-only" name="close-outline" (click)="closeApp();"></ion-icon>
+  </div>  
 </ion-header>
 <ion-content>   
-  <div class="container" [ngClass]="currentState ==undefined || currentState == 'Starting'?'centerPos':''">  
+  <div class="container" [ngClass]="currentState ==undefined || currentState == 'Starting' || !onlineStatus?'centerPos':''">  
     <!---------   Start test Section ------------------>  
-    <div *ngIf="currentState == undefined && currentRate != 'error'">
+    <!-- {{currentState}} {{currentRate}} {{onlineStatus}} -->
+    <div *ngIf="currentState == undefined && currentRate != 'error' && onlineStatus">
       <div class="start-container centerAlign" >  
         <div class="center-layout text-center">   
           <button class="test-btn" (click)="startNDT()" >START TEST</button>
@@ -19,7 +23,7 @@
     </div>
     <!---------   Start test Section END ------------------>  
     <!----------   Start test progress Section --------------->  
-    <div *ngIf="currentState == 'Starting' && currentState !== undefined">
+    <div *ngIf="currentState == 'Starting' && currentState !== undefined && onlineStatus">
       <div class="start-container centerAlign">  
         <div class="center-layout text-center">   
           <ion-img src="assets/loader/loader.gif" class="bigloaderGif marT12"></ion-img>
@@ -29,7 +33,7 @@
     </div>
     <!----------   Start test progress Section END --------------->  
     <!---------   Test Result Section ----------------->  
-    <div *ngIf="currentState !=undefined && currentState != 'Starting'">
+    <div *ngIf="currentState !=undefined && currentState != 'Starting' && onlineStatus">
       <div class="uploadDownldSec">
       <div class="uplanddowld" *ngIf="currentState !=undefined">
         <div class="uploadsec">
@@ -62,7 +66,7 @@
     </div>
     <!-- ------------------------------------------- -->
     <!--   Test Failed Section------------------------->
-    <div class="errrorContainer" *ngIf="connectionStatus=='error' && currentState == undefined && !isErrorClosed">
+    <div class="errrorContainer" *ngIf="((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) && !isErrorClosed">
       <div class="errorMsg" #errorMsg>
         <div class="closebtn" (click)="closeError()"><ion-icon name="close-outline"></ion-icon></div>
         <div class="errText">
@@ -71,16 +75,16 @@
         </div>
       </div>
     </div> 
-    <div class="testFailed-container" *ngIf="connectionStatus=='error' && currentState == undefined">   
+    <div class="testFailed-container" *ngIf="(connectionStatus=='error' && currentState == undefined) || (!onlineStatus)">   
       <div class="start-container">  
         <div class="center-layout text-center">   
-          <div *ngIf="connectionStatus=='error'"><ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img></div>
+          <div *ngIf="connectionStatus=='error' || !onlineStatus"><ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img></div>
         </div>         
       </div>
       <div class="location">{{mlabInformation.label}}</div>
       <div class="bottom-layout">  
-        <div *ngIf="currentState == undefined" class="tryAgain">
-          <ion-button class="dailycheck_btn" (click)="startNDT()" >TRY AGAIN</ion-button>
+        <div *ngIf="currentState == undefined || !onlineStatus" class="tryAgain">
+          <ion-button class="dailycheck_btn" (click)="measureReady()">TRY AGAIN</ion-button>
           <div class="h-line"></div>
         </div>     
       </div>

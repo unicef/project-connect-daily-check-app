@@ -92,6 +92,7 @@
     justify-content: center;
     ion-toolbar{
       width: auto !important;
+      min-width: 300px;
       ion-label{
         letter-spacing: 1.15px;
         font-weight:400;
@@ -245,6 +246,20 @@ body::-webkit-scrollbar-thumb {
   border: 3px solid #A3ACBB;
 }
 
-button, ion-buttons, .menuContent, .ionMenubg, ion-button, .closebtn {
+button, ion-buttons, .menuContent, .ionMenubg, ion-button, .closebtn, input, .schoolList, .accordion-sec, .closeAppBtn {
   -webkit-app-region: no-drag;
+}
+
+.closeAppBtn{
+  right: 5px;
+  top: 5px;
+  position: absolute;
+  ion-icon{
+    font-size: 20px;
+    color: #FFFFFF;
+    --ionicon-stroke-width: 82px;    
+  }
+  :hover{
+    background-color: #fe2762;
+  }
 }

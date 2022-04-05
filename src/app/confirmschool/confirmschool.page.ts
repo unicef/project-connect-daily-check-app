@@ -47,15 +47,13 @@ export class ConfirmschoolPage {
           created: today
         };
         this.schoolService.registerSchoolDevice(schoolData).subscribe((response)=>{
-          console.log(response);
           this.storage.set('schoolUserId',response);
           this.storage.set('schoolId',this.schoolId);
-          this.storage.set('gigaId',this.school.giga_id);
+          this.storage.set('gigaId',this.school.giga_id_school);
           this.storage.set('schoolInfo',JSON.stringify(this.school));
           this.loading.dismiss();
           this.router.navigate(['/schoolsuccess']);
         }),(err) => {
-          console.log('ERROR: ' + err);
           this.loading.dismiss();
           this.router.navigate(['schoolnotfound',this.schoolId]);
           /* Redirect to no result found page */

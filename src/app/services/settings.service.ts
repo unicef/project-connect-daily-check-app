@@ -150,7 +150,6 @@ export class SettingsService {
   restore() {
     return new Promise((resolve, reject) => {
       let savedSettings = this.storageSerivce.get('savedSettings', {});
-      console.log(savedSettings.length);
       if(savedSettings.length){
         savedSettings = JSON.parse(savedSettings);
       }      
@@ -178,4 +177,8 @@ export class SettingsService {
     this.save();
     this.sharedService.broadcast('settings:changed', {name: requestedSettingName, value: requestedSettingValue});
   };
+  
+  getIpcRenderer(){
+    return (<any>window).ipcRenderer;
+  }
 }

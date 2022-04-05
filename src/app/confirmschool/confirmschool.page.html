@@ -10,7 +10,7 @@
       <div class="label-txt">CONFIRM SCHOOL INFORMATION TO REGISTER YOUR SCHOOL WITH PROJECT CONNECT</div>       
       <div class="schoolDetails" *ngIf="school">  
         <div class="schoolname">{{school.name | truncate:[30]}}</div>          
-        <div class="schoolAddress">{{school.admin_2_name?school.admin_2_name+',':''}} {{school.admin_1_name?school.admin_1_name+',':''}} {{school.postal_code?schoolInfo.postal_code+',':''}} {{school.country}}</div>
+        <div class="schoolAddress">{{school.admin_2_name?school.admin_2_name+',':''}} {{school.admin_1_name?school.admin_1_name+',':''}} {{school.postal_code?school.postal_code+',':''}} {{school.country}}</div>
         <div class="schoolid">School ID: {{school.school_id | uppercase}}</div>
       </div>
     </div>

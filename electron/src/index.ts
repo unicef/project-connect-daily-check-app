@@ -1,15 +1,17 @@
 import type { CapacitorElectronConfig } from '@capacitor-community/electron';
 import { getCapacitorElectronConfig, setupElectronDeepLinking } from '@capacitor-community/electron';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, MenuItem } from 'electron';
+import { app, MenuItem, ipcMain} from 'electron';
 import electronIsDev from 'electron-is-dev';
 import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
 import fs from 'fs-extra';
 import { ElectronCapacitorApp, setupContentSecurityPolicy, setupReloadWatcher } from './setup';
+const gotTheLock = app.requestSingleInstanceLock();
 // Graceful handling of unhandled errors.
 unhandled();
 let isQuiting = false;
+let mainWindow = null;
 const squirrelEvent = process.argv[1];
 if(squirrelEvent === '--squirrel-uninstall'){
   const getAppPath = app.getPath('userData');
@@ -53,17 +55,32 @@ if (electronIsDev) {
 }
 
 // Run Application
-(async () => {
-  // Wait for electron app to be ready.
-  await app.whenReady();
-  // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
-  // setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
-  // Initialize our app, build windows, and load content.
-  await myCapacitorApp.init();
-  // Check for updates if we are in a packaged app.
-  // autoUpdater.checkForUpdatesAndNotify();
+if (!gotTheLock) {
+  app.quit();
+} else {
+    app.on('second-instance', () => {
+      // Someone tried to run a second instance, we should focus our window.
+      if (mainWindow) {
+        if (mainWindow.isMinimized()) {
+          mainWindow.restore();
+        } else {
+          mainWindow.show();
+        }
+        mainWindow.focus();
+      }
+    });
+    // Wait for electron app to be ready.
+    app.whenReady().then(async()=>{
+      mainWindow = await myCapacitorApp.init();
+    })
+    // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
+    // setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
+    // Initialize our app, build windows, and load content.
+    // await myCapacitorApp.init();
+    // Check for updates if we are in a packaged app.
+    // autoUpdater.checkForUpdatesAndNotify();
+}
 
-})();
 
 // Handle when all of our windows are close (platforms have their own expectations).
 app.on('window-all-closed', function () {
@@ -83,4 +100,10 @@ app.on('activate', async function () {
   }
 });
 
+
+
 // Place all ipc or other electron api calls and custom functionality under this line
+
+ipcMain.addListener('closeFromUi', (ev) => {
+  myCapacitorApp.getMainWindow().hide();
+});

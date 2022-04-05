@@ -11,8 +11,10 @@ import electronIsDev from 'electron-is-dev';
 import electronServe from 'electron-serve';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
+import fs from 'fs-extra';
 var AutoLaunch = require('auto-launch');
 let isQuiting = false;
+const gotTheLock = app.requestSingleInstanceLock();
 // Define components for a watcher to detect when the webapp is changed so we can reload in Dev mode.
 const reloadWatcher = {
   debouncer: null,
@@ -91,6 +93,7 @@ export class ElectronCapacitorApp {
       scheme: this.customScheme,
     });
   }
+  
 
   // Helper function to load in the app.
   private async loadMainWindow(thisRef: any) {
@@ -107,6 +110,11 @@ export class ElectronCapacitorApp {
   }
 
   async init(): Promise<void> {
+    const squirrelEvent = process.argv[1];
+    if(squirrelEvent === '--squirrel-uninstall'){
+      const getAppPath = app.getPath('userData');
+      fs.rmdirSync(getAppPath, { recursive: true });
+    }
     const icon = nativeImage.createFromPath(
       join(app.getAppPath(), 'assets', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.png')
     );
@@ -127,9 +135,8 @@ export class ElectronCapacitorApp {
       // titleBarOverlay: true,
       maximizable: false,
       minimizable: false,
-      // resizable: false,
+      resizable: false,
       transparent: true, 
-      // frame: false,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: true,
@@ -150,6 +157,7 @@ export class ElectronCapacitorApp {
         this.SplashScreen.getSplashWindow().close();
       }
     });
+    
 
     // When the tray icon is enabled, setup the options.
     if (this.CapacitorFileConfig.electron?.trayIconAndMenuEnabled) {
@@ -238,6 +246,22 @@ export class ElectronCapacitorApp {
         CapElectronEventEmitter.emit('CAPELECTRON_DeeplinkListenerInitialized', '');
       }, 400);
     });
+
+    if (!gotTheLock) {
+      app.quit();
+    } else {
+      app.on('second-instance', (event, commandLine, workingDirectory) => {
+        // Someone tried to run a second instance, we should focus our window.
+        if (this.MainWindow) {
+          if (this.MainWindow.isMinimized()) {
+            this.MainWindow.restore();
+          } else {
+            this.MainWindow.show();
+          }        
+          this.MainWindow.focus();
+        }
+      });
+    }
 
     // Auto lunching code added by Kajal
     var measureAppAutoLuncher = new AutoLaunch({

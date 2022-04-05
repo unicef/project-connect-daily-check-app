@@ -13,6 +13,7 @@ import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../services/storage.service';
+
 @Component({
   selector: 'app-starttest',
   templateUrl: 'starttest.page.html',
@@ -89,10 +90,10 @@ export class StarttestPage implements OnInit {
     private historyService: HistoryService,
     public translate: TranslateService,
     private ref: ChangeDetectorRef,
-    private storage: StorageService
+    private storage: StorageService,
   ) {
 
-    this.onlineStatus = window.navigator.onLine;
+    this.onlineStatus = navigator.onLine;
     this.route.params.subscribe(params => {
         if ( this.onlineStatus ) {
           this.measureReady();
@@ -107,15 +108,21 @@ export class StarttestPage implements OnInit {
       }      
     }
       
-    window.addEventListener('online', (e) => {
+    window.addEventListener('online', () => {
       // Re-sync data with server.
+      console.log('Online');
       this.onlineStatus = true;
+      this.currentState = undefined;
+      this.currentRate = undefined;
       this.measureReady();
     }, false);
 
-    window.addEventListener('offline', (e) => {
+    window.addEventListener('offline', () => {
       // Queue up events for server.
       this.onlineStatus = false;
+      this.connectionStatus = "error";
+      this.currentRate = "error";
+      this.isErrorClosed = false;
     }, false);
 
     this.sharedService.on('settings:changed', (nameValue)=>{      
@@ -131,34 +138,55 @@ export class StarttestPage implements OnInit {
     }
   }
   ngOnInit() {
+    window.addEventListener('online', () => {
+      console.log('Online 1');
+    }, false);
+
+    window.addEventListener('offline', () => {
+      console.log('Offline 1');
+    }, false);
     this.sharedService.on('measurement:status', this.driveGauge.bind(this));
     this.sharedService.on('history:measurement:change', this.refreshHistory.bind(this));
     this.sharedService.on('history:reset', this.refreshHistory.bind(this));
     this.refreshHistory();
   }
 
-  measureReady() {
-    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Testing connectivity...</p></div>';
-    this.loading.present(loadingMsg, 3000, 'pdcaLoaderClass', 'null');
+  measureReady() {    
     this.tryConnectivity();
     this.isLoaded = true;
   }
 
   tryConnectivity() {
+    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Testing connectivity...</p></div>';
+    this.loading.present(loadingMsg, 15000, 'pdcaLoaderClass', 'null');
     this.mlabService.findServer(this.settingsService.get('metroSelection')).subscribe( res => {
       this.mlabInformation = res; 
       this.connectionStatus = "success";     
+      this.networkService.getAccessInformation().subscribe(results => {
+        this.accessInformation = results;
+        if(this.loading.isStillLoading()){
+          console.log('is still loading 1' + this.loading.isStillLoading());
+          this.loading.dismiss();
+        }
+      },(err) => {
+        if(this.loading.isStillLoading()){
+          this.loading.dismiss();
+        }
+        //this.presentAlertConfirm();
+        this.connectionStatus = "error";
+        this.currentRate = "error";
+        this.isErrorClosed = false;
+        // this.presentTestFailModal();
+      });
     },(err) => {
-      this.loading.dismiss();
+      if(this.loading.isStillLoading()){
+        this.loading.dismiss();
+      }      
       //this.presentAlertConfirm();
       this.connectionStatus = "error";
       this.currentRate = "error";
       this.isErrorClosed = false;
-      this.presentTestFailModal();
-    });
-    this.networkService.getAccessInformation().subscribe(results => {
-      this.accessInformation = results;
-      this.loading.dismiss();
+      // this.presentTestFailModal();
     });
   }
 
@@ -261,5 +289,9 @@ export class StarttestPage implements OnInit {
 
   gaugeError() {
     this.progressGaugeState.current = this.progressGaugeState.maximum;
+  }
+
+  closeApp(){
+    this.settingsService.getIpcRenderer().ipcRenderer.send('closeFromUi', 'minimize');
   }
 }
