@@ -6,7 +6,7 @@ import { SettingsService } from './services/settings.service';
 import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
 import { ScheduleService } from './services/schedule.service';
-
+// const shell = require('electron').shell;
 @Component({
   selector: 'app-root',
   templateUrl: 'app.component.html',
@@ -93,5 +93,9 @@ export class AppComponent {
 
   refreshSchedule() {
     this.scheduleSemaphore = this.scheduleService.getSemaphore();
+  }
+
+  openExternalUrl(href){
+    this.settingsService.getShell().shell.openExternal(href);
   }
 }

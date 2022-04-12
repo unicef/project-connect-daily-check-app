@@ -29,4 +29,8 @@ export class HomePage {
       this.router.navigate(['/starttest']);
     }
   }
+
+  openExternalUrl(href){
+    this.settingsService.getShell().shell.openExternal(href);
+  }
 }

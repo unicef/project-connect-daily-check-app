@@ -1,6 +1,6 @@
 import { Component, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
-import { ActivatedRoute } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { LoadingService } from '../services/loading.service';
 
 @Component({
@@ -15,6 +15,7 @@ export class SchoolnotfoundPage {
   sub: any;
   constructor(
     private activatedroute: ActivatedRoute, 
+    public router: Router,
     public loading: LoadingService) {
       this.sub = this.activatedroute.params.subscribe(params => {
         this.schoolId = params.schoolId;

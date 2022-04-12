@@ -12,11 +12,6 @@ const gotTheLock = app.requestSingleInstanceLock();
 unhandled();
 let isQuiting = false;
 let mainWindow = null;
-const squirrelEvent = process.argv[1];
-if(squirrelEvent === '--squirrel-uninstall'){
-  const getAppPath = app.getPath('userData');
-  fs.rmdirSync(getAppPath, { recursive: true });
-}
 
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
@@ -26,6 +21,7 @@ const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
   }),
   new MenuItem({ label: 'Quit App', click: function(){
       isQuiting = true;
+      // myCapacitorApp.getMainWindow().close();
       app.quit();
     } 
   })
@@ -67,6 +63,10 @@ if (!gotTheLock) {
           mainWindow.show();
         }
         mainWindow.focus();
+        if(isQuiting){
+          // mainWindow.close();
+          app.quit();
+        }
       }
     });
     // Wait for electron app to be ready.
@@ -80,8 +80,17 @@ if (!gotTheLock) {
     // Check for updates if we are in a packaged app.
     // autoUpdater.checkForUpdatesAndNotify();
 }
-
-
+  if (mainWindow) {
+    mainWindow.on('close',(event)=>{
+      if(!isQuiting){
+        event.preventDefault();
+        mainWindow.hide(); 
+        return false;       
+      } else {
+        app.quit();
+      }            
+    });
+  }
 // Handle when all of our windows are close (platforms have their own expectations).
 app.on('window-all-closed', function () {
   // On OS X it is common for applications and their menu bar

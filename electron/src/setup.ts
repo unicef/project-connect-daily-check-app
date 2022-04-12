@@ -6,14 +6,13 @@ import {
 } from '@capacitor-community/electron';
 import chokidar from 'chokidar';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, BrowserWindow, Menu, MenuItem, nativeImage, Tray, session } from 'electron';
+import { app, BrowserWindow, Menu, MenuItem, nativeImage, Tray, session, shell } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import electronServe from 'electron-serve';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
-import fs from 'fs-extra';
 var AutoLaunch = require('auto-launch');
-let isQuiting = false;
+var isQuiting = false;
 const gotTheLock = app.requestSingleInstanceLock();
 // Define components for a watcher to detect when the webapp is changed so we can reload in Dev mode.
 const reloadWatcher = {
@@ -53,12 +52,13 @@ export class ElectronCapacitorApp {
   private CapacitorFileConfig: CapacitorElectronConfig;
   private TrayMenuTemplate: (MenuItem | MenuItemConstructorOptions)[] = [
     new MenuItem({ label: 'Open', click:  function(){
-          this.mainWindow.show();
+          this.MainWindow.show();
         } 
     }),
     new MenuItem({ label: 'Quit App', click: function(){
-      isQuiting = true;
-      app.quit();
+        isQuiting = true;
+        app.quit();
+        this.MainWindow.close();
       }  
     }),
   ];
@@ -110,17 +110,12 @@ export class ElectronCapacitorApp {
   }
 
   async init(): Promise<void> {
-    const squirrelEvent = process.argv[1];
-    if(squirrelEvent === '--squirrel-uninstall'){
-      const getAppPath = app.getPath('userData');
-      fs.rmdirSync(getAppPath, { recursive: true });
-    }
     const icon = nativeImage.createFromPath(
       join(app.getAppPath(), 'assets', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.png')
     );
     this.mainWindowState = windowStateKeeper({
-      defaultWidth: 500,
-      defaultHeight: 800,
+      defaultWidth: 376,
+      defaultHeight: 550,
     });
     // Setup preload script path and construct our main window.
     const preloadPath = join(app.getAppPath(), 'build', 'src', 'preload.js');
@@ -221,13 +216,15 @@ export class ElectronCapacitorApp {
         event.preventDefault();
       }
     });
-    this.MainWindow.on('close',(event)=>{
-      if(!isQuiting){
-        event.preventDefault();
-        this.MainWindow.hide();        
-      }
-      return false;      
-    });
+    // this.MainWindow.on('close',(event)=>{
+    //   if(!isQuiting){
+    //     event.preventDefault();
+    //     this.MainWindow.hide(); 
+    //     return false;       
+    //   } else {
+    //     app.quit();
+    //   }            
+    // });
     // Link electron plugins into the system.
     setupCapacitorElectronPlugins();
 
@@ -279,7 +276,9 @@ export class ElectronCapacitorApp {
         // handle error
     });
     // End of Auto lunching code
+
   }
+
 }
 
 // Set a CSP up for our application based on the custom scheme

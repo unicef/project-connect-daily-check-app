@@ -134,7 +134,7 @@ export class StarttestPage implements OnInit {
       }
     });
     if(!this.storage.get('schoolId')){
-      this.router.navigate(['/home']);
+      this.router.navigate(['/']);
     }
   }
   ngOnInit() {
@@ -157,7 +157,7 @@ export class StarttestPage implements OnInit {
   }
 
   tryConnectivity() {
-    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Testing connectivity...</p></div>';
+    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Fetching Internet Provider Info...</p></div>';
     this.loading.present(loadingMsg, 15000, 'pdcaLoaderClass', 'null');
     this.mlabService.findServer(this.settingsService.get('metroSelection')).subscribe( res => {
       this.mlabInformation = res; 
@@ -165,7 +165,6 @@ export class StarttestPage implements OnInit {
       this.networkService.getAccessInformation().subscribe(results => {
         this.accessInformation = results;
         if(this.loading.isStillLoading()){
-          console.log('is still loading 1' + this.loading.isStillLoading());
           this.loading.dismiss();
         }
       },(err) => {

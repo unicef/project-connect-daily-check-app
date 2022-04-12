@@ -181,4 +181,7 @@ export class SettingsService {
   getIpcRenderer(){
     return (<any>window).ipcRenderer;
   }
+  getShell(){
+    return (<any>window).shell;
+  }
 }

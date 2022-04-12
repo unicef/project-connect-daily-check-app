@@ -12,7 +12,7 @@
     </div>
     <div class="bottom-layout">
       <ion-button color="primary" block [routerLink]="['/searchschool']" class="dailycheck_btn"><span class="next-txt">{{'NEXT' | translate}} </span></ion-button>
-      <div class="learnmore">{{'LEARN MORE ABOUT PROJECT CONNECT'| translate}} </div>     
+      <div class="learnmore" (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')">{{'LEARN MORE ABOUT PROJECT CONNECT'| translate}}</div>     
     </div>
   </div>
 </div>

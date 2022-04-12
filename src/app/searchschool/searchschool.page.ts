@@ -3,7 +3,7 @@ import { IonAccordionGroup } from '@ionic/angular';
 import { Router, NavigationExtras, ActivatedRoute } from '@angular/router';
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
-
+import { SettingsService } from '../services/settings.service';
 @Component({
   selector: 'app-searchschool',
   templateUrl: 'searchschool.page.html',
@@ -19,6 +19,7 @@ export class SearchschoolPage {
     private router: Router,
     private routeParams: ActivatedRoute,
     private schoolService: SchoolService,
+    private settingsService: SettingsService,
     public loading: LoadingService) {}
 
   /**
@@ -61,5 +62,9 @@ export class SearchschoolPage {
     } else {
       this.isDisabled = true;
     }
+  }
+
+  openExternalUrl(href){
+    this.settingsService.getShell().shell.openExternal(href);
   }
 }

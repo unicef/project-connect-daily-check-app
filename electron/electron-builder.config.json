@@ -12,7 +12,9 @@
   "nsis": {
     "allowElevation": true,
     "oneClick": false,
-    "allowToChangeInstallationDirectory": true
+    "deleteAppDataOnUninstall": true,
+    "allowToChangeInstallationDirectory": true,
+    "include": "build/uninstaller.nsh"
   },
   "win": {
     "target": "nsis",

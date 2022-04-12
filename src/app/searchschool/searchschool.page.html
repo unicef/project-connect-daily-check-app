@@ -10,38 +10,48 @@
         <div class="provide-id">To get started, please enter and search for your School ID</div>
         <div class="wrap">
           <div class="search">
-             <input type="text" class="searchTerm" placeholder="Enter your school ID" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2">
+             <input type="text" class="searchTerm" placeholder="Enter your school ID" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2" (keyup.enter)="searchSchoolById()">
              <button type="submit" class="searchButton" (click)="searchSchoolById()" [disabled]="isDisabled">
                <ion-icon name="search-outline" class="searchIcon"></ion-icon>
             </button>
           </div>
         </div>
-        <div class="learn-more" class="noschoolid-link">I DON'T KNOW MY SCHOOL ID <span class="chevron right"></span></div> 
+        <div class="learn-more noschoolid-link" (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')">I DON'T KNOW MY SCHOOL ID <span class="chevron right"></span></div> 
      </div>
     <div class="bottom-layout">     
       <div class="freq-txt">FREQUENTLY ASKED QUESTIONS</div>        
         <div class="accordion-sec">  
           <ion-accordion-group value="numbers">
-            <ion-accordion value="colors">
+            <ion-accordion value="faq1">
               <ion-item slot="header">
-                <ion-label>What is a school id?</ion-label>
+                <ion-label>What is a school ID?</ion-label>
               </ion-item>          
               <ion-list slot="content">
                 <ion-item>
-                  <ion-label>sample content 1</ion-label>
+                  <ion-label>A school ID is a unique identifier for your school that was provided by the government. There are different formats, but usually looks something like "BR12345" or "12345678" </ion-label>
                 </ion-item>               
               </ion-list>
             </ion-accordion>
-            <ion-accordion value="shapes">
+            <ion-accordion value="faq2">
               <ion-item slot="header">
-                <ion-label>How do i find my school id?</ion-label>
+                <ion-label>How do I find my school ID?</ion-label>
               </ion-item>          
               <ion-list slot="content">
                 <ion-item>
-                  <ion-label>sample content 1</ion-label>
+                  <ion-label>Your school administrator or IT department will know. The school ID will be the number that is used in your national registration system.</ion-label>
                 </ion-item>               
               </ion-list>
-            </ion-accordion>          
+            </ion-accordion> 
+            <ion-accordion value="faq3">
+              <ion-item slot="header">
+                <ion-label>My school is not part of Project Connect yet. What can I do?</ion-label>
+              </ion-item>          
+              <ion-list slot="content">
+                <ion-item>
+                  <ion-label>You can visit our website and fill out the contact form to indicate to us that you would like to join our initiative.</ion-label>
+                </ion-item>               
+              </ion-list>
+            </ion-accordion>         
           </ion-accordion-group>
       </div>
      </div>

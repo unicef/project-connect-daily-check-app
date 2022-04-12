@@ -76,6 +76,7 @@
     right: 0;    
   }
   .ionList{
+    -webkit-app-region: no-drag;
     margin-top: 10px;
     --ion-background-color:$background-bg-color;
     overflow-y: auto;
@@ -113,6 +114,7 @@
     }
   }
   .noSchoolList-txt{
+    cursor: pointer;
     padding-top: 20px;
     color:$light-text1;
     font-size: 11px;

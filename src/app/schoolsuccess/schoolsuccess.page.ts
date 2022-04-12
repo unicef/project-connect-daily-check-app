@@ -1,10 +1,8 @@
 import { Component, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
-import { ActivatedRoute, Router } from "@angular/router";
-import { SchoolService } from '../services/school.service';
+import { Router } from "@angular/router";
 import { LoadingService } from '../services/loading.service';
 import { IonSlides} from '@ionic/angular';
-import { StorageService } from '../services/storage.service';
 
 @Component({
   selector: 'app-schoolsuccess',
@@ -21,11 +19,8 @@ export class SchoolsuccessPage {
   };
   isLast = false;
   constructor(
-    private activatedroute: ActivatedRoute, 
     public loading: LoadingService,  
-    private router: Router,  
-    private storage: StorageService,
-    private schoolService: SchoolService) {
+    private router: Router) {
       
   }
   swipeNext(){
