@@ -28,7 +28,7 @@ export class NetworkService {
    */
   getAccessInformation(){
     this.options = {headers: this.headers};
-    return this.http.get(this.accessServiceUrl+'?token=86601ac65ad27d', this.options)
+    return this.http.get(this.accessServiceUrl, this.options)
     .pipe(
         map(
           (response: any) => {

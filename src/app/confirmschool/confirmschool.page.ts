@@ -47,6 +47,8 @@ export class ConfirmschoolPage {
           created: today
         };
         this.schoolService.registerSchoolDevice(schoolData).subscribe((response)=>{
+          this.storage.set('deviceType', a.operatingSystem);
+          this.storage.set('macAddress', b.uuid);
           this.storage.set('schoolUserId',response);
           this.storage.set('schoolId',this.schoolId);
           this.storage.set('gigaId',this.school.giga_id_school);

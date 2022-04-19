@@ -1,15 +1,19 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpRequest, HttpParams } from '@angular/common/http';
 import { catchError, map, tap } from 'rxjs/operators';
+import { environment } from 'src/environments/environment';
 import { Observable, throwError } from 'rxjs';
 import { SettingsService } from "../services/settings.service"
-
+import { StorageService } from './storage.service';
 @Injectable({
   providedIn: 'root'
 })
 export class UploadService {
   ts: any;
-  constructor( private http: HttpClient, private settingService: SettingsService ) { }
+  constructor( 
+    private http: HttpClient, 
+    private settingService: SettingsService,
+    private storage: StorageService ) { }
 
   /**
    * Return all network related information
@@ -52,7 +56,9 @@ export class UploadService {
         "BrowserID" : "",
         "Timestamp": "",
         "DeviceType": "",
-        "Notes": ""
+        "Notes": "",
+        "school_id": "",
+        "giga_id_school": "",
     };
     if (record.hasOwnProperty("mlabInformation")) {
       // If we've got server data from mlab-ns, add it to the Measurement
@@ -111,19 +117,19 @@ export class UploadService {
     if (!this.settingService.currentSettings.uploadEnabled) {
       return;
     }
-    let uploadURL = this.settingService.get("uploadURL");
-    // uploadURL += "/v0/measurements";
+    let uploadURL = environment.restAPI + 'measurements';
     const apiKey = this.settingService.get("uploadAPIKey");
-    const browserID = this.settingService.get("browserID");
-    const deviceType = this.settingService.get("deviceType");
+    // const browserID = this.settingService.get("browserID");
+    // const deviceType = this.settingService.get("deviceType");
     const notes = this.settingService.get("notes");
     let measurement = this.makeMeasurement(record);
     // Add measure-saver-specific metadata.
-    measurement.BrowserID = browserID;
+    measurement.BrowserID = this.storage.get('schoolUserId');
     measurement.Timestamp = this.ts.toISOString();
-    measurement.DeviceType = deviceType;
+    measurement.DeviceType = this.storage.get('deviceType');
     measurement.Notes = notes;
-
+    measurement.school_id = this.storage.get('schoolId');
+    measurement.giga_id_school = this.storage.get('gigaId');
     // Add API key if configured.
     if (apiKey != "") {
         uploadURL = uploadURL + "?key=" + apiKey;

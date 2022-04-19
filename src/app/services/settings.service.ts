@@ -33,7 +33,7 @@ export class SettingsService {
       'options': ['daily', 'weekly', 'custom'],
     },
     'uploadEnabled': {
-      'default': false,
+      'default': true,
       'type': 'boolean',
     },
     'uploadURL': {
@@ -86,7 +86,7 @@ export class SettingsService {
       'options': ['daily', 'weekly', 'custom'],
     },
     'uploadEnabled': {
-      'default': false,
+      'default': true,
       'type': 'boolean',
     },
     'uploadURL': {

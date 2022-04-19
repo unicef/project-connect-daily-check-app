@@ -19,6 +19,7 @@
     "@angular/platform-browser": "~13.0.0",
     "@angular/platform-browser-dynamic": "~13.0.0",
     "@angular/router": "~13.0.0",
+    "@auth0/angular-jwt": "^5.0.2",
     "@awesome-cordova-plugins/network": "^5.38.0",
     "@capacitor-community/electron": "^4.1.0",
     "@capacitor/app": "1.1.0",
