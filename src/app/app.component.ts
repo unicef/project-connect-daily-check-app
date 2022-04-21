@@ -48,7 +48,6 @@ export class AppComponent {
       this.refreshHistory();
       if(this.storage.get('schoolId')){
         setInterval(() => {
-          console.log('Scheduler cheking');
           this.scheduleService.initiate(); 
         }, 60000);
       }
