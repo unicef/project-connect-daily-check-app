@@ -4,9 +4,9 @@
 /** Ionic CSS Variables **/
 @font-face {
   font-family: 'Cabin';
-  font-style: normal;
-  font-weight: normal;
-  src: url('../assets/fonts/Cabin/Cabin-Variable.ttf');
+  font-style:normal;
+  font-weight: 400;
+  src: url('../assets/fonts/Cabin/static/Cabin/Cabin-Regular.ttf');
 }
 @font-face {
   font-family: 'Roboto';
@@ -22,8 +22,10 @@
 // To view all the possible Ionic variables, see:
 // http://ionicframework.com/docs/v2/theming/overriding-ionic-variables/
 
-$text-color:        #f2f2f2;
-$background-color:  #222;
+$text-color:#FFFFFF;
+$light-text1:#A3ACBB;
+$light-text2:#E2E2E2;
+$background-bg-color:#111C30;
 
 
 // Named Color Variables
@@ -37,35 +39,26 @@ $background-color:  #222;
 
 // variables for colors
 //-------------------------------
-/* $colors: (
-  "primary":    #488aff,
-  "secondary":  #32db64,
-  "danger":     #f53d3d,
-  "light":      #f4f4f4,
-  "dark":       #222222
-); */
 $color-red: #FF0000;
 $color-green: #00FF00;
 $color-black: #141923;
+$black-text:#3E434E;
 $color-grey:#B6BBC6;
 $color-blue:#2779FF;
 $dailychk : #111C30;
 $color-yes:#51E12B;
 $color-no:#42516E;
-$line-color:#42516E;
-
+$line-color:#111C30;
+$line-shadow:#3F3C55;
+$btn-hover: #58C1FF;
+$list-bg:#42516E;
+$menu-bg:#1E2B46;
 $theme-colors: (
   "success": #28a745,
   "info": #17a2b8,
   "warning": #ffc107,
 );
 $h2color : #fff;
-.daily-chk{
-  color: $dailychk;
-}
-.toolbar{
-  padding-left: 20px !important;
-}
 
 :root {
   /** primary **/
@@ -316,6 +309,11 @@ p.white{
 }
 ion-img.loaderGif{
   width: 50px;
+  height:auto;
+  margin: 0 auto;
+}
+ion-img.bigloaderGif{
+  width: 120px;
   height:auto;
   margin: 0 auto;
 }

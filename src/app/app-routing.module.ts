@@ -29,6 +29,16 @@ const routes: Routes = [
   }
   ,
   {
+    path: 'schoolsuccess',
+    loadChildren: () => import('./schoolsuccess/schoolsuccess.module').then( m => m.SchoolsuccessPageModule)
+  }
+  ,
+  {
+    path: 'starttest',
+    loadChildren: () => import('./starttest/starttest.module').then( m => m.StarttestPageModule)
+  }
+  ,
+  {
     path: '',
     redirectTo: 'home',    
     pathMatch: 'full'

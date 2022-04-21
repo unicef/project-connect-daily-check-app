@@ -1,0 +1,94 @@
+<ion-header no-shadow>
+  <ion-toolbar>    
+    <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
+    <ion-buttons slot="end">  
+      <ion-menu-button color="light"></ion-menu-button>   
+    </ion-buttons> 
+  </ion-toolbar>  
+  <div class="closeAppBtn">
+    <ion-icon slot="icon-only" name="close-outline" (click)="closeApp();"></ion-icon>
+  </div>  
+</ion-header>
+<ion-content>   
+  <div class="container" [ngClass]="currentState ==undefined || currentState == 'Starting' || !onlineStatus?'centerPos':''">  
+    <!---------   Start test Section ------------------>  
+    <!-- {{currentState}} {{currentRate}} {{onlineStatus}} -->
+    <div *ngIf="currentState == undefined && currentRate != 'error' && onlineStatus">
+      <div class="start-container centerAlign" >  
+        <div class="center-layout text-center">   
+          <button class="test-btn" (click)="startNDT()" >START TEST</button>
+        </div>         
+      </div>
+      <div class="location">{{mlabInformation.label}}</div>
+    </div>
+    <!---------   Start test Section END ------------------>  
+    <!----------   Start test progress Section --------------->  
+    <div *ngIf="currentState == 'Starting' && currentState !== undefined && onlineStatus">
+      <div class="start-container centerAlign">  
+        <div class="center-layout text-center">   
+          <ion-img src="assets/loader/loader.gif" class="bigloaderGif marT12"></ion-img>
+        </div>         
+      </div>
+      <div class="location">{{mlabInformation.label}}</div>
+    </div>
+    <!----------   Start test progress Section END --------------->  
+    <!---------   Test Result Section ----------------->  
+    <div *ngIf="currentState !=undefined && currentState != 'Starting' && onlineStatus">
+      <div class="uploadDownldSec">
+      <div class="uplanddowld" *ngIf="currentState !=undefined">
+        <div class="uploadsec">
+          <div><ion-icon name="arrow-up-circle-outline"></ion-icon><span class="upload-txt">UPLOAD</span></div>
+          <label>{{ currentRateUpload| formatThroughputMeasurement}}<span>Mb/s</span></label>
+        </div>
+        <div class="downloadsec">
+          <div><ion-icon name="arrow-down-circle-outline"></ion-icon><span class="download-txt">DOWNLOAD</span></div>
+          <label>{{ currentRateDownload | formatThroughputMeasurement}} <span>Mb/s</span></label>
+        </div>               
+      </div>
+      <div class="h-line" *ngIf="currentState !=undefined"></div>
+      </div>        
+      <div class="centerGauge">
+        <div class="start-container">  
+          <div class="center-layout text-center">
+            <!-- <button class="test-btn" (click)="startNDT()" *ngIf="currentState !== 'Completed' && currentState !== undefined">START TEST</button> -->
+            <ion-img src="assets/loader/loader.gif" class="bigloaderGif marT12" *ngIf="currentState !== 'Completed' && currentState !== undefined"></ion-img>
+            <button class="test-btn" (click)="startNDT()" *ngIf="currentState == 'Completed'">TEST AGAIN</button>
+            <div *ngIf="connectionStatus=='error'"><ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img></div>
+          </div>         
+        </div>
+        <div class="location">{{mlabInformation.label}}</div>  
+      </div>
+      <div class="test-results" *ngIf="currentState =='Completed'">     
+        <div><ion-icon name="list-circle-outline"></ion-icon><span>{{accessInformation.org}}</span></div>
+        <div><ion-icon name="time-outline"></ion-icon><span>{{currentDate | date:'H:mm, d MMM YYYY'}}</span></div>
+        <div><ion-icon name="navigate-circle-outline"></ion-icon><span>Latency: {{latency | formatLatencyMeasurement}}</span></div>
+      </div>  
+    </div>
+    <!-- ------------------------------------------- -->
+    <!--   Test Failed Section------------------------->
+    <div class="errrorContainer" *ngIf="((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) && !isErrorClosed">
+      <div class="errorMsg" #errorMsg>
+        <div class="closebtn" (click)="closeError()"><ion-icon name="close-outline"></ion-icon></div>
+        <div class="errText">
+        <ion-label>TEST FAILED</ion-label>
+        <div class="msg">The connection was interupted before testing could be completed.</div>
+        </div>
+      </div>
+    </div> 
+    <div class="testFailed-container" *ngIf="(connectionStatus=='error' && currentState == undefined) || (!onlineStatus)">   
+      <div class="start-container">  
+        <div class="center-layout text-center">   
+          <div *ngIf="connectionStatus=='error' || !onlineStatus"><ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img></div>
+        </div>         
+      </div>
+      <div class="location">{{mlabInformation.label}}</div>
+      <div class="bottom-layout">  
+        <div *ngIf="currentState == undefined || !onlineStatus" class="tryAgain">
+          <ion-button class="dailycheck_btn" (click)="measureReady()">TRY AGAIN</ion-button>
+          <div class="h-line"></div>
+        </div>     
+      </div>
+    </div>
+    <!-- ------------------------------------------- -->
+  </div>
+</ion-content>

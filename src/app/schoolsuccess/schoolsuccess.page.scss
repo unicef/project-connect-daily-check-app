@@ -1,0 +1,59 @@
+@import '../../theme/variables.scss'; 
+  
+  .container{
+    margin: 10px 25px 0px 25px;
+    height:90%;
+    min-height: 88%;   
+    background-size: 100% 100%;    
+    border-radius: 0px 0px 10px 10px;
+  }
+ .schoolsuccess{  
+    --bullet-background: #eee;
+    --bullet-background-active: #51E12B;
+    height: 82%;
+  }
+ .swiper-slide {
+   height: 70% !important;
+  }
+  ion-label{
+    font-size: 12px;
+  }
+ .label-txt{
+    color: $text-color;
+    font-size: 20px;
+  }
+  .successInfo{
+    padding-top: 10px;
+    ion-img{  
+      width: auto !important;     
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+    }
+    .icon1{
+      width:124px !important;
+    }
+    .icon2{
+      width:110px !important;
+    }
+    .icon3{
+      width:125px !important;
+    }
+    .success-txt{
+      color: #51E12B;
+      text-align: center;
+      padding-top: 15px;
+      font-size: 16px;
+    }
+    .success-desc-txt{
+      color: $light-text2;
+      text-align: center;
+      padding-top: 10px;
+      font-size: 13px;
+    }
+  }  
+  .bottom-layout{
+    padding: 0px 30px;
+    bottom: 50px !important;
+  }
+ 

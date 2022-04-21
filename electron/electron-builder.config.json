@@ -1,0 +1,27 @@
+{
+  "appId": "com.unicef.pdca",
+  "directories": {
+    "buildResources": "resources"
+  },
+  "files": [
+    "assets/**/*",
+    "build/**/*",
+    "capacitor.config.*",
+    "app/**/*"
+  ],
+  "nsis": {
+    "allowElevation": true,
+    "oneClick": false,
+    "deleteAppDataOnUninstall": true,
+    "allowToChangeInstallationDirectory": true,
+    "include": "build/uninstaller.nsh"
+  },
+  "win": {
+    "target": "nsis",
+    "icon": "assets/appIcon.ico"
+  },
+  "mac": {
+    "category": "your.app.category.type",
+    "target": "dmg"
+  }
+}

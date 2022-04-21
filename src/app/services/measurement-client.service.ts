@@ -157,8 +157,8 @@ export class MeasurementClientService {
             this.historyService.add(measurementRecord);
           }
 
-        }, error => {
-          console.log('error');
+        }, (error) => {
+          console.log(error);
           reject({'error': true});
         });
       });

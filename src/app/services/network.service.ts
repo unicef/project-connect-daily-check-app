@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import { map } from 'rxjs/operators';
+import { map, catchError } from 'rxjs/operators';
+import { throwError  } from 'rxjs';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 @Injectable({
@@ -27,7 +28,7 @@ export class NetworkService {
    */
   getAccessInformation(){
     this.options = {headers: this.headers};
-    return this.http.get(this.accessServiceUrl+'?token=86601ac65ad27d', this.options)
+    return this.http.get(this.accessServiceUrl, this.options)
     .pipe(
         map(
           (response: any) => {
@@ -37,7 +38,7 @@ export class NetworkService {
             this.currentAccessInformation.org = this.currentAccessInformation.org.replace(asnRegex, "$2");
             return this.currentAccessInformation;
           }
-        )
+        ),catchError(this.handleError)
     );
   }
 
@@ -95,5 +96,14 @@ export class NetworkService {
     let connectionClass = undefined;
     connectionClass = this.network.type;
 		return this.getConnectionInformation(connectionClass);
+  }
+
+  /**
+   * Private function to handle error
+   * @param error 
+   * @returns Error
+   */
+   private handleError(error: Response) {
+    return throwError(error);
   }
 }

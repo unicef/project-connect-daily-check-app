@@ -13,9 +13,9 @@ export class MlabService {
     'answer': undefined,
     'all': undefined,
   };
-  mlabNsUrl = 'http://mlab-ns.appspot.com/ndt?format=json&policy=all';
-  mlabNsUrlNoPolicy = 'http://mlab-ns.appspot.com/ndt?format=json';
-  mlabNsUrlMetro = 'http://mlab-ns.appspot.com/ndt?format=json&policy=metro&metro=';
+  mlabNsUrl = 'https://mlab-ns.appspot.com/ndt?format=json&policy=all';
+  mlabNsUrlNoPolicy = 'https://mlab-ns.appspot.com/ndt?format=json';
+  mlabNsUrlMetro = 'https://mlab-ns.appspot.com/ndt?format=json&policy=metro&metro=';
   options: any;
   headers: any;
   responseObject: any;

@@ -7,12 +7,10 @@
 <ion-content>
   <div class="container">    
     <div class="top-section">     
-      <div class="label-txt">CONFIRM SCHOOL INFORMATION
-        TO REGISTER YOUR SCHOOL
-        WITH PROJECT CONNECT</div>       
+      <div class="label-txt">CONFIRM SCHOOL INFORMATION TO REGISTER YOUR SCHOOL WITH PROJECT CONNECT</div>       
       <div class="schoolDetails" *ngIf="school">  
         <div class="schoolname">{{school.name | truncate:[30]}}</div>          
-        <div class="schoolAddress">{{school.admin_2_name?school.admin_2_name+',':''}} {{school.admin_1_name?school.admin_1_name+',':''}} {{school.postal_code?schoolInfo.postal_code+',':''}} {{school.country}}</div>
+        <div class="schoolAddress">{{school.admin_2_name?school.admin_2_name+',':''}} {{school.admin_1_name?school.admin_1_name+',':''}} {{school.postal_code?school.postal_code+',':''}} {{school.country}}</div>
         <div class="schoolid">School ID: {{school.school_id | uppercase}}</div>
       </div>
     </div>
@@ -20,10 +18,10 @@
     <div class="bottom-section">      
       <div class="confirm-txt">IS THE INFORMATION ABOVE CORRECT?</div>     
       <div class="btn-holder">       
-        <ion-button block class="nobtn" [routerLink]="['/searchschool']">NO</ion-button>
-        <ion-button block class="yesbtn">YES</ion-button> 
+        <ion-button block class="nobtn" [routerLink]="['/schooldetails',school.school_id]">NO</ion-button>
+        <ion-button block class="yesbtn" (click)="confirmSchool()">YES</ion-button> 
       </div>
-      <div class="h-line padT30"></div>
+      <div class="h-line"></div>
     </div>    
    </div>
 </ion-content>

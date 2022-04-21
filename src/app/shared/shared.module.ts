@@ -10,10 +10,12 @@ import { FormatLatencyMeasurementPipe } from './pipes/format-latency-measurement
 import { FormatDataConsumptionMeasurementPipe } from './pipes/format-data-consumption-measurement.pipe';
 import { FormatProbabilityMeasurementPipe } from './pipes/format-probability-measurement.pipe';
 import { CapitalizePipe } from './pipes/capitalize.pipe';
+import { DatePipe } from '@angular/common';
 
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-
+import { Network } from '@awesome-cordova-plugins/network/ngx'; 
+import { NgxElectronModule } from 'ngx-electron';
 export function createTranslateLoader(http: HttpClient) {
     return new TranslateHttpLoader(http, './assets/i18n/', '.json');
 }
@@ -32,6 +34,7 @@ export function createTranslateLoader(http: HttpClient) {
   imports: [
     CommonModule,
     NgPipesModule,
+    NgxElectronModule,
     TranslateModule.forRoot({
       defaultLanguage: 'en',
       loader: {
@@ -61,7 +64,9 @@ export function createTranslateLoader(http: HttpClient) {
     FormatDataConsumptionMeasurementPipe,
     FormatProbabilityMeasurementPipe,
     CapitalizePipe,
-    TruncatePipe
+    TruncatePipe,
+    Network,
+    DatePipe
   ]
 })
 export class SharedModule { }

@@ -3,7 +3,7 @@ import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from "@angular/router";
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
-
+import { SettingsService } from '../services/settings.service';
 @Component({
   selector: 'app-schooldetails',
   templateUrl: 'schooldetails.page.html',
@@ -19,6 +19,7 @@ export class SchooldetailsPage {
   constructor(
     private activatedroute: ActivatedRoute, 
     public loading: LoadingService,
+    private settingsService: SettingsService,
     private router: Router,
     private schoolService: SchoolService) {
     this.sub = this.activatedroute.params.subscribe(params => {
@@ -47,7 +48,9 @@ export class SchooldetailsPage {
     ); 
   }
 
-  confirmSchool(){
+  confirmSchool(schoolObj){
+    
+    this.selectedSchool = schoolObj;
     this.router.navigate(['confirmschool',this.selectedSchool.school_id],{state:this.selectedSchool});
   }
 
@@ -62,6 +65,10 @@ export class SchooldetailsPage {
     } else {
       this.isDisabled = true;
     }
+  }
+
+  openExternalUrl(href){
+    this.settingsService.getShell().shell.openExternal(href);
   }
 
   ngOnDestroy() {

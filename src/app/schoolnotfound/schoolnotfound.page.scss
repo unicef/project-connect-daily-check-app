@@ -1,11 +1,4 @@
 @import '../../theme/variables.scss'; 
-  .container{
-    padding: 0px 30px;
-    background: $color-black;
-    height: 100%;
-    border-radius: 0px 0px 10px 10px;
-  }
- 
   ion-label{
     font-size: 12px;
   }
@@ -19,14 +12,9 @@
     margin-top: 20px;
   }
   .label-txt{
-    color: $h2color;
+    color: $text-color;
     font-size: 20px;
-  }
-  .h-line{
-    margin-top: 22px;
-    border-bottom: 1px solid #747474;
-    opacity: 0.5;
-  }
+  }  
   .selectandconfirm{
     color: $color-blue;
     font-size: 13px;
@@ -51,23 +39,27 @@
   .noschool{
     
     ion-img{
-      width:160px !important;
-     margin: 20px auto;
+      width:85px !important;
+     margin: 25px auto;
     }
     .unabletolocate-txt{
       color: #51E12B;
       text-align: center;
-      padding-top: 20px;
+      padding-top: 10px;
+      font-size: 13px;
     }
     .noschool-txt{
-      color: $h2color;
+      color: $light-text2;
       text-align: center;
       padding-top: 10px;
-    }
+      font-size: 13px;
+      width:60%;
+      margin: 0px auto;
+    }    
   }
   .noSchoolList-txt{
     padding-top: 20px;
-    color: $h2color;
+    color: $light-text2;
     font-size: 12px;
   }
 .bottom-layout{

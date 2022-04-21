@@ -1,3 +1,155 @@
-<ion-app>
-  <ion-router-outlet></ion-router-outlet>
-</ion-app>
+<ion-app>  
+  <ion-menu side="end" menuId="fourth" contentId="content" class="ionMenubg"> 
+    <div class="headerbar">
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+     </div>
+     <ion-content class="menuContent">  
+      <div class="about-proj-con-sec"> 
+        <div class="freq-ques-txt abt-prj-con-txt">ABOUT PROJECT CONNECT</div>        
+        <div>
+          <ion-img src="assets/images/project-connect.jpg" class="aboutprojConn"></ion-img>
+        </div>
+        <div>
+          <ion-label text-wrap>Project Connect is mapping the connectivity of every school in the world. We aim to connect all schools to the Internet and all young people to information, opportunity and choice.</ion-label>
+        </div> 
+        <div>
+          <ion-label text-wrap class="thank-txt">Thank you for contributing to Project Connect. Find your school and learn more at our website. We add new schools every day!</ion-label>
+        </div>          
+        <ion-button class="view-proj-btn" (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')">VIEW PROJECT CONNECT</ion-button>
+      </div>
+    </ion-content> 
+  </ion-menu> 
+  <ion-menu side="end" menuId="third" contentId="content" class="ionMenubg"> 
+    <div class="headerbar">
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+     </div>
+     <div class="freq-ques-txt">FREQUENTLY ASKED QUESTIONS</div>
+    <ion-content class="menuContent">  
+      <div class="accordion-sec"> 
+        
+        <ion-accordion-group value="numbers">
+          <ion-accordion>
+            <ion-item slot="header">
+              <ion-label>What is a school ID?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>A school ID is a unique identifier for your school that was provided by the government. There are different formats, but usually looks something like "BR12345" or "12345678"</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>
+          <ion-accordion>
+            <ion-item slot="header">
+              <ion-label>How do I find my school ID?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>Your school administrator or IT department will know. The school ID will be the number that is used in your national registration system.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>         
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>Can I close the application?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label text-wrap>Yes, you can close the application by clicking the close button in the top right. The application will continue running in the background and will report your connectivity status.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>When do my school's <br>connectivity checks occur?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label text-wrap>There are always two checks per day that occur at random. The average speed between the two is the speed that will be reported as your daily speed.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>Can I change my school ID?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>Right now it is not possible to change your school ID. If you've made a mistake and need to enter a new ID, you should uninstall the application and start over.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>    
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>Can I install this application <br>on more than one computer?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>Yes you can. In fact, we encourage it. If multiple machines report data to the platform, the measurement will be more reliable.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion> 
+          <ion-accordion >
+            <ion-item slot="header">
+              <ion-label>What can I do if I am unhappy<br>with the speed or reliability of <br> my internet connection?</ion-label>
+            </ion-item>        
+            <ion-list slot="content">
+              <ion-item>
+                <ion-label>You can visit our site and fill out the form to file a report. We can then work with our suppliers to ensure they deliver the quality of service they promised.</ion-label>
+              </ion-item>              
+            </ion-list>
+          </ion-accordion>    
+        </ion-accordion-group>
+    </div>
+    </ion-content>
+  </ion-menu> 
+  <ion-menu side="end" menuId="second" contentId="content" class="ionMenubg">
+      <div class="headerbar">
+        <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+        <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+      </div>
+      <ion-content class="menuContent">  
+        <div class="your-school-id-sec"> 
+          <div class="freq-ques-txt your-school-id">YOUR SCHOOL ID</div>          
+            <div class="schoolid">
+              <ion-label *ngIf="school">{{school.school_id | uppercase}}</ion-label>
+            </div>
+            <div class="h-line"></div>
+            <div class="schoolname-txt">
+              <ion-label text-wrap *ngIf="school">{{school.name}}</ion-label>
+            </div>          
+            <div class="address-txt">
+              <ion-label text-wrap *ngIf="school">{{school.address}} {{school.admin_2_name?school.admin_2_name+',':''}} {{school.admin_1_name?school.admin_1_name+',':''}} {{school.postal_code?school.postal_code+',':''}} {{school.country}}</ion-label>
+            </div>
+            <div class="h-line"></div>
+        </div>
+      </ion-content> 
+  </ion-menu>
+  <ion-menu side="end" menuId="first" contentId="content" class="ionMenubg">  
+      <div class="headerbar">
+      <!--  <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon> -->
+      <div></div>
+       <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+      </div> 
+      <ion-content class="menuContent">  
+         <div class="accordion-sec"> 
+           <ion-list>
+             <ion-item (click)="openSecond()">
+               <ion-label><span class="hash">#</span>My School Id</ion-label>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+             </ion-item>
+             <ion-item (click)="openThird()">
+               <ion-label><ion-icon name="chatbox-outline"></ion-icon>Frequently asked questions</ion-label>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+             </ion-item>
+             <ion-item (click)="openFourth()">
+               <ion-label><ion-icon name="information-circle-outline"></ion-icon>About Project Connect</ion-label>
+               <ion-icon name="chevron-forward-outline"></ion-icon>
+             </ion-item>
+           </ion-list>
+       </div>
+       </ion-content>
+  </ion-menu> 
+  <ion-router-outlet Id="content"></ion-router-outlet>  
+</ion-app>   

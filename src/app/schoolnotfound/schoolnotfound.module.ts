@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { SchoolnotfoundPage } from './schoolnotfound.page';
-
+import { SharedModule } from '../shared/shared.module';
 import { SchoolnotfoundPageRoutingModule } from './schoolnotfound-routing.module';
 
 
@@ -12,7 +12,8 @@ import { SchoolnotfoundPageRoutingModule } from './schoolnotfound-routing.module
     CommonModule,
     FormsModule,
     IonicModule,
-    SchoolnotfoundPageRoutingModule
+    SchoolnotfoundPageRoutingModule,
+    SharedModule
   ],
   declarations: [SchoolnotfoundPage]
 })
