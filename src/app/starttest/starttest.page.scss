@@ -1,0 +1,218 @@
+@import '../../theme/variables.scss'; 
+
+  .center-layout{
+    background: url("../../assets/loader/start-test-bg-anim.gif") !important;        
+    background-repeat: no-repeat;
+    width: 146px;
+    height: 146px;
+    .test-btn{
+      width: 116px;
+      height: 116px;
+      line-height: 116px;
+      border-radius: 50%;
+      font-size: 15px;
+      color: #fff;
+      text-align: center;
+      background: #2779FF;
+      margin: 15px;
+    }
+  } 
+  .uploadDownldSec{
+    position: absolute;
+    top:50px;
+    left: 0;
+    transform: translateY(-50%);
+    width:100%;
+    .h-line{
+      margin: 20px 25px;
+    }
+  }
+  .loadContent{
+    background: url("../../assets/loader/start-test-bg-anim.gif") !important;        
+    background-repeat: no-repeat;
+    width: 146px;
+    height: 146px;
+  }
+  .text-center{
+    text-align: center !important;
+  }
+  .pad50{
+    padding: 50px;
+  }
+  .test-container{
+    color: #fff !important;
+  }
+  .centerGauge{
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    width: 100%;
+    padding-bottom: 25px;
+  }
+  .currentRate{
+    display: inline-block;
+    font-size: 3.5em;
+    font-weight:700;
+    padding-top:.2em;
+  }
+  span.currentRateLabel {
+    margin-left: .6em;
+    font-size: 1.9em;
+    font-weight: 100;
+  }
+  .ion-text-center{
+    color:$light-text2;
+  }
+  span.currentState {
+    font-size: .9em;
+    font-weight: 200;
+  }
+  // ion-toolbar{
+  //   ion-buttons{
+  //     width: 25px;
+  //   }
+  // }
+  .result-heading{
+    height:40px;
+    background-color: $color-blue;
+    text-align: left;
+    color:$light-text2;
+    padding: 15px 10px;
+    font-size: 12px;
+    letter-spacing: 1;
+    margin-top: 10px;
+  }
+  .test-details{
+    padding: 10px;  
+    color: $light-text2; 
+    line-height: 24px;
+    font-size: 13px;
+  }
+  .uplanddowld{
+    display: flex;
+    justify-content: space-between;
+    color: $light-text2;
+    font-size: 16px;
+    margin: 0px 25px;
+    margin-top: 30px;
+      .upload-txt, .download-txt{
+        color: $color-blue;
+      }
+    .uploadsec{
+      label{
+        padding-left: 26px;
+      }
+      div{
+        display: flex;
+        align-items: center;
+      }
+    }
+    .downloadsec{
+      label{
+        padding-left: 26px;
+      }
+      div{
+        display: flex;
+        align-items: center;
+      }
+    }
+    ion-icon{
+      padding-right: 5px;
+      font-size: 20px;
+      color: $light-text1;
+    }  
+  } 
+  .start-container{
+    display: flex;
+    justify-content: center;
+    padding:0px 30px 10px 30px;
+  }
+  .location{
+    color: $light-text2;
+    font-size: 20px;
+    text-align: center;
+    padding: 0px 32px;
+    line-height: 22px;
+  }
+  .test-results{
+    color: $light-text2;
+    margin-bottom: 40px;
+    font-size: 13px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    margin-left: 25px;
+    div{
+      display: flex;
+      align-items: center;
+      ion-icon{
+        padding-right: 5px;
+        font-size: 18px;
+      }
+    }
+  }
+  .marT16{
+    margin-top:16px !important;
+  }
+  .marT12{
+    margin-top:12px !important;
+  }
+ .centerPos{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+ }
+ .centerAlign{
+   margin: 0px auto !important;
+ }
+ .errrorContainer{
+   height: 100px;
+   position: absolute;
+   top:0;
+   left:0;
+   width:100%;
+ }
+.testFailed{
+    width: 116px;
+    margin: 16px;
+}
+.testFailed-container{
+  margin: 0px auto;
+ 
+}
+/*error message styling  */
+.errorMsg{
+  background:#fe2762;
+  color: $light-text2;
+  padding: 10px;
+  min-height: 100px;
+  .errText{
+    padding: 5px 20px;
+    ion-label{
+      font-size: 16px;
+    }
+    .msg{
+      font-size: 13px;
+      padding: 5px 0px;
+    }
+    .closebtn{
+      font-size: 24px;
+    }
+  }
+  .closebtn{
+    display: flex;
+    justify-content: flex-end;
+  }
+}
+/*try again button position*/
+.tryAgain{
+  position: relative; 
+  width: 100%;
+  margin-top:30px;
+  padding: 0px 25px;
+}
+.testFailed-container{ 
+  margin: 0 auto;
+}
