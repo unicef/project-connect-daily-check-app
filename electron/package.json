@@ -1,11 +1,15 @@
 {
   "name": "unicef-pdca",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Unicef Project Connect Daily Check App",
   "author": {
     "name": "Unicef",
     "email": "kajal.mondol@ericsson.com"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/unicef/project-connect-daily-check-app" 
+},
   "license": "MIT",
   "main": "build/src/index.js",
   "scripts": {

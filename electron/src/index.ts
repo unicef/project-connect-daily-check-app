@@ -1,7 +1,7 @@
 import type { CapacitorElectronConfig } from '@capacitor-community/electron';
 import { getCapacitorElectronConfig, setupElectronDeepLinking } from '@capacitor-community/electron';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, MenuItem, ipcMain} from 'electron';
+import { app, MenuItem, ipcMain, dialog } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
@@ -12,18 +12,21 @@ const gotTheLock = app.requestSingleInstanceLock();
 unhandled();
 let isQuiting = false;
 let mainWindow = null;
+let isDownloaded = false;
 
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
-  new MenuItem({ label: 'Open', click:  function(){
+  new MenuItem({
+    label: 'Open', click: function () {
       myCapacitorApp.getMainWindow().show();
-    } 
+    }
   }),
-  new MenuItem({ label: 'Quit App', click: function(){
+  new MenuItem({
+    label: 'Quit App', click: function () {
       isQuiting = true;
       // myCapacitorApp.getMainWindow().close();
       app.quit();
-    } 
+    }
   })
 ];
 const appMenuBarMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
@@ -54,43 +57,83 @@ if (electronIsDev) {
 if (!gotTheLock) {
   app.quit();
 } else {
-    app.on('second-instance', () => {
-      // Someone tried to run a second instance, we should focus our window.
-      if (mainWindow) {
-        if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-        } else {
-          mainWindow.show();
-        }
-        mainWindow.focus();
-        if(isQuiting){
-          // mainWindow.close();
-          app.quit();
-        }
-      }
-    });
-    // Wait for electron app to be ready.
-    app.whenReady().then(async()=>{
-      mainWindow = await myCapacitorApp.init();
-    })
-    // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
-    // setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
-    // Initialize our app, build windows, and load content.
-    // await myCapacitorApp.init();
-    // Check for updates if we are in a packaged app.
-    // autoUpdater.checkForUpdatesAndNotify();
-}
-  if (mainWindow) {
-    mainWindow.on('close',(event)=>{
-      if(!isQuiting){
-        event.preventDefault();
-        mainWindow.hide(); 
-        return false;       
+  app.on('second-instance', () => {
+    // Someone tried to run a second instance, we should focus our window.
+    if (mainWindow) {
+      if (mainWindow.isMinimized()) {
+        mainWindow.restore();
       } else {
+        mainWindow.show();
+      }
+      mainWindow.focus();
+      if (isQuiting) {
+        // mainWindow.close();
         app.quit();
-      }            
-    });
-  }
+      }
+    }
+  });
+  // Wait for electron app to be ready.
+  app.whenReady().then(async () => {
+    mainWindow = await myCapacitorApp.init();
+  })
+  /*
+      app.on('ready', () => {
+        updateApp = require('update-electron-app');
+      
+        updateApp({          
+            updateInterval: '5 minute',
+            notifyUser: true
+        });      
+      });
+  
+      */
+  autoUpdater.autoDownload = true;
+
+
+  setInterval(() => {
+    autoUpdater.checkForUpdates()
+  }, 60000)
+
+
+  autoUpdater.on("update-downloaded", (_event, releaseNotes, releaseName) => {
+    const dialogOpts = {
+      type: 'info',
+      buttons: ['Restart', 'Later'],
+      title: 'Project Connect Daily Check App Update',
+      message: process.platform === 'win32' ? releaseNotes : releaseName,
+      detail: 'A new version Project Connect Daily Check App has been downloaded. Restart the application to apply the updates.'
+    };
+    if (isDownloaded === false) {
+      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+        isDownloaded = true;
+        if (returnValue.response === 0) autoUpdater.quitAndInstall(true, true)
+      })
+    }
+  });
+
+
+
+
+
+
+  // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
+  // setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
+  // Initialize our app, build windows, and load content.
+  // await myCapacitorApp.init();
+  // Check for updates if we are in a packaged app.
+  // autoUpdater.checkForUpdatesAndNotify();
+}
+if (mainWindow) {
+  mainWindow.on('close', (event) => {
+    if (!isQuiting) {
+      event.preventDefault();
+      mainWindow.hide();
+      return false;
+    } else {
+      app.quit();
+    }
+  });
+}
 // Handle when all of our windows are close (platforms have their own expectations).
 app.on('window-all-closed', function () {
   // On OS X it is common for applications and their menu bar
