@@ -5,6 +5,7 @@ import { app, MenuItem, ipcMain, dialog } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
+
 import fs from 'fs-extra';
 import { ElectronCapacitorApp, setupContentSecurityPolicy, setupReloadWatcher } from './setup';
 const gotTheLock = app.requestSingleInstanceLock();
@@ -12,7 +13,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 unhandled();
 let isQuiting = false;
 let mainWindow = null;
-let isDownloaded = false;
+
 
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
@@ -96,6 +97,7 @@ if (!gotTheLock) {
 
 
   autoUpdater.on("update-downloaded", (_event, releaseNotes, releaseName) => {
+
     const dialogOpts = {
       type: 'info',
       buttons: ['Restart', 'Later'],
@@ -103,12 +105,14 @@ if (!gotTheLock) {
       message: process.platform === 'win32' ? releaseNotes : releaseName,
       detail: 'A new version Project Connect Daily Check App has been downloaded. Restart the application to apply the updates.'
     };
-    if (isDownloaded === false) {
-      dialog.showMessageBox(dialogOpts).then((returnValue) => {
-        isDownloaded = true;
-        if (returnValue.response === 0) autoUpdater.quitAndInstall(true, true)
-      })
-    }
+/*
+    dialog.showMessageBox(dialogOpts).then((returnValue) => {
+
+      if (returnValue.response === 0) autoUpdater.quitAndInstall(true, true)
+    })
+    */
+    autoUpdater.quitAndInstall(true, true)
+
   });
 
 
