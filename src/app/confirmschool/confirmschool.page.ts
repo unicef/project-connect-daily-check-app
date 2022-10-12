@@ -7,6 +7,7 @@ import { StorageService } from '../services/storage.service';
 import { School } from '../models/models';
 import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
+import { Network } from '@capacitor/network'; 
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -17,6 +18,7 @@ export class ConfirmschoolPage {
   school: any;
   schoolId: any;
   sub: any;
+  connectionType : String;
   constructor(
     private activatedroute: ActivatedRoute, 
     public router: Router,
@@ -36,6 +38,7 @@ export class ConfirmschoolPage {
   confirmSchool(){
     /* Store school id and giga id inside storage */
     let schoolData = {};
+    this.setNetworkType();
     let today = this.datePipe.transform( new Date(),'yyyy-MM-ddah:mm:ssZZZZZ');
     this.getDeviceInfo().then(a=>{
       this.getDeviceId().then(b=>{
@@ -44,7 +47,8 @@ export class ConfirmschoolPage {
           mac_address: b.uuid,
           os: a.operatingSystem,
           app_version: "1.0.0",
-          created: today
+          created: today,
+          connectionType : this.connectionType
         };
         this.schoolService.registerSchoolDevice(schoolData).subscribe((response)=>{
           this.storage.set('deviceType', a.operatingSystem);
@@ -52,6 +56,7 @@ export class ConfirmschoolPage {
           this.storage.set('schoolUserId',response);
           this.storage.set('schoolId',this.schoolId);
           this.storage.set('gigaId',this.school.giga_id_school);
+          this.storage.set('connectionType', this.connectionType);
           this.storage.set('schoolInfo',JSON.stringify(this.school));
           this.loading.dismiss();
           this.router.navigate(['/schoolsuccess']);
@@ -64,6 +69,11 @@ export class ConfirmschoolPage {
     })
   }
 
+   async setNetworkType(){
+    // 'wifi' | 'cellular' | 'none' | 'unknown'
+    const connection = await Network.getStatus();  
+    this.connectionType = connection && connection.connectionType ? connection.connectionType : "none";
+  };
   async getDeviceInfo(){
     const info = await Device.getInfo();
     return info;
