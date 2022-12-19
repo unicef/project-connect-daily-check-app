@@ -72,4 +72,13 @@ export class SchoolService {
   private handleError(error: Response) {
     return throwError(error);
   }
+
+  getSupportData(){
+    let api = 'http://localhost/drupalfaq/api/questions';
+    return this.http.get(api , this.options).pipe(
+      map((response:any) => response),
+      // tap(data => console.log(JSON.stringify(data))),
+      catchError(this.handleError)
+    );
+  }
 }

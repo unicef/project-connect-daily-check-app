@@ -15,13 +15,16 @@ export class SearchschoolPage {
   isDisabled = true;
   schoolData: any;
   isLoading = false;
+  public faqData = [];
+  isLoaded=false;
   constructor(
     private router: Router,
     private routeParams: ActivatedRoute,
     private schoolService: SchoolService,
     private settingsService: SettingsService,
-    public loading: LoadingService) {}
-
+    public loading: LoadingService) {
+      this.setFAQData();
+    }
   /**
    * Search school by id
    */
@@ -66,5 +69,22 @@ export class SearchschoolPage {
 
   openExternalUrl(href){
     this.settingsService.getShell().shell.openExternal(href);
+  }
+
+  setFAQData(){
+    this.schoolService.getSupportData().subscribe(
+      (response) => {
+        this.faqData = response;
+        console.log(this.faqData);
+        this.isLoaded = true;
+      },(err) => {
+        console.log('ERROR: ' + err);
+        this.loading.dismiss();
+        /* Redirect to no result found page */
+      },
+      () => {
+        this.loading.dismiss();
+      }
+    ); 
   }
 }

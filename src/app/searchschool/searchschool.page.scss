@@ -91,3 +91,17 @@
   .learn-more{
     cursor: pointer;
   }
+
+  .grp-margin{
+    margin-left: 1rem
+  }
+
+  .btm-layout{
+      position: relative;
+      bottom: 40px;
+      left: 50%;
+      width: 100%;
+      transform: translateX(-50%);
+      text-align: center;
+  }
+  
