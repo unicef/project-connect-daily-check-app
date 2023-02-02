@@ -105,3 +105,14 @@
       text-align: center;
   }
   
+.faq-pagination ::ng-deep .ngx-pagination .current {
+    background: #2779FF;
+}
+
+.faq-pagination ::ng-deep a{
+    color:#fff !important;
+}
+
+.faq-pagination ::ng-deep a:hover{
+  background : #d6dbe857 !important;
+}

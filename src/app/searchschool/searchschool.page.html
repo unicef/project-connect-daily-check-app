@@ -21,7 +21,12 @@
     <div *ngIf="isLoaded" class="btm-layout">     
       <div class="freq-txt">FREQUENTLY ASKED QUESTIONS</div>     
           <ion-accordion-group class="grp-margin" value="numbers">
-            <ion-accordion *ngFor="let faq of faqData">
+            <ion-accordion *ngFor='let faq of faqData | 
+            paginate: {
+               itemsPerPage: recordsPerPage, 
+               currentPage: page, 
+               totalItems: totalPages
+               }'>
               <ion-item slot="header">
                 <ion-label>{{faq.question}}</ion-label>
               </ion-item>          
@@ -32,6 +37,12 @@
               </ion-list>
             </ion-accordion> 
           </ion-accordion-group>
+          <pagination-controls class="faq-pagination"
+          previousLabel="Prev"
+          nextLabel="Next"
+          responsive="true"
+          (pageChange)="pageChanged($event)">
+        </pagination-controls>
      </div>
    </div>
 </ion-content>

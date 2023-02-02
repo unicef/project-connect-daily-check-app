@@ -14,6 +14,9 @@ export class SearchschoolPage {
   schoolId: any;
   isDisabled = true;
   schoolData: any;
+  totalPages: number;
+  recordsPerPage: any = 5;
+  page : number = 1;
   isLoading = false;
   public faqData = [];
   isLoaded=false;
@@ -23,7 +26,7 @@ export class SearchschoolPage {
     private schoolService: SchoolService,
     private settingsService: SettingsService,
     public loading: LoadingService) {
-      this.setFAQData();
+      this.setFAQData(0,this.recordsPerPage);
     }
   /**
    * Search school by id
@@ -71,20 +74,26 @@ export class SearchschoolPage {
     this.settingsService.getShell().shell.openExternal(href);
   }
 
-  setFAQData(){
-    this.schoolService.getSupportData().subscribe(
+  setFAQData(index, pageCount){
+    this.schoolService.getSupportData(index, pageCount).subscribe(
       (response) => {
-        this.faqData = response;
-        console.log(this.faqData);
+        this.faqData = response[1];
         this.isLoaded = true;
+        this.totalPages = response[0].totalCount;
       },(err) => {
         console.log('ERROR: ' + err);
         this.loading.dismiss();
-        /* Redirect to no result found page */
       },
       () => {
         this.loading.dismiss();
       }
     ); 
   }
+
+  pageChanged=async(pageNumber:any) =>{
+    this.page = pageNumber;
+    let index = this.recordsPerPage * (pageNumber - 1);
+    this.setFAQData(index, this.recordsPerPage);
+  }
+    
 }

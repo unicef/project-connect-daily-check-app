@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { SearchschoolPage } from './searchschool.page';
 import { SharedModule } from '../shared/shared.module';
 import { SearchschoolPageRoutingModule } from './searchschool-routing.module';
-
+import {NgxPaginationModule} from 'ngx-pagination'; 
 
 @NgModule({
   imports: [
@@ -13,7 +13,8 @@ import { SearchschoolPageRoutingModule } from './searchschool-routing.module';
     FormsModule,
     IonicModule,
     SearchschoolPageRoutingModule,
-    SharedModule
+    SharedModule,
+    NgxPaginationModule
   ],
   declarations: [SearchschoolPage]
 })

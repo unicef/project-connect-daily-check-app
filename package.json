@@ -38,6 +38,7 @@
     "electron-squirrel-startup": "^1.0.0",
     "fs-extra": "^10.0.1",
     "ngx-electron": "^2.2.0",
+    "ngx-pagination": "^6.0.3",
     "ngx-pipes": "^3.0.0",
     "rxjs": "~6.6.0",
     "tslib": "^2.2.0",

@@ -73,11 +73,10 @@ export class SchoolService {
     return throwError(error);
   }
 
-  getSupportData(){
-    let api = 'http://localhost/drupalfaq/api/questions';
+  getSupportData(index = 1, pageCount= 1){
+    let api = `http://localhost/drupalfaq/api/questions/${index}/pageCount/${pageCount}`;
     return this.http.get(api , this.options).pipe(
       map((response:any) => response),
-      // tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)
     );
   }
