@@ -73,8 +73,8 @@ export class SchoolService {
     return throwError(error);
   }
 
-  getSupportData(index = 1, pageCount= 1){
-    let api = `http://localhost/drupalfaq/api/questions/${index}/pageCount/${pageCount}`;
+  getSupportData(first = 1, pageCount= 1): Observable<{}>{
+    let api = `https://dev-pcdc-cms.pantheonsite.io/api/questions/${first}/pageCount/${pageCount}`;
     return this.http.get(api , this.options).pipe(
       map((response:any) => response),
       catchError(this.handleError)
