@@ -1,0 +1,62 @@
+@import '../../theme/variables.scss'; 
+  ion-label{
+    font-size: 12px;
+  }
+  .provide-id{
+    margin-top: 20px;
+  }
+  .school-label{
+    margin-top: 20px;
+  }
+  .schoolid-input{
+    margin-top: 20px;
+  }
+  .label-txt{
+    color: $light-text2;
+    font-size: 13px;
+    line-height: 18px;
+    padding-top: 20px;
+    padding-left: 15px;
+    width:76%;
+  }
+  ion-item{
+    --background: $color-black;
+    --border-color:#141923;
+  }
+ .schoolDetails{
+   width: 100%;
+   min-height: 178px;
+   border-radius: 10px;
+   background-color: $color-blue;
+   margin-top: 20px;
+   padding: 25px;
+ }
+ .schoolname{
+    color: $text-color;
+    font-size: 20px;
+    width:80%;
+    height: 50px;
+ }
+ .schoolAddress{
+    color: $text-color;
+    font-size: 13px;
+    padding-top: 30px;
+    font-family: Roboto;
+ }
+ .schoolid{
+    color: $color-grey;
+    font-size: 13px;
+    padding-top: 10px;
+    /* font-family: Roboto; */
+ }
+ .btn-holder{
+   display: flex;
+   justify-content: space-between;
+   margin-top: 20px;
+ } 
+.confirm-txt{   
+  padding-left: 15px;
+  color: $light-text2;
+  font-size: 13px;
+}
+

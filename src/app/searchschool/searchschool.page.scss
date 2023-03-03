@@ -1,0 +1,93 @@
+@import '../../theme/variables.scss';
+    .school-label {
+    color: $text-color;
+    padding-top:20px;
+    font-size: 12px;
+  }
+  ion-content{
+    --keyboard-offset:0px !important;
+  }
+  .container a {
+    text-decoration: none;
+  }
+  ion-label{
+    font-size: 12px;
+  }  
+  .school-label{
+    margin-top: 20px;
+  }
+  .schoolid-input{
+    margin-top: 20px;
+    width: 100%;
+  }  
+  .schoolid-input{
+    color: $text-color;
+    margin-top:20px;
+    border:1px solid #fff;
+    border-radius: 5px;
+  }
+  .provide-id{
+    color: $text-color;
+    margin: 5px auto;
+    font-size: 16px;
+    text-align: center;    
+    font-weight: 400;
+    opacity: 0.8;
+    width: 80%;
+  }
+  .accordion-sec{
+    padding: 0px 30px;
+  }
+  .noschoolid-link {
+    color:#A3ACBB;
+    padding-top:20px;
+    text-align: center;
+    font-size: 11px;
+  } 
+  .search-btn{
+    margin-top:20px;
+    width: 100%;
+    font-size: 12px;
+    border-radius: 3px !important;
+    height: 50px;
+    border-radius: 5px;
+  }
+  .wrap{
+    margin-top:18px;
+  }
+  .search {
+    width: 100%;
+    position: relative;
+    display: flex;
+    ion-icon{
+      color: #e2e2e2;
+    }
+  }
+ .searchTerm {
+    width: 100%;
+    border: 3px solid $color-blue;
+    border-right: none;
+    padding: 5px;
+    border-radius: 5px 0 0 5px;
+    outline: none;
+    color: $black-text;
+}
+ .searchTerm:focus{
+    color:$black-text;
+  }
+ .searchButton {
+    width: 40px;
+    height: 40px;
+    border: 1px solid;
+    border-color: $color-blue;
+    background: $color-blue;
+    text-align: center;
+    color: #fff;
+    border-radius: 0 5px 5px 0;
+    cursor: pointer;
+    font-size: 20px;
+  }
+
+  .learn-more{
+    cursor: pointer;
+  }
