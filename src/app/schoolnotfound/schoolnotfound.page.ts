@@ -13,12 +13,17 @@ export class SchoolnotfoundPage {
   schools: any;
   schoolId: any;
   sub: any;
+  selectedCountry: any;
+  detectedCountry: any;
   constructor(
     private activatedroute: ActivatedRoute, 
     public router: Router,
     public loading: LoadingService) {
       this.sub = this.activatedroute.params.subscribe(params => {
         this.schoolId = params.schoolId;
+        this.selectedCountry = params.selectedCountry;
+        this.detectedCountry = params.detectedCountry;
+        console.log(this.selectedCountry)
       });    
     }
 }

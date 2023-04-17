@@ -9,6 +9,7 @@ import { NetworkService } from '../services/network.service';
 import { School } from '../models/models';
 import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
+import { environment } from 'src/environments/environment';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -18,6 +19,8 @@ export class ConfirmschoolPage {
   @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
   school: any;
   schoolId: any;
+  selectedCountry: any;
+  detectedCountry: any;
   sub: any;
   constructor(
     private activatedroute: ActivatedRoute, 
@@ -31,6 +34,8 @@ export class ConfirmschoolPage {
   ) {
     this.sub = this.activatedroute.params.subscribe(params => {
       this.schoolId = params.schoolId;
+      this.selectedCountry = params.selectedCountry;
+      this.detectedCountry = params.detectedCountry;
       if(this.router.getCurrentNavigation()){
         this.school = this.router.getCurrentNavigation().extras.state as School;
       }      
@@ -39,7 +44,8 @@ export class ConfirmschoolPage {
   
   confirmSchool(){
     /* Store school id and giga id inside storage */
-    let schoolData = {};
+       let schoolData = {};
+    let flaggedSchoolData = {};
     let today = this.datePipe.transform(new Date(), 'yyyy-MM-ddah:mm:ssZZZZZ');
     this.networkService.getAccessInformation().subscribe(c => {
       this.getDeviceInfo().then(a => {
@@ -48,14 +54,16 @@ export class ConfirmschoolPage {
             giga_id_school: this.school.giga_id_school,
             mac_address: b.uuid,
             os: a.operatingSystem,
-            app_version: "1.0.0",
+            app_version: environment.app_version,
             created: today,
             ip_address: c.ip,
-            country_code: c.country,
-            school_id: this.school.school_id
+            //country_code: c.country,
+            country_code: this.selectedCountry
+            //school_id: this.school.school_id
           };
-          console.log('network',c)
-          if(this.school.code === c.country){
+          
+    // if(this.school.code === c.country){
+      
             this.schoolService.registerSchoolDevice(schoolData).subscribe((response) => {
               this.storage.set('deviceType', a.operatingSystem);
               this.storage.set('macAddress', b.uuid);
@@ -63,29 +71,56 @@ export class ConfirmschoolPage {
               this.storage.set('schoolId', this.schoolId);
               this.storage.set('gigaId', this.school.giga_id_school);
               this.storage.set('ip_address', c.ip);
-              this.storage.set('country_code', c.country);
+              this.storage.set('version', environment.app_version);
+              //this.storage.set('country_code', c.country);
+              this.storage.set('country_code', this.selectedCountry);
               this.storage.set('school_id', this.school.school_id);
               this.storage.set('schoolInfo', JSON.stringify(this.school));
               this.loading.dismiss();
               this.router.navigate(['/schoolsuccess']);
             }), (err) => {
               this.loading.dismiss();
-              this.router.navigate(['schoolnotfound', this.schoolId]);
+              this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
               /* Redirect to no result found page */
             }
 
-          } else{
+
+            if(this.selectedCountry !== this.detectedCountry){
+              flaggedSchoolData = {
+                detected_country: this.detectedCountry,
+                selected_country: this.selectedCountry,
+                school_id: this.school.school_id,              
+                created: today,
+                giga_id_school: this.school.giga_id_school                
+              };
+              console.log('flagged', flaggedSchoolData)
+              this.schoolService.registerFlaggedSchool(flaggedSchoolData).subscribe((response) => {
+                this.storage.set('detectedCountry', this.detectedCountry);
+                this.storage.set('selectedCountry', this.selectedCountry);              
+                this.storage.set('schoolId', this.schoolId);                
+                //this.loading.dismiss();
+               // this.router.navigate(['/schoolsuccess']);
+              }), (err) => {
+                this.loading.dismiss();
+                //this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
+                /* Redirect to no result found page */
+              }
+
+            }
+
+    //}
+    //else{
 
            
-            this.loading.dismiss();
-            this.router.navigate(['invalidlocation', 
-            this.schoolId, 
-               this.school.country,
-               c.country + " (" +c.city + ")"
+          //   this.loading.dismiss();
+          //   this.router.navigate(['invalidlocation', 
+          //   this.schoolId, 
+          //      this.school.country,
+          //      c.country + " (" +c.city + ")"
             
-           ]);
+          //  ]);
 
-          }
+    //}
           
         });
       })

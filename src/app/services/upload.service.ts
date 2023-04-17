@@ -5,6 +5,7 @@ import { environment } from 'src/environments/environment';
 import { Observable, throwError } from 'rxjs';
 import { SettingsService } from "../services/settings.service"
 import { StorageService } from './storage.service';
+
 @Injectable({
   providedIn: 'root'
 })
@@ -61,6 +62,7 @@ export class UploadService {
       "ip_address": "",
       "country_code": "",
       "giga_id_school": "",
+      "app_version": environment.app_version,
     };
     if (record.hasOwnProperty("mlabInformation")) {
       // If we've got server data from mlab-ns, add it to the Measurement
@@ -127,6 +129,17 @@ export class UploadService {
     // const deviceType = this.settingService.get("deviceType");
     const notes = this.settingService.get("notes");
     let measurement = this.makeMeasurement(record);
+   
+
+    this.storage.get('country_code') === "" || this.storage.get('country_code') ===null ?
+      measurement.country_code =  measurement.ClientInfo.Country :   
+      measurement.country_code = this.storage.get('country_code');
+  
+      this.storage.get('ip_address') === "" || this.storage.get('ip_address') ===null ?
+      measurement.ip_address =  measurement.ClientInfo.IP :   
+      measurement.ip_address = this.storage.get('ip_address');
+
+      
     // Add measure-saver-specific metadata.
     measurement.BrowserID = this.storage.get('schoolUserId');
     measurement.Timestamp = this.ts.toISOString();
@@ -134,10 +147,11 @@ export class UploadService {
     measurement.Notes = notes;
     measurement.school_id = this.storage.get('schoolId');
     measurement.giga_id_school = this.storage.get('gigaId');
-    measurement.country_code = this.storage.get('country_code');
-    measurement.ip_address  = this.storage.get('ip_address')
+    measurement.app_version = environment.app_version
+ 
+    
     // Add API key if configured.
-    console.log('measurement', measurement)
+    console.log('mmmm',measurement)
     if (apiKey != "") {
       uploadURL = uploadURL + "?key=" + apiKey;
     }

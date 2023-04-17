@@ -15,6 +15,8 @@ export class SchooldetailsPage {
   schoolId: any;
   selectedSchool:any;
   isDisabled = true;
+  selectedCountry: any;
+  detectedCountry: any;
   private sub: any;
   constructor(
     private activatedroute: ActivatedRoute, 
@@ -24,8 +26,11 @@ export class SchooldetailsPage {
     private schoolService: SchoolService) {
     this.sub = this.activatedroute.params.subscribe(params => {
       this.schoolId = params.schoolId;
+      this.selectedCountry = params.selectedCountry;
+      this.detectedCountry = params.detectedCountry;
       this.selectedSchool = {};
-      this.searchSchoolById(this.schoolId);
+      this.searchSchoolBySchooIdAndCountryCode()
+      //this.searchSchoolById(this.schoolId);
     });    
   }
 
@@ -48,10 +53,42 @@ export class SchooldetailsPage {
     ); 
   }
 
+  /**
+   * Search school by id and country code
+   */
+  searchSchoolBySchooIdAndCountryCode(){
+    
+    if(this.schoolId && this.selectedCountry){ 
+      let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Searching for your school...</p></div>';
+      this.loading.present(loadingMsg, 3000, 'pdcaLoaderClass', 'null');
+      this.schoolService.getBySchoolIdAndCountryCode(this.schoolId,this.selectedCountry).subscribe(
+        (response) => {
+          this.schools = response;
+          console.log(this.schools);
+        },(err) => {
+          console.log('ERROR: ' + err);
+          this.loading.dismiss();
+          this.router.navigate(['schoolnotfound',this.schoolId, this.selectedCountry, this.detectedCountry]);
+          /* Redirect to no result found page */
+        },
+        () => {
+          this.loading.dismiss();
+          if(this.schools.length > 0){
+            this.router.navigate(['schooldetails',this.schoolId,this.selectedCountry, this.detectedCountry]);
+          } else {
+            /* Redirect to no result found page */
+            this.router.navigate(['schoolnotfound',this.schoolId,this.selectedCountry,this.detectedCountry]);
+          }
+        }
+      ); 
+    }   
+  }
+
+
   confirmSchool(schoolObj){
     
     this.selectedSchool = schoolObj;
-    this.router.navigate(['confirmschool',this.selectedSchool.school_id],{state:this.selectedSchool});
+    this.router.navigate(['confirmschool',this.selectedSchool.school_id, this.selectedCountry, this.detectedCountry],{state:this.selectedSchool});
   }
 
   schoolSelection(schoolObj){

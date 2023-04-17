@@ -45,6 +45,22 @@ export class SchoolService {
     );
   }
 
+   /** 
+  * Returns a School array that can be passed to the component.
+  * Id is school id which is a mandatory parameter.
+  * Country Code is a code which is a mandatory parameter.
+  * @param id School Id
+  * @param code Country Code
+  * @returns School
+  */
+   getBySchoolIdAndCountryCode(id:number, code: string): Observable<School[]> {
+    return this.http.get(environment.restAPI + 'schools/country_code_school_id/'+code+'/'+id, this.options).pipe(
+      map((response:any) => response.data),
+      tap(data => console.log(JSON.stringify(data))),
+      catchError(this.handleError)
+    );
+  }
+
   /**
    * Return unique user id for perticular device
    * @param data Object with these parameters {
@@ -63,6 +79,26 @@ export class SchoolService {
       catchError(this.handleError)
     );
   }
+  
+  /**
+   * Return unique user id for perticular device
+   * @param data Object with these parameters {
+      "detected_country": "",
+      "selected_country": "",
+      "school_id": "",
+      
+      "created": ""
+    }
+   * @returns 
+   */
+    registerFlaggedSchool(data): Observable<{}>{
+      console.log('flagged pass: ',data)
+      return this.http.post(environment.restAPI + 'flagged_dailycheckapp_schools', data ,this.options).pipe(
+        map((response:any) => response.data.id),
+        tap(data => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
+    }
   
   /**
    * Private function to handle error
