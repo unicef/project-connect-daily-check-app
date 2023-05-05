@@ -7,6 +7,7 @@ import { IonicModule, IonicRouteStrategy } from '@ionic/angular';
 import { AppComponent } from './app.component';
 import { AppRoutingModule } from './app-routing.module';
 import { SharedModule } from './shared/shared.module';
+import { FormsModule } from '@angular/forms';
 
 /* Import token interceptor */
 import { TokenInterceptor } from './auth/token.interceptor';
@@ -24,7 +25,8 @@ export function tokenGetter() {
     IonicModule.forRoot(), 
     SharedModule, 
     AppRoutingModule, 
-    HttpClientModule
+    HttpClientModule,
+    FormsModule
   ],
   providers: [
     {

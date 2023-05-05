@@ -22,6 +22,8 @@ export interface School {
     admin_3_name?: string;
     admin_4_name?: string;
     giga_id?: string;
+    time_slot1?: string;
+    time_slot2: string;
 }
 
 export interface mlabInformation {

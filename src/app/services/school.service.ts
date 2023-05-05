@@ -64,6 +64,48 @@ export class SchoolService {
     );
   }
   
+   /** 
+  * Returns a timezone of school.
+  * Id is school id which is a mandatory parameter.
+  * @param id School Id
+  * @returns timezone
+  */
+    getTimezoneBysSchoolId(id:number): Observable<{}> {
+      return this.http.get(environment.restAPI + 'schools/timezone/'+id, this.options).pipe(
+        map((response:any) => response),
+        tap(response => console.log(JSON.stringify(response))),
+        catchError(this.handleError)
+      );
+    }
+
+ /** 
+  * Returns a timeslot of school.
+  * Id is school id which is a mandatory parameter.
+  * @param id School Id
+  * @returns timeslot
+  */
+      getTimeslot(id:number): Observable<School> {
+        return this.http.get(environment.restAPI + 'dailycheckapp_schools/'+id, this.options).pipe(
+          map((response:any) => response),
+          // tap(data => console.log(JSON.stringify(data))),
+          catchError(this.handleError)
+        );
+      }
+  
+ /** 
+  * Returns a timezone of school.
+  * Id is school id which is a mandatory parameter.
+  * @param id School Id
+  * @returns timezone
+  */
+   saveTimeslot(id:number): Observable<School[]> {
+     return this.http.patch(environment.restAPI + 'schools/timeslot/'+id, this.options).pipe(
+          map((response:any) => response.timezone),
+          // tap(data => console.log(JSON.stringify(data))),
+          catchError(this.handleError)
+        );
+    }
+
   /**
    * Private function to handle error
    * @param error 

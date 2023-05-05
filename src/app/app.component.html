@@ -126,6 +126,31 @@
         </div>
       </ion-content> 
   </ion-menu>
+
+  <ion-menu side="end" menuId="fifth" contentId="content" class="ionMenubg">
+    <div class="headerbar">
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
+    </div>
+     <ion-content class="menuContent">   
+      <div class="your-school-id-sec"> 
+        <div class="title-mr">Select Time slots for scheduler</div>           
+          <div class="slot1">
+             <div> 
+               <ion-label *ngIf="school" style="margin-left: 1rem;">Time slot 1 </ion-label> 
+              <input type="time" [(ngModel)]="slot1" style="margin-left: 2rem;"/>
+            </div>
+          </div>
+          <div class="h-line"></div>
+          <div class="slot2">
+            <ion-label *ngIf="school" style="margin-left: 1rem;">Time slot 2 </ion-label>
+              <input  [(ngModel)]="slot2" style="margin-left: 2rem;" type="time" matInput name="slot2" min="09:00" max="18:00" />
+          </div>
+          <ion-button class="view-proj-btn" type="submit"  (click)="saveSlots()">Save</ion-button>
+      </div>
+    </ion-content> 
+</ion-menu>
+
   <ion-menu side="end" menuId="first" contentId="content" class="ionMenubg">  
       <div class="headerbar">
       <!--  <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon> -->
@@ -147,6 +172,10 @@
                <ion-label><ion-icon name="information-circle-outline"></ion-icon>About Project Connect</ion-label>
                <ion-icon name="chevron-forward-outline"></ion-icon>
              </ion-item>
+             <ion-item (click)="openFifth()">
+              <ion-label><ion-icon name="information-circle-outline"></ion-icon>Select Time Slots</ion-label>
+              <ion-icon name="chevron-forward-outline"></ion-icon>
+            </ion-item>
            </ion-list>
        </div>
        </ion-content>

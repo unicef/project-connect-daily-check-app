@@ -6,6 +6,9 @@ import { SettingsService } from './services/settings.service';
 import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
 import { ScheduleService } from './services/schedule.service';
+import { SchoolService } from './services/school.service';
+import { School } from './models/models';
+import { LoadingService } from './services/loading.service';
 // const shell = require('electron').shell;
 @Component({
   selector: 'app-root',
@@ -17,6 +20,8 @@ export class AppComponent {
   historyState: any;
   availableSettings: any;
   scheduleSemaphore: any;
+  slot1: any;
+  slot2: any;
   constructor(
     private menu:MenuController,
     private storage: StorageService,
@@ -24,7 +29,9 @@ export class AppComponent {
     private sharedService: SharedService,
     private historyService: HistoryService,
     private settingsService: SettingsService,
-    private scheduleService: ScheduleService
+    private scheduleService: ScheduleService,
+    private schoolService: SchoolService,
+    private loading: LoadingService
   ) {
       translate.setDefaultLang('en');
       if(this.storage.get('schoolId')){
@@ -71,6 +78,11 @@ export class AppComponent {
     this.menu.open('fourth');
   }
 
+  openFifth() {
+    this.menu.enable(true, 'fifth');
+    this.menu.open('fifth');
+  }
+
   closeMenu() {
     this.menu.enable(true, 'first');
     this.menu.close();
@@ -96,5 +108,14 @@ export class AppComponent {
 
   openExternalUrl(href){
     this.settingsService.getShell().shell.openExternal(href);
+  }
+
+  saveSlots(){
+    this.schoolService.saveTimeslot(this.storage.get('schoolId')).subscribe((response)=>{
+     console.log(response);
+     //show success message
+    }),(err) => {
+      this.loading.dismiss();
+    }      
   }
 }
