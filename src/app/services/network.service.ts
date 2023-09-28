@@ -7,7 +7,8 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
   providedIn: 'root'
 })
 export class NetworkService {
-  accessServiceUrl = 'https://ipinfo.io';
+  accessServiceUrl = 'https://ipinfo.io?token=9906baf67eda8b';
+ // accessServiceUrl = 'https://ipinfo.io?token=060bdd9da6a22f'; //ONLY FOR LOCAL DEV TESTING
   headers: any;
   options: any;
   currentAccessInformation: any;
@@ -28,20 +29,45 @@ export class NetworkService {
    */
   getAccessInformation(){
     this.options = {headers: this.headers};
-    return this.http.get(this.accessServiceUrl, this.options)
-    .pipe(
-        map(
-          (response: any) => {
-            this.currentAccessInformation = response;
-            let asnRegex = new RegExp('^(AS[0-9]+)\\w+(.+)');
-            this.currentAccessInformation.asn = this.currentAccessInformation.org.replace(asnRegex, "$1");
-            this.currentAccessInformation.org = this.currentAccessInformation.org.replace(asnRegex, "$2");
-            return this.currentAccessInformation;
-          }
-        ),catchError(this.handleError)
-    );
-  }
+  //  this.currentAccessInformation = this.getNetworkInfo();
+  //                         return  this.currentAccessInformation;
+          var response =  this.http.get(this.accessServiceUrl, this.options)
+                .pipe(
+                    map(
+                      (response: any) => {
+                        console.log('resss', response)
+                        if(!response){
+                          this.currentAccessInformation = this.getNetworkInfo();
+                          return  this.currentAccessInformation;
+                        }
+                        this.currentAccessInformation = response;
+                        let asnRegex = new RegExp('^(AS[0-9]+)\\w+(.+)');
+                        this.currentAccessInformation.asn = this.currentAccessInformation.org.replace(asnRegex, "$1");
+                        this.currentAccessInformation.org = this.currentAccessInformation.org.replace(asnRegex, "$2");
+                        return this.currentAccessInformation;
+                      }
+                    )
+                );
+                if(response == null || response == undefined){
+                  console.log('errror')
+                } else{
+                  console.log('no error')
+                }
+                return response;
+   
 
+  }
+  async getNetworkInfo() {
+    try {
+      const response = await fetch('https://ipv4.geojs.io/v1/ip/geo.json');
+      const data = await response.json();
+      
+      return data;
+    } catch (error) {
+      console.log('Error:', error);
+      return null;
+    }
+  }
   /**
    * 
    * @param connectionClass 

@@ -6,6 +6,8 @@ import { SettingsService } from './services/settings.service';
 import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
 import { ScheduleService } from './services/schedule.service';
+import { environment } from '../environments/environment' // './esrc/environments/environment';
+
 // const shell = require('electron').shell;
 @Component({
   selector: 'app-root',
@@ -17,6 +19,7 @@ export class AppComponent {
   historyState: any;
   availableSettings: any;
   scheduleSemaphore: any;
+  app_version: any;
   constructor(
     private menu:MenuController,
     private storage: StorageService,
@@ -27,6 +30,7 @@ export class AppComponent {
     private scheduleService: ScheduleService
   ) {
       translate.setDefaultLang('en');
+      this.app_version = environment.app_version;
       if(this.storage.get('schoolId')){
         this.school = JSON.parse(this.storage.get('schoolInfo'));
       }

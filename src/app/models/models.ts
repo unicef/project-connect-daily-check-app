@@ -5,6 +5,14 @@ export interface Country {
     flag: string;
 }
 
+export interface PcdcCountry {
+    id: number;
+    code: string;
+    name: string;
+    created: string;
+    country_id: string;
+}
+
 export interface School {
     id: number;
     code: string;

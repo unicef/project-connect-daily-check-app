@@ -1,0 +1,67 @@
+@import '../../theme/variables.scss'; 
+  ion-label{
+    font-size: 12px;
+  }
+  .provide-id{
+    margin-top: 20px;
+  }
+  .school-label{
+    margin-top: 20px;
+  }
+  .schoolid-input{
+    margin-top: 20px;
+  }
+  .label-txt{
+    color: $text-color;
+    font-size: 20px;
+  }  
+  .selectandconfirm{
+    color: $color-blue;
+    font-size: 13px;
+    padding-top: 12px;
+  }
+  .result-txt{
+    color: #2779FF;
+    font-size: 16px;
+  }
+  .schoolID-txt{
+    color:#E2E2E2;
+    font-size: 18px;
+  }
+  .schoolName{
+    color:#E2E2E2;
+    font-size: 18px;
+  }
+  .schoolAddress{
+    color:#E2E2E2;
+    font-size: 10px;
+  }
+  .noschool{
+    
+    ion-img{
+      width:85px !important;
+     margin: 25px auto;
+    }
+    .unabletolocate-txt{
+      color: #51E12B;
+      text-align: center;
+      padding-top: 10px;
+      font-size: 13px;
+    }
+    .noschool-txt{
+      color: $light-text2;
+      text-align: center;
+      padding-top: 10px;
+      font-size: 13px;
+      width:60%;
+      margin: 0px auto;
+    }    
+  }
+  .noSchoolList-txt{
+    padding-top: 20px;
+    color: $light-text2;
+    font-size: 12px;
+  }
+.bottom-layout{
+  padding: 0px 30px;
+}

@@ -89,6 +89,7 @@ export class MeasurementClientService {
    * @returns measurement data
    */
   start() {
+
     return new Promise((resolve, reject) => {
       let measurementRecord = {
         'timestamp': Date.now(),
@@ -100,7 +101,8 @@ export class MeasurementClientService {
         'uuid': '',
         'version':0
       };
-      
+      console.log("Called start",this.networkService.getAccessInformation());
+
       let emitKey = 'measurement:status';
       let progressVal = 0;
       let isCompleted = false;
@@ -109,7 +111,7 @@ export class MeasurementClientService {
         'mlabInformation': this.mlabService.findServer(this.settingsService.get('metroSelection'))
       }).subscribe(info => {
         Object.assign(measurementRecord, info );
-        // console.log(measurementRecord);
+         console.log(info);
         this.measurementService.measurementNotificationActivity.subscribe(resultData =>{
           let testStatus = resultData.testStatus;
           let passedResults = resultData.passedResults;

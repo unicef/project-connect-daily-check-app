@@ -27,6 +27,7 @@ export class StarttestPage implements OnInit {
   currentRateUpload = undefined;
   currentRateDownload = undefined;
   latency = undefined;
+  networkName = undefined;
   uploadStatus = undefined;
   uploadRate = undefined;
   isErrorClosed = false;
@@ -110,11 +111,16 @@ export class StarttestPage implements OnInit {
       
     window.addEventListener('online', () => {
       // Re-sync data with server.
+      try{
       console.log('Online');
       this.onlineStatus = true;
       this.currentState = undefined;
       this.currentRate = undefined;
       this.measureReady();
+      }catch(e){
+        console.log(e)
+      }
+
     }, false);
 
     window.addEventListener('offline', () => {
@@ -151,9 +157,14 @@ export class StarttestPage implements OnInit {
     this.refreshHistory();
   }
 
-  measureReady() {    
-    this.tryConnectivity();
-    this.isLoaded = true;
+  measureReady() {  
+    try{
+      this.tryConnectivity();
+      this.isLoaded = true;
+    } catch(e){
+      console.log(e)
+    } 
+
   }
 
   tryConnectivity() {
@@ -161,9 +172,15 @@ export class StarttestPage implements OnInit {
     this.loading.present(loadingMsg, 15000, 'pdcaLoaderClass', 'null');
     this.mlabService.findServer(this.settingsService.get('metroSelection')).subscribe( res => {
       this.mlabInformation = res; 
-      this.connectionStatus = "success";     
+      
+      this.connectionStatus = "success";  
+      if(this.loading.isStillLoading()){
+        this.loading.dismiss();
+      }
+      /*
       this.networkService.getAccessInformation().subscribe(results => {
         this.accessInformation = results;
+        
         if(this.loading.isStillLoading()){
           this.loading.dismiss();
         }
@@ -177,6 +194,8 @@ export class StarttestPage implements OnInit {
         this.isErrorClosed = false;
         // this.presentTestFailModal();
       });
+
+      */
     },(err) => {
       if(this.loading.isStillLoading()){
         this.loading.dismiss();
@@ -212,10 +231,15 @@ export class StarttestPage implements OnInit {
   }
 
   startNDT() {
-    this.currentState = 'Starting';
-    this.uploadStatus = undefined;
-    this.connectionStatus = "";
-    this.measurementClientService.start();
+    try{
+      this.currentState = 'Starting';
+      this.uploadStatus = undefined;
+      this.connectionStatus = "";
+      this.measurementClientService.start();
+    }catch(e){
+      console.log(e)
+    }
+
   }
 
   driveGauge(event, data) {
@@ -243,6 +267,10 @@ export class StarttestPage implements OnInit {
         this.currentRateDownload = data.passedResults.s2cRate;
         this.progressGaugeState.current = this.progressGaugeState.maximum;
         this.latency = data.passedResults.MinRTT;
+        let historicalData = this.historyService.get();
+        if(historicalData !==null && historicalData !== undefined){
+              this.accessInformation = historicalData.measurements[0].accessInformation;
+        }
         this.ref.markForCheck();
         this.refreshHistory();
       } else if (data.testStatus === 'onerror') {        

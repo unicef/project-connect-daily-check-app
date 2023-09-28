@@ -3,7 +3,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Observable, throwError  } from 'rxjs';
-import { Country } from '../models/models';
+import { PcdcCountry, Country } from '../models/models';
 @Injectable({
   providedIn: 'root'
 })
@@ -38,6 +38,20 @@ export class CountryService {
   */
   getById(id:number): Observable<Country[]> {
     return this.http.get(environment.restAPI + 'countries/'+id, this.options).pipe(
+      map((response:any) => response.data),
+      tap(data => console.log(JSON.stringify(data))),
+      catchError(this.handleError)
+    );
+  }
+
+  /** 
+  * Returns a Country array that can be passed to the component.
+  * Id is country id which is a mandatory parameter.
+  * @param code Country Code
+  * @returns PcdcCountry
+  */
+  getPcdcCountryByCode(code:string): Observable<PcdcCountry[]> {
+    return this.http.get(environment.restAPI + 'dailycheckapp_countries/'+code, this.options).pipe(
       map((response:any) => response.data),
       tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)

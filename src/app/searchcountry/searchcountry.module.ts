@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { IonicModule } from '@ionic/angular';
-import { FormsModule } from '@angular/forms';
+import { FormsModule,ReactiveFormsModule } from '@angular/forms';
 import { SearchcountryPage } from './searchcountry.page';
 import { SharedModule } from '../shared/shared.module';
 import { SearchcountryPageRoutingModule } from './searchcountry-routing.module';
@@ -11,6 +11,8 @@ import { SearchcountryPageRoutingModule } from './searchcountry-routing.module';
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
+    
     IonicModule,
     SearchcountryPageRoutingModule,
     SharedModule

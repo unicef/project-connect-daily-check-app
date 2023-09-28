@@ -1,7 +1,11 @@
 @import '../../theme/variables.scss';
 .search-label{
-  padding: 20px 30px;  
+  padding: 20px 5px;  
   color: $light-text2;
+}
+.search-label-error{
+  padding: 20px 5px;  
+  color: #b00f0f;
 }
 .ionList{
   padding: 10px 30px;
@@ -17,6 +21,9 @@
   ion-icon{
     color: #e2e2e2;
   }
+}
+select {
+  pointer-events: auto;
 }
 .searchTerm {
   width: 100%;
@@ -34,6 +41,45 @@
   --keyboard-offset: 0px;
   
 }
+
+ion-select:hover {
+  color: #fff;
+
+}
+.item.sc-ion-label-md-h, .item .sc-ion-label-md-h{
+  color: #fff !important;
+}
+
+
+
+
+.searchCountry {
+  -webkit-app-region: no-drag ;
+  width: 100%;
+  border: 3px solid $color-blue;
+ 
+  padding: 5px;
+  border-radius: 5px ;
+  outline: none;
+  color: #fff;
+}
+.searchCountry:hover{
+  color: #fff;
+  --offset-top: 0px;
+  --offset-bottom: 0px;
+  --keyboard-offset: 0px;
+  
+}
+
+.bottom-layout{
+  position: absolute; 
+  padding: 0px 20px;
+  width: 100%;
+  text-align: center;
+}
+
+
+
 .searchButton {
 width: 40px;
 height: 40px;

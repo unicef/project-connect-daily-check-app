@@ -7,7 +7,7 @@ const routes: Routes = [
     loadChildren: () => import('./home/home.module').then( m => m.HomePageModule)
   },
   {
-    path: 'searchschool',
+    path: 'searchschool/:selectedCountry/:detectedCountry',
     loadChildren: () => import('./searchschool/searchschool.module').then( m => m.SearchschoolPageModule)
   },
   {
@@ -15,17 +15,21 @@ const routes: Routes = [
     loadChildren: () => import('./searchcountry/searchcountry.module').then( m => m.SearchcountryPageModule)
   },
   {
-    path: 'schooldetails/:schoolId',
+    path: 'schooldetails/:schoolId/:selectedCountry/:detectedCountry',
     loadChildren: () => import('./schooldetails/schooldetails.module').then( m => m.SchooldetailsPageModule)
   },
   {
-    path: 'confirmschool/:schoolId',
+    path: 'confirmschool/:schoolId/:selectedCountry/:detectedCountry',
     loadChildren: () => import('./confirmschool/confirmschool.module').then( m => m.ConfirmschoolPageModule)
   }
   ,
   {
-    path: 'schoolnotfound/:schoolId',
+    path: 'schoolnotfound/:schoolId/:selectedCountry/:detectedCountry',
     loadChildren: () => import('./schoolnotfound/schoolnotfound.module').then( m => m.SchoolnotfoundPageModule)
+  },
+  {
+    path: 'invalidlocation/:schoolId/:selectedCountry/:country',
+    loadChildren: () => import('./invalidlocation/invalidlocation.module').then( m => m.InvalidLocationPageModule)
   }
   ,
   {
