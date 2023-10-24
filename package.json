@@ -1,8 +1,8 @@
 {
   "name": "unicef-pdca",
-  "version": "0.0.1",
-  "author": "Ericsson",
-  "homepage": "https://ericsson.com/",
+  "version": "1.0.5",
+  "author": "Giga-Unicef",
+  "homepage": "https://projectconnect.unicef.org/about",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",

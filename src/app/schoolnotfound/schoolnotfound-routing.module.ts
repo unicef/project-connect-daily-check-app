@@ -6,11 +6,15 @@ const routes: Routes = [
   {
     path: '',
     component: SchoolnotfoundPage,
-  }
+  },
+  {
+    path: ':notFound',
+    component: SchoolnotfoundPage,
+  },
 ];
 
 @NgModule({
   imports: [RouterModule.forChild(routes)],
-  exports: [RouterModule]
+  exports: [RouterModule],
 })
 export class SchoolnotfoundPageRoutingModule {}
