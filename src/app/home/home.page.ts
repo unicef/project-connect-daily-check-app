@@ -36,9 +36,10 @@ export class HomePage {
     const loadingMsg =
       '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Loading...</p></div>';
     const schoolId = this.storage.get('schoolId');
-    const school = JSON.parse(this.storage.get('schoolInfo')) as School;
-    console.log({ schoolId });
+
     if (schoolId) {
+      console.log({ schoolId });
+      const school = JSON.parse(this.storage.get('schoolInfo')) as School;
       this.loading.present(loadingMsg, 4000, 'pdcaLoaderClass', 'null');
       schoolService.getById(schoolId).subscribe(
         (response) => {

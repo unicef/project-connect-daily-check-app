@@ -1,5 +1,6 @@
-const env = require('./_environment.prod');
-const token = env.environment.token;
+import { environment as env } from './_environment.prod';
+
+const token = env.token;
 export const environment = {
   production: true,
   restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
