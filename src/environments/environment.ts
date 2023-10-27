@@ -7,7 +7,7 @@
 import { environment as env } from './_environment.prod';
 
 const token = env.token;
-const restAPI = env.restAPI;
+const restAPI = env.restAPIDev;
 export const environment = {
   production: false,
   // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
