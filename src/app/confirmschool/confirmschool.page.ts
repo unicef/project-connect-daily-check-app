@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+/* eslint-disable @typescript-eslint/naming-convention */
 import { Component, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
-import { ActivatedRoute, Router } from "@angular/router";
+import { ActivatedRoute, Router } from '@angular/router';
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { StorageService } from '../services/storage.service';
@@ -10,62 +12,57 @@ import { School } from '../models/models';
 import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
 import { environment } from 'src/environments/environment';
+import { SettingsService } from '../services/settings.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
   styleUrls: ['confirmschool.page.scss'],
 })
 export class ConfirmschoolPage {
-  @ViewChild(IonAccordionGroup, { static: true }) accordionGroup: IonAccordionGroup;
+  @ViewChild(IonAccordionGroup, { static: true })
+  accordionGroup: IonAccordionGroup;
   school: any;
   schoolId: any;
   selectedCountry: any;
   detectedCountry: any;
   sub: any;
   constructor(
-    private activatedroute: ActivatedRoute, 
+    private activatedroute: ActivatedRoute,
     public router: Router,
     private schoolService: SchoolService,
     private storage: StorageService,
-    private networkService: NetworkService, 
-
+    private networkService: NetworkService,
+    private settings: SettingsService,
     public loading: LoadingService,
-    private datePipe:DatePipe
+    private datePipe: DatePipe
   ) {
-    this.sub = this.activatedroute.params.subscribe(params => {
+    this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;
-      if(this.router.getCurrentNavigation()){
+      if (this.router.getCurrentNavigation()) {
         this.school = this.router.getCurrentNavigation().extras.state as School;
-      }      
-    });   
+      }
+    });
   }
 
-  
-
-  
-  
-  
-  
-  
-  
-
-  
-  confirmSchool(){
+  confirmSchool() {
     /* Store school id and giga id inside storage */
     let schoolData = {};
     let flaggedSchoolData = {};
-    let today = this.datePipe.transform(new Date(), 'yyyy-MM-ddah:mm:ssZZZZZ');
+    const today = this.datePipe.transform(
+      new Date(),
+      'yyyy-MM-ddah:mm:ssZZZZZ'
+    );
 
-    let loadingMsg = '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Loading...</p></div>';
+    const loadingMsg =
+      '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Loading...</p></div>';
     this.loading.present(loadingMsg, 4000, 'pdcaLoaderClass', 'null');
 
-
-   // this.networkService.getAccessInformation().subscribe(c => {
-    this.getIPAddress().then(c=>{
-      this.getDeviceInfo().then(a => {
-        this.getDeviceId().then(b => {
+    // this.networkService.getAccessInformation().subscribe(c => {
+    this.getIPAddress().then((c) => {
+      this.getDeviceInfo().then((a) => {
+        this.getDeviceId().then((b) => {
           schoolData = {
             giga_id_school: this.school.giga_id_school,
             mac_address: b.uuid,
@@ -74,13 +71,15 @@ export class ConfirmschoolPage {
             created: today,
             ip_address: c, // c.ip,
             //country_code: c.country,
-            country_code: this.selectedCountry
+            country_code: this.selectedCountry,
             //school_id: this.school.school_id
           };
-          
-    // if(this.school.code === c.country){
-      
-            this.schoolService.registerSchoolDevice(schoolData).subscribe((response) => {
+
+          // if(this.school.code === c.country){
+
+          this.schoolService
+            .registerSchoolDevice(schoolData)
+            .subscribe((response) => {
               this.storage.set('deviceType', a.operatingSystem);
               this.storage.set('macAddress', b.uuid);
               this.storage.set('schoolUserId', response);
@@ -94,56 +93,62 @@ export class ConfirmschoolPage {
               this.storage.set('schoolInfo', JSON.stringify(this.school));
               this.loading.dismiss();
               this.router.navigate(['/schoolsuccess']);
-            }), (err) => {
+              this.settings.setSetting('scheduledTesting', true);
+            }),
+            (err) => {
               this.loading.dismiss();
-              this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
+              this.router.navigate([
+                'schoolnotfound',
+                this.schoolId,
+                this.selectedCountry,
+                this.detectedCountry,
+              ]);
               /* Redirect to no result found page */
-            }
+            };
 
-
-            if(this.selectedCountry !== this.detectedCountry){
-              flaggedSchoolData = {
-                detected_country: this.detectedCountry,
-                selected_country: this.selectedCountry,
-                school_id: this.school.school_id,              
-                created: today,
-                giga_id_school: this.school.giga_id_school                
-              };
-              console.log('flagged', flaggedSchoolData)
-              this.schoolService.registerFlaggedSchool(flaggedSchoolData).subscribe((response) => {
+          if (this.selectedCountry !== this.detectedCountry) {
+            flaggedSchoolData = {
+              detected_country: this.detectedCountry,
+              selected_country: this.selectedCountry,
+              school_id: this.school.school_id,
+              created: today,
+              giga_id_school: this.school.giga_id_school,
+            };
+            console.log('flagged', flaggedSchoolData);
+            this.schoolService
+              .registerFlaggedSchool(flaggedSchoolData)
+              .subscribe((response) => {
                 this.storage.set('detectedCountry', this.detectedCountry);
-                this.storage.set('selectedCountry', this.selectedCountry);              
-                this.storage.set('schoolId', this.schoolId);                
+                this.storage.set('selectedCountry', this.selectedCountry);
+                this.storage.set('schoolId', this.schoolId);
                 //this.loading.dismiss();
-               // this.router.navigate(['/schoolsuccess']);
-              }), (err) => {
+                // this.router.navigate(['/schoolsuccess']);
+              }),
+              (err) => {
                 this.loading.dismiss();
                 //this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
                 /* Redirect to no result found page */
-              }
+              };
+          }
 
-            }
+          //}
+          //else{
 
-    //}
-    //else{
-
-           
           //   this.loading.dismiss();
-          //   this.router.navigate(['invalidlocation', 
-          //   this.schoolId, 
+          //   this.router.navigate(['invalidlocation',
+          //   this.schoolId,
           //      this.school.country,
           //      c.country + " (" +c.city + ")"
-            
+
           //  ]);
 
-    //}
-          
+          //}
         });
-      })
+      });
     });
   }
 
-  async getDeviceInfo(){
+  async getDeviceInfo() {
     const info = await Device.getInfo();
     return info;
   }
@@ -160,7 +165,7 @@ export class ConfirmschoolPage {
     }
   }
 
-  async getDeviceId(){
+  async getDeviceId() {
     const deviceId = await Device.getId();
     return deviceId;
   }

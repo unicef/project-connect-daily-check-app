@@ -21,8 +21,7 @@ export class HomePage {
     private settingsService: SettingsService,
     private storage: StorageService,
     private schoolService: SchoolService,
-    private loading: LoadingService,
-    private scheduleService: ScheduleService
+    private loading: LoadingService
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
@@ -37,11 +36,11 @@ export class HomePage {
       '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Loading...</p></div>';
     const schoolId = this.storage.get('schoolId');
 
-    if (schoolId) {
+    if (!isNaN(schoolId)) {
       console.log({ schoolId });
       const school = JSON.parse(this.storage.get('schoolInfo')) as School;
       this.loading.present(loadingMsg, 4000, 'pdcaLoaderClass', 'null');
-      schoolService.getById(schoolId).subscribe(
+      this.schoolService.getById(schoolId).subscribe(
         (response) => {
           console.log(response);
           const schoolResponse = response.filter(
@@ -49,13 +48,11 @@ export class HomePage {
           );
           console.log({ schoolResponse });
           if (schoolResponse.length > 0) {
+            this.settingsService.setSetting('scheduledTesting', true);
             this.storage.set('schoolInfo', JSON.stringify(response[0]));
-            setInterval(() => {
-              this.scheduleService.initiate();
-            }, 60000);
             this.router.navigate(['/starttest']);
           } else {
-            this.storage.set('schoolInfo', null);
+            this.storage.set('schoolInfo', undefined);
             console.log('School not found');
             this.router.navigate([
               'schoolnotfound',
