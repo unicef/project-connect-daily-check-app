@@ -2,63 +2,76 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Observable, throwError  } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { School } from '../models/models';
+import { WrongGigaIdSchool } from './dto/school.dto';
+import { ResponseDto } from './dto/response.dto';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SchoolService {
   options: any;
-  constructor(private http: HttpClient) { 
+  constructor(private http: HttpClient) {
     this.options = {
       Observe: 'response',
       headers: new HttpHeaders({
-        'Content-type': 'application/json'
-      })
+        'Content-type': 'application/json',
+      }),
     };
   }
 
   /**
-  * Returns all schools present in the database. 
-  * @returns School
-  */
-   getAll(): Observable<School[]> {
+   * Returns all schools present in the database.
+   * @returns School
+   */
+  getAll(): Observable<School[]> {
     return this.http.get(environment.restAPI + 'schools', this.options).pipe(
-      map((response:any) => response.data),
-      tap(data => console.log(JSON.stringify(data))),
+      map((response: any) => response.data),
+      tap((data) => console.log(JSON.stringify(data))),
       catchError(this.handleError)
     );
   }
 
-  /** 
-  * Returns a School array that can be passed to the component.
-  * Id is school id which is a mandatory parameter.
-  * @param id School Id
-  * @returns School
-  */
-   getById(id:number): Observable<School[]> {
-    return this.http.get(environment.restAPI + 'schools/'+id, this.options).pipe(
-      map((response:any) => response.data),
-      tap(data => console.log(JSON.stringify(data))),
-      catchError(this.handleError)
-    );
+  /**
+   * Returns a School array that can be passed to the component.
+   * Id is school id which is a mandatory parameter.
+   * @param id School Id
+   * @returns School
+   */
+  getById(id: number): Observable<School[]> {
+    return this.http
+      .get(environment.restAPI + 'schools/' + id, this.options)
+      .pipe(
+        map((response: any) => response.data),
+        tap((data) => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
   }
 
-   /** 
-  * Returns a School array that can be passed to the component.
-  * Id is school id which is a mandatory parameter.
-  * Country Code is a code which is a mandatory parameter.
-  * @param id School Id
-  * @param code Country Code
-  * @returns School
-  */
-   getBySchoolIdAndCountryCode(id:number, code: string): Observable<School[]> {
-    return this.http.get(environment.restAPI + 'schools/country_code_school_id/'+code+'/'+id, this.options).pipe(
-      map((response:any) => response.data),
-      tap(data => console.log(JSON.stringify(data))),
-      catchError(this.handleError)
-    );
+  /**
+   * Returns a School array that can be passed to the component.
+   * Id is school id which is a mandatory parameter.
+   * Country Code is a code which is a mandatory parameter.
+   * @param id School Id
+   * @param code Country Code
+   * @returns School
+   */
+  getBySchoolIdAndCountryCode(id: number, code: string): Observable<School[]> {
+    return this.http
+      .get(
+        environment.restAPI +
+          'schools/country_code_school_id/' +
+          code +
+          '/' +
+          id,
+        this.options
+      )
+      .pipe(
+        map((response: any) => response.data),
+        tap((data) => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
   }
 
   /**
@@ -72,14 +85,32 @@ export class SchoolService {
     }
    * @returns 
    */
-  registerSchoolDevice(data): Observable<{}>{
-    return this.http.post(environment.restAPI + 'dailycheckapp_schools', data ,this.options).pipe(
-      map((response:any) => response.data.user_id),
-      tap(data => console.log(JSON.stringify(data))),
-      catchError(this.handleError)
-    );
+  registerSchoolDevice(data): Observable<{}> {
+    return this.http
+      .post(environment.restAPI + 'dailycheckapp_schools', data, this.options)
+      .pipe(
+        map((response: any) => response.data.user_id),
+        tap((data) => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
   }
-  
+
+  /**
+   * Return the wrong giga id school and the right giga id school
+   *
+   * @param id Wrong giga id school id
+   * @returns
+   */
+  checkRightGigaId(id): Observable<ResponseDto<WrongGigaIdSchool>> {
+    return this.http
+      .get(environment.restAPI + `dailycheckapp_data_fix/${id}`, this.options)
+      .pipe(
+        map((response: any) => response),
+        tap((data) => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
+  }
+
   /**
    * Return unique user id for perticular device
    * @param data Object with these parameters {
@@ -91,18 +122,24 @@ export class SchoolService {
     }
    * @returns 
    */
-    registerFlaggedSchool(data): Observable<{}>{
-      console.log('flagged pass: ',data)
-      return this.http.post(environment.restAPI + 'flagged_dailycheckapp_schools', data ,this.options).pipe(
-        map((response:any) => response.data.id),
-        tap(data => console.log(JSON.stringify(data))),
+  registerFlaggedSchool(data): Observable<{}> {
+    console.log('flagged pass: ', data);
+    return this.http
+      .post(
+        environment.restAPI + 'flagged_dailycheckapp_schools',
+        data,
+        this.options
+      )
+      .pipe(
+        map((response: any) => response.data.id),
+        tap((data) => console.log(JSON.stringify(data))),
         catchError(this.handleError)
       );
-    }
-  
+  }
+
   /**
    * Private function to handle error
-   * @param error 
+   * @param error
    * @returns Error
    */
   private handleError(error: Response) {
