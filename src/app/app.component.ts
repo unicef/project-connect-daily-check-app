@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/naming-convention */
 import { Component } from '@angular/core';
 import { MenuController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
@@ -8,7 +7,6 @@ import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
 import { ScheduleService } from './services/schedule.service';
 import { environment } from '../environments/environment'; // './esrc/environments/environment';
-import { SchoolService } from './services/school.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -21,6 +19,7 @@ export class AppComponent {
   historyState: any;
   availableSettings: any;
   scheduleSemaphore: any;
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   app_version: any;
   constructor(
     private menu: MenuController,
@@ -29,35 +28,12 @@ export class AppComponent {
     private sharedService: SharedService,
     private historyService: HistoryService,
     private settingsService: SettingsService,
-    private scheduleService: ScheduleService,
-    private schoolService: SchoolService
+    private scheduleService: ScheduleService
   ) {
     translate.setDefaultLang('en');
     this.app_version = environment.app_version;
     if (this.storage.get('schoolId')) {
-      schoolService
-        .checkRightGigaId(this.storage.get('gigaId'))
-        .subscribe((res) => {
-          if (res && res.success) {
-            const gigaCorrectId = res.data[0].correct_giga_id;
-            const schoolCorrectId = res.data[0].correct_school_id;
-            schoolService
-              .getById(parseInt(schoolCorrectId, 10))
-              .subscribe((response) => {
-                const schools = response.filter(
-                  (s) => (s as any).giga_id_school === gigaCorrectId
-                );
-                if (schools.length > 0) {
-                  this.storage.set('schoolId', schoolCorrectId);
-                  this.storage.set('gigaId', gigaCorrectId);
-                  this.storage.set('country_code', schools[0].code);
-                  this.storage.set('schoolInfo', JSON.stringify(schools[0]));
-                }
-              });
-          } else {
-            this.school = JSON.parse(this.storage.get('schoolInfo'));
-          }
-        });
+      this.school = JSON.parse(this.storage.get('schoolInfo'));
     }
     this.sharedService.on(
       'settings:changed',
