@@ -61,7 +61,7 @@ export class HomePage {
               0,
               NotFound.notRegister,
             ]);
-            this.storage.set('schoolId', null);
+            this.storage.set('schoolId', undefined);
           }
           this.loading.dismiss();
         },
