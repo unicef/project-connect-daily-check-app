@@ -40,7 +40,7 @@ export class HomePage {
       try {
         // check if the gigaId is correct
         checkRightGigaId(
-          this.storage.get('schoolId'),
+          this.storage.get('gigaId'),
           schoolService,
           storage
         ).then((res) => {
