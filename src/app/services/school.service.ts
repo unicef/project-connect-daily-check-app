@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/naming-convention */
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
@@ -23,6 +24,7 @@ export class SchoolService {
 
   /**
    * Returns all schools present in the database.
+   *
    * @returns School
    */
   getAll(): Observable<School[]> {
@@ -36,6 +38,7 @@ export class SchoolService {
   /**
    * Returns a School array that can be passed to the component.
    * Id is school id which is a mandatory parameter.
+   *
    * @param id School Id
    * @returns School
    */
@@ -53,6 +56,7 @@ export class SchoolService {
    * Returns a School array that can be passed to the component.
    * Id is school id which is a mandatory parameter.
    * Country Code is a code which is a mandatory parameter.
+   *
    * @param id School Id
    * @param code Country Code
    * @returns School
@@ -76,6 +80,7 @@ export class SchoolService {
 
   /**
    * Return unique user id for perticular device
+   *
    * @param data Object with these parameters {
       "giga_id_school": "",
       "mac_address": "",
@@ -83,13 +88,28 @@ export class SchoolService {
       "app_version": "",
       "created": ""
     }
-   * @returns 
+   * @returns
    */
   registerSchoolDevice(data): Observable<{}> {
     return this.http
       .post(environment.restAPI + 'dailycheckapp_schools', data, this.options)
       .pipe(
         map((response: any) => response.data.user_id),
+        tap((data) => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Return all wrong giga id school and the right giga id school
+   *
+   * @returns
+   */
+  getAllWrongGigaId(): Observable<ResponseDto<WrongGigaIdSchool>> {
+    return this.http
+      .get(environment.restAPI + `dailycheckapp_data_fix`, this.options)
+      .pipe(
+        map((response: any) => response),
         tap((data) => console.log(JSON.stringify(data))),
         catchError(this.handleError)
       );
@@ -112,15 +132,38 @@ export class SchoolService {
   }
 
   /**
+   * Return the wrong giga id school and the right giga id school
+   *
+   *@summary Use this until checkRightGigaId malfunction
+   ! This endpoint first ensure the wrongId exist and after get the right id
+   *
+   * @param id Wrong giga id school id
+   * @returns
+   */
+  async checkRightGigaIdSlow(
+    id
+  ): Promise<Observable<ResponseDto<WrongGigaIdSchool>>> {
+    const wrongsIds = await this.getAllWrongGigaId().toPromise();
+    const rightId = ((wrongsIds as any)?.data as Array<any>).filter(
+      (w) => w.giga_id_school_wrong === id
+    );
+    if (rightId.length > 0) {
+      return this.checkRightGigaId(id);
+    }
+    console.log('The GigaId Is ok');
+    return null;
+  }
+
+  /**
    * Return unique user id for perticular device
+   *
    * @param data Object with these parameters {
       "detected_country": "",
       "selected_country": "",
       "school_id": "",
-      
       "created": ""
     }
-   * @returns 
+   * @returns
    */
   registerFlaggedSchool(data): Observable<{}> {
     console.log('flagged pass: ', data);
@@ -139,6 +182,7 @@ export class SchoolService {
 
   /**
    * Private function to handle error
+   *
    * @param error
    * @returns Error
    */
