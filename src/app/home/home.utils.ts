@@ -18,12 +18,12 @@ export const checkRightGigaId = async (
   schoolService: SchoolService,
   storage: StorageService
 ) => {
-  const checkRight = await schoolService.checkRightGigaIdSlow(gigaId);
+  const checkRight = await schoolService.checkRightGigaId(gigaId).toPromise();
 
-  if (checkRight === null) {
+  if (checkRight.data.length === 0) {
     return false;
   }
-  const res = await checkRight.toPromise();
+  const res = checkRight;
   console.log({ checkRightGigaId: res });
   if (res && res.success) {
     const gigaCorrectId = res.data[0].correct_giga_id;
