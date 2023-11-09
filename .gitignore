@@ -30,3 +30,5 @@ npm-debug.log*
 /platforms
 /plugins
 /www
+electron/electron-builder.env
+src/environments/_environment.prod.ts
