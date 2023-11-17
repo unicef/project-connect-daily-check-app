@@ -1,16 +1,15 @@
 import { Injectable } from '@angular/core';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class StorageService {
-
-  constructor() { }
+  constructor() {}
 
   /**
    * Store data in local storage
-   * @param key 
-   * @param value 
+   * @param key
+   * @param value
    * @returns boolean
    */
   set(key, value) {
@@ -22,16 +21,20 @@ export class StorageService {
 
   /**
    * get data from local storage based on key value
-   * @param key 
+   * @param key
    * @param defaultVal Optional
    * @returns any
    */
   get(key, defaultVal?) {
-      const retVal = localStorage.getItem(key);
-      if(retVal){
-        return retVal;
-      } else if(defaultVal) {
-        return defaultVal;
-      }      
+    const retVal = localStorage.getItem(key);
+    if (retVal) {
+      return retVal;
+    } else if (defaultVal) {
+      return defaultVal;
+    }
+  }
+
+  clear() {
+    localStorage.clear();
   }
 }

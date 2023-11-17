@@ -70,6 +70,8 @@ export class HomePage {
         this.router.navigate(['/starttest']);
         this.loading.dismiss();
       }
+    } else {
+      this.loading.dismiss();
     }
   }
 

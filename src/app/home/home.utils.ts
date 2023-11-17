@@ -22,8 +22,7 @@ export const removeUnregisterSchool = async (
     storage.set('schoolInfo', JSON.stringify(schoolResponse[0]));
     return true;
   } else {
-    storage.set('schoolInfo', undefined);
-    storage.set('schoolId', undefined);
+    storage.clear();
     console.log('School not found');
     return false;
   }
