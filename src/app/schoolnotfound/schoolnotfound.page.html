@@ -1,24 +1,47 @@
 <ion-header no-shadow>
   <ion-toolbar>
-    <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
+    <ion-label [routerLink]="['/home']"
+      >PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label
+    >
   </ion-toolbar>
 </ion-header>
 <ion-content>
-  <div class="container">    
-    <div class="top-layout">      
-      <div class="label-txt"><span class="result-txt">RESULTS FOR SCHOOL ID</span><br><span class="schoolID-txt">{{schoolId | uppercase}}</span></div>        
+  <div class="container">
+    <div class="top-layout">
+      <div class="label-txt">
+        <span class="result-txt">RESULTS FOR SCHOOL ID</span><br /><span
+          class="schoolID-txt"
+          >{{schoolId | uppercase}}</span
+        >
+      </div>
       <div class="h-line"></div>
       <div class="noschool">
-        <ion-img src="assets/images/Unable_to_Locate School_Icon.png" class="noschool-icon"></ion-img>
+        <ion-img
+          src="assets/images/Unable_to_Locate School_Icon.png"
+          class="noschool-icon"
+        ></ion-img>
         <div class="unabletolocate-txt">UNABLE TO LOCATE YOUR SCHOOL</div>
-        <div class="noschool-txt">Unfortunately we were unable to locate your school</div>      
+        <div *ngIf="notFound; else notRegister" class="noschool-txt">
+          Unfortunately we were unable to locate your school
+        </div>
+        <ng-template #notRegister>
+          <div class="noschool-txt">
+            Unfortunately your school is not registered with Project Connect
+            Please contact your school administrator to register your school on
+            PCDC again.
+          </div>
+        </ng-template>
       </div>
     </div>
     <div class="bottom-layout">
       <!-- <ion-button color="primary" block [routerLink]="['/searchschool', this.selectedCountry, this.detectedCountry]" class="dailycheck_btn">TRY AGAIN</ion-button>       -->
-      <ion-button color="primary" block  [routerLink]="['/searchcountry']" class="dailycheck_btn">TRY AGAIN</ion-button>      
-
+      <ion-button
+        color="primary"
+        block
+        [routerLink]="['/searchcountry']"
+        class="dailycheck_btn"
+        >TRY AGAIN</ion-button
+      >
     </div>
-
   </div>
 </ion-content>

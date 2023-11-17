@@ -2,12 +2,17 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+//! In developement mode, the token is taken from _enviroment.prod.ts
+import { environment as env } from './_environment.prod';
+
+const token = env.token;
+const restAPI = env.restAPIDev;
 export const environment = {
   production: false,
- // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
-  restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
-  token: '',
-  app_version: '1.0.4'
+  // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
+  restAPI: 'https://uni-connect-services-dev.azurewebsites.net/api/v1/',
+  token: env.token,
+  app_version: '1.0.6',
 };
 
 /*
