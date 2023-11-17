@@ -35,7 +35,7 @@ export class HomePage {
       '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Loading...</p></div>';
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
     if (this.storage.get('schoolId')) {
-      const schoolId = this.storage.get('schoolId');
+      let schoolId = this.storage.get('schoolId');
       try {
         // check if the gigaId is correct
         checkRightGigaId(
@@ -43,6 +43,7 @@ export class HomePage {
           schoolService,
           storage
         ).then((res) => {
+          schoolId = this.storage.get('schoolId');
           removeUnregisterSchool(
             schoolId,
             schoolService,
