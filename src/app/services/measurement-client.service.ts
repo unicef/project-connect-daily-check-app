@@ -98,7 +98,6 @@ export class MeasurementClientService {
     return new Promise((resolve, reject) => {
       const measurementRecord = {
         timestamp: Date.now(),
-        timestampLocal: Date.now().toLocaleString(),
         results: {},
         snapLog: { s2cRate: [], c2sRate: [] },
         uploaded: false,
@@ -107,7 +106,6 @@ export class MeasurementClientService {
         uuid: '',
         version: 0,
       };
-      console.log('Called start', this.networkService.getAccessInformation());
 
       const emitKey = 'measurement:status';
       let progressVal = 0;
