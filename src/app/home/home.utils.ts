@@ -10,7 +10,10 @@ export const removeUnregisterSchool = async (
   settings: SettingsService
 ) => {
   const gigaId = storage.get('gigaId');
-  const response = await schoolService.getById(schoolId).toPromise();
+  const countryCode = storage.get('country_code');
+  const response = await schoolService
+    .getBySchoolIdAndCountryCode(schoolId, countryCode)
+    .toPromise();
 
   console.log(response);
   const schoolResponse = response.filter(
