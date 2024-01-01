@@ -14,22 +14,23 @@ import { DatePipe } from '@angular/common';
 
 import { TranslateModule, TranslateLoader } from '@ngx-translate/core';
 import { TranslateHttpLoader } from '@ngx-translate/http-loader';
-import { Network } from '@awesome-cordova-plugins/network/ngx'; 
+import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { NgxElectronModule } from 'ngx-electron';
-export function createTranslateLoader(http: HttpClient) {
-    return new TranslateHttpLoader(http, './assets/i18n/', '.json');
-}
+import { PcdcHeaderComponent } from '../pcdc-header/pcdc-header.component';
+
+export const createTranslateLoader = (http: HttpClient) =>
+  new TranslateHttpLoader(http, './assets/i18n/', '.json');
 
 @NgModule({
   declarations: [
-    MeasurePipePipe, 
+    MeasurePipePipe,
     FormatThroughputMeasurementPipe,
     FormatThroughputDisplayPipe,
     FormatLatencyMeasurementPipe,
     FormatDataConsumptionMeasurementPipe,
     FormatProbabilityMeasurementPipe,
     CapitalizePipe,
-    TruncatePipe
+    TruncatePipe,
   ],
   imports: [
     CommonModule,
@@ -40,9 +41,9 @@ export function createTranslateLoader(http: HttpClient) {
       loader: {
         provide: TranslateLoader,
         useFactory: createTranslateLoader,
-        deps: [HttpClient]
-      }
-    })
+        deps: [HttpClient],
+      },
+    }),
   ],
   exports: [
     TranslateModule,
@@ -54,7 +55,7 @@ export function createTranslateLoader(http: HttpClient) {
     FormatProbabilityMeasurementPipe,
     CapitalizePipe,
     TruncatePipe,
-    NgPipesModule
+    NgPipesModule,
   ],
   providers: [
     MeasurePipePipe,
@@ -66,7 +67,7 @@ export function createTranslateLoader(http: HttpClient) {
     CapitalizePipe,
     TruncatePipe,
     Network,
-    DatePipe
-  ]
+    DatePipe,
+  ],
 })
-export class SharedModule { }
+export class SharedModule {}

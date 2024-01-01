@@ -39,7 +39,9 @@ export class AppComponent {
       'settings:changed',
       (nameValue: { name: string; value: { code: string } }) => {
         if (nameValue.name === 'applicationLanguage') {
+          console.log({ nameValue });
           translate.use(nameValue.value.code);
+          console.log(translate.currentLang);
         }
       }
     );
