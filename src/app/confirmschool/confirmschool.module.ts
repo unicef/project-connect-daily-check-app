@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ConfirmschoolPage } from './confirmschool.page';
 import { SharedModule } from '../shared/shared.module';
 import { ConfirmschoolPageRoutingModule } from './confirmschool-routing.module';
-
+import { PcdcHeaderComponent } from '../pcdc-header/pcdc-header.component';
 
 @NgModule({
   imports: [
@@ -13,8 +13,8 @@ import { ConfirmschoolPageRoutingModule } from './confirmschool-routing.module';
     FormsModule,
     IonicModule,
     ConfirmschoolPageRoutingModule,
-    SharedModule
+    SharedModule,
   ],
-  declarations: [ConfirmschoolPage]
+  declarations: [ConfirmschoolPage, PcdcHeaderComponent],
 })
 export class ConfirmschoolPageModule {}

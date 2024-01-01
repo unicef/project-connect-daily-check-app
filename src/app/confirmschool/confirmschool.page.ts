@@ -13,6 +13,7 @@ import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { SettingsService } from '../services/settings.service';
+import { TranslateService } from '@ngx-translate/core';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -34,7 +35,8 @@ export class ConfirmschoolPage {
     private networkService: NetworkService,
     private settings: SettingsService,
     public loading: LoadingService,
-    private datePipe: DatePipe
+    private datePipe: DatePipe,
+    private translate: TranslateService
   ) {
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;

@@ -3,6 +3,7 @@ import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingService } from '../services/loading.service';
 import { NotFound } from './types';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-schoolnotfound',
@@ -21,7 +22,8 @@ export class SchoolnotfoundPage {
   constructor(
     private activatedroute: ActivatedRoute,
     public router: Router,
-    public loading: LoadingService
+    public loading: LoadingService,
+    private translate: TranslateService
   ) {
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.notFound = params.notFound === NotFound.notRegister ? false : true;

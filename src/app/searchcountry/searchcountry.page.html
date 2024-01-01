@@ -1,53 +1,70 @@
-<ion-header no-shadow>
-  <ion-toolbar>
-    <ion-label>PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
-  </ion-toolbar>
-</ion-header>
+<app-pcdc-header></app-pcdc-header>
 <ion-content>
   <div class="container">
     <div class="welcomebg1">
       <div class="top-layout">
-        <div class="search-label">Your country is automatically detected</div>
-       
+        <div
+          class="search-label"
+          [translate]="'searchCountry.detected-auto'"
+        ></div>
+
         <div class="search">
           <!-- <input type="text" class="searchTerm" placeholder="SEARCH FOR A COUNTRY" [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="4">
        <button type="submit" class="searchButton" (click)="searchSchoolById()">
          <ion-icon name="search-outline" class="searchIcon"></ion-icon>
       </button> -->
-     <!-- <div class="searchCountry">
+          <!-- <div class="searchCountry">
        <select  #countryList  [(ngModel)]="this.selectedCountry"  (change)="onCountryChange(countryList)">
         <option *ngFor="let country of countries" [selected]="this.detectedCountry === country.code" [value]="country.code">{{ country.name }}</option>     
       </select>
       </div> -->
           <ion-item class="searchCountry">
-            <ion-label class="label">Country</ion-label>              
-            <ion-select #countryList [(ngModel)]="this.selectedCountry" (ionChange)="onCountryChange(countryList)">
-              <ion-select-option *ngFor="let country of countries" [selected]="this.detectedCountry === country.code" [value]="country.code">{{ country.name }}</ion-select-option>
+            <ion-label
+              class="label"
+              [translate]="'searchCountry.country'"
+            ></ion-label>
+            <ion-select
+              #countryList
+              [(ngModel)]="this.selectedCountry"
+              (ionChange)="onCountryChange(countryList)"
+            >
+              <ion-select-option
+                *ngFor="let country of countries"
+                [selected]="this.detectedCountry === country.code"
+                [value]="country.code"
+                >{{ country.name }}</ion-select-option
+              >
             </ion-select>
-          </ion-item> 
-         
+          </ion-item>
         </div>
-       
-        <div *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry" class="search-label-error">
-           It looks like the country you selected may not be accurate. </div>
-          <div *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry" class="search-label">
-            Please double-check your selection.</div>
 
+        <div
+          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry"
+          class="search-label-error"
+          [translate]="'searchCountry.country-not-accurate'"
+        ></div>
+        <div
+          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry"
+          class="search-label"
+          [translate]="'searchCountry.please-double-check'"
+        ></div>
 
-            <div *ngIf="this.isPcdcCountry == false " class="search-label-error">
-              Sorry, Project Connect Daily Check App is not available in {{ this.selectedCountry }}</div>
-
-
+        <div
+          *ngIf="this.isPcdcCountry === false "
+          class="search-label-error"
+          [translate]="'searchCountry.not-available'"
+          [translateParams]="{ country: selectedCountry }"
+        ></div>
       </div>
       <div class="bottom-layout">
-        <ion-button color="primary" block class="dailycheck_btn" (click)="confirmCountry()"><span
-            class="next-txt">{{'NEXT' | translate}} </span></ion-button>
-
-           
-
-
+        <ion-button
+          color="primary"
+          block
+          class="dailycheck_btn"
+          (click)="confirmCountry()"
+          ><span class="next-txt" [translate]="'next'"></span
+        ></ion-button>
       </div>
     </div>
-
   </div>
 </ion-content>

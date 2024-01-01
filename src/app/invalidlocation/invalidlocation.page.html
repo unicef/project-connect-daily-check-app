@@ -1,24 +1,38 @@
-<ion-header no-shadow>
-  <ion-toolbar>
-    <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
-  </ion-toolbar>
-</ion-header>
+<app-pcdc-header></app-pcdc-header>
 <ion-content>
-  <div class="container">    
-    <div class="top-layout">      
-      <div class="label-txt"><span class="result-txt">RESULTS FOR SCHOOL ID</span>: <span class="schoolID-txt">{{schoolId | uppercase}}</span></div>        
-      <div class="label-txt"><span class="result-txt">- Your location is {{country}}.<br />
-         - Selected schools is from {{selectedCountry}}. <br />
-         </span></div>      
+  <div class="container">
+    <div class="top-layout">
+      <div class="label-txt">
+        <span class="result-txt" [translate]="'resultSchool'"></span>:
+        <span class="schoolID-txt">{{schoolId | uppercase}}</span>
+      </div>
+      <div class="label-txt">
+        <span
+          class="result-txt"
+          [innerHTML]="'invalidLocation.resultLocation' | translate:{country:country, selectedCountry:selectedCountry}"
+        >
+        </span>
+      </div>
       <div class="h-line"></div>
       <div class="noschool">
-        <ion-img src="assets/images/Unable_to_Locate School_Icon.png" class="noschool-icon"></ion-img>
-        <div class="unabletolocate-txt">PLEASE SELECT A CORRECT SCHOOL.</div>
-        
+        <ion-img
+          src="assets/images/Unable_to_Locate School_Icon.png"
+          class="noschool-icon"
+        ></ion-img>
+        <div
+          class="unabletolocate-txt"
+          [translate]="'invalidLocation.unableToLocate'"
+        ></div>
       </div>
     </div>
     <div class="bottom-layout">
-      <ion-button color="primary" block [routerLink]="['/searchschool']" class="dailycheck_btn">TRY AGAIN</ion-button>      
+      <ion-button
+        color="primary"
+        block
+        [routerLink]="['/searchschool']"
+        class="dailycheck_btn"
+        [translate]="'tryAgain'"
+      ></ion-button>
     </div>
   </div>
 </ion-content>
