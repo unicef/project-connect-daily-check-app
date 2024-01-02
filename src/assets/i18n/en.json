@@ -60,8 +60,8 @@
         "connectivity-checks-occur-desc": "There are always two checks per day that occur at random. The average speed between the two is the speed that will be reported as your daily speed.",
         "can-change-id": "Can I change my school ID?",
         "can-change-id-desc": "Right now it is not possible to change your school ID. If you've made a mistake and need to enter a new ID, you should uninstall the application and start over.",
-        "multiple-instals": "Can I install this application <br />on more than one computer?",
-        "multiple-instals-desc": "Yes you can. In fact, we encourage it. If multiple machines report data to the platform, the measurement will be more reliable",
+        "multiple-installs": "Can I install this application <br />on more than one computer?",
+        "multiple-installs-desc": "Yes you can. In fact, we encourage it. If multiple machines report data to the platform, the measurement will be more reliable",
         "dissatisfied-speed": "What can I do if I am unhappy<br />with the speed or reliability of <br /> my internet connection?",
         "dissatisfied-speed-desc": "You can visit our site and fill out the form to file a report. We can then work with our suppliers to ensure they deliver the quality of service they promised."
     },
@@ -70,7 +70,20 @@
         "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>About Project Connect",
         "school-id": "YOUR SCHOOL ID",
         "my-school-id": "<span class=\"hash\">#</span>My School Id",
-        "version": "VERSION {{ this.app_version }}"
+        "version": "VERSION {{ app_version }}",
+        "about-project-connect": "ABOUT PROJECT CONNECT",
+        "project-connect-desc": "Project Connect is mapping the connectivity of every school in the world. We aim to connect all schools to the Internet and all young people to information, opportunity and choice.",
+        "thank-you": "Thank you for contributing to Project Connect. Find your school and learn more at our website. We add new schools every day!",
+        "view-project-connect": "VIEW PROJECT CONNECT"
+    },
+    "startTest": {
+        "startTest": "START TEST",
+        "upload": "UPLOAD",
+        "download": "DOWNLOAD",
+        "testAgain": "TEST AGAIN",
+        "latency": "Latency: {{latency}}",
+        "testFailed": "TEST FAILED",
+        "testFailedDesc": "The connection was interupted before testing could be completed."
     },
     "resultSchool": "RESULTS FOR SCHOOL ID",
     "tryAgain": "TRY AGAIN",

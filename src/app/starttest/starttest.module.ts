@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { SharedModule } from '../shared/shared.module';
 import { StarttestPage } from './starttest.page';
 import { StarttestPageRoutingModule } from './starttest-routing.module';
-
+import { PcdcHeaderComponent } from '../pcdc-header/pcdc-header.component';
 
 @NgModule({
   imports: [
@@ -13,8 +13,8 @@ import { StarttestPageRoutingModule } from './starttest-routing.module';
     FormsModule,
     IonicModule,
     StarttestPageRoutingModule,
-    SharedModule
+    SharedModule,
   ],
-  declarations: [StarttestPage]
+  declarations: [StarttestPage, PcdcHeaderComponent],
 })
 export class StarttestPageModule {}

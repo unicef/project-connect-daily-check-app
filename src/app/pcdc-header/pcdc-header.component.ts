@@ -34,4 +34,9 @@ export class PcdcHeaderComponent implements OnInit {
     );
     window.location.reload();
   }
+  closeApp() {
+    this.settingsService
+      .getIpcRenderer()
+      .ipcRenderer.send('closeFromUi', 'minimize');
+  }
 }

@@ -17,5 +17,15 @@
         </ion-select-option>
       </ion-select>
     </ion-buttons>
+    <ion-buttons slot="end">
+      <ion-menu-button color="light"></ion-menu-button>
+    </ion-buttons>
   </ion-toolbar>
+  <div class="closeAppBtn">
+    <ion-icon
+      slot="icon-only"
+      name="close-outline"
+      (click)="closeApp()"
+    ></ion-icon>
+  </div>
 </ion-header>

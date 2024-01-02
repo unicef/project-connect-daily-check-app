@@ -17,9 +17,7 @@
         <div
           class="freq-ques-txt abt-prj-con-txt"
           [translate]="'app.about-project-connect'"
-        >
-          ABOUT PROJECT CONNECT
-        </div>
+        ></div>
         <div>
           <ion-img
             src="assets/images/project-connect.jpg"
@@ -27,17 +25,17 @@
           ></ion-img>
         </div>
         <div>
-          <ion-label text-wrap [translate]="'app.project-connect-desc'"
-            >Project Connect is mapping the connectivity of every school in the
-            world. We aim to connect all schools to the Internet and all young
-            people to information, opportunity and choice.</ion-label
-          >
+          <ion-label
+            text-wrap
+            [translate]="'app.project-connect-desc'"
+          ></ion-label>
         </div>
         <div>
-          <ion-label text-wrap class="thank-txt" [translate]="'app.thank-you'"
-            >Thank you for contributing to Project Connect. Find your school and
-            learn more at our website. We add new schools every day!</ion-label
-          >
+          <ion-label
+            text-wrap
+            class="thank-txt"
+            [translate]="'app.thank-you'"
+          ></ion-label>
         </div>
         <ion-button
           class="view-proj-btn"
@@ -45,8 +43,7 @@
             openExternalUrl('https://projectconnect.unicef.org/daily-check-app')
           "
           [translate]="'app.view-project-connect'"
-          >VIEW PROJECT CONNECT</ion-button
-        >
+        ></ion-button>
       </div>
     </ion-content>
   </ion-menu>
@@ -68,12 +65,14 @@
       <div class="accordion-sec">
         <ion-accordion-group value="numbers">
           <ion-accordion>
-            <ion-item slot="header" [translate]="'faq.what-is-school-id'">
-              <ion-label></ion-label>
+            <ion-item slot="header">
+              <ion-label [translate]="'faq.what-is-school-id'"></ion-label>
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label [translate]="'faq.school-id-desc'"></ion-label>
+                <ion-label
+                  [translate]="'faq.what-is-school-id-desc'"
+                ></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
@@ -105,7 +104,7 @@
           <ion-accordion>
             <ion-item slot="header">
               <ion-label
-                innerHTML="'faq.connectivity-checks-occur' | translate"
+                [innerHTML]="'faq.connectivity-checks-occur' | translate"
               ></ion-label>
             </ion-item>
             <ion-list slot="content">
@@ -130,7 +129,7 @@
           <ion-accordion>
             <ion-item slot="header">
               <ion-label
-                innerHTML="'faq.multiple-installs' | translate"
+                [innerHTML]="'faq.multiple-installs' | translate"
               ></ion-label>
             </ion-item>
             <ion-list slot="content">
@@ -144,7 +143,7 @@
           <ion-accordion>
             <ion-item slot="header">
               <ion-label
-                innerHTML="'faq.dissatisfied-speed' | translate"
+                [innerHTML]="'faq.dissatisfied-speed' | translate"
               ></ion-label>
             </ion-item>
             <ion-list slot="content">
@@ -218,11 +217,11 @@
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-item>
           <ion-item (click)="openThird()">
-            <ion-label innerHTML="'app.faq' | translate"></ion-label>
+            <ion-label [innerHTML]="'app.faq' | translate"></ion-label>
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-item>
           <ion-item (click)="openFourth()">
-            <ion-label innerHTML="'app.about' | translate"></ion-label>
+            <ion-label [innerHTML]="'app.about' | translate"></ion-label>
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-item>
           <ion-item>
@@ -230,7 +229,7 @@
               class="small-font"
               slot="end"
               [translate]="'app.version'"
-              [translateParams]="{ version: app_version }"
+              [translateParams]="{ app_version: app_version }"
             ></ion-label>
             <ion-icon name="chevron-download"></ion-icon>
           </ion-item>
