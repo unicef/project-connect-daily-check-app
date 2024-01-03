@@ -4,5 +4,91 @@
         "title2": "Ayuda a que tu escuela mejore su conectividad. Comparte el estado de internet de tu escuela con Proyecto Conectividad todos los días.",
         "next": "Siguiente",
         "learn-more": "APRENDE MÁS SOBRE PROJECT CONNECT"
-    }
+    },
+    "confirmSchool": {
+        "title": "CONFIRMA LA INFORMACIÓN DE TU ESCUELA PARA REGISTRARLA EN PROJECT CONNECT",
+        "confirm1": "*Asegúrate de que el país correcto esté seleccionado.",
+        "confirm2": "¿ES CORRECTA LA INFORMACIÓN ANTERIOR?"
+    },
+    "invalidLocation": {
+        "resultLocation": "- Tu ubicación es {{country}}.<br />- Las escuelas seleccionadas son de {{selectedCountry}}. <br />",
+        "unableToLocate": "POR FAVOR, SELECCIONA UNA ESCUELA CORRECTA."
+    },
+    "schoolDetails": {
+        "search": "Buscando tu escuela...",
+        "selectAndConfirm": "SELECCIONA TU ESCUELA A CONTINUACIÓN",
+        "noSchoolList": "MI ESCUELA NO ESTÁ EN LA LISTA"
+    },
+    "schoolNotFound": {
+        "unableToLocate": "NO SE PUEDE LOCALIZAR TU ESCUELA",
+        "notFound": "Lamentablemente no pudimos localizar tu escuela",
+        "notRegister": "Lamentablemente, tu escuela no está registrada en Project Connect. Por favor, contacta al administrador de tu escuela para registrarla en PCDC nuevamente."
+    },
+    "schoolSuccess": {
+        "congratulations": "¡FELICITACIONES!",
+        "school-registered": "Tu escuela ha sido registrada en <br />Project Connect",
+        "success-txt": "TU VERIFICACIÓN DIARIA DE INTERNET <br />ESTÁ CONFIGURADA",
+        "internet-checks": "Esta aplicación verificará tu <br />estado de internet dos veces al día",
+        "app-run": "ESTA APLICACIÓN SE EJECUTARÁ <br />EN SEGUNDO PLANO",
+        "app-run-desc": "Es posible cerrar la aplicación. <br />Los datos de tu escuela se recopilarán <br />cuando el dispositivo esté encendido."
+    },
+    "searchCountry": {
+        "check": "Verificando país...",
+        "detected-auto": "Tu país se detecta automáticamente",
+        "country": "País",
+        "country-not-accurate": "Parece que el país que seleccionaste puede no ser preciso.",
+        "please-double-check": "Por favor, verifica tu selección.",
+        "not-available": "Lo siento, la aplicación Project Connect Daily Check no está disponible en {{selectedCountry}}"
+    },
+    "searchSchool": {
+        "search": "Buscando tu escuela...",
+        "placeholder-school-id": "Ingresa el ID de tu escuela",
+        "provide-school-id": "Para empezar, por favor ingresa y busca el ID de tu escuela",
+        "user-has-not-id": "NO SÉ EL ID DE MI ESCUELA <span class=\"chevron right\"></span>"
+    },
+    "faq": {
+        "FAQ": "PREGUNTAS FRECUENTES",
+        "what-is-school-id": "¿Qué es un ID de escuela?",
+        "what-is-school-id-desc": "Un ID de escuela es un identificador único para tu escuela proporcionado por el gobierno. Hay diferentes formatos, pero generalmente se ve algo como \"BR12345\" o \"12345678\".",
+        "how-find-school-id": "¿Cómo encuentro el ID de mi escuela?",
+        "how-find-school-id-desc": "Tu administrador escolar o departamento de TI lo sabrán. El ID de la escuela será el número utilizado en tu sistema nacional de registro.",
+        "school-id-not-found": "Mi escuela aún no forma parte de Project Connect. ¿Qué puedo hacer?",
+        "school-id-not-found-desc": "Puedes visitar nuestro sitio web y completar el formulario de contacto para indicarnos que te gustaría unirte a nuestra iniciativa.",
+        "can-close-app": "¿Puedo cerrar la aplicación?",
+        "can-close-app-desc": "Sí, puedes cerrar la aplicación haciendo clic en el botón de cierre en la esquina superior derecha. La aplicación seguirá ejecutándose en segundo plano y reportará tu estado de conectividad.",
+        "connectivity-checks-occur": "¿Cuándo ocurren las <br />verificaciones de conectividad de mi escuela?",
+        "connectivity-checks-occur-desc": "Siempre hay dos verificaciones al día que ocurren al azar. La velocidad promedio entre las dos se informará como tu velocidad diaria.",
+        "can-change-id": "¿Puedo cambiar el ID de mi escuela?",
+        "can-change-id-desc": "Actualmente no es posible cambiar el ID de tu escuela. Si cometiste un error y necesitas ingresar un nuevo ID, debes desinstalar la aplicación y comenzar de nuevo.",
+        "multiple-installs": "¿Puedo instalar esta aplicación <br />en más de una computadora?",
+        "multiple-installs-desc": "Sí, puedes hacerlo. De hecho, lo alentamos. Si varias máquinas informan datos a la plataforma, la medición será más confiable.",
+        "dissatisfied-speed": "¿Qué puedo hacer si no estoy satisfecho<br />con la velocidad o confiabilidad de mi<br />conexión a Internet?",
+        "dissatisfied-speed-desc": "Puedes visitar nuestro sitio y completar el formulario para presentar un informe. Luego podemos trabajar con nuestros proveedores para asegurar que entreguen la calidad de servicio que prometieron."
+    },
+    "app": {
+        "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Preguntas frecuentes",
+        "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>Acerca de Project Connect",
+        "school-id": "TU ID DE ESCUELA",
+        "my-school-id": "<span class=\"hash\">#</span>Mi ID de Escuela",
+        "version": "VERSIÓN {{ app_version }}",
+        "about-project-connect": "ACERCA DE PROJECT CONNECT",
+        "project-connect-desc": "Project Connect está mapeando la conectividad de cada escuela en el mundo. Nuestro objetivo es conectar todas las escuelas a Internet y a todos los jóvenes a la información, oportunidades y opciones.",
+        "thank-you": "Gracias por contribuir a Project Connect. Encuentra tu escuela y obtén más información en nuestro sitio web. ¡Añadimos nuevas escuelas todos los días!",
+        "view-project-connect": "VER PROJECT CONNECT"
+    },
+    "startTest": {
+        "startTest": "INICIAR PRUEBA",
+        "upload": "SUBIDA",
+        "download": "DESCARGA",
+        "testAgain": "INICIAR PRUEBA",
+        "latency": "Latencia: {{latency}}",
+        "testFailed": "PRUEBA FALLIDA",
+        "testFailedDesc": "La conexión se interrumpió antes de que la prueba pudiera completarse."
+    },
+    "resultSchool": "RESULTADOS PARA EL ID DE LA ESCUELA",
+    "tryAgain": "INTENTAR DE NUEVO",
+    "yes": "Sí",
+    "no": "No",
+    "next": "Siguiente",
+    "language": "Idioma"
 }
