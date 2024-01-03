@@ -24,6 +24,12 @@ export class HomePage {
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
+    if (!applicationLanguage) {
+      this.settingsService.setSetting('applicationLanguage', {
+        code: 'en',
+        name: 'English',
+      });
+    }
     if (applicationLanguage) {
       if (typeof applicationLanguage === 'string') {
         translate.setDefaultLang(applicationLanguage);
@@ -32,7 +38,8 @@ export class HomePage {
       }
     }
     const loadingMsg =
-      '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Loading...</p></div>';
+      // eslint-disable-next-line max-len
+      '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white" [translate]="\'loading\'">Loading...</p></div>';
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
     if (this.storage.get('schoolId')) {
       let schoolId = this.storage.get('schoolId');

@@ -31,7 +31,9 @@ export class AppComponent {
     private scheduleService: ScheduleService
   ) {
     translate.setDefaultLang('en');
-    const appLang = this.settingsService.get('applicationLanguage');
+    const appLang = this.settingsService.get('applicationLanguage') ?? {
+      code: 'en',
+    };
     this.translate.use(appLang.code);
     this.app_version = environment.app_version;
     if (this.storage.get('schoolId')) {
