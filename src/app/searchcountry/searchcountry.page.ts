@@ -1032,7 +1032,10 @@ export class SearchcountryPage {
     private countryService: CountryService,
     public loading: LoadingService,
     private translate: TranslateService
-  ) {}
+  ) {
+    const appLang = this.settingsService.get('applicationLanguage');
+    this.translate.use(appLang.code);
+  }
   ngOnInit() {
     this.getCountry();
   }

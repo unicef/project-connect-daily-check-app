@@ -102,6 +102,10 @@ ion-header {
       letter-spacing: 1.15px;
       font-weight: 400;
     }
+    ion-select {
+      max-width: 54px;
+      overflow: hidden;
+    }
   }
 }
 ion-radio {
@@ -276,6 +280,7 @@ a,
 }
 
 .closeAppBtn {
+  z-index: 99 !important;
   right: 5px;
   top: 5px;
   position: absolute;

@@ -19,11 +19,7 @@ export class PcdcHeaderComponent implements OnInit {
     this.selectedLanguage =
       this.settingsService.get('applicationLanguage')?.code ||
       translate.defaultLang;
-    const testLanguage = this.settingsService.get('applicationLanguage');
-    console.log({ testLanguage });
-    console.log('applicationLanguage', this.selectedLanguage);
-    console.log('applicationLanguage', translate.currentLang);
-    console.log('languages', translate.getLangs());
+    translate.use(this.selectedLanguage);
   }
   ngOnInit() {}
   onLanguageChange() {

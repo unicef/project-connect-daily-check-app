@@ -38,6 +38,8 @@ export class ConfirmschoolPage {
     private datePipe: DatePipe,
     private translate: TranslateService
   ) {
+    const appLang = this.settings.get('applicationLanguage');
+    this.translate.use(appLang.code);
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;

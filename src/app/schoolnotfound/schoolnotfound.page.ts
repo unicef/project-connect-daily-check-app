@@ -4,6 +4,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LoadingService } from '../services/loading.service';
 import { NotFound } from './types';
 import { TranslateService } from '@ngx-translate/core';
+import { SettingsService } from '../services/settings.service';
 
 @Component({
   selector: 'app-schoolnotfound',
@@ -23,8 +24,12 @@ export class SchoolnotfoundPage {
     private activatedroute: ActivatedRoute,
     public router: Router,
     public loading: LoadingService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private settingsService: SettingsService
   ) {
+    const appLang = this.settingsService.get('applicationLanguage');
+    this.translate.use(appLang.code);
+
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.notFound = params.notFound === NotFound.notRegister ? false : true;
     });

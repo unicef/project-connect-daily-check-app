@@ -8,6 +8,7 @@
       <ion-select
         [(ngModel)]="selectedLanguage"
         (ionChange)="onLanguageChange()"
+        aria-label="{{ 'language' | translate }}"
       >
         <ion-select-option
           *ngFor="let language of languages"

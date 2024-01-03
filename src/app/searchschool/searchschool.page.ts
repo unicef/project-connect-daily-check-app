@@ -33,6 +33,8 @@ export class SearchschoolPage {
     private settingsService: SettingsService,
     public loading: LoadingService
   ) {
+    const appLang = this.settingsService.get('applicationLanguage');
+    this.translate.use(appLang.code);
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;

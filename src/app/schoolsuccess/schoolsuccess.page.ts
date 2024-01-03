@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { LoadingService } from '../services/loading.service';
 import { IonSlides } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
+import { SettingsService } from '../services/settings.service';
 
 @Component({
   selector: 'app-schoolsuccess',
@@ -23,9 +24,11 @@ export class SchoolsuccessPage {
   constructor(
     public loading: LoadingService,
     private router: Router,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private settingsService: SettingsService
   ) {
-    console.log('School success page', translate.defaultLang);
+    const appLang = this.settingsService.get('applicationLanguage');
+    this.translate.use(appLang.code);
   }
   swipeNext() {
     this.slides.slideNext();
