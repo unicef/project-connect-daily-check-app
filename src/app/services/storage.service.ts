@@ -35,6 +35,8 @@ export class StorageService {
   }
 
   clear() {
+    const settings = this.get('savedSettings');
     localStorage.clear();
+    this.set('savedSettings', settings);
   }
 }

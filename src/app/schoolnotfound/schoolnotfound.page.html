@@ -3,8 +3,10 @@
   <div class="container">
     <div class="top-layout">
       <div class="label-txt">
-        <span class="result-txt" [translate]="'resultSchool'" ]></span
-        ><br /><span class="schoolID-txt">{{schoolId | uppercase}}</span>
+        <span class="result-txt" [translate]="'resultSchool'"></span><br /><span
+          class="schoolID-txt"
+          >{{schoolId | uppercase}}</span
+        >
       </div>
       <div class="h-line"></div>
       <div class="noschool">
@@ -30,11 +32,10 @@
       </div>
     </div>
     <div class="bottom-layout">
-      <!-- <ion-button color="primary" block [routerLink]="['/searchschool', this.selectedCountry, this.detectedCountry]" class="dailycheck_btn">TRY AGAIN</ion-button>       -->
       <ion-button
         color="primary"
         block
-        [routerLink]="['/searchcountry']"
+        [routerLink]="['/']"
         class="dailycheck_btn"
         [translate]="'tryAgain'"
       ></ion-button>
