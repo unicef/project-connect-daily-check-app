@@ -1,7 +1,7 @@
 {
     "home": {
-        "title1": "Bem-vindo ao Project Connect <span class='daily-chk-blue'>Daily Check</span>",
-        "title2": "Ajude sua escola a obter uma melhor conectividade. Compartilhe o status da internet de sua escola com o Projeto Conectividade todos os dias.",
+        "title1": "Boas-vindas ao Project Connect <span class='daily-chk-blue'>Daily Check</span>",
+        "title2": "Ajude sua escola a obter uma melhor conectividade. Compartilhe diariamente o estado da internet de sua escola com o Projeto Conectividade.",
         "next": "Próximo",
         "learn-more": "SAIBA MAIS SOBRE O PROJECT CONNECT"
     },
@@ -11,69 +11,69 @@
         "confirm2": "AS INFORMAÇÕES ACIMA ESTÃO CORRETAS?"
     },
     "invalidLocation": {
-        "resultLocation": "- Sua localização é {{country}}.<br />- As escolas selecionadas são do {{selectedCountry}}. <br />",
+        "resultLocation": "- A sua localização é {{country}}.<br />- As escolas selecionadas são do {{selectedCountry}}. <br />",
         "unableToLocate": "POR FAVOR, SELECIONE UMA ESCOLA CORRETA."
     },
     "schoolDetails": {
         "search": "Procurando por sua escola...",
         "selectAndConfirm": "SELECIONE SUA ESCOLA ABAIXO",
-        "noSchoolList": "MINHA ESCOLA NÃO ESTÁ NA LISTA"
+        "noSchoolList": "A MINHA ESCOLA NÃO ESTÁ NA LISTA"
     },
     "schoolNotFound": {
         "unableToLocate": "NÃO FOI POSSÍVEL LOCALIZAR SUA ESCOLA",
-        "notFound": "Infelizmente, não conseguimos localizar sua escola",
+        "notFound": "Infelizmente, não foi possível localizar a sua escola",
         "notRegister": "Infelizmente, sua escola não está registrada no Project Connect\nPor favor, entre em contato com o administrador da sua escola para registrar sua escola novamente no\nPCDC."
     },
     "schoolSuccess": {
         "congratulations": "PARABÉNS!",
-        "school-registered": "Sua escola foi registrada no <br />Project Connect",
-        "success-txt": "SEU CHECK DIÁRIO DE INTERNET <br />ESTÁ CONFIGURADO",
-        "internet-checks": "Este aplicativo verificará sua <br />situação de internet duas vezes ao dia",
+        "school-registered": "Sua escola foi registada no <br />Project Connect",
+        "success-txt": "O SEU CONTROLO DIÁRIO DE INTERNET <br />ESTÁ CONFIGURADO",
+        "internet-checks": "Este aplicativo verificará a sua <br />situação de internet duas vezes ao dia",
         "app-run": "ESTE APLICATIVO FUNCIONARÁ <br />EM SEGUNDO PLANO",
-        "app-run-desc": "Está tudo bem fechar o aplicativo. <br />Os dados da sua escola serão coletados <br />quando o dispositivo estiver ligado."
+        "app-run-desc": "Pode fechar o aplicativo. <br />Os dados da sua escola serão coletados <br />quando o dispositivo estiver ligado."
     },
     "searchCountry": {
         "check": "Verificando país...",
-        "detected-auto": "Seu país foi detectado automaticamente",
+        "detected-auto": "O seu país foi detetado automaticamente",
         "country": "País",
-        "country-not-accurate": "Parece que o país que você selecionou pode não ser preciso.",
-        "please-double-check": "Por favor, verifique sua seleção.",
+        "country-not-accurate": "Parece que o país que selecionou pode não ser exato.",
+        "please-double-check": "Verifique novamente a sua seleção.",
         "not-available": "Desculpe, o Aplicativo de Verificação Diária do Project Connect não está disponível em {{selectedCountry}}"
     },
     "searchSchool": {
         "search": "Procurando por sua escola...",
         "placeholder-school-id": "Digite o ID da sua escola",
         "provide-school-id": "Para começar, digite e procure o ID da sua escola",
-        "user-has-not-id": "NÃO SEI O ID DA MINHA ESCOLA <span class=\"chevron right\"></span>"
+        "user-has-not-id": "NÃO SEI O MEU NÚMERO DE IDENTIFICAO (ID) DA ESCOLA <span class=\"chevron right\"></span>"
     },
     "faq": {
         "FAQ": "PERGUNTAS FREQUENTES",
-        "what-is-school-id": "O que é um ID de escola?",
-        "what-is-school-id-desc": "Um ID de escola é um identificador único para sua escola fornecido pelo governo. Existem diferentes formatos, mas geralmente se parece com \"BR12345\" ou \"12345678\"",
+        "what-is-school-id": "O que é um ID escolar?",
+        "what-is-school-id-desc": "O ID da escola é um identificador único para a sua escola, fornecido pelo governo. Existem diferentes formatos, mas, geralmente, é parecido com \"BR12345\" ou \"12345678\"",
         "how-find-school-id": "Como encontro o ID da minha escola?",
-        "how-find-school-id-desc": "Seu administrador escolar ou departamento de TI saberá. O ID da escola será o número usado no seu sistema nacional de registro.",
-        "school-id-not-found": "Minha escola ainda não faz parte do Project Connect. O que posso fazer?",
-        "school-id-not-found-desc": "Você pode visitar nosso site e preencher o formulário de contato para indicar que deseja participar de nossa iniciativa.",
+        "how-find-school-id-desc": "O diretor da escola ou o departamento de Tecnologias de Informação saberão. O ID da escola é o número utilizado no sistema nacional de registo.",
+        "school-id-not-found": "A minha escola ainda não faz parte do Project Connect. O que posso fazer?",
+        "school-id-not-found-desc": "Pode visitar o nosso website e preencher o formulário de contacto para nos indicar que gostaria de se juntar à nossa iniciativa.",
         "can-close-app": "Posso fechar o aplicativo?",
-        "can-close-app-desc": "Sim, você pode fechar o aplicativo clicando no botão de fechar no canto superior direito. O aplicativo continuará sendo executado em segundo plano e relatará seu status de conectividade.",
-        "connectivity-checks-occur": "Quando ocorrem as verificações de <br />conectividade da minha escola?",
-        "connectivity-checks-occur-desc": "Há sempre duas verificações por dia que ocorrem aleatoriamente. A velocidade média entre as duas é a velocidade que será relatada como sua velocidade diária.",
+        "can-close-app-desc": "Sim, você pode fechar o aplicativo clicando no botão de fechar no canto superior direito. O aplicativo continuará sendo executado em segundo plano e relatará o seu estado de conectividade.",
+        "connectivity-checks-occur": "Quando é que ocorrem as verificações de <br />conectividade da minha escola?",
+        "connectivity-checks-occur-desc": "Há sempre duas verificações por dia que ocorrem de forma aleatória. A velocidade média entre os dois controlos é a velocidade que será indicada como a sua velocidade diária.",
         "can-change-id": "Posso mudar o ID da minha escola?",
-        "can-change-id-desc": "Atualmente, não é possível alterar o ID da sua escola. Se você cometeu um erro e precisa inserir um novo ID, deve desinstalar o aplicativo e começar de novo.",
+        "can-change-id-desc": "De momento, não é possível alterar o ID da escola. Se cometeu um erro e precisa de introduzir um novo ID, deve desinstalar a aplicação e começar de novo.",
         "multiple-installs": "Posso instalar este aplicativo <br />em mais de um computador?",
-        "multiple-installs-desc": "Sim, você pode. Na verdade, encorajamos isso. Se várias máquinas relatarem dados à plataforma, a medição será mais confiável.",
-        "dissatisfied-speed": "O que posso fazer se estiver insatisfeito<br />com a velocidade ou confiabilidade da minha<br />conexão com a internet?",
-        "dissatisfied-speed-desc": "Você pode visitar nosso site e preencher o formulário para enviar um relatório. Podemos então trabalhar com nossos fornecedores para garantir que eles entreguem a qualidade de serviço prometida."
+        "multiple-installs-desc": "Sim, pode. De facto, encorajamo-lo. Se várias máquinas comunicarem dados à plataforma, a medição será mais fiável.",
+        "dissatisfied-speed": "O que posso fazer se estiver insatisfeito/a<br />com a velocidade ou confiabilidade da minha<br />conexão com a internet?",
+        "dissatisfied-speed-desc": "Pode visitar o nosso website e preencher o formulário para apresentar uma denúncia. Podemos então trabalhar com os nossos fornecedores para garantir que estes prestam o serviço de qualidade que prometeram."
     },
     "app": {
         "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Perguntas frequentes",
         "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>Sobre o Project Connect",
-        "school-id": "SEU ID DA ESCOLA",
-        "my-school-id": "<span class=\"hash\">#</span>Meu ID da Escola",
-        "version": "VERSIÃO {{ app_version }}",
+        "school-id": "ID DA SUA ESCOLA",
+        "my-school-id": "<span class=\"hash\">#</span>ID da Minha Escola",
+        "version": "VERSÃO {{ app_version }}",
         "about-project-connect": "SOBRE O PROJECT CONNECT",
-        "project-connect-desc": "O Project Connect está mapeando a conectividade de cada escola no mundo. Nosso objetivo é conectar todas as escolas à Internet e todos os jovens à informação, oportunidade e escolha.",
-        "thank-you": "Obrigado por contribuir para o Project Connect. Encontre sua escola e saiba mais em nosso site. Adicionamos novas escolas todos os dias!",
+        "project-connect-desc": "O Projeto Connect está a mapear a conectividade de todas as escolas do mundo. O nosso objetivo é ligar todas as escolas à Internet e todos os jovens e crianças à informação, à oportunidade e à escolha.",
+        "thank-you": "Obrigado por contribuir para o Project Connect. Encontre a sua escola e saiba mais no nosso site. Adicionamos novas escolas todos os dias!",
         "view-project-connect": "VER PROJECT CONNECT"
     },
     "startTest": {
@@ -83,7 +83,7 @@
         "testAgain": "INICIAR TESTE",
         "latency": "Latência: {{latency}}",
         "testFailed": "TESTE FALHOU",
-        "testFailedDesc": "A conexão foi interrompida antes que o teste pudesse ser concluído."
+        "testFailedDesc": "A ligação foi interrompida antes de os testes poderem ser concluídos."
     },
     "resultSchool": "RESULTADOS PARA O ID DA ESCOLA",
     "tryAgain": "TENTAR NOVAMENTE",
