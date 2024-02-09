@@ -4,10 +4,12 @@
 
 export const environment = {
   production: false,
- // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
   restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
+  dcaRestAPI:
+    'https://uni-ooi-giga-daily-check-service-api.azurewebsites.net/api/v1/',
   token: '',
-  app_version: '1.0.4'
+  dcaToken: '',
+  app_version: '1.0.4',
 };
 
 /*
