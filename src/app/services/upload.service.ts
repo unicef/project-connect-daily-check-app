@@ -63,7 +63,7 @@ export class UploadService {
       },
       BrowserID: '',
       Timestamp: '',
-      timestampLocal: '',
+      timestamplocal: '',
       DeviceType: '',
       Notes: '',
       school_id: '',
@@ -151,7 +151,7 @@ export class UploadService {
     // Add measure-saver-specific metadata.
     measurement.BrowserID = this.storage.get('schoolUserId');
     measurement.Timestamp = this.ts.toISOString();
-    measurement.timestampLocal = this.ts.toLocaleString();
+    measurement.timestamplocal = this.ts.toLocaleString();
     measurement.DeviceType = this.storage.get('deviceType');
     measurement.Notes = notes;
     measurement.school_id = this.storage.get('schoolId');
