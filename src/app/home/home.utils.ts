@@ -10,16 +10,14 @@ export const removeUnregisterSchool = async (
   settings: SettingsService
 ) => {
   const gigaId = storage.get('gigaId');
-  const response = await schoolService.getById(schoolId).toPromise();
+  const countryCode = storage.get('country_code');
+  const response = await schoolService
+    .getRegisteredSchoolByGigaId(gigaId)
+    .toPromise();
 
-  console.log(response);
-  const schoolResponse = response.filter(
-    (x) => (x as any).giga_id_school === gigaId
-  );
-  console.log({ schoolResponse });
-  if (schoolResponse.length > 0) {
-    settings.setSetting('scheduledTesting', true);
-    storage.set('schoolInfo', JSON.stringify(schoolResponse[0]));
+  console.log({ response });
+
+  if (response.length > 0) {
     return true;
   } else {
     storage.clear();

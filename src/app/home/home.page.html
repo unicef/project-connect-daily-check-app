@@ -1,19 +1,25 @@
-<ion-header no-shadow>
-  <ion-toolbar>
-    <ion-label>PROJECT CONNECT <span class="daily-chk-blk">DAILY CHECK</span></ion-label>
-  </ion-toolbar>
-</ion-header>
-<ion-content no-bounce >
+<app-pcdc-header></app-pcdc-header>
+<ion-content no-bounce>
   <div class="container">
-  <div class="welcomebg1">
-    <div class="top-layout"> 
-      <div class="welcometxt1">Welcome to Project Connect <span class="daily-chk">Daily Check</span></div>
-      <div class="welcometxt2">{{'Help your school get better connectivity. Share your school internet status with Project Connectivity everyday.'| translate}}</div>
-    </div>
-    <div class="bottom-layout">
-      <ion-button color="primary" block [routerLink]="['/searchcountry']" class="dailycheck_btn"><span class="next-txt">{{'NEXT' | translate}} </span></ion-button>
-      <div class="learnmore" (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')">{{'LEARN MORE ABOUT PROJECT CONNECT'| translate}}</div>     
+    <div class="welcomebg1">
+      <div class="top-layout">
+        <div class="welcometxt1" [innerHTML]="'home.title1' | translate"></div>
+        <div class="welcometxt2" [translate]="'home.title2'"></div>
+      </div>
+      <div class="bottom-layout">
+        <ion-button
+          color="primary"
+          block
+          [routerLink]="['/searchcountry']"
+          class="dailycheck_btn"
+          ><span class="next-txt" [translate]="'home.next'"></span
+        ></ion-button>
+        <div
+          class="learnmore"
+          (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')"
+          [translate]="'home.learn-more'"
+        ></div>
+      </div>
     </div>
   </div>
-</div>
 </ion-content>

@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { InvalidLocationPage } from './invalidlocation.page';
 import { SharedModule } from '../shared/shared.module';
 import { InvalidLocationPageRoutingModule } from './invalidlocation-routing.module';
-
+import { PcdcHeaderComponent } from '../pcdc-header/pcdc-header.component';
 
 @NgModule({
   imports: [
@@ -13,8 +13,8 @@ import { InvalidLocationPageRoutingModule } from './invalidlocation-routing.modu
     FormsModule,
     IonicModule,
     InvalidLocationPageRoutingModule,
-    SharedModule
+    SharedModule,
   ],
-  declarations: [InvalidLocationPage]
+  declarations: [InvalidLocationPage, PcdcHeaderComponent],
 })
 export class InvalidLocationPageModule {}

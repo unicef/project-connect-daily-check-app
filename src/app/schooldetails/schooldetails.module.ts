@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { SchooldetailsPage } from './schooldetails.page';
 import { SharedModule } from '../shared/shared.module';
 import { SchooldetailsPageRoutingModule } from './schooldetails-routing.module';
-
+import { PcdcHeaderComponent } from '../pcdc-header/pcdc-header.component';
 
 @NgModule({
   imports: [
@@ -13,8 +13,8 @@ import { SchooldetailsPageRoutingModule } from './schooldetails-routing.module';
     FormsModule,
     IonicModule,
     SchooldetailsPageRoutingModule,
-    SharedModule
+    SharedModule,
   ],
-  declarations: [SchooldetailsPage]
+  declarations: [SchooldetailsPage, PcdcHeaderComponent],
 })
 export class SchooldetailsPageModule {}

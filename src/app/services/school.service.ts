@@ -79,6 +79,24 @@ export class SchoolService {
   }
 
   /**
+   * Returns a School registered array
+   *
+   * @param id School Id
+   */
+  getRegisteredSchoolByGigaId(gigaId: string): Observable<any> {
+    return this.http
+      .get(
+        environment.restAPI + 'dailycheckapp_schools/' + gigaId,
+        this.options
+      )
+      .pipe(
+        map((response: any) => response.data),
+        tap((data) => console.log(JSON.stringify(data))),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
    * Return unique user id for perticular device
    *
    * @param data Object with these parameters {

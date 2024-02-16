@@ -1,28 +1,48 @@
-<ion-header no-shadow>
-  <ion-toolbar>
-    <ion-label [routerLink]="['/home']">PROJECT CONNECT <span class="daily-chk">DAILY CHECK</span></ion-label>
-  </ion-toolbar>
-</ion-header>
+<app-pcdc-header></app-pcdc-header>
 <ion-content>
-  <div class="container">    
-    <div class="top-layout">      
-      <div class="label-txt"><span class="result-txt">RESULTS FOR SCHOOL ID</span><br><span class="schoolID-txt">{{schoolId | uppercase}}</span></div>        
+  <div class="container">
+    <div class="top-layout">
+      <div class="label-txt">
+        <span class="result-txt" [translate]="'resultSchool'"></span><br /><span
+          class="schoolID-txt"
+          >{{schoolId | uppercase}}</span
+        >
+      </div>
       <div class="h-line"></div>
-      <div class="selectandconfirm">SELECT YOUR SCHOOL BELOW</div>     
-        <div class="ionListContainer"> 
-          <div class="ionList">      
-            <div *ngFor="let schoolInfo of schools" class="schoolList" (click)="confirmSchool(schoolInfo)">
-              <ion-label>
-                <span class="schoolName">{{schoolInfo.name}}</span><br>
-                <span class="streetName" *ngIf="schoolInfo.address">{{schoolInfo.address}}</span><br>
-                <span class="schoolAddress">{{schoolInfo.admin_2_name?schoolInfo.admin_2_name+',':''}} {{schoolInfo.admin_1_name?schoolInfo.admin_1_name+',':''}} {{schoolInfo.postal_code?schoolInfo.postal_code+',':''}} {{schoolInfo.country}}</span>
-              </ion-label>
-            </div>       
+      <div
+        class="selectandconfirm"
+        [translate]="'schoolDetails.selectAndConfirm'"
+      ></div>
+
+      <div class="ionListContainer">
+        <div class="ionList">
+          <div
+            *ngFor="let schoolInfo of schools"
+            class="schoolList"
+            (click)="confirmSchool(schoolInfo)"
+          >
+            <ion-label>
+              <span class="schoolName">{{schoolInfo.name}}</span><br />
+              <span class="streetName" *ngIf="schoolInfo.address"
+                >{{schoolInfo.address}}</span
+              ><br />
+              <span class="schoolAddress"
+                >{{schoolInfo.admin_2_name?schoolInfo.admin_2_name+',':''}}
+                {{schoolInfo.admin_1_name?schoolInfo.admin_1_name+',':''}}
+                {{schoolInfo.postal_code?schoolInfo.postal_code+',':''}}
+                {{schoolInfo.country}}</span
+              >
+            </ion-label>
           </div>
         </div>
+      </div>
     </div>
     <div class="bottom-layout">
-      <div class="noSchoolList-txt" (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')">MY SCHOOL IS NOT ON THE LIST</div>     
+      <div
+        class="noSchoolList-txt"
+        (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')"
+        [translate]="'schoolDetails.noSchoolList'"
+      ></div>
     </div>
   </div>
 </ion-content>
