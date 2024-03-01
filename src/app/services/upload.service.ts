@@ -130,7 +130,7 @@ export class UploadService {
     if (!this.settingService.currentSettings.uploadEnabled) {
       return;
     }
-    let uploadURL = environment.restAPI + 'measurements';
+    let uploadURL = environment.dcaRestAPI + 'measurements';
     const apiKey = this.settingService.get('uploadAPIKey');
     // const browserID = this.settingService.get("browserID");
     // const deviceType = this.settingService.get("deviceType");

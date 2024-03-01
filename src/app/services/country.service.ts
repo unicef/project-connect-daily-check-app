@@ -23,7 +23,7 @@ export class CountryService {
   * @returns Country
   */
   getAll(): Observable<Country[]> {
-    return this.http.get(environment.restAPI + 'countries', this.options).pipe(
+    return this.http.get(environment.dcaRestAPI + 'countries', this.options).pipe(
       map((response:any) => response.data),
       tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)
@@ -37,7 +37,7 @@ export class CountryService {
   * @returns Country
   */
   getById(id:number): Observable<Country[]> {
-    return this.http.get(environment.restAPI + 'countries/'+id, this.options).pipe(
+    return this.http.get(environment.dcaRestAPI + 'countries/'+id, this.options).pipe(
       map((response:any) => response.data),
       tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)
@@ -51,7 +51,7 @@ export class CountryService {
   * @returns PcdcCountry
   */
   getPcdcCountryByCode(code:string): Observable<PcdcCountry[]> {
-    return this.http.get(environment.restAPI + 'dailycheckapp_countries/'+code, this.options).pipe(
+    return this.http.get(environment.dcaRestAPI + 'dailycheckapp_countries/'+code, this.options).pipe(
       map((response:any) => response.data),
       tap(data => console.log(JSON.stringify(data))),
       catchError(this.handleError)

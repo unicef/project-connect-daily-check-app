@@ -110,7 +110,11 @@ export class SchoolService {
    */
   registerSchoolDevice(data): Observable<{}> {
     return this.http
-      .post(environment.restAPI + 'dailycheckapp_schools', data, this.options)
+      .post(
+        environment.dcaRestAPI + 'dailycheckapp_schools',
+        data,
+        this.options
+      )
       .pipe(
         map((response: any) => response.data.user_id),
         tap((data) => console.log(JSON.stringify(data))),
@@ -187,7 +191,7 @@ export class SchoolService {
     console.log('flagged pass: ', data);
     return this.http
       .post(
-        environment.restAPI + 'flagged_dailycheckapp_schools',
+        environment.dcaRestAPI + 'flagged_dailycheckapp_schools',
         data,
         this.options
       )
