@@ -1,7 +1,7 @@
 import type { CapacitorElectronConfig } from '@capacitor-community/electron';
 import { getCapacitorElectronConfig, setupElectronDeepLinking } from '@capacitor-community/electron';
 import type { MenuItemConstructorOptions } from 'electron';
-import { app, MenuItem, ipcMain, dialog } from 'electron';
+import { app, MenuItem, ipcMain, dialog, BrowserWindow } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
@@ -23,6 +23,7 @@ unhandled({
 });
 
 Sentry.init({ dsn: "https://9a70105db9fb49e3ab0a9bdbd585ce8a@o4504957350445056.ingest.sentry.io/4504957357981696" });
+
 
 //New ICTD Sentry
 //Sentry.init({dsn: 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47'});
@@ -91,7 +92,11 @@ if (!gotTheLock) {
   });
   // Wait for electron app to be ready.
   app.whenReady().then(async () => {
-    mainWindow = await myCapacitorApp.init();
+    const mainWindow2 = await myCapacitorApp.init();
+    mainWindow = undefined;
+    mainWindow2.webContents.openDevTools()
+    mainWindow2
+    
   })
   /*
       app.on('ready', () => {
@@ -215,7 +220,6 @@ app.on('window-all-closed', function () {
     app.quit();
   }
 });
-
 // When the dock icon is clicked.
 app.on('activate', async function () {
   // On OS X it's common to re-create a window in the app when the

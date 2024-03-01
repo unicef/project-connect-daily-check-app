@@ -109,13 +109,15 @@ export class ElectronCapacitorApp {
     return this.customScheme;
   }
 
-  async init(): Promise<void> {
+  async init(): Promise<BrowserWindow> {
     const icon = nativeImage.createFromPath(
       join(app.getAppPath(), 'assets', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.png')
     );
     this.mainWindowState = windowStateKeeper({
-      defaultWidth: 376,
-      defaultHeight: 550,
+      // defaultWidth: 376,
+      // defaultHeight: 550,
+      defaultHeight: 800,
+      defaultWidth: 1200,
     });
     // Setup preload script path and construct our main window.
     const preloadPath = join(app.getAppPath(), 'build', 'src', 'preload.js');
@@ -277,7 +279,7 @@ export class ElectronCapacitorApp {
         console.log(err)
     });
     // End of Auto lunching code
-
+    return this.MainWindow;
   }
 
 }
