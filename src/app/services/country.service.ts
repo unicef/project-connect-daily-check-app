@@ -2,26 +2,26 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import { catchError, map, tap } from 'rxjs/operators';
-import { Observable, throwError  } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
 import { PcdcCountry, Country } from '../models/models';
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class CountryService {
   options: any;
-  constructor(private http: HttpClient) { 
+  constructor(private http: HttpClient) {
     this.options = {
       Observe: 'response',
       headers: new HttpHeaders({
-        'Content-type': 'application/json'
-      })
+        'Content-type': 'application/json',
+      }),
     };
   }
 
   /**
-  * Returns all countries present in the database. 
-  * @returns Country
-  */
+   * Returns all countries present in the database.
+   * @returns Country
+   */
   getAll(): Observable<Country[]> {
     return this.http.get(environment.dcaRestAPI + 'countries', this.options).pipe(
       map((response:any) => response.data),
@@ -57,14 +57,13 @@ export class CountryService {
       catchError(this.handleError)
     );
   }
-  
+
   /**
    * Private function to handle error
-   * @param error 
+   * @param error
    * @returns Error
    */
   private handleError(error: Response) {
     return throwError(error);
   }
-
 }
