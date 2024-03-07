@@ -91,7 +91,11 @@ if (!gotTheLock) {
   });
   // Wait for electron app to be ready.
   app.whenReady().then(async () => {
-    mainWindow = await myCapacitorApp.init();
+    const mainWindow2 = await myCapacitorApp.init();
+    mainWindow = undefined;
+    if (electronIsDev) {
+      mainWindow2.webContents.openDevTools()
+    }
   })
   /*
       app.on('ready', () => {
@@ -131,9 +135,9 @@ if (!gotTheLock) {
     if (!isDownloaded) {
       isDownloaded = true;
       try {
-       // autoUpdater.quitAndInstall(true, true)
+        // autoUpdater.quitAndInstall(true, true)
 
-       //for auto update comment the below codes, and uncomment the above line of code
+        //for auto update comment the below codes, and uncomment the above line of code
 
 
         const dialogOpts = {
@@ -148,7 +152,7 @@ if (!gotTheLock) {
         })
 
 
-       //throw new Error("opps there is unexpected error")
+        //throw new Error("opps there is unexpected error")
       } catch (error) {
         console.error('Error during update installation:', error);
         const dialogOpts = {
@@ -168,24 +172,24 @@ if (!gotTheLock) {
 
 
   });
-/*
-  autoUpdater.on('error', (error) => {
-    console.error('Update Error:', error);
+  /*
+    autoUpdater.on('error', (error) => {
+      console.error('Update Error:', error);
+    
+      const dialogOpts = {
+        type: 'info',
+        buttons: ['Restart / Reinicie / Перезапустить', 'Later / Después / Позже'],
+        title: 'PCDC Update',
+       
+        message:  `A new version of PCDC has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de PCDC ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nБыла загружена новая версия PCDC. Перезапустите приложение, чтобы применить обновления.`
+      };
+      dialog.showMessageBox(dialogOpts).then((returnValue) => {
+        if (returnValue.response === 0) autoUpdater.quitAndInstall(false, true)
+      })
   
-    const dialogOpts = {
-      type: 'info',
-      buttons: ['Restart / Reinicie / Перезапустить', 'Later / Después / Позже'],
-      title: 'PCDC Update',
-     
-      message:  `A new version of PCDC has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de PCDC ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nБыла загружена новая версия PCDC. Перезапустите приложение, чтобы применить обновления.`
-    };
-    dialog.showMessageBox(dialogOpts).then((returnValue) => {
-      if (returnValue.response === 0) autoUpdater.quitAndInstall(false, true)
-    })
-
-  });
-
-*/
+    });
+  
+  */
 
 
 
