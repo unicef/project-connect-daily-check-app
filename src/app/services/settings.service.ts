@@ -136,4 +136,14 @@ export class SettingsService {
   getShell() {
     return (window as any).shell;
   }
+  updateLocalStorage() {
+    // add some kind of identification to settings and local storage changes
+    // add feedback when settings are updated
+    const schoolUserId = this.storageService.get('schoolUserId');
+    // axios get storageUpdate endpoint/schoolUserId
+    const response = {}
+    for (const key in response) {
+      this.storageService.set(key, response[key]);
+    }
+  }
 }
