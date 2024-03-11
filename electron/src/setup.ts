@@ -115,16 +115,11 @@ export class ElectronCapacitorApp {
     const icon = nativeImage.createFromPath(
       join(app.getAppPath(), 'assets', process.platform === 'win32' ? 'appIcon.ico' : 'appIcon.png')
     );
-    if (electronIsDev)
-      this.mainWindowState = windowStateKeeper({
-        defaultWidth: 1200,
-        defaultHeight: 800,
-      });
-    else
-      this.mainWindowState = windowStateKeeper({
-        defaultWidth: 376,
-        defaultHeight: 550,
-      });
+    this.mainWindowState = windowStateKeeper({
+      defaultWidth: 376,
+      defaultHeight: 550,
+    });
+
 
     // Setup preload script path and construct our main window.
     const preloadPath = join(app.getAppPath(), 'build', 'src', 'preload.js');

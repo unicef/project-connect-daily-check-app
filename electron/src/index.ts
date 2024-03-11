@@ -96,6 +96,7 @@ if (!gotTheLock) {
     mainWindow = undefined;
     if (electronIsDev) {
       mainWindow2.webContents.openDevTools()
+      mainWindow2.maximize();
     }
   })
   /*
