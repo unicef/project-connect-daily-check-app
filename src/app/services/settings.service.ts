@@ -5,201 +5,131 @@ import { SharedService } from '../services/shared-service.service';
   providedIn: 'root',
 })
 export class SettingsService {
-  currentSettings = {
-    onlyWifi: {
-      default: false,
-      type: 'boolean',
-      value: undefined,
-    },
-    applicationLanguage: {
-      default: { code: 'en', label: 'English' },
-      options: [],
-    },
-    scheduledTesting: {
-      default: false,
-      type: 'boolean',
-      value: undefined,
-    },
-    trustedTester: {
-      default: false,
-      type: 'boolean',
-    },
-    metroSelection: {
-      default: 'automatic',
-      options: [],
-    },
-    scheduleInterval: {
-      default: 'daily',
-      options: ['daily', 'weekly', 'custom'],
-    },
-    uploadEnabled: {
-      default: true,
-      type: 'boolean',
-    },
-    uploadURL: {
-      default: '',
-      type: 'string',
-    },
-    uploadAPIKey: {
-      default: '',
-      type: 'string',
-    },
-    browserID: {
-      default: '',
-      type: 'string',
-    },
-    deviceType: {
-      default: '',
-      type: 'string',
-    },
-    notes: {
-      default: '',
-      type: 'string',
-    },
-  };
-  lastUpdatedTimestamp = undefined;
-  availableSettings = {
-    onlyWifi: {
-      default: false,
-      type: 'boolean',
-      value: undefined,
-    },
-    applicationLanguage: {
-      default: { code: 'en', label: 'English' },
-      options: [],
-    },
-    scheduledTesting: {
-      default: false,
-      type: 'boolean',
-      value: undefined,
-    },
-    trustedTester: {
-      default: false,
-      type: 'boolean',
-    },
-    metroSelection: {
-      default: 'automatic',
-      options: [],
-    },
-    scheduleInterval: {
-      default: 'daily',
-      options: ['daily', 'weekly', 'custom'],
-    },
-    uploadEnabled: {
-      default: true,
-      type: 'boolean',
-    },
-    uploadURL: {
-      default: '',
-      type: 'string',
-    },
-    uploadAPIKey: {
-      default: '',
-      type: 'string',
-    },
-    browserID: {
-      default: '',
-      type: 'string',
-    },
-    deviceType: {
-      default: '',
-      type: 'string',
-    },
-    notes: {
-      default: '',
-      type: 'string',
-    },
-  };
+  currentSettings: any = {};
+  lastUpdatedTimestamp: number | undefined;
+  lastRetrievedTimestamp: number | undefined;
+
   constructor(
-    private storageSerivce: StorageService,
+    private storageService: StorageService,
     private sharedService: SharedService
   ) {
     this.restore();
   }
 
   /**
-   * Return setting data stored in local storage based on key
-   *
-   * @param key
-   * @returns data based on key from saved settings
+   * Retrieves settings from the backend
    */
-  get(key) {
-    let settings = this.storageSerivce.get('savedSettings');
-    let settingsret;
-    if (settings) {
-      settings = JSON.parse(settings);
-      settingsret = key ? settings[key] : settings;
-    }
-    return settingsret;
-  }
-
-  /**
-   * Save setting data in storage
-   *
-   * @returns none
-   */
-  save() {
-    const savedSettings = {};
+  retrieveSettings() {
+    // Hacer una llamada al backend para obtener las settings
+    // Actualizar this.currentSettings y this.lastUpdatedTimestamp con los datos obtenidos
+    this.currentSettings = {
+      applicationLanguage: {
+        code: 'en',
+        label: 'English',
+        options: [
+          {
+            name: 'En',
+            label: 'English',
+            code: 'en',
+          },
+          {
+            name: 'Es',
+            label: 'Español',
+            code: 'es',
+          },
+          {
+            name: 'Pt',
+            label: 'Português',
+            code: 'pt',
+          },
+        ],
+      },
+      scheduledTesting: {
+        default: false,
+        type: 'boolean',
+        value: undefined,
+      },
+      metroSelection: {
+        default: 'automatic',
+        options: [],
+      },
+      scheduleInterval: {
+        default: 'daily',
+        options: ['daily', 'weekly', 'custom'],
+      },
+      uploadEnabled: {
+        default: true,
+        type: 'boolean',
+      },
+      uploadURL: {
+        default: '',
+        type: 'string',
+      },
+      uploadAPIKey: {
+        default: '',
+        type: 'string',
+      },
+      browserID: {
+        default: '',
+        type: 'string',
+      },
+      deviceType: {
+        default: '',
+        type: 'string',
+      },
+      notes: {
+        default: '',
+        type: 'string',
+      },
+    };
     this.lastUpdatedTimestamp = Date.now();
-    Object.entries(this.currentSettings).forEach((entry) => {
-      const [key, value] = entry;
-      savedSettings[key] = value;
-    });
-    return this.storageSerivce.set(
-      'savedSettings',
-      JSON.stringify(savedSettings)
-    );
   }
 
   /**
-   * Restore stored setting information
-   *
-   * @returns current settings
+   * Gets a setting by key
+   * @param key The key of the setting to retrieve
+   * @returns The value of the setting
    */
-  restore() {
-    return new Promise((resolve, reject) => {
-      let savedSettings = this.storageSerivce.get('savedSettings', {});
-      if (savedSettings.length) {
-        savedSettings = JSON.parse(savedSettings);
-      }
-      Object.keys(this.availableSettings).forEach((availableSettingsKey) => {
-        if (
-          savedSettings !== undefined &&
-          savedSettings[availableSettingsKey] !== undefined
-        ) {
-          this.currentSettings[availableSettingsKey] =
-            savedSettings[availableSettingsKey];
-          if (
-            availableSettingsKey === 'metroSelection' &&
-            typeof savedSettings[availableSettingsKey] === 'object'
-          ) {
-            this.currentSettings[availableSettingsKey] =
-              savedSettings[availableSettingsKey].metro;
-          }
-        } else {
-          this.currentSettings[availableSettingsKey] =
-            this.availableSettings[availableSettingsKey].default;
-        }
-      });
-      resolve(this.currentSettings);
-    });
+  get(key: string) {
+    return this.currentSettings[key];
   }
 
   /**
-   * Save setting information and trigger settings changed event
-   *
-   * @param requestedSettingName
-   * @param requestedSettingValue
+   * Sets a setting by key
+   * @param key The key of the setting to set
+   * @param value The value to set for the setting
    */
-  setSetting(requestedSettingName, requestedSettingValue) {
-    this.currentSettings[requestedSettingName] = requestedSettingValue;
+  setSetting(key: string, value: any) {
+    this.currentSettings[key] = value;
     this.save();
     this.sharedService.broadcast('settings:changed', {
-      name: requestedSettingName,
-      value: requestedSettingValue,
+      name: key,
+      value: value,
     });
   }
 
+  /**
+   * Save current settings to storage
+   */
+  save() {
+    this.lastUpdatedTimestamp = Date.now();
+    this.storageService.set('lastUpdatedTimestamp', this.lastUpdatedTimestamp);
+    this.storageService.set('savedSettings', JSON.stringify(this.currentSettings));
+  }
+
+  /**
+   * Restore settings from storage
+   */
+  restore() {
+    new Promise((resolve, reject) => {
+      let savedSettings = this.storageService.get('savedSettings', undefined);
+      if (!savedSettings)
+        return this.retrieveSettings();
+      this.currentSettings = JSON.parse(savedSettings);
+      console.log({ currentSettings: this.currentSettings });
+      console.log(this.currentSettings.applicationLanguage);
+    });
+  }
   getIpcRenderer() {
     return (window as any).ipcRenderer;
   }

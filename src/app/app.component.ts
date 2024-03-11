@@ -56,7 +56,7 @@ export class AppComponent {
       'scheduleInterval',
       this.settingsService.currentSettings.scheduleInterval
     );
-    this.availableSettings = this.settingsService.availableSettings;
+    this.availableSettings = this.settingsService.currentSettings;
     if (this.settingsService.currentSettings.scheduledTesting) {
       this.refreshSchedule();
     }
