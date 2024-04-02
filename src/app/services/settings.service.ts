@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
 import { SharedService } from '../services/shared-service.service';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { environment } from 'src/environments/environment';
+import { map, tap } from 'rxjs/operators';
 @Injectable({
   providedIn: 'root',
 })
@@ -112,7 +115,8 @@ export class SettingsService {
   };
   constructor(
     private storageSerivce: StorageService,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private http: HttpClient
   ) {
     this.restore();
   }
@@ -205,5 +209,27 @@ export class SettingsService {
   }
   getShell() {
     return (window as any).shell;
+  }
+
+  async checkForUpdate() {
+    console.log('Checking for update', { userId: this.storageSerivce.get('schoolUserId') });
+    if (!this.storageSerivce.get('schoolUserId')) return { url: "", status: false };
+
+    const needUpdate = await this.http.get(environment.dcaRestAPI + 'dailycheckapp_schools/checkNotify',
+      {
+        observe: 'response',
+        headers: new HttpHeaders({
+          'Content-type': 'application/json',
+        }),
+        params: {
+          user_id: this.storageSerivce.get('schoolUserId')
+        }
+      }
+    ).pipe(map((response: any) => response.body)).toPromise();
+    return { url: needUpdate.download_url, status: true };
+    if (needUpdate.data.notify === 'true')
+      return { url: needUpdate.download_url, status: true };
+
+    return { url: "", status: false }
   }
 }

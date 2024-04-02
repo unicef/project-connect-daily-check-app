@@ -1,101 +1,120 @@
 @import '../theme/variables.scss';
-.ionMenubg{
+
+.ionMenubg {
     // background-color: #1E2B46 !important;
     background-color: rgba(30, 43, 70, 0.5) !important;
     border-radius: 10px;
-    height:93%;
+    height: 93%;
 }
-.headerbar{
+
+.headerbar {
     height: 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     background-color: #1E2B46;
-    padding-top: 15px;  
-    padding-bottom: 10px;  
-    .closeIcon{
-       font-size: 24px;
+    padding-top: 15px;
+    padding-bottom: 10px;
+
+    .closeIcon {
+        font-size: 24px;
         margin-right: 20px;
         color: $light-text1;
     }
-    .closeIcon:hover{
+
+    .closeIcon:hover {
         background-color: #42516E;
         border-radius: 50%;
         width: 29px;
         height: 29px;
     }
-    .backIcon{
+
+    .backIcon {
         font-size: 24px;
         margin-left: 20px;
         color: $light-text1;
     }
-    .backIcon:hover{
-        background-color:#42516E;
+
+    .backIcon:hover {
+        background-color: #42516E;
         border-radius: 50%;
         width: 28px;
         height: 28px;
     }
 }
-.freq-ques-txt{
+
+.freq-ques-txt {
     text-align: left;
     color: #2779FF;
     padding: 10px 25px;
     font-size: 13px;
     background: #1E2B46;
 }
-.menuContent{
-    #background-content{
+
+.menuContent {
+    #background-content {
         --ion-background-color: #1E2B46 !important;
         border-radius: 0px 0px 0px 10px !important;
     }
 }
-ion-content{
-    --ion-background-color: #1E2B46 !important;    
-    ion-list{
-        ion-item{      
+
+ion-content {
+    --ion-background-color: #1E2B46 !important;
+
+    ion-list {
+        ion-item {
             padding-right: 20px;
             cursor: pointer;
-            .item-inner{                
+
+            .item-inner {
                 padding-right: 0px !important;
             }
-            ion-label{
+
+            ion-label {
                 color: $light-text2;
                 font-size: 13px;
                 display: flex;
                 align-items: center;
-                .hash{
+
+                .hash {
                     font-size: 18px;
-                    color:#505868;
+                    color: #505868;
                     padding-right: 5px;
                 }
             }
-            ion-icon{
-                color:#505868;
+
+            ion-icon {
+                color: #505868;
                 padding-right: 5px;
             }
-            ion-icon[name="chevron-forward-outline"]{
+
+            ion-icon[name="chevron-forward-outline"] {
                 padding-right: 5px;
                 font-size: 15px;
-                color:#505868;
+                color: #505868;
                 position: absolute;
-                right:0;
+                right: 0;
             }
         }
     }
-    ion-accordion-group{
-        margin-left:25px;
-        margin-right:15px;
-        ion-accordion{
-            --ion-background-color:#1E2B46;
+
+    ion-accordion-group {
+        margin-left: 25px;
+        margin-right: 15px;
+
+        ion-accordion {
+            --ion-background-color: #1E2B46;
             padding: 0px;
             border-bottom: 1px solid #353E52;
-            ion-label{
+
+            ion-label {
                 font-size: 13px;
                 color: $light-text2;
                 font-weight: 400px;
             }
-            ion-list{
-                ion-label{
+
+            ion-list {
+                ion-label {
                     font-size: 11px;
                     color: $light-text2;
                     font-weight: 400px;
@@ -105,56 +124,87 @@ ion-content{
         }
     }
 }
-.aboutprojConn{
-    width:252px;
+
+.aboutprojConn {
+    width: 252px;
 }
-.view-proj-btn{
+
+.view-proj-btn {
     width: 252px;
     margin: 20px 15px;
 }
-.abt-prj-con-txt{
-    padding:10px 15px 0px 15px !important;
+
+.abt-prj-con-txt {
+    padding: 10px 15px 0px 15px !important;
 }
-.about-proj-con-sec{    
-        padding: 0px 10px;
-        div{
-            padding: 10px 15px;
-            line-height: 14px !important;
-        ion-label{           
+
+.about-proj-con-sec {
+    padding: 0px 10px;
+
+    div {
+        padding: 10px 15px;
+        line-height: 14px !important;
+
+        ion-label {
             font-size: 13px;
             color: $light-text2;
-            font-weight: 400px;            
+            font-weight: 400px;
         }
-        .thank-txt{
+
+        .thank-txt {
             font-size: 11px !important;
             color: $light-text2;
             font-weight: 400px;
             line-height: 14px !important;
         }
-    }    
+    }
 }
-.your-school-id-sec{
-    padding: 10px 25px;          
-        .your-school-id{
-            padding: 0px 0px !important;
-        }
-        .schoolid{
-            font-size: 18px;
-            color: $light-text2;
-            font-weight: 400px;
-            padding-top: 20px;
-        }
-        .schoolname-txt{
-            font-size: 18px;
-            color: $light-text2;
-            font-weight: 400px;
-            padding-top: 10px;
-        }
-        .address-txt{
-            font-size: 13px;
-            color: $light-text2;
-            font-weight: 400px;
-            padding-top: 10px;
-        }
-    
+
+.your-school-id-sec {
+    padding: 10px 25px;
+
+    .your-school-id {
+        padding: 0px 0px !important;
+    }
+
+    .schoolid {
+        font-size: 18px;
+        color: $light-text2;
+        font-weight: 400px;
+        padding-top: 20px;
+    }
+
+    .schoolname-txt {
+        font-size: 18px;
+        color: $light-text2;
+        font-weight: 400px;
+        padding-top: 10px;
+    }
+
+    .address-txt {
+        font-size: 13px;
+        color: $light-text2;
+        font-weight: 400px;
+        padding-top: 10px;
+    }
+
+}
+
+ion-modal#update-dialog {
+    --width: fit-content;
+    --min-width: 250px;
+    --height: fit-content;
+    --border-radius: 6px;
+    --box-shadow: 0 28px 48px rgba(0, 0, 0, 0.4);
+}
+
+
+.dialog-title h1 {
+    margin: 20px 20px 10px 20px;
+}
+
+.wrapper {
+    margin: 30px;
+    justify-content: center;
+
 }

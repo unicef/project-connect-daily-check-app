@@ -85,6 +85,11 @@
         "testFailed": "TESTE FALHOU",
         "testFailedDesc": "A ligação foi interrompida antes de os testes poderem ser concluídos."
     },
+    "pcdcUpdateModal": {
+        "title": "Nova versão disponível",
+        "content": "Por favor, atualize o aplicativo",
+        "updateUrl": "Baixar Aqui"
+    },
     "resultSchool": "RESULTADOS PARA O ID DA ESCOLA",
     "tryAgain": "TENTAR NOVAMENTE",
     "yes": "Sim",

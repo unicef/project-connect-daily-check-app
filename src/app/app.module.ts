@@ -20,10 +20,10 @@ export function tokenGetter() {
   declarations: [AppComponent],
   entryComponents: [],
   imports: [
-    BrowserModule, 
-    IonicModule.forRoot(), 
-    SharedModule, 
-    AppRoutingModule, 
+    BrowserModule,
+    IonicModule.forRoot(),
+    SharedModule,
+    AppRoutingModule,
     HttpClientModule
   ],
   providers: [
@@ -35,4 +35,4 @@ export function tokenGetter() {
     { provide: RouteReuseStrategy, useClass: IonicRouteStrategy }],
   bootstrap: [AppComponent],
 })
-export class AppModule {}
+export class AppModule { }

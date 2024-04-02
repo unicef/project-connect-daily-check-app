@@ -85,6 +85,11 @@
         "testFailed": "TEST FAILED",
         "testFailedDesc": "The connection was interupted before testing could be completed."
     },
+    "pcdcUpdateModal": {
+        "title": "New version available",
+        "content": "Please update the app to continue using it.",
+        "updateUrl": "DOWNLOAD here"
+    },
     "resultSchool": "RESULTS FOR SCHOOL ID",
     "tryAgain": "TRY AGAIN",
     "yes": "Yes",

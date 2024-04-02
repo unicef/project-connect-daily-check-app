@@ -21,6 +21,8 @@ export class AppComponent {
   scheduleSemaphore: any;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   app_version: any;
+  needUpdate = false;
+  updateUrl = '';
   constructor(
     private menu: MenuController,
     private storage: StorageService,
@@ -72,8 +74,13 @@ export class AppComponent {
         this.scheduleService.initiate();
       }, 60000);
     }
+    this.needUpdateApp();
   }
-
+  async needUpdateApp() {
+    const update = await this.settingsService.checkForUpdate();
+    this.needUpdate = update.status;
+    this.updateUrl = update.url;
+  }
   openSecond() {
     if (this.storage.get('schoolId')) {
       this.school = JSON.parse(this.storage.get('schoolInfo'));

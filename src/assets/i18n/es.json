@@ -85,6 +85,11 @@
         "testFailed": "PRUEBA FALLIDA",
         "testFailedDesc": "La conexión se interrumpió antes de que la prueba pudiera completarse."
     },
+    "pcdcUpdateModal": {
+        "title": "Nueva versión disponible",
+        "content": "Por favor, actualiza la app",
+        "updateUrl": "Descargar Aqui"
+    },
     "resultSchool": "RESULTADOS PARA EL ID DE LA ESCUELA",
     "tryAgain": "INTENTAR DE NUEVO",
     "yes": "Sí",

@@ -1,64 +1,31 @@
 <ion-app>
   <ion-menu side="end" menuId="fourth" contentId="content" class="ionMenubg">
     <div class="headerbar">
-      <ion-icon
-        name="arrow-back-outline"
-        class="backIcon"
-        (click)="backMenu()"
-      ></ion-icon>
-      <ion-icon
-        name="close-outline"
-        class="closeIcon"
-        (click)="closeMenu()"
-      ></ion-icon>
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
     </div>
     <ion-content class="menuContent">
       <div class="about-proj-con-sec">
-        <div
-          class="freq-ques-txt abt-prj-con-txt"
-          [translate]="'app.about-project-connect'"
-        ></div>
+        <div class="freq-ques-txt abt-prj-con-txt" [translate]="'app.about-project-connect'"></div>
         <div>
-          <ion-img
-            src="assets/images/project-connect.jpg"
-            class="aboutprojConn"
-          ></ion-img>
+          <ion-img src="assets/images/project-connect.jpg" class="aboutprojConn"></ion-img>
         </div>
         <div>
-          <ion-label
-            text-wrap
-            [translate]="'app.project-connect-desc'"
-          ></ion-label>
+          <ion-label text-wrap [translate]="'app.project-connect-desc'"></ion-label>
         </div>
         <div>
-          <ion-label
-            text-wrap
-            class="thank-txt"
-            [translate]="'app.thank-you'"
-          ></ion-label>
+          <ion-label text-wrap class="thank-txt" [translate]="'app.thank-you'"></ion-label>
         </div>
-        <ion-button
-          class="view-proj-btn"
-          (click)="
+        <ion-button class="view-proj-btn" (click)="
             openExternalUrl('https://projectconnect.unicef.org/daily-check-app')
-          "
-          [translate]="'app.view-project-connect'"
-        ></ion-button>
+          " [translate]="'app.view-project-connect'"></ion-button>
       </div>
     </ion-content>
   </ion-menu>
   <ion-menu side="end" menuId="third" contentId="content" class="ionMenubg">
     <div class="headerbar">
-      <ion-icon
-        name="arrow-back-outline"
-        class="backIcon"
-        (click)="backMenu()"
-      ></ion-icon>
-      <ion-icon
-        name="close-outline"
-        class="closeIcon"
-        (click)="closeMenu()"
-      ></ion-icon>
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
     </div>
     <div class="freq-ques-txt" [translate]="'faq.FAQ'"></div>
     <ion-content class="menuContent">
@@ -70,9 +37,7 @@
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  [translate]="'faq.what-is-school-id-desc'"
-                ></ion-label>
+                <ion-label [translate]="'faq.what-is-school-id-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
@@ -82,9 +47,7 @@
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  [translate]="'faq.how-find-school-id-desc'"
-                ></ion-label>
+                <ion-label [translate]="'faq.how-find-school-id-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
@@ -94,25 +57,17 @@
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  text-wrap
-                  [translate]="'faq.can-close-app-desc'"
-                ></ion-label>
+                <ion-label text-wrap [translate]="'faq.can-close-app-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
           <ion-accordion>
             <ion-item slot="header">
-              <ion-label
-                [innerHTML]="'faq.connectivity-checks-occur' | translate"
-              ></ion-label>
+              <ion-label [innerHTML]="'faq.connectivity-checks-occur' | translate"></ion-label>
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  text-wrap
-                  [translate]="'faq.connectivity-checks-occur-desc'"
-                ></ion-label>
+                <ion-label text-wrap [translate]="'faq.connectivity-checks-occur-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
@@ -128,29 +83,21 @@
           </ion-accordion>
           <ion-accordion>
             <ion-item slot="header">
-              <ion-label
-                [innerHTML]="'faq.multiple-installs' | translate"
-              ></ion-label>
+              <ion-label [innerHTML]="'faq.multiple-installs' | translate"></ion-label>
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  [translate]="'faq.multiple-installs-desc'"
-                ></ion-label>
+                <ion-label [translate]="'faq.multiple-installs-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
           <ion-accordion>
             <ion-item slot="header">
-              <ion-label
-                [innerHTML]="'faq.dissatisfied-speed' | translate"
-              ></ion-label>
+              <ion-label [innerHTML]="'faq.dissatisfied-speed' | translate"></ion-label>
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  [translate]="'faq.dissatisfied-speed-desc'"
-                ></ion-label>
+                <ion-label [translate]="'faq.dissatisfied-speed-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
@@ -160,27 +107,16 @@
   </ion-menu>
   <ion-menu side="end" menuId="second" contentId="content" class="ionMenubg">
     <div class="headerbar">
-      <ion-icon
-        name="arrow-back-outline"
-        class="backIcon"
-        (click)="backMenu()"
-      ></ion-icon>
-      <ion-icon
-        name="close-outline"
-        class="closeIcon"
-        (click)="closeMenu()"
-      ></ion-icon>
+      <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
     </div>
     <ion-content class="menuContent">
       <div class="your-school-id-sec">
-        <div
-          class="freq-ques-txt your-school-id"
-          [translate]="'app.school-id'"
-        ></div>
+        <div class="freq-ques-txt your-school-id" [translate]="'app.school-id'"></div>
         <div class="schoolid">
           <ion-label *ngIf="school">{{
             school.school_id | uppercase
-          }}</ion-label>
+            }}</ion-label>
         </div>
         <div class="h-line"></div>
         <div class="schoolname-txt">
@@ -192,8 +128,7 @@
             {{ school.admin_2_name ? school.admin_2_name + "," : "" }}
             {{ school.admin_1_name ? school.admin_1_name + "," : "" }}
             {{ school.postal_code ? school.postal_code + "," : "" }}
-            {{ school.country }}</ion-label
-          >
+            {{ school.country }}</ion-label>
         </div>
         <div class="h-line"></div>
       </div>
@@ -203,11 +138,7 @@
     <div class="headerbar">
       <!--  <ion-icon name="arrow-back-outline" class="backIcon" (click)="backMenu()"></ion-icon> -->
       <div></div>
-      <ion-icon
-        name="close-outline"
-        class="closeIcon"
-        (click)="closeMenu()"
-      ></ion-icon>
+      <ion-icon name="close-outline" class="closeIcon" (click)="closeMenu()"></ion-icon>
     </div>
     <ion-content class="menuContent">
       <div class="accordion-sec">
@@ -225,15 +156,31 @@
             <ion-icon name="chevron-forward-outline"></ion-icon>
           </ion-item>
           <ion-item>
-            <ion-label
-              class="small-font"
-              slot="end"
-              [translate]="'app.version'"
-              [translateParams]="{ app_version: app_version }"
-            ></ion-label>
+            <ion-label class="small-font" slot="end" [translate]="'app.version'"
+              [translateParams]="{ app_version: app_version }"></ion-label>
             <ion-icon name="chevron-download"></ion-icon>
           </ion-item>
         </ion-list>
+      </div>
+      <div>
+        <!-- <ion-button id="update-dialog" expand="block">Open Custom Dialog</ion-button> -->
+        <ion-modal id="update-dialog" #modal isOpen={{needUpdate}}>
+          <ng-template>
+            <div class="wrapper">
+              <h1 class="dialog-title" [translate]="'pcdcUpdateModal.title'">
+              </h1>
+              <div class="dialog-content">
+                <div class="modal-content-text">
+                  <span class="dialog-content-text" [translate]="'pcdcUpdateModal.content'">
+                  </span>
+                </div>
+                <div class="dialog-content-upload-link">
+                  <a (click)="openExternalUrl('{{ updateUrl }}')" [translate]="'pcdcUpdateModal.updateUrl'"> </a>
+                </div>
+              </div>
+            </div>
+          </ng-template>
+        </ion-modal>
       </div>
     </ion-content>
   </ion-menu>

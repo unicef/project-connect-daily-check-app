@@ -15,8 +15,10 @@ export const environment = {
   token: env.token,
   dcaToken: env.dcaToken,
   app_version: '1.0.7',
+  // dcaRestAPI:
+  //   'https://uni-ooi-giga-daily-check-service-api-stg.azurewebsites.net/api/v1/',
   dcaRestAPI:
-    'https://uni-ooi-giga-daily-check-service-api-stg.azurewebsites.net/api/v1/',
+    'https://uni-ooi-giga-daily-check-service-api-dev.azurewebsites.net/api/v1/',
 };
 
 /*
