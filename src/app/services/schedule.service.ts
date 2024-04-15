@@ -79,7 +79,8 @@ export class ScheduleService {
 
     // if there is not measurement made today, schedule a test in the next 30 minutes
     // This day is in local tim
-    if (!lastMeasurement || lastMeasurement.getDay() != today.getDay()) {
+    if (!lastMeasurement
+      || lastMeasurement.getDate() < today.getDate()) {
       const _30min = 60 * 30 * 1000;
       console.log('No last measurement or last measurement was not today. Scheduling a test in the next 30 minutes.');
       const semaphore = {
@@ -181,7 +182,6 @@ export class ScheduleService {
       return this.setSemaphore({});
     }
     else if (current && current.choice && current.intervalType == next.intervalType && next.start >= current.start) {
-      // console.log(current);
       return current;
     }
     else {
