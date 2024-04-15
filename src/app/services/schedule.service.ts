@@ -83,9 +83,9 @@ export class ScheduleService {
       const _30min = 60 * 30 * 1000;
       console.log('No last measurement or last measurement was not today. Scheduling a test in the next 30 minutes.');
       const semaphore = {
-        'start': today.getMilliseconds(),
-        'end': today.getMilliseconds() + _30min,
-        'choice': today.getMilliseconds() + Math.floor(Math.random() * _30min)
+        'start': today.getTime(),
+        'end': today.getTime() + _30min,
+        'choice': today.getTime() + Math.floor(Math.random() * _30min)
       };
       return semaphore;
     }
