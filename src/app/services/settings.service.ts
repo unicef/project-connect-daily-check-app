@@ -3,7 +3,10 @@ import { StorageService } from '../services/storage.service';
 import { SharedService } from '../services/shared-service.service';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { map, tap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
+
+export const TEN_MINUTES = 1000 * 60 * 10;
+
 @Injectable({
   providedIn: 'root',
 })
@@ -212,8 +215,15 @@ export class SettingsService {
   }
 
   async checkForUpdate() {
+
     console.log('Checking for update', { userId: this.storageSerivce.get('schoolUserId') });
     if (!this.storageSerivce.get('schoolUserId')) return { url: "", status: false };
+
+    const featureFlags = await this.storageSerivce.get('featureFlags');
+    if (featureFlags && featureFlags.includes('disableUpdate')) return { url: "", status: false };
+
+    const update = JSON.parse(this.storageSerivce.get('update'));
+    if (update?.date && new Date(update.date).getTime() > Date.now() - TEN_MINUTES) return update;
 
     const needUpdate = await this.http.get(environment.dcaRestAPI + 'dailycheckapp_schools/checkNotify',
       {
@@ -226,7 +236,8 @@ export class SettingsService {
         }
       }
     ).pipe(map((response: any) => response.body)).toPromise();
-    return { url: needUpdate.download_url, status: true };
+    this.storageSerivce.set('update', JSON.stringify({ date: new Date(), url: needUpdate.data.download_url, status: needUpdate.data.notify === 'true' }));
+
     if (needUpdate.data.notify === 'true')
       return { url: needUpdate.download_url, status: true };
 
