@@ -6,7 +6,7 @@ import { NotFound } from '../schoolnotfound/types';
 import { LoadingService } from '../services/loading.service';
 import { SchoolService } from '../services/school.service';
 import { StorageService } from '../services/storage.service';
-import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
+import { checkRightGigaId, removeUnregisterSchool, updateFeaturesFlags } from './home.utils';
 
 @Component({
   selector: 'app-home',
@@ -43,7 +43,11 @@ export class HomePage {
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
     if (this.storage.get('schoolId')) {
       let schoolId = this.storage.get('schoolId');
+      const gigaId = this.storage.get('gigaId');
+      const schoolUserId = this.storage.get('schoolUserId');
+
       try {
+        updateFeaturesFlags(gigaId, schoolUserId, this.storage, this.schoolService)
         // check if the gigaId is correct
         checkRightGigaId(
           this.storage.get('gigaId'),

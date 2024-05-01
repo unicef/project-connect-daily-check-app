@@ -68,6 +68,11 @@ export class ScheduleService {
   createIntervalSemaphore(start, interval_ms) {
     const today = new Date();
     let lastMeasurement = this.storageService.get('lastMeasurement');
+
+    let featureFlags = this.storageService.get('featureFlags');
+    featureFlags = featureFlags ? JSON.parse(featureFlags) : {};
+
+    console.log('Feature flags:', featureFlags);
     if (lastMeasurement) lastMeasurement = new Date(parseInt(lastMeasurement));
     let dtStr = (today.getMonth() + 1) + ' ' + today.getDate() + ' ' + today.getFullYear();
     let scheduledDailySlotA = new Date(dtStr + ' 08:00').getTime();
@@ -79,8 +84,8 @@ export class ScheduleService {
 
     // if there is not measurement made today, schedule a test in the next 30 minutes
     // This day is in local tim
-    if (!lastMeasurement
-      || lastMeasurement.getDate() < today.getDate()) {
+    if (featureFlags?.enableDailyTest &&
+      (!lastMeasurement || lastMeasurement.getDate() < today.getDate())) {
       const _30min = 60 * 30 * 1000;
       console.log('No last measurement or last measurement was not today. Scheduling a test in the next 30 minutes.');
       const semaphore = {

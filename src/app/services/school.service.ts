@@ -65,10 +65,10 @@ export class SchoolService {
     return this.http
       .get(
         environment.restAPI +
-          'schools/country_code_school_id/' +
-          code +
-          '/' +
-          id,
+        'schools/country_code_school_id/' +
+        code +
+        '/' +
+        id,
         this.options
       )
       .pipe(
@@ -91,7 +91,6 @@ export class SchoolService {
       )
       .pipe(
         map((response: any) => response.data),
-        tap((data) => console.log(JSON.stringify(data))),
         catchError(this.handleError)
       );
   }
@@ -197,6 +196,18 @@ export class SchoolService {
         catchError(this.handleError)
       );
   }
+  getFeaturesFlags = async (gigaSchoolId: string, schoolUserId: string) => {
+    // const response = await this.http.post(environment.restAPI + `dailycheckapp_schools/features_flags`, { giga_id_school: gigaSchoolId, schoolUserId: schoolUserId }, this.options)
+    //   .pipe(
+    //     map((response: any) => response.data),
+    //     tap((data) => console.log(JSON.stringify(data))),
+    //     catchError(this.handleError)
+    //   ).toPromise();
+    const response = {
+      enableDailyTest: false
+    }
+    return response;
+  }
 
   /**
    * Private function to handle error
@@ -208,3 +219,4 @@ export class SchoolService {
     return throwError(error);
   }
 }
+
