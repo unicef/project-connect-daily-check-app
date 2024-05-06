@@ -11,6 +11,7 @@ import { SettingsService } from '../services/settings.service';
 export class PcdcHeaderComponent implements OnInit {
   languages = environment.languages;
   selectedLanguage: string;
+  test: boolean = false;
   constructor(
     private translate: TranslateService,
     private settingsService: SettingsService
@@ -20,8 +21,9 @@ export class PcdcHeaderComponent implements OnInit {
       this.settingsService.get('applicationLanguage')?.code ||
       translate.defaultLang;
     translate.use(this.selectedLanguage);
+    this.test = environment.mode === 'test';
   }
-  ngOnInit() {}
+  ngOnInit() { }
   onLanguageChange() {
     // Update local storage when the language changes
     this.settingsService.setSetting(
