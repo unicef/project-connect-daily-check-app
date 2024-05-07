@@ -69,16 +69,3 @@ export const checkRightGigaId = async (
   }
   return false;
 };
-
-export const updateFeaturesFlags = async (gigaSchoolId: string, schoolUserId: string, storage: StorageService, schoolService: SchoolService) => {
-  const data = await schoolService.getFeaturesFlags(gigaSchoolId, schoolUserId)
-  console.log({ response: data });
-  const flags = data;
-  let settingsFlags = storage.get('featureFlags')
-  if (settingsFlags) {
-    settingsFlags = JSON.parse(settingsFlags);
-  }
-  const newFlags = { ...settingsFlags, ...flags };
-  storage.set('featureFlags', JSON.stringify(newFlags));
-  return newFlags;
-}

@@ -6,7 +6,7 @@ import { NotFound } from '../schoolnotfound/types';
 import { LoadingService } from '../services/loading.service';
 import { SchoolService } from '../services/school.service';
 import { StorageService } from '../services/storage.service';
-import { checkRightGigaId, removeUnregisterSchool, updateFeaturesFlags } from './home.utils';
+import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 
 @Component({
   selector: 'app-home',
@@ -47,7 +47,8 @@ export class HomePage {
       const schoolUserId = this.storage.get('schoolUserId');
 
       try {
-        updateFeaturesFlags(gigaId, schoolUserId, this.storage, this.schoolService)
+        // get the feature flags
+        settingsService.getFeatureFlags();
         // check if the gigaId is correct
         checkRightGigaId(
           this.storage.get('gigaId'),

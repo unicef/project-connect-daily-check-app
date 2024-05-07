@@ -84,7 +84,7 @@ export class ScheduleService {
 
     // if there is not measurement made today, schedule a test in the next 30 minutes
     // This day is in local tim
-    if (featureFlags?.enableDailyTest &&
+    if (featureFlags?.enable_daily_test &&
       (!lastMeasurement || lastMeasurement.getDate() < today.getDate())) {
       const _30min = 60 * 30 * 1000;
       console.log('No last measurement or last measurement was not today. Scheduling a test in the next 30 minutes.');
