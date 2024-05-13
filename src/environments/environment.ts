@@ -8,12 +8,12 @@ import { environment as env } from './_environment.prod';
 const token = env.token;
 const restAPI = env.restAPIDev;
 export const environment = {
-  production: false,
+  production: true,
   // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
   restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
   // restAPI: 'http://localhost:3000/api/v1/', //localhost
   token: env.token,
-  app_version: '1.0.7',
+  app_version: '1.0.8',
 };
 
 /*
