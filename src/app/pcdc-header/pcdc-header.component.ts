@@ -11,7 +11,7 @@ import { SettingsService } from '../services/settings.service';
 export class PcdcHeaderComponent implements OnInit {
   languages = environment.languages;
   selectedLanguage: string;
-  test: boolean = false;
+  test = false;
   constructor(
     private translate: TranslateService,
     private settingsService: SettingsService

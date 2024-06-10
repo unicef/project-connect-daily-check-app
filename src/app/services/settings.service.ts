@@ -215,16 +215,20 @@ export class SettingsService {
   }
 
   async getFeatureFlags() {
-    const gigaId = this.storageSerivce.get('gigaId');
-    console.log('Checking for flags', { gigaId });
-    if (!gigaId) {
-      console.log('No gigaId found');
+    const macAddress = this.storageSerivce.get('macAddress');
+    console.log('Checking for flags', { macAddress });
+    if (!macAddress) {
+      console.log('No macAddress found');
       return {};
     }
     let featureFlags = this.storageSerivce.get('featureFlags');
-    if (featureFlags) featureFlags = JSON.parse(featureFlags);
-    console.log({ featureFlags, gigaId });
-    if (featureFlags?.updateDate && new Date(parseInt(featureFlags.updateDate)).getTime() > Date.now() - DAY) return featureFlags;
+    if (featureFlags) {
+      featureFlags = JSON.parse(featureFlags);
+    }
+    console.log({ featureFlags, macAddress });
+    if (featureFlags?.updateDate && new Date(parseInt(featureFlags.updateDate, 10)).getTime() > Date.now() - DAY) {
+      return featureFlags;
+    };
     try {
       const newFlags = await this.http.get(environment.restAPI + `dailycheckapp_schools/features_flags`, {
         observe: 'response',
@@ -232,13 +236,15 @@ export class SettingsService {
           'Content-type': 'application/json',
         }),
         params: {
-          giga_id: gigaId
+          mac_address: macAddress
         }
       }).pipe(map((response: any) => response.body)).toPromise();
       console.log({ newFlags });
-      if (!newFlags || newFlags.data.length == 0) return featureFlags;
+      if (!newFlags || newFlags.data.length === 0) {
+        return featureFlags;
+      }
 
-      this.storageSerivce.set('featureFlags', JSON.stringify({ ...newFlags.data[0], updateDate: Date.now() }));
+      this.storageSerivce.set('featureFlags', JSON.stringify({ ...newFlags.data, updateDate: Date.now() }));
 
       return newFlags;
     } catch (e) {
