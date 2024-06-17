@@ -52,7 +52,7 @@ export class MeasurementClientService {
     private networkService: NetworkService,
     private uploadService: UploadService,
     private sharedService: SharedService
-  ) {}
+  ) { }
 
   public incrementProgress(current, state) {
     const CEILINGS = { interval_c2s: 0.48, interval_s2c: 0.96, complete: 1 };
@@ -94,7 +94,7 @@ export class MeasurementClientService {
    *
    * @returns measurement data
    */
-  start() {
+  start(notes = '') {
     return new Promise((resolve, reject) => {
       const measurementRecord = {
         timestamp: Date.now(),
@@ -105,6 +105,7 @@ export class MeasurementClientService {
         accessInformation: this.accessInformation,
         uuid: '',
         version: 0,
+        Notes: notes,
       };
 
       const emitKey = 'measurement:status';

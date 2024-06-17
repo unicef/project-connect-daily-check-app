@@ -59,7 +59,7 @@ export class ScheduleService {
         ' scheduled to run near ' + new Date(scheduleSemaphore.choice).toUTCString());
       console.log('Found scheduled measurement ready, triggering.');
       this.storageService.set('lastMeasurement', currentTime);
-      this.measurementClientService.start();
+      this.measurementClientService.start(scheduleSemaphore.intervalType === 'start_30min' ? 'OnStartUp' : '');
       // clear semaphore when triggered
       this.setSemaphore({});
     }
@@ -91,7 +91,8 @@ export class ScheduleService {
       const semaphore = {
         'start': today.getTime(),
         'end': today.getTime() + _30min,
-        'choice': today.getTime() + Math.floor(Math.random() * _30min)
+        'choice': today.getTime() + Math.floor(Math.random() * _30min),
+        'intervalType': 'start_30min'
       };
       return semaphore;
     }
