@@ -10,9 +10,9 @@ const restAPI = env.restAPIDev;
 export const environment = {
   production: true,
   // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
-  restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
+  restAPI: restAPI, //dev
   // restAPI: 'http://localhost:3000/api/v1/', //localhost
-  token: env.token,
+  token: token,
   app_version: '1.0.8',
 };
 

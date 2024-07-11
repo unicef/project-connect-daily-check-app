@@ -43,7 +43,12 @@ export class HomePage {
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
     if (this.storage.get('schoolId')) {
       let schoolId = this.storage.get('schoolId');
+      const gigaId = this.storage.get('gigaId');
+      const schoolUserId = this.storage.get('schoolUserId');
+
       try {
+        // get the feature flags
+        settingsService.getFeatureFlags();
         // check if the gigaId is correct
         checkRightGigaId(
           this.storage.get('gigaId'),
