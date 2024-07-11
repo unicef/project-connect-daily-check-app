@@ -4,6 +4,7 @@ import { MeasurementClientService } from '../services/measurement-client.service
 import { SettingsService } from '../services/settings.service';
 import { CustomScheduleService } from '../services/custom-schedule.service';
 import { SharedService } from '../services/shared-service.service';
+import { NetworkService } from './network.service';
 
 @Injectable({
   providedIn: 'root'
@@ -15,6 +16,7 @@ export class ScheduleService {
     private measurementClientService: MeasurementClientService,
     private settingsService: SettingsService,
     private sharedService: SharedService,
+    private networkService: NetworkService,
     private customScheduleService: CustomScheduleService) { }
 
   initiate() {
@@ -48,11 +50,15 @@ export class ScheduleService {
     return JSON.parse(this.storageService.get('scheduleSemaphore'));
   }
 
-  decide(scheduleSemaphore) {
-    let currentTime = Date.now();
-    // console.log(currentTime);
-    // console.log(scheduleSemaphore.choice);
+  async decide(scheduleSemaphore) {
+    const currentTime = Date.now();
+
     if (scheduleSemaphore.choice !== undefined && currentTime > scheduleSemaphore.choice) {
+      const networkInfo = await this.networkService.getNetworkInfo();
+      if (networkInfo === null) {
+        console.log('Network not available, skipping schedule check.');
+        return;
+      }
       console.log('On ' + new Date(currentTime).toUTCString() + ' found scheduled test covering ' +
         new Date(scheduleSemaphore.start).toUTCString() +
         ' and ' + new Date(scheduleSemaphore.end).toUTCString() +
@@ -60,7 +66,6 @@ export class ScheduleService {
       console.log('Found scheduled measurement ready, triggering.');
       this.storageService.set('lastMeasurement', currentTime);
       this.measurementClientService.start(scheduleSemaphore.intervalType === 'start_30min' ? 'OnStartUp' : '');
-      // clear semaphore when triggered
       this.setSemaphore({});
     }
   }
@@ -197,8 +202,8 @@ export class ScheduleService {
     }
   }
 
-  watch() {
-    this.decide(this.getSemaphore());
+  async watch() {
+    await this.decide(this.getSemaphore());
     this.sharedService.broadcast("semaphore:refresh", "semaphore:refresh");
   }
 }
