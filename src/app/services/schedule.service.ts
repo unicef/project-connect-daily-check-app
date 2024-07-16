@@ -57,6 +57,8 @@ export class ScheduleService {
       const networkInfo = await this.networkService.getNetworkInfo();
       if (networkInfo === null) {
         console.log('Network not available, skipping schedule check.');
+        this.storageService.set('measurementOfReconnect', true);
+        this.setSemaphore({});
         return;
       }
       console.log('On ' + new Date(currentTime).toUTCString() + ' found scheduled test covering ' +
@@ -73,6 +75,7 @@ export class ScheduleService {
   createIntervalSemaphore(start, interval_ms) {
     const today = new Date();
     let lastMeasurement = this.storageService.get('lastMeasurement');
+    const measurementOfReconnect = this.storageService.get('measurementOfReconnect', false);
 
     let featureFlags = this.storageService.get('featureFlags');
     featureFlags = featureFlags ? JSON.parse(featureFlags) : {};
@@ -86,6 +89,19 @@ export class ScheduleService {
     let slotIntervalMs = 60 * 60 * 4 * 1000;
     const slotAChoice = scheduledDailySlotA + Math.floor(Math.random() * slotIntervalMs);
     const slotBChoice = scheduledDailySlotB + Math.floor(Math.random() * slotIntervalMs);
+
+    if (measurementOfReconnect) {
+      const _10min = 60 * 10 * 1000;
+      console.log('Measurement of reconnect found. Scheduling a test in the next 10 minutes.');
+      const semaphore = {
+        'start': today.getTime(),
+        'end': today.getTime() + _10min,
+        'choice': today.getTime() + Math.floor(Math.random() * _30min),
+        'intervalType': 'start_10min'
+      };
+      this.storageService.set('measurementOfReconnect', false);
+      return semaphore;
+    }
 
     // if there is not measurement made today, schedule a test in the next 30 minutes
     // This day is in local tim
