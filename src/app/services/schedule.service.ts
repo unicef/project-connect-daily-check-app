@@ -96,7 +96,7 @@ export class ScheduleService {
       const semaphore = {
         'start': today.getTime(),
         'end': today.getTime() + _10min,
-        'choice': today.getTime() + Math.floor(Math.random() * _30min),
+        'choice': today.getTime() + Math.floor(Math.random() * _10min),
         'intervalType': 'start_10min'
       };
       this.storageService.set('measurementOfReconnect', false);
