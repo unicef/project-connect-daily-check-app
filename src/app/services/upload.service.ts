@@ -20,7 +20,7 @@ export class UploadService {
     private http: HttpClient,
     private settingService: SettingsService,
     private storage: StorageService
-  ) {}
+  ) { }
 
   /**
    * Return all network related information
@@ -65,7 +65,7 @@ export class UploadService {
       Timestamp: '',
       timestamplocal: '',
       DeviceType: '',
-      Notes: '',
+      Notes: record.Notes,
       school_id: '',
       ip_address: '', //record.accessInformation.ip,
       country_code: '', //record.accessInformation.country,
@@ -134,16 +134,17 @@ export class UploadService {
     const apiKey = this.settingService.get('uploadAPIKey');
     // const browserID = this.settingService.get("browserID");
     // const deviceType = this.settingService.get("deviceType");
-    const notes = this.settingService.get('notes');
+
+    const notes = record.Notes;
     let measurement = this.makeMeasurement(record);
 
     this.storage.get('country_code') === '' ||
-    this.storage.get('country_code') === null
+      this.storage.get('country_code') === null
       ? (measurement.country_code = measurement.ClientInfo.Country)
       : (measurement.country_code = this.storage.get('country_code'));
 
     this.storage.get('ip_address') === '' ||
-    this.storage.get('ip_address') === null
+      this.storage.get('ip_address') === null
       ? (measurement.ip_address = measurement.ClientInfo.IP)
       : (measurement.ip_address = this.storage.get('ip_address'));
     measurement.country_code = measurement.ClientInfo.Country;
