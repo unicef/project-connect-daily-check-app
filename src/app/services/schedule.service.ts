@@ -72,7 +72,6 @@ export class ScheduleService {
         ' scheduled to run near ' + new Date(scheduleSemaphore.choice).toUTCString());
       console.log('Found scheduled measurement ready, triggering.');
       this.storageService.set('lastMeasurement', currentTime);
-      console.log("Interval type:", scheduleSemaphore.intervalType);
       this.measurementClientService.start(scheduleSemaphore.intervalType);
       this.setSemaphore({});
       this.setSpecialSemaphore({});
@@ -119,7 +118,6 @@ export class ScheduleService {
         choice: today.getTime() + Math.floor(Math.random() * _30min),
         intervalType: 'onStart'
       };
-      console.log('Semaphore:', semaphore);
       return semaphore;
     }
   }
@@ -217,13 +215,11 @@ export class ScheduleService {
     // console.log(next);
     let scheduledTesting = this.settingsService.get("scheduledTesting");
     let current = this.storageService.get("scheduleSemaphore", []);
-
     if (this.IsJsonString(current)) {
       current = JSON.parse(current);
     } else {
       current = undefined;
     }
-    console.log({ current, currentChoice: new Date(current.choice), next, nextChoice: new Date(next.choice) });
     if (!scheduledTesting) {
       this.sharedService.broadcast("semaphore:refresh", "semaphore:refresh");
       return this.setSemaphore({});
@@ -255,8 +251,6 @@ export class ScheduleService {
       this.sharedService.broadcast("semaphore:refresh", "semaphore:refresh");
       return this.setSemaphore({});
     }
-    console.log("getSpecialSemaphore")
-    console.log({ current, currentChoice: new Date(current?.choice), next, nextChoice: new Date(next?.choice) });
 
     if (current && current.choice && next.choice && next.start >= current.start) {
       return current;
@@ -270,9 +264,7 @@ export class ScheduleService {
 
   async watch() {
     await this.decide(this.getSemaphore());
-    console.log("watching special semaphore");
     await this.decide(this.getSpecialSemaphore());
-    console.log("watching special semaphore done");
     this.sharedService.broadcast("semaphore:refresh", "semaphore:refresh");
   }
 }
