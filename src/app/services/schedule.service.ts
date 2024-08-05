@@ -91,7 +91,7 @@ export class ScheduleService {
     featureFlags = featureFlags ? JSON.parse(featureFlags) : {};
 
     console.log('Feature flags:', featureFlags);
-    if (lastMeasurement) { lastMeasurement = new Date(parseInt(lastMeasurement, 10)); }
+    lastMeasurement = lastMeasurement ? new Date(parseInt(lastMeasurement, 10)) : new Date(0);
 
     if (featureFlags?.measurement_of_reconnect && measurementOfReconnect) {
       const _10min = 60 * 10 * 1000;
@@ -125,34 +125,40 @@ export class ScheduleService {
     const today = new Date();
     let lastMeasurement = this.storageService.get('lastMeasurement');
 
-    if (lastMeasurement) lastMeasurement = new Date(parseInt(lastMeasurement));
-    let dtStr = (today.getMonth() + 1) + ' ' + today.getDate() + ' ' + today.getFullYear();
-    let scheduledDailySlotA = new Date(dtStr + ' 08:00').getTime();
-    let scheduledDailySlotB = new Date(dtStr + ' 12:00').getTime();
+    lastMeasurement = lastMeasurement ? new Date(parseInt(lastMeasurement, 10)) : new Date(0);
+    const dtStr = (today.getMonth() + 1) + ' ' + today.getDate() + ' ' + today.getFullYear();
+    const scheduledDailySlotA = new Date(dtStr + ' 08:00').getTime();
+    const scheduledDailySlotB = new Date(dtStr + ' 12:00').getTime();
 
-    let slotIntervalMs = 60 * 60 * 4 * 1000;
-    const slotAChoice = scheduledDailySlotA + Math.floor(Math.random() * slotIntervalMs);
-    const slotBChoice = scheduledDailySlotB + Math.floor(Math.random() * slotIntervalMs);
+    const slotIntervalMs = 60 * 60 * 4 * 1000;
 
-    if (start < scheduledDailySlotA) {
+    if (lastMeasurement < scheduledDailySlotA) {
+      const startOfSlot = start > scheduledDailySlotA ? start : scheduledDailySlotA;
+      const choice = startOfSlot + Math.floor(Math.random() * slotIntervalMs);
+      console.log('Last measurement was before the first slot, scheduling for slot A');
       return {
         'start': scheduledDailySlotA,
         'end': scheduledDailySlotA + slotIntervalMs,
-        'choice': slotAChoice
+        choice
       }
-    } else if (start > scheduledDailySlotA && start < scheduledDailySlotB) {
+    } else if (lastMeasurement > scheduledDailySlotA && lastMeasurement < scheduledDailySlotB) {
+      const startOfSlot = start > scheduledDailySlotB ? start : scheduledDailySlotB;
+      const choice = startOfSlot + Math.floor(Math.random() * slotIntervalMs);
+      console.log('Last measurement was before the second slot, scheduling for slot B');
       return {
         'start': scheduledDailySlotB,
         'end': scheduledDailySlotB + slotIntervalMs,
-        'choice': slotBChoice
+        choice
       }
     }
     else {
-      let timeDiff = start - scheduledDailySlotA;
+      const startOfSlot = scheduledDailySlotA + 60 * 60 * 24 * 1000;
+      const choice = startOfSlot + Math.floor(Math.random() * slotIntervalMs);
+      console.log('Last measurement was after the second slot, scheduling for slot A of the next day');
       return {
-        'start': start,
-        'end': start + interval_ms,
-        'choice': (start + interval_ms) - timeDiff + Math.floor(Math.random() * slotIntervalMs)
+        'start': startOfSlot,
+        'end': startOfSlot + slotIntervalMs,
+        choice
       }
     }
   }
