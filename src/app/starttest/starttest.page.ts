@@ -264,7 +264,7 @@ export class StarttestPage implements OnInit {
       this.currentState = 'Starting';
       this.uploadStatus = undefined;
       this.connectionStatus = '';
-      this.measurementClientService.start();
+      this.measurementClientService.runTest();
     } catch (e) {
       console.log(e);
     }
