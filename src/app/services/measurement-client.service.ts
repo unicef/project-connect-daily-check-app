@@ -8,6 +8,7 @@ import { MlabService } from './mlab.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
+import { runScheduleTest } from './scheduler-test';
 
 @Injectable({
   providedIn: 'root',
@@ -73,26 +74,27 @@ export class MeasurementClientService {
   ) {}
 
   async runTest(notes = ''): Promise<void> {
-    console.log('Starting ndt7 test', ndt7);
-    this.broadcastMeasurementStatus('onstart', {});
+    runScheduleTest();
+    // console.log('Starting ndt7 test', ndt7);
+    // this.broadcastMeasurementStatus('onstart', {});
 
-    const measurementRecord = this.initializeMeasurementRecord(notes);
+    // const measurementRecord = this.initializeMeasurementRecord(notes);
 
-    try {
-      const info = await this.getTestInfo();
-      Object.assign(measurementRecord, info);
+    // try {
+    //   const info = await this.getTestInfo();
+    //   Object.assign(measurementRecord, info);
 
-      const exitCode = await ndt7.test(
-        this.testConfig,
-        this.getTestCallbacks(measurementRecord)
-      );
-      console.log('ndt7 test completed with exit code:', exitCode);
+    //   const exitCode = await ndt7.test(
+    //     this.testConfig,
+    //     this.getTestCallbacks(measurementRecord)
+    //   );
+    //   console.log('ndt7 test completed with exit code:', exitCode);
 
-      await this.finalizeMeasurement(measurementRecord);
-    } catch (error) {
-      console.error('Error running ndt7 test:', error);
-      this.broadcastMeasurementStatus('error', { error: error.message });
-    }
+    //   await this.finalizeMeasurement(measurementRecord);
+    // } catch (error) {
+    //   console.error('Error running ndt7 test:', error);
+    //   this.broadcastMeasurementStatus('error', { error: error.message });
+    // }
   }
 
   private initializeMeasurementRecord(notes: string) {
