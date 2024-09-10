@@ -22,6 +22,7 @@ export class AppComponent {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   app_version: any;
   appName = environment.appName;
+  showAboutMenu = environment.showAboutMenu;
   constructor(
     private menu: MenuController,
     private storage: StorageService,

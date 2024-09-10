@@ -16,6 +16,7 @@ export const environment = {
   app_version: '1.0.8',
   appName: 'Project Connect',
   appNameSuffix: 'Daily Check',
+  showAboutMenu: true,
 };
 
 /*
