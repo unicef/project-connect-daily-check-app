@@ -15,7 +15,7 @@ export const environment = {
   token,
   app_version: '1.0.8',
   appName: 'Project Connect',
-  appNameSuffix: 'Daily Check - test',
+  appNameSuffix: 'Daily Check',
 };
 
 /*
