@@ -5,6 +5,7 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
+import { environment } from 'src/environments/environment';
 @Component({
   selector: 'app-searchschool',
   templateUrl: 'searchschool.page.html',
@@ -20,6 +21,7 @@ export class SearchschoolPage {
   selectedCountry: any;
   detectedCountry: any;
   sub: any;
+  appName = environment.appName;
   private loadingMsg =
     // eslint-disable-next-line max-len
     '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white" [translate]="\'searchSchool.search\'"></p></div>';

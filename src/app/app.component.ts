@@ -21,6 +21,7 @@ export class AppComponent {
   scheduleSemaphore: any;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   app_version: any;
+  appName = environment.appName;
   constructor(
     private menu: MenuController,
     private storage: StorageService,

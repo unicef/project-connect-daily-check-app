@@ -1,83 +1,40 @@
 <app-pcdc-header></app-pcdc-header>
 <ion-content>
   <div class="container">
-    <ion-slides
-      pager="true"
-      [options]="slideOpts"
-      (ionSlideReachEnd)="reachedEnd()"
-      class="schoolsuccess"
-      #mySlider
-    >
+    <ion-slides pager="true" [options]="slideOpts" (ionSlideReachEnd)="reachedEnd()" class="schoolsuccess" #mySlider>
       <ion-slide>
         <div class="top-layout">
           <div class="successInfo">
-            <ion-img
-              src="assets/images/Congratulations_Icon.png"
-              class="icon1"
-            ></ion-img>
-            <div
-              class="success-txt"
-              [translate]="'schoolSuccess.congratulations'"
-            ></div>
-            <div
-              class="success-desc-txt"
-              [innerHtml]="'schoolSuccess.school-registered' | translate"
-            ></div>
+            <ion-img src="assets/images/Congratulations_Icon.png" class="icon1"></ion-img>
+            <div class="success-txt" [translate]="'schoolSuccess.congratulations'"></div>
+            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.school-registered' | translate:{ appName }"></div>
           </div>
         </div>
       </ion-slide>
       <ion-slide>
         <div class="top-layout">
           <div class="successInfo">
-            <ion-img
-              src="assets/images/Daily_Check_is_Set_Icon.png"
-              class="icon2"
-            ></ion-img>
-            <div
-              class="success-txt"
-              [innerHtml]="'schoolSuccess.success-txt' | translate"
-            ></div>
-            <div
-              class="success-desc-txt"
-              [innerHtml]="'schoolSuccess.internet-checks' | translate"
-            ></div>
+            <ion-img src="assets/images/Daily_Check_is_Set_Icon.png" class="icon2"></ion-img>
+            <div class="success-txt" [innerHtml]="'schoolSuccess.success-txt' | translate"></div>
+            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.internet-checks' | translate"></div>
           </div>
         </div>
       </ion-slide>
       <ion-slide>
         <div class="top-layout">
           <div class="successInfo">
-            <ion-img
-              src="assets/images/App_Run Background_Icon.png"
-              class="icon3"
-            ></ion-img>
-            <div
-              class="success-txt"
-              [innerHtml]="'schoolSuccess.app-run' | translate"
-            ></div>
-            <div
-              class="success-desc-txt"
-              [innerHtml]="'schoolSuccess.app-run-desc' | translate"
-            ></div>
+            <ion-img src="assets/images/App_Run Background_Icon.png" class="icon3"></ion-img>
+            <div class="success-txt" [innerHtml]="'schoolSuccess.app-run' | translate"></div>
+            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.app-run-desc' | translate"></div>
           </div>
         </div>
       </ion-slide>
     </ion-slides>
     <div class="bottom-layout">
-      <ion-button
-        color="primary"
-        (click)="swipeNext()"
-        class="dailycheck_btn"
-        *ngIf="!isLast"
-        [translate]="'next'"
-      ></ion-button>
-      <ion-button
-        color="primary"
-        (click)="moveToStartTest()"
-        class="dailycheck_btn"
-        *ngIf="isLast"
-        [translate]="'next'"
-      ></ion-button>
+      <ion-button color="primary" (click)="swipeNext()" class="dailycheck_btn" *ngIf="!isLast"
+        [translate]="'next'"></ion-button>
+      <ion-button color="primary" (click)="moveToStartTest()" class="dailycheck_btn" *ngIf="isLast"
+        [translate]="'next'"></ion-button>
     </div>
   </div>
 </ion-content>

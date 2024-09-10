@@ -27,6 +27,7 @@ export class ConfirmschoolPage {
   selectedCountry: any;
   detectedCountry: any;
   sub: any;
+  appName = environment.appName;
   constructor(
     private activatedroute: ActivatedRoute,
     public router: Router,
