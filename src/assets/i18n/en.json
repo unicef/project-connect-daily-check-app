@@ -81,6 +81,7 @@
         "upload": "UPLOAD",
         "download": "DOWNLOAD",
         "testAgain": "TEST AGAIN",
+        "tryAgain": "TEST AGAIN",
         "latency": "Latency: {{latency}}",
         "testFailed": "TEST FAILED",
         "testFailedDesc": "The connection was interupted before testing could be completed."
