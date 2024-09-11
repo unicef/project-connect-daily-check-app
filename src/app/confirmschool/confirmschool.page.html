@@ -2,7 +2,7 @@
 <ion-content>
   <div class="container">
     <div class="top-section">
-      <div class="label-txt" [translate]="'confirmSchool.title' | translate:{ appName }"></div>
+      <div class="label-txt" [translate]="'confirmSchool.title' | translate:{ appName: (appName | uppercase) }"></div>
       <div class="schoolDetails" *ngIf="school">
         <div class="schoolname">{{school.name | truncate:[30]}}</div>
         <div class="schoolAddress">
