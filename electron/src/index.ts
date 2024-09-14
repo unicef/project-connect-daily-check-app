@@ -1,31 +1,43 @@
 import type { CapacitorElectronConfig } from '@capacitor-community/electron';
-import { getCapacitorElectronConfig, setupElectronDeepLinking } from '@capacitor-community/electron';
+import {
+  getCapacitorElectronConfig,
+  setupElectronDeepLinking,
+} from '@capacitor-community/electron';
 import type { MenuItemConstructorOptions } from 'electron';
 import { app, MenuItem, ipcMain, dialog } from 'electron';
 import electronIsDev from 'electron-is-dev';
 import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
 import fs from 'fs-extra';
-import * as Sentry from "@sentry/electron";
+import * as Sentry from '@sentry/electron/main';
 
-import { ElectronCapacitorApp, setupContentSecurityPolicy, setupReloadWatcher } from './setup';
+import {
+  ElectronCapacitorApp,
+  setupContentSecurityPolicy,
+  setupReloadWatcher,
+} from './setup';
 const gotTheLock = app.requestSingleInstanceLock();
 // Graceful handling of unhandled errors.
 unhandled({
   logger: () => {
     console.error();
-    console.log("there is an error occurs")
+    console.log('there is an error occurs');
   },
   showDialog: false,
   reportButton: (error) => {
     console.log('Report Button Initialized');
-  }
+  },
 });
 
-Sentry.init({ dsn: "https://9a70105db9fb49e3ab0a9bdbd585ce8a@o4504957350445056.ingest.sentry.io/4504957357981696" });
+// Sentry.init({
+//   dsn: 'https://9a70105db9fb49e3ab0a9bdbd585ce8a@o4504957350445056.ingest.sentry.io/4504957357981696',
+// });
 
 //New ICTD Sentry
-//Sentry.init({dsn: 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47'});
+// Sentry.init({
+//   dsn: 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47',
+//   tracePropagationTargets: ['*'],
+// });
 
 let isQuiting = false;
 let mainWindow = null;
@@ -34,17 +46,19 @@ let isDownloaded = false;
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
   new MenuItem({
-    label: 'Open', click: function () {
+    label: 'Open',
+    click: function () {
       myCapacitorApp.getMainWindow().show();
-    }
+    },
   }),
   new MenuItem({
-    label: 'Quit App', click: function () {
+    label: 'Quit App',
+    click: function () {
       isQuiting = true;
       // myCapacitorApp.getMainWindow().close();
       app.quit();
-    }
-  })
+    },
+  }),
 ];
 const appMenuBarMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
   { role: process.platform === 'darwin' ? 'appMenu' : 'fileMenu' },
@@ -52,16 +66,23 @@ const appMenuBarMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
 ];
 
 // Get Config options from capacitor.config
-const capacitorFileConfig: CapacitorElectronConfig = getCapacitorElectronConfig();
+const capacitorFileConfig: CapacitorElectronConfig =
+  getCapacitorElectronConfig();
 
 // Initialize our app. You can pass menu templates into the app here.
 // const myCapacitorApp = new ElectronCapacitorApp(capacitorFileConfig);
-const myCapacitorApp = new ElectronCapacitorApp(capacitorFileConfig, trayMenuTemplate, appMenuBarMenuTemplate);
+const myCapacitorApp = new ElectronCapacitorApp(
+  capacitorFileConfig,
+  trayMenuTemplate,
+  appMenuBarMenuTemplate
+);
 
 // If deeplinking is enabled then we will set it up here.
 if (capacitorFileConfig.electron?.deepLinkingEnabled) {
   setupElectronDeepLinking(myCapacitorApp, {
-    customProtocol: capacitorFileConfig.electron.deepLinkingCustomProtocol ?? 'mycapacitorapp',
+    customProtocol:
+      capacitorFileConfig.electron.deepLinkingCustomProtocol ??
+      'mycapacitorapp',
   });
 }
 
@@ -92,7 +113,11 @@ if (!gotTheLock) {
   // Wait for electron app to be ready.
   app.whenReady().then(async () => {
     mainWindow = await myCapacitorApp.init();
-  })
+    // setTimeout(() => {
+    //   alert('hello');
+    //   throw new Error('Test error from Electron main process');
+    // }, 1000);
+  });
   /*
       app.on('ready', () => {
         updateApp = require('update-electron-app');
@@ -106,19 +131,17 @@ if (!gotTheLock) {
       */
   autoUpdater.autoDownload = true;
 
-
   setInterval(() => {
-    autoUpdater.checkForUpdates()
-  }, 3600000)
+    autoUpdater.checkForUpdates();
+  }, 3600000);
 
-
-  autoUpdater.on("update-downloaded", (_event, releaseNotes, releaseName) => {
+  autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
     const dialogOpts = {
       type: 'info',
       buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
       title: 'PCDC Update',
       message: process.platform === 'win32' ? releaseNotes : releaseName,
-      detail: `A new version of UNICEF's Project Connect Daily Check App (PDCA) has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Project Connect Daily Check App de UNICEF (PCDC) ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Project Connect Daily Check App (PDCA) загружена . Перезапустите приложение, чтобы применить обновления.`
+      detail: `A new version of UNICEF's Project Connect Daily Check App (PDCA) has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Project Connect Daily Check App de UNICEF (PCDC) ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Project Connect Daily Check App (PDCA) загружена . Перезапустите приложение, чтобы применить обновления.`,
     };
     /*
     if (isDownloaded === false) {
@@ -131,44 +154,46 @@ if (!gotTheLock) {
     if (!isDownloaded) {
       isDownloaded = true;
       try {
-       // autoUpdater.quitAndInstall(true, true)
+        // autoUpdater.quitAndInstall(true, true)
 
-       //for auto update comment the below codes, and uncomment the above line of code
-
+        //for auto update comment the below codes, and uncomment the above line of code
 
         const dialogOpts = {
           type: 'info',
-          buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
+          buttons: [
+            'Restart / Reinicie. / Перезапуск',
+            'Later / Después / Позже',
+          ],
           title: 'PCDC Update',
           message: process.platform === 'win32' ? releaseNotes : releaseName,
-          detail: `A new version of UNICEF's Project Connect Daily Check App (PDCA) has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Project Connect Daily Check App de UNICEF (PCDC) ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Project Connect Daily Check App (PDCA) загружена . Перезапустите приложение, чтобы применить обновления.`
+          detail: `A new version of UNICEF's Project Connect Daily Check App (PDCA) has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Project Connect Daily Check App de UNICEF (PCDC) ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Project Connect Daily Check App (PDCA) загружена . Перезапустите приложение, чтобы применить обновления.`,
         };
         dialog.showMessageBox(dialogOpts).then((returnValue) => {
-          if (returnValue.response === 0) autoUpdater.quitAndInstall(false, true)
-        })
+          if (returnValue.response === 0)
+            autoUpdater.quitAndInstall(false, true);
+        });
 
-
-       //throw new Error("opps there is unexpected error")
+        //throw new Error("opps there is unexpected error")
       } catch (error) {
         console.error('Error during update installation:', error);
         const dialogOpts = {
           type: 'info',
-          buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
+          buttons: [
+            'Restart / Reinicie. / Перезапуск',
+            'Later / Después / Позже',
+          ],
           title: 'PCDC Update',
           message: process.platform === 'win32' ? releaseNotes : releaseName,
-          detail: `A new version of UNICEF's Project Connect Daily Check App (PDCA) has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Project Connect Daily Check App de UNICEF (PCDC) ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Project Connect Daily Check App (PDCA) загружена . Перезапустите приложение, чтобы применить обновления.`
+          detail: `A new version of UNICEF's Project Connect Daily Check App (PDCA) has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Project Connect Daily Check App de UNICEF (PCDC) ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Project Connect Daily Check App (PDCA) загружена . Перезапустите приложение, чтобы применить обновления.`,
         };
         dialog.showMessageBox(dialogOpts).then((returnValue) => {
-          if (returnValue.response === 0) autoUpdater.quitAndInstall(false, true)
-        })
+          if (returnValue.response === 0)
+            autoUpdater.quitAndInstall(false, true);
+        });
       }
-
     }
-
-
-
   });
-/*
+  /*
   autoUpdater.on('error', (error) => {
     console.error('Update Error:', error);
   
@@ -186,8 +211,6 @@ if (!gotTheLock) {
   });
 
 */
-
-
 
   // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
   // setupContentSecurityPolicy(myCapacitorApp.getCustomURLScheme());
@@ -224,8 +247,6 @@ app.on('activate', async function () {
     await myCapacitorApp.init();
   }
 });
-
-
 
 // Place all ipc or other electron api calls and custom functionality under this line
 

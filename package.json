@@ -33,6 +33,8 @@
     "@ionic/angular": "^6.0.3",
     "@ngx-translate/core": "^14.0.0",
     "@ngx-translate/http-loader": "^7.0.0",
+    "@sentry/angular-ivy": "^7.114.0",
+    "@sentry/electron": "^5.4.0",
     "cordova-plugin-network-information": "^3.0.0",
     "electron-builder": "^23.5.0",
     "electron-squirrel-startup": "^1.0.0",
