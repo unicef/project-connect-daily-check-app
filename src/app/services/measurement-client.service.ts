@@ -224,7 +224,7 @@ export class MeasurementClientService {
     });
   }
 
-  private calculateDataUsage(passedResults: any): number {
+  private calculateDataUsage(passedResults: any): { download: number; upload: number; total: number } {
     const bytesSent = Number(passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo.BytesAcked +
       passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo.BytesAcked
     ) || 0;
@@ -246,7 +246,7 @@ export class MeasurementClientService {
       ).toFixed(2)} MB`
     );
 
-    return totalBytes / (1024 * 1024);
+    return this.dataUsage;
   }
 
   private broadcastMeasurementStatus(
