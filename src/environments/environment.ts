@@ -13,7 +13,7 @@ export const environment = {
   restAPI: restAPI, //dev
   // restAPI: 'http://localhost:3000/api/v1/', //localhost
   token: token,
-  app_version: '1.0.8',
+  app_version: '1.0.9',
 };
 
 /*
