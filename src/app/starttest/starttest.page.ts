@@ -264,7 +264,7 @@ export class StarttestPage implements OnInit {
       this.currentState = 'Starting';
       this.uploadStatus = undefined;
       this.connectionStatus = '';
-      this.measurementClientService.start();
+      this.measurementClientService.runTest();
     } catch (e) {
       console.log(e);
     }
@@ -272,29 +272,33 @@ export class StarttestPage implements OnInit {
 
   driveGauge(event, data) {
     if (event === 'measurement:status') {
+      console.log({ data });
       if (data.testStatus === 'onstart') {
         this.currentState = 'Starting';
         this.currentRate = undefined;
         this.currentRateUpload = undefined;
         this.currentRateDownload = undefined;
-      } else if (data.testStatus === 'running_c2s') {
-        this.currentState = 'Running Test (Upload)';
       } else if (data.testStatus === 'interval_c2s') {
-        this.currentRate = data.passedResults.c2sRate;
-        this.currentRateUpload = data.passedResults.c2sRate;
-      } else if (data.testStatus === 'running_s2c') {
-        this.currentState = 'Running Test (Download)';
+        console.log('Running Test (Upload)');
+        this.currentState = 'Running Test (Upload)';
+        this.currentRate = (
+          (data.passedResults.Data.TCPInfo.BytesReceived / data.passedResults.Data.TCPInfo.ElapsedTime) *
+          8
+        ).toFixed(2);
+        this.currentRateUpload = this.currentRate;
       } else if (data.testStatus === 'interval_s2c') {
-        this.currentRate = data.passedResults.s2cRate;
-        this.currentRateDownload = data.passedResults.s2cRate;
+        this.currentState = 'Running Test (Download)';
+        this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
+        this.currentRateDownload = data.passedResults.Data.MeanClientMbps?.toFixed(2);
       } else if (data.testStatus === 'complete') {
         this.currentState = 'Completed';
         this.currentDate = new Date();
-        this.currentRate = data.passedResults.s2cRate;
-        this.currentRateUpload = data.passedResults.c2sRate;
-        this.currentRateDownload = data.passedResults.s2cRate;
+        this.currentRate = data.passedResults['NDTResult.S2C'].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+        this.currentRateUpload = data.passedResults['NDTResult.S2C'].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+        this.currentRateDownload = data.passedResults['NDTResult.C2S'].LastClientMeasurement.MeanClientMbps?.toFixed(2);
         this.progressGaugeState.current = this.progressGaugeState.maximum;
-        this.latency = data.passedResults.MinRTT;
+        this.latency = ((data.passedResults['NDTResult.S2C'].LastServerMeasurement.BBRInfo.MinRTT +
+          data.passedResults['NDTResult.C2S'].LastServerMeasurement.BBRInfo.MinRTT) / 2 / 1000).toFixed(0);
         let historicalData = this.historyService.get();
         if (historicalData !== null && historicalData !== undefined) {
           this.accessInformation =
@@ -326,7 +330,7 @@ export class StarttestPage implements OnInit {
       buttons: [
         {
           text: 'Okay',
-          handler: () => {},
+          handler: () => { },
         },
       ],
     });
@@ -346,7 +350,7 @@ export class StarttestPage implements OnInit {
       buttons: [
         {
           text: 'Okay',
-          handler: () => {},
+          handler: () => { },
         },
       ],
     });

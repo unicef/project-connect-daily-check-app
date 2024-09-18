@@ -1,70 +1,46 @@
 <app-pcdc-header></app-pcdc-header>
 <ion-content>
-  <div
-    class="container"
-    [ngClass]="currentState ==undefined || currentState == 'Starting' || !onlineStatus?'centerPos':''"
-  >
+  <div class="container"
+    [ngClass]="currentState ==undefined || currentState == 'Starting' || !onlineStatus?'centerPos':''">
     <!---------   Start test Section ------------------>
     <!-- {{currentState}} {{currentRate}} {{onlineStatus}} -->
-    <div
-      *ngIf="currentState == undefined && currentRate != 'error' && onlineStatus"
-    >
+    <div *ngIf="currentState == undefined && currentRate != 'error' && onlineStatus">
       <div class="start-container centerAlign">
         <div class="center-layout text-center">
-          <button
-            class="test-btn"
-            (click)="startNDT()"
-            [translate]="'startTest.startTest'"
-          ></button>
+          <button class="test-btn" (click)="startNDT()" [translate]="'startTest.startTest'"></button>
         </div>
       </div>
       <div class="location">{{mlabInformation.label}}</div>
     </div>
     <!---------   Start test Section END ------------------>
     <!----------   Start test progress Section --------------->
-    <div
-      *ngIf="currentState == 'Starting' && currentState !== undefined && onlineStatus"
-    >
+    <div *ngIf="currentState == 'Starting' && currentState !== undefined && onlineStatus">
       <div class="start-container centerAlign">
         <div class="center-layout text-center">
-          <ion-img
-            src="assets/loader/loader.gif"
-            class="bigloaderGif marT12"
-          ></ion-img>
+          <ion-img src="assets/loader/loader.gif" class="bigloaderGif marT12"></ion-img>
         </div>
       </div>
       <div class="location">{{mlabInformation.label}}</div>
     </div>
     <!----------   Start test progress Section END --------------->
     <!---------   Test Result Section ----------------->
-    <div
-      *ngIf="currentState !=undefined && currentState != 'Starting' && onlineStatus"
-    >
+    <div *ngIf="currentState !=undefined && currentState != 'Starting' && onlineStatus">
       <div class="uploadDownldSec">
         <div class="uplanddowld" *ngIf="currentState !=undefined">
           <div class="uploadsec">
             <div>
-              <ion-icon name="arrow-up-circle-outline"></ion-icon
-              ><span class="upload-txt" [translate]="'startTest.upload'"></span>
+              <ion-icon name="arrow-up-circle-outline"></ion-icon><span class="upload-txt"
+                [translate]="'startTest.upload'"></span>
             </div>
-            <label
-              >{{ currentRateUpload| formatThroughputMeasurement}}<span
-                >Mb/s</span
-              ></label
-            >
+            <label>{{ currentRateUpload}}<span>Mb/s</span></label>
           </div>
           <div class="downloadsec">
             <div>
-              <ion-icon name="arrow-down-circle-outline"></ion-icon
-              ><span
-                class="download-txt"
-                [translate]="'startTest.download'"
-              ></span>
+              <ion-icon name="arrow-down-circle-outline"></ion-icon><span class="download-txt"
+                [translate]="'startTest.download'"></span>
             </div>
-            <label
-              >{{ currentRateDownload | formatThroughputMeasurement}}
-              <span>Mb/s</span></label
-            >
+            <label>{{ currentRateDownload }}
+              <span>Mb/s</span></label>
           </div>
         </div>
         <div class="h-line" *ngIf="currentState !=undefined"></div>
@@ -73,22 +49,12 @@
         <div class="start-container">
           <div class="center-layout text-center">
             <!-- <button class="test-btn" (click)="startNDT()" *ngIf="currentState !== 'Completed' && currentState !== undefined">START TEST</button> -->
-            <ion-img
-              src="assets/loader/loader.gif"
-              class="bigloaderGif marT12"
-              *ngIf="currentState !== 'Completed' && currentState !== undefined"
-            ></ion-img>
-            <button
-              class="test-btn"
-              (click)="startNDT()"
-              *ngIf="currentState == 'Completed'"
-              [translate]="'startTest.testAgain'"
-            ></button>
+            <ion-img src="assets/loader/loader.gif" class="bigloaderGif marT12"
+              *ngIf="currentState !== 'Completed' && currentState !== undefined"></ion-img>
+            <button class="test-btn" (click)="startNDT()" *ngIf="currentState == 'Completed'"
+              [translate]="'startTest.testAgain'"></button>
             <div *ngIf="connectionStatus=='error'">
-              <ion-img
-                src="assets/images/Test_Failed_Icon.png"
-                class="testFailed"
-              ></ion-img>
+              <ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img>
             </div>
           </div>
         </div>
@@ -96,28 +62,21 @@
       </div>
       <div class="test-results" *ngIf="currentState =='Completed'">
         <div>
-          <ion-icon name="list-circle-outline"></ion-icon
-          ><span>{{accessInformation.org}}</span>
+          <ion-icon name="list-circle-outline"></ion-icon><span>{{accessInformation.org}}</span>
         </div>
         <div>
-          <ion-icon name="time-outline"></ion-icon
-          ><span>{{currentDate | date:'H:mm, d MMM YYYY'}}</span>
+          <ion-icon name="time-outline"></ion-icon><span>{{currentDate | date:'H:mm, d MMM YYYY'}}</span>
         </div>
         <div>
-          <ion-icon name="navigate-circle-outline"></ion-icon
-          ><span
-            [translate]="'startTest.latency'"
-            [translateParams]="{latency:latency | formatLatencyMeasurement}"
-          ></span>
+          <ion-icon name="navigate-circle-outline"></ion-icon><span [translate]="'startTest.latency'"
+            [translateParams]="{latency:latency | formatLatencyMeasurement}"></span>
         </div>
       </div>
     </div>
     <!-- ------------------------------------------- -->
     <!--   Test Failed Section------------------------->
-    <div
-      class="errrorContainer"
-      *ngIf="((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) && !isErrorClosed"
-    >
+    <div class="errrorContainer"
+      *ngIf="((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) && !isErrorClosed">
       <div class="errorMsg" #errorMsg>
         <div class="closebtn" (click)="closeError()">
           <ion-icon name="close-outline"></ion-icon>
@@ -128,31 +87,19 @@
         </div>
       </div>
     </div>
-    <div
-      class="testFailed-container"
-      *ngIf="(connectionStatus=='error' && currentState == undefined) || (!onlineStatus)"
-    >
+    <div class="testFailed-container"
+      *ngIf="(connectionStatus=='error' && currentState == undefined) || (!onlineStatus)">
       <div class="start-container">
         <div class="center-layout text-center">
           <div *ngIf="connectionStatus=='error' || !onlineStatus">
-            <ion-img
-              src="assets/images/Test_Failed_Icon.png"
-              class="testFailed"
-            ></ion-img>
+            <ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img>
           </div>
         </div>
       </div>
       <div class="location">{{mlabInformation.label}}</div>
       <div class="bottom-layout">
-        <div
-          *ngIf="currentState == undefined || !onlineStatus"
-          class="tryAgain"
-        >
-          <ion-button
-            class="dailycheck_btn"
-            (click)="measureReady()"
-            [translate]="'startTest.tryAgain'"
-          ></ion-button>
+        <div *ngIf="currentState == undefined || !onlineStatus" class="tryAgain">
+          <ion-button class="dailycheck_btn" (click)="measureReady()" [translate]="'startTest.tryAgain'"></ion-button>
           <div class="h-line"></div>
         </div>
       </div>

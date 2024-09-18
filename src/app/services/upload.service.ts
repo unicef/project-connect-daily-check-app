@@ -32,9 +32,13 @@ export class UploadService {
     this.ts = new Date(record.timestamp);
     let measurement = {
       UUID: record.uuid,
-      Download: record.results.s2cRate,
-      Upload: record.results.c2sRate,
-      Latency: parseInt(record.results.MinRTT),
+      Download: record.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps,
+      Upload: record.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps,
+      Latency: ((record.results['NDTResult.S2C'].LastServerMeasurement.BBRInfo.MinRTT +
+        record.results['NDTResult.C2S'].LastServerMeasurement.BBRInfo.MinRTT) / 2 / 1000).toFixed(0),
+      DataUsage: record.dataUsage.total,
+      DataUploaded: record.dataUsage.upload,
+      DataDownloaded: record.dataUsage.download,
       Results: record.results,
       Annotation: '',
       ServerInfo: {
@@ -72,22 +76,6 @@ export class UploadService {
       giga_id_school: '',
       app_version: environment.app_version,
     };
-    if (record.hasOwnProperty('mlabInformation')) {
-      // If we've got server data from mlab-ns, add it to the Measurement
-      // object.
-      let serverInfo = record.mlabInformation;
-      console.log('server info', serverInfo);
-      measurement.ServerInfo.FQDN = serverInfo.fqdn;
-      measurement.ServerInfo.IPv4 = serverInfo.ip[0];
-      measurement.ServerInfo.IPv6 = serverInfo.ip[1];
-      measurement.ServerInfo.City = serverInfo.city;
-      measurement.ServerInfo.Country = serverInfo.country;
-      measurement.ServerInfo.Label = serverInfo.label;
-      measurement.ServerInfo.Metro = serverInfo.metro;
-      measurement.ServerInfo.Site = serverInfo.site;
-      measurement.ServerInfo.URL = serverInfo.url;
-    }
-
     if (record.hasOwnProperty('accessInformation')) {
       let clientInfo = record.accessInformation;
 
