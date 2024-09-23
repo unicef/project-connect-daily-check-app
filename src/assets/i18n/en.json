@@ -1,12 +1,12 @@
 {
     "home": {
-        "title1": "Welcome to Project Connect <span class='daily-chk-blue'>Daily Check</span>",
+        "title1": "Welcome to {{appName}} <span class='daily-chk-blue'>{{appNameSuffix}}</span>",
         "title2": "Help your school get better connectivity. Share your school internet status with Project Connectivity everyday.",
         "next": "Next",
-        "learn-more": "LEARN MORE ABOUT PROJECT CONNECT"
+        "learn-more": "LEARN MORE ABOUT {{appName}}"
     },
     "confirmSchool": {
-        "title": "CONFIRM SCHOOL INFORMATION TO REGISTER YOUR SCHOOL WITH PROJECT CONNECT",
+        "title": "CONFIRM SCHOOL INFORMATION TO REGISTER YOUR SCHOOL WITH {{appName}}",
         "confirm1": "*Please make sure the correct country is selected.",
         "confirm2": "IS THE INFORMATION ABOVE CORRECT?"
     },
@@ -22,11 +22,11 @@
     "schoolNotFound": {
         "unableToLocate": "UNABLE TO LOCATE YOUR SCHOOL",
         "notFound": "Unfortunately we were unable to locate your school",
-        "notRegister": "Unfortunately your school is not registered with Project Connect\nPlease contact your school administrator to register your school on\nPCDC again."
+        "notRegister": "Unfortunately your school is not registered with {{appName}}\nPlease contact your school administrator to register your school on\nPCDC again."
     },
     "schoolSuccess": {
         "congratulations": "CONGRATULATIONS!",
-        "school-registered": "Your School has been registered on <br />Project Connect",
+        "school-registered": "Your School has been registered on <br />{{appName}}",
         "success-txt": "YOUR DAILY INTERNET <br />CHECK IS SET",
         "internet-checks": "This App will check your <br />internet status twice daily",
         "app-run": "THIS APP WILL RUN <br />IN THE BACKGROUND",
@@ -38,7 +38,7 @@
         "country": "Country",
         "country-not-accurate": "It looks like the country you selected may not be accurate.",
         "please-double-check": "Please double-check your selection.",
-        "not-available": "Sorry, Project Connect Daily Check App is not available in {{selectedCountry}}"
+        "not-available": "Sorry, {{appName}} {{appNameSuffix}} App is not available in {{selectedCountry}}"
     },
     "searchSchool": {
         "search": "Searching for your school...",
@@ -52,7 +52,7 @@
         "what-is-school-id-desc": "A school ID is a unique identifier for your school that was provided by the government. There are different formats, but usually looks something like \"BR12345\" or \"12345678\"",
         "how-find-school-id": "How do I find my school ID?",
         "how-find-school-id-desc": "Your school administrator or IT department will know. The school ID will be the number that is used in your national registration system.",
-        "school-id-not-found": "My school is not part of Project Connect yet. What can I do?",
+        "school-id-not-found": "My school is not part of {{appName}} yet. What can I do?",
         "school-id-not-found-desc": "You can visit our website and fill out the contact form to indicate to us that you would like to join our initiative.",
         "can-close-app": "Can I close the application?",
         "can-close-app-desc": "Yes, you can close the application by clicking the close button in the top right. The application will continue running in the background and will report your connectivity status.",
@@ -67,14 +67,14 @@
     },
     "app": {
         "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Frequently asked questions",
-        "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>About Project Connect",
+        "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>About {{appName}}",
         "school-id": "YOUR SCHOOL ID",
         "my-school-id": "<span class=\"hash\">#</span>My School Id",
         "version": "VERSION {{ app_version }}",
-        "about-project-connect": "ABOUT PROJECT CONNECT",
-        "project-connect-desc": "Project Connect is mapping the connectivity of every school in the world. We aim to connect all schools to the Internet and all young people to information, opportunity and choice.",
-        "thank-you": "Thank you for contributing to Project Connect. Find your school and learn more at our website. We add new schools every day!",
-        "view-project-connect": "VIEW PROJECT CONNECT"
+        "about-project-connect": "ABOUT {{appName}}",
+        "project-connect-desc": "{{appName}} is mapping the connectivity of every school in the world. We aim to connect all schools to the Internet and all young people to information, opportunity and choice.",
+        "thank-you": "Thank you for contributing to {{appName}}. Find your school and learn more at our website. We add new schools every day!",
+        "view-project-connect": "VIEW {{appName}}"
     },
     "startTest": {
         "startTest": "START TEST",

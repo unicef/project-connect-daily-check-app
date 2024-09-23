@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/_environment.prod';
+import { environment as env } from '../../environments/environment';
 import { SettingsService } from '../services/settings.service';
 
 @Component({
@@ -12,6 +13,8 @@ export class PcdcHeaderComponent implements OnInit {
   languages = environment.languages;
   selectedLanguage: string;
   test = false;
+  appName = env.appName;
+  appNameSuffix = env.appNameSuffix;
   constructor(
     private translate: TranslateService,
     private settingsService: SettingsService
@@ -23,7 +26,7 @@ export class PcdcHeaderComponent implements OnInit {
     translate.use(this.selectedLanguage);
     this.test = environment.mode === 'test';
   }
-  ngOnInit() { }
+  ngOnInit() {}
   onLanguageChange() {
     // Update local storage when the language changes
     this.settingsService.setSetting(

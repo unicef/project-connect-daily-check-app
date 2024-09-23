@@ -5,6 +5,7 @@ import { LoadingService } from '../services/loading.service';
 import { NotFound } from './types';
 import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../services/settings.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-schoolnotfound',
@@ -20,6 +21,7 @@ export class SchoolnotfoundPage {
   selectedCountry: any;
   detectedCountry: any;
   notFound = true;
+  appName = environment.appName;
   constructor(
     private activatedroute: ActivatedRoute,
     public router: Router,

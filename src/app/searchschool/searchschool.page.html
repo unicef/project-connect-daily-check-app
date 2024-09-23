@@ -2,37 +2,21 @@
 <ion-content>
   <div class="container">
     <div class="top-layout">
-      <div
-        class="provide-id"
-        [translate]="'searchSchool.provide-school-id'"
-      ></div>
+      <div class="provide-id" [translate]="'searchSchool.provide-school-id'"></div>
       <div class="wrap">
         <div class="search">
-          <input
-            type="text"
-            class="searchTerm"
-            placeholder="{{ 'searchSchool.placeholder-school-id' | translate }}"
-            [(ngModel)]="schoolId"
-            (ngModelChange)="validateSchoolId($event)"
-            required
-            minlength="2"
-            (keyup.enter)="searchSchoolById()"
-          />
-          <button
-            type="submit"
-            class="searchButton"
-            (click)="searchSchoolBySchooIdAndCountryCode()"
-            [disabled]="isDisabled"
-          >
+          <input type="text" class="searchTerm" placeholder="{{ 'searchSchool.placeholder-school-id' | translate }}"
+            [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2"
+            (keyup.enter)="searchSchoolById()" />
+          <button type="submit" class="searchButton" (click)="searchSchoolBySchooIdAndCountryCode()"
+            [disabled]="isDisabled">
             <ion-icon name="search-outline" class="searchIcon"></ion-icon>
           </button>
         </div>
       </div>
-      <div
-        class="learn-more noschoolid-link"
+      <div class="learn-more noschoolid-link"
         (click)="openExternalUrl('https://projectconnect.unicef.org/daily-check-app')"
-        [innerHTML]="'searchSchool.user-has-not-id' | translate"
-      ></div>
+        [innerHTML]="'searchSchool.user-has-not-id' | translate"></div>
     </div>
     <div class="bottom-layout">
       <div class="freq-txt" [translate]="'faq.FAQ'"></div>
@@ -55,21 +39,17 @@
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  [translate]="'faq.how-find-school-id-desc'"
-                ></ion-label>
+                <ion-label [translate]="'faq.how-find-school-id-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
           <ion-accordion value="faq3">
             <ion-item slot="header">
-              <ion-label [translate]="'faq.school-id-not-found'"></ion-label>
+              <ion-label [translate]="'faq.school-id-not-found' | translate:{ appName }"></ion-label>
             </ion-item>
             <ion-list slot="content">
               <ion-item>
-                <ion-label
-                  [translate]="'faq.school-id-not-found-desc'"
-                ></ion-label>
+                <ion-label [translate]="'faq.school-id-not-found-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
