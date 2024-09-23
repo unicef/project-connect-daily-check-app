@@ -30,8 +30,8 @@
           [translate]="'searchCountry.please-double-check'"></div>
 
         <div *ngIf="this.isPcdcCountry === false " class="search-label-error"
-          [translate]="'searchCountry.not-available' | translate:{ appName, appNameSuffix }"
-          [translateParams]="{ selectedCountry: selectedCountry }"></div>
+          [translate]="'searchCountry.not-available'" [translateParams]="{ selectedCountry ,appName, appNameSuffix }">
+        </div>
       </div>
       <div class="bottom-layout">
         <ion-button color="primary" block class="dailycheck_btn" (click)="confirmCountry()"><span class="next-txt"
