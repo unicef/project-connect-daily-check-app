@@ -199,7 +199,7 @@ export class MeasurementClientService {
 
   private async finalizeMeasurement(measurementRecord: any): Promise<void> {
     measurementRecord.uuid =
-      measurementRecord.results['NDTResult.S2C'].UUID || '';
+      measurementRecord.results['NDTResult.S2C'].LastServerMeasurement.ConnectionInfo.UUID || '';
     measurementRecord.version = 1;
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
