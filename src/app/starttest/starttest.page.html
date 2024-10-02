@@ -99,7 +99,7 @@
       <div class="location">{{mlabInformation.label}}</div>
       <div class="bottom-layout">
         <div *ngIf="currentState == undefined || !onlineStatus" class="tryAgain">
-          <ion-button class="dailycheck_btn" (click)="measureReady()" [translate]="'startTest.tryAgain'"></ion-button>
+          <ion-button class="dailycheck_btn" (click)="startNDT()" [translate]="'startTest.tryAgain'"></ion-button>
           <div class="h-line"></div>
         </div>
       </div>
