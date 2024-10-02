@@ -90,7 +90,7 @@ export class MeasurementClientService {
       await this.finalizeMeasurement(measurementRecord);
     } catch (error) {
       console.error('Error running ndt7 test:', error);
-      this.broadcastMeasurementStatus('error', { error: error.message });
+      this.broadcastMeasurementStatus('onError', { error: error.message });
     }
   }
 
@@ -109,13 +109,13 @@ export class MeasurementClientService {
     };
   }
 
-  private getTestInfo() {
-    return forkJoin({
-      accessInformation: this.networkService.getAccessInformation(),
-      mlabInformation: this.mlabService.findServer(
+  private async getTestInfo() {
+    return {
+      accessInformation: await this.networkService.getNetInfo(),
+      mlabInformation: await this.mlabService.findServer(
         this.settingsService.get('metroSelection')
-      ),
-    }).toPromise();
+      ).toPromise(),
+    };
   }
 
   private getTestCallbacks(measurementRecord: any) {

@@ -17,7 +17,7 @@ export class ScheduleService {
     private sharedService: SharedService,
     private networkService: NetworkService,
     private customScheduleService: CustomScheduleService
-  ) {}
+  ) { }
 
   initiate() {
     this.watch();
@@ -72,7 +72,7 @@ export class ScheduleService {
       scheduleSemaphore.choice !== undefined &&
       currentTime > scheduleSemaphore.choice
     ) {
-      const networkInfo = await this.networkService.getNetworkInfo();
+      const networkInfo = await this.networkService.getNetInfo();
       if (networkInfo === null) {
         console.log('Network not available, skipping schedule check.');
         this.storageService.set('measurementOfReconnect', true);
@@ -81,13 +81,13 @@ export class ScheduleService {
       }
       console.log(
         'On ' +
-          new Date(currentTime).toUTCString() +
-          ' found scheduled test covering ' +
-          new Date(scheduleSemaphore.start).toUTCString() +
-          ' and ' +
-          new Date(scheduleSemaphore.end).toUTCString() +
-          ' scheduled to run near ' +
-          new Date(scheduleSemaphore.choice).toUTCString()
+        new Date(currentTime).toUTCString() +
+        ' found scheduled test covering ' +
+        new Date(scheduleSemaphore.start).toUTCString() +
+        ' and ' +
+        new Date(scheduleSemaphore.end).toUTCString() +
+        ' scheduled to run near ' +
+        new Date(scheduleSemaphore.choice).toUTCString()
       );
       console.log('Found scheduled measurement ready, triggering.');
       this.storageService.set('lastMeasurement', currentTime);
