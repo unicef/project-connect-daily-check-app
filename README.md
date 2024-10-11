@@ -1,11 +1,13 @@
+<div style="padding-left: 20px; padding-right: 10px;">
 <a href="https://giga.global/">
-    <img src="https://s41713.pcdn.co/wp-content/uploads/2018/11/2020.05_GIGA-visual-identity-guidelines_v1-25.png" alt="Giga logo" title="Giga" align="right" height="60"/>
+    <img src="https://s41713.pcdn.co/wp-content/uploads/2018/11/2020.05_GIGA-visual-identity-guidelines_v1-25.png" alt="Giga logo" title="Giga" align="right" height="60" style="padding-top: 10px;"/>
 </a>
 
-# Project Connect Daily Check App (PCDCA)
-<br>
+<div style="padding-top: 20px;"> </div>
+<h1><a id="gigameter" class="anchor" aria-hidden="true" href="#gigablocks"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+GigaMeter </h1> 
 
-<div align="center">
+<div align="center" >
 
 <!--- These are examples. See https://shields.io for others or to customize this set of shields. You might want to include dependencies, project status and licence info here --->
 ![GitHub repo size](https://img.shields.io/github/repo-size/unicef/project-connect-daily-check-app)
@@ -16,148 +18,195 @@
 
 </div>
 
+<details open="open">
+	<summary style="padding-bottom: 10px;"><h2>Table of Contents</h2></summary>
+  <ol>
+    <li><a href="#about-giga">About Giga</a></li>
+    <li><a href="#about-gigameter">About GigaMeter</a>
+    <ul>
+        <li><a href="#project-objective">Project Objective</a></li>
+        <li><a href="#design-and-architecture">Design and Architecture</a></li>
+        <li><a href="#system-requirements">System Requirements</a></li>
+        <li><a href="#giga-meter-repos">Github Repositories of GigaMeter</a></li>
+        <li><a href="#built-with">Built With</a></li>
+      </ul>
+      </li>
+    <li><a href="#usage">Usage</a></li>
+	<li>
+      <a href="#getting-started">Getting Started</a>
+    </li>
+    <li><a href="#contribution-guidelines">Contribution Guidelines</a></li>
+    <li><a href="#code-design">Code Design</a></li>
+    <li><a href="#code-of-conduct">Code of Conduct</a></li>
+    <li><a href="#license">License</a></li>
+    <li><a href="#contact">Contact</a></li>
+    <li><a href="#contributors">Contributors</a></li>
+    <li><a href="#acknowledgements">Acknowledgements</a></li>
+  </ol>
+</details>
 
-The [Daily Check App](https://projectconnect.unicef.org/daily-check-app) is a Windows desktop application that automatically measures the internet upload and download speed of a network using minimal data. The App is automatically scheduled to run two random internet speed tests daily.
+<h2><a id="about-giga" class="anchor" aria-hidden="true" href="#about-giga"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>About Giga</h2>
 
-It can be installed on a user device (such as a computer or laptop) and configured easily to send daily internet connectivity information to a database. It utilizes the Network Diagnostic Tool (NDT), developed and maintained by Internet 2 and hosted by [Measurement Lab (M-Lab)](https://github.com/m-lab/ndt7-js).
+Giga is a UNICEF-ITU global initiative to connect every school to the Internet and every young person to information, opportunity, and choice. By connecting all schools to the Internet, we ensure that every child has a fair shot at success in an increasingly digital world.
 
-Giga uses the Daily Check App to measure school connectivity, sending daily internet connectivity information to [Project Connect](https://projectconnect.unicef.org/map), helping Giga create an accurate picture of a school’s network quality over time. It was developed in partnership with Ericsson. 
+<h2><a id="about-gigameter" class="anchor" aria-hidden="true" href="#about-gigameter"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+About GigaMeter</h2>
 
-### About Giga
+GigaMeter is a client desktop application, which can be installed on windows and android, that automatically measures the internet upload and download speed of a network using minimal data. The App is automatically scheduled to run two random internet speed tests daily. 
 
-[Giga](https://giga.global/) is a UNICEF-ITU global initiative to connect every school to the Internet and every young person to information, opportunity, and choice. By connecting all schools to the Internet, we ensure that every child has a fair shot at success in an increasingly digital world.
+It can be installed on a user device (such as a computer or laptop) and configured easily to send daily internet connectivity information to a database. It utilizes the Network Diagnostic Tool (NDT), developed and maintained by Internet 2 and hosted by Measurement Lab (M-Lab). 
+
+Giga uses GigaMeter to measure school connectivity, sending daily internet connectivity information to Project Connect, helping Giga create an accurate picture of a school’s network quality over time. It was developed in partnership with Ericsson. 
+
+<h3><a id="project-objective" class="anchor" aria-hidden="true" href="#project-objective"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Project Objective</h3>
+
+- Improve accountability and transparency by tracking the progress and quality of connectivity of schools over time 
+
+- Easily check, understand, share and visualize the quality of the internet service experienced in a school  
+
+- Measure impact by generating updated estimates on the number of schools and children who have fast and reliable access to internet connectivity 
+
+<h3><a id="design-and-architecture" class="anchor" aria-hidden="true" href="#design-and-architecture"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Design and Architecture</h3>
+<p></p>
+GigaMeter is a Windows-based desktop application that can be installed on a school's computer and configured easily to send internet connectivity information to the Project Connect database. It uses a Network Diagnostic Tool (developed and maintained by M-Lab) to test internet connectivity.
+
+
+<h3><a id="system-requirements" class="anchor" aria-hidden="true" href="#system-requirements"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+System Requirements </h3>
+<p></p>
+To run GigaMeter, the following are minimum requirements: 
+
+- Internet connection 
+
+- A Windows (Windows 7 or higher) desktop or laptop computer that is permanently and exclusively connected to the school internet. 
+
+- 500 Mb of free disk space 
+
+<h3><a id="built-with" class="anchor" aria-hidden="true" href="#built-with"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Built With </h3>
+ 
+<b>Our Tech Stacks</b>  
+- Ionic - an open-source UI toolkit (version 6.0.3) 
+
+- Angular – a TypeScript-based, free and open-source web application framework (version 13) 
+
+- Capacitor - Community/Electron - (version 4.1.0)  
+
+- Electron - a framework for building desktop applications using JavaScript, HTML and CSS  
+
+<h3><a id="giga-meter-repos" class="anchor" aria-hidden="true" href="#giga-meter-repos"><svg class="octicon octicon-link" align="center" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Github Repositories of GigaMeter </h3>
+
+- [GigaMeter Frontend](https://github.com/unicef/project-connect-daily-check-app)
+- [GigaMeter Backend](https://github.com/unicef/giga-meter-backend)
+- [Giga – documentation](#)
+
+
+<h2><a id="getting-started" class="anchor" aria-hidden="true" href="#getting-started"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Getting Started</h2>
+
+### Setup and Running
+#### Installation 
+
+- Download the latest version from the GigaMeter website.  
+
+    - The download will start automatically.  
+
+    - When the download is complete, double-click on the file – this usually appears on the bottom bar of your browser, otherwise, you will find the file in your ‘Downloads’ folder.  
+
+    -  The installation process is straightforward, follow the wizard by clicking ‘Next’ on each step.  
+
+- After successfully installing the app, it will send schools' internet connectivity information to Project Connect twice a day. 
+
+#### Development Commands 
+
+<b>Basic development commands</b> 
+
+- After cloning the code from the GitHub repository https://github.com/unicef/project-connect-daily-check-app, install all the dependencies modules by running this command: npm install 
+
+- To run the app the application in a browser, run this command: Ionic serve 
+
+- To run the application directly during the development without creating exe, run the following command from electron folder: npm run electron:start-live 
+
+<b>Ionic build generation</b> 
+
+- To create a build from Ionic, run the following command: Ionic build (for development), or Ionic build –prod (for production) 
+
+- After running the above command, ionic build will be generated.  
+
+- To transfer the build to electron side, run the following command: npx cap sync @capacitor-community/electron 
+
+<b>Setup file generation</b>
+
+- Navigate to the electron folder, then run the following command: npm run electron:make 
+
+- The windows build can be found inside /electron/dist folder 
+
+ 
+
+#### Third-party Integrations 
+
+<b>Network Diagnostic Tool</b> 
+
+The application implements the same Network Diagnostic Tool (NDT) as the M-Lab chrome browser extension. The PCDC App integrates the NDT test using M-Lab's Javascript client library (for more information see M-Lab developer resources). The result of the test is sent as a JSON object to the application, which is then passed on to Project Connect via the Service level API. 
+
+<h2><a id="contribution-guidelines" class="anchor" aria-hidden="true" href="#contribution-guidelines"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Contribution Guidelines</h2>
+
+Thank you for considering contributing to GigaMeter! We value your input and aim to make the contribution process as accessible and transparent as possible. Whether you're interested in reporting bugs, discussing code, submitting fixes, proposing features, becoming a maintainer, or engaging with the GigaMeter community, we welcome your involvement. 
+
+  
+
+[Click here for detailed Contribution Guidelines](#) 
+
+<h2><a id="code-design" class="anchor" aria-hidden="true" href="#code-design"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Code Design</h2>
+
+### Monorepo Structure 
+
+Backend Application Structure 
+
+Ionic/Angula Structure: The application business logic for PCDCA resides in this section. Active development should reside inside the src folder of the application.
+
+<img src="http://giga.global/wp-content/uploads/2024/10/gigameter_pic1.png" alt="Giga Meter Ionic" title="GigaMeterIonic" height="300" style="padding-left: 20px; padding-right: 10px;" />
+
+Electron Structure: The above Ionic/Angular application is packaged and delivered as a desktop application inside this section of the code. 
+
+<img src="http://giga.global/wp-content/uploads/2024/10/gigameter_electron.png" alt="Giga Meter Electron" title="GigaMeterElectron" height="300" style="padding-left: 20px; padding-right: 10px;" />
+
+
+<h2><a id="code-of-conduct" class="anchor" aria-hidden="true" href="#code-of-conduct"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Code of Conduct</h2>
+
+At Giga, we're committed to maintaining an environment that's respectful, inclusive, and harassment-free for everyone involved in our project and community. We welcome contributors and participants from diverse backgrounds and pledge to uphold the standards. 
+
+  
+
+[Click here for detailed Code of Conduct](https://github.com/unicef/giga-blocks-documentation/blob/main/versioned_docs/version-1.0/Code-of-Conduct.md) 
+
+<h2><a id="license" class="anchor" aria-hidden="true" href="#license"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+License</h2>
+
+Distributed under the AGPL-3.0 License. See [LICENSE](https://github.com/unicef/project-connect-daily-check-app/blob/main/LICENSE) for more information. 
+
+<h2><a id="contact" class="anchor" aria-hidden="true" href="#contact"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Contact</h2>
+
+GigaMeter Project Lead: Shilpa Arora: sharora@unicef.org 
+
+GigaMeter Project Member: Vipul Bhavsar: vbhavsar@unicef.org 
+
+Giga Open-Source Community Manager: David Njagah: dnjagah@unicef.org 
+
+Giga Website: https://giga.global/contact-us/ 
 
 <br>
 
-<div align="center">
+<h2><a id="acknowledgements" class="anchor" aria-hidden="true" href="#acknowledgements"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
+Acknowledgments💜</h2> 
 
-[Getting started](##getting-started) •
-[Deployment](##deployment-and-usage) •
-[Contributing](##contributing) •
-[Integrations](##third-party-integrations) •
-[Contact](##contact) •
-[License](##license) •
-[Acknowledgments](##acknowledgments)
+* Thanks to Ericsson for helping build this application!
 
 </div>
-<br>
-
-## Getting Started
-
-### Prerequisites
-
-The Daily Check App supports development and distribution on the following platforms:
-<!--- These are just example requirements. Add, duplicate or remove as required --->
-* Windows, running Windows 7 or higher (ideally a device that is permanently and exclusively connected to the school internet)
-
-
-### Installing The Daily Check App
-
-To install The Daily Check App, download the latest version from this repo or from the [Daily Check App website](https://projectconnect.unicef.org/daily-check-app).
-
-<br>
-
-## Deployment and Usage
-<!--- These section can be about deployment and/or usage. See https://shields.io for others or to customize this set of shields. You might want to include dependencies, project status and licence info here --->
-
-### Deploying The Daily Check App
-
-After cloning this repo, install all the dependency modules by running `npm install`
-
-To run the app the application in a browser, run `ionic serve`
-
-To run the application directly during development without creating an exe, run the following command from the electron folder `npm run electron:start-live`
-
-To create a build from ionic, for dev environment run:
-
-```
-ionic build
-```
-
-OR, for production environment:
-
-```
-ionic build --prod 
-```
-
-After running this command the build will be generated. To transfer the build to electron run the following command:
-
-```
-npx cap sync @capacitor-community/electron
-```
-
-After that, navigate to the electron folder
-
-```
-cd .\electron\
-```
-
-and create the windows build (.exe or msi) by runing the following command:
-
-```
-npm run electron:make
-```
-
-The windows build can be found inside `/electron/dist/folder`
-
-## Features
-* Checks school internet connection using minimal data (obtains metrics such as upload and download speed, latency, IP address, etc)
-* Automatically detects the country of a user 
-* Uploads results to a public database
-
-#### Built With
-* [Ionic](https://ionicframework.com/) - an open-source UI toolkit (version 6.0.3)
-* [Angular](https://angular.io/) - a TypeScript-based, free and open-source web application framework (version 13)
-* [Capacitor](https://capacitorjs.com/) - an open source native runtime for building Web Native apps (version 4.1.0)
-* [Electron](https://www.electronjs.org/) - a framework for building desktop applications using JavaScript, HTML and CSS
-
-#### Network Diagnostic Tool 
-The application implements M-Lab's Network Diagnostic Tool (NDT) using M-Lab's Javascript client library (for more information see [M-Lab developer resources](https://www.measurementlab.net/develop/)). The result of the test is sent as a JSON object to the application, which is then passed on to a database via an API. 
-
-The PCDC App uses the following NDT (Network Diagnostic Tool) library for JavaScript, downloaded from mLab
-* NDT Client
-    * Resides inside Ionic/Angular application `/src/assets/js/ndt/ndt-browser-client.js`
-* NDT worker
-    * Resides inside Ionic/Angular application `/src/assets/js/ndt/ndt-worker.js`
-
-
-<br>
-
-<!--- ## Contributing to <project_name>--->
-<!--- If your README is long or you have some specific process or steps you want contributors to follow, consider creating a separate CONTRIBUTING.md file--->
-<!---To contribute to <project_name>, follow these steps:
-
-1. Fork this repository.
-2. Create a branch: `git checkout -b <branch_name>`.
-3. Make your changes and commit them: `git commit -m '<commit_message>'`
-4. Push to the original branch: `git push origin <project_name>/<location>`
-5. Create the pull request.--->
-
-<!---Alternatively see the GitHub documentation on [creating a pull request](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request).--->
-
-<!---### Contributors--->
-
-## Contributors
-
-Thanks to the following people who have contributed to this project:
-
-* [@sanoylab - Senior Software Developer @Giga](https://github.com/sanoylab) 📖
-* [@shilpa9a - Data & Mapping Product Lead @Giga](https://github.com/shilpa9a) 🐛
-
-<br>
-
-## Contact
-
-If you want to contact us, please [submit a form here](https://projectconnect.unicef.org/daily-check-app#contact-us).
-
-<br>
-
-## License
-<!--- If you're not sure which open license to use see https://choosealicense.com/--->
-
-This project uses the following license: [<license_name>](<link>).
-
-<br>
-
-## Acknowledgments
-* Thanks to Ericsson for helping build this application!
