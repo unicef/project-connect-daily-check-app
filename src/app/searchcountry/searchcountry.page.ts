@@ -1046,7 +1046,7 @@ export class SearchcountryPage {
     /* Store school id and giga id inside storage */
     let countryData = {};
 
-    this.networkService.getAccessInformation().subscribe((c) => {
+    this.networkService.getNetInfo().then((c) => {
       console.log(c);
       this.selectedCountry = c.country;
       this.detectedCountry = c.country;
