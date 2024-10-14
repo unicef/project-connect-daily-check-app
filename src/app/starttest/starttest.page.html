@@ -27,13 +27,6 @@
     <div *ngIf="currentState !=undefined && currentState != 'Starting' && onlineStatus">
       <div class="uploadDownldSec">
         <div class="uplanddowld" *ngIf="currentState !=undefined">
-          <div class="uploadsec">
-            <div>
-              <ion-icon name="arrow-up-circle-outline"></ion-icon><span class="upload-txt"
-                [translate]="'startTest.upload'"></span>
-            </div>
-            <label>{{ currentRateUpload}}<span>Mb/s</span></label>
-          </div>
           <div class="downloadsec">
             <div>
               <ion-icon name="arrow-down-circle-outline"></ion-icon><span class="download-txt"
@@ -41,6 +34,13 @@
             </div>
             <label>{{ currentRateDownload }}
               <span>Mb/s</span></label>
+          </div>
+          <div class="uploadsec">
+            <div>
+              <ion-icon name="arrow-up-circle-outline"></ion-icon><span class="upload-txt"
+                [translate]="'startTest.upload'"></span>
+            </div>
+            <label>{{ currentRateUpload}}<span>Mb/s</span></label>
           </div>
         </div>
         <div class="h-line" *ngIf="currentState !=undefined"></div>
