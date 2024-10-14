@@ -7,7 +7,7 @@
         <div class="search">
           <input type="text" class="searchTerm" placeholder="{{ 'searchSchool.placeholder-school-id' | translate }}"
             [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2"
-            (keyup.enter)="searchSchoolById()" />
+            (keyup.enter)="searchSchoolBySchooIdAndCountryCode()" />
           <button type="submit" class="searchButton" (click)="searchSchoolBySchooIdAndCountryCode()"
             [disabled]="isDisabled">
             <ion-icon name="search-outline" class="searchIcon"></ion-icon>
