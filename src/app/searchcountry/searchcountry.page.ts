@@ -10,6 +10,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { Country } from '../shared/country.model';
 import { CountryService } from '../services/country.service';
 import { TranslateService } from '@ngx-translate/core';
+import { environment } from 'src/environments/environment';
 @Component({
   selector: 'app-searchcountry',
   templateUrl: 'searchcountry.page.html',
@@ -1024,6 +1025,8 @@ export class SearchcountryPage {
       code: 'ZW',
     },
   ];
+  appName = environment.appName;
+  appNameSuffix = environment.appNameSuffix;
   constructor(
     private storage: StorageService,
     private networkService: NetworkService,
@@ -1043,7 +1046,7 @@ export class SearchcountryPage {
     /* Store school id and giga id inside storage */
     let countryData = {};
 
-    this.networkService.getAccessInformation().subscribe((c) => {
+    this.networkService.getNetInfo().then((c) => {
       console.log(c);
       this.selectedCountry = c.country;
       this.detectedCountry = c.country;

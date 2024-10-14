@@ -65,10 +65,10 @@ export class SchoolService {
     return this.http
       .get(
         environment.restAPI +
-          'schools/country_code_school_id/' +
-          code +
-          '/' +
-          id,
+        'schools/country_code_school_id/' +
+        code +
+        '/' +
+        id,
         this.options
       )
       .pipe(
@@ -91,7 +91,6 @@ export class SchoolService {
       )
       .pipe(
         map((response: any) => response.data),
-        tap((data) => console.log(JSON.stringify(data))),
         catchError(this.handleError)
       );
   }
@@ -197,7 +196,6 @@ export class SchoolService {
         catchError(this.handleError)
       );
   }
-
   /**
    * Private function to handle error
    *
@@ -208,3 +206,4 @@ export class SchoolService {
     return throwError(error);
   }
 }
+

@@ -5,6 +5,7 @@ import { LoadingService } from '../services/loading.service';
 import { IonSlides } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../services/settings.service';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-schoolsuccess',
@@ -21,6 +22,7 @@ export class SchoolsuccessPage {
     speed: 400,
   };
   isLast = false;
+  appName = environment.appName;
   constructor(
     public loading: LoadingService,
     private router: Router,

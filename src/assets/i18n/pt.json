@@ -1,12 +1,12 @@
 {
     "home": {
-        "title1": "Boas-vindas ao Project Connect <span class='daily-chk-blue'>Daily Check</span>",
+        "title1": "Boas-vindas ao {{appName}} <span class='daily-chk-blue'>{{appNameSuffix}}</span>",
         "title2": "Ajude sua escola a obter uma melhor conectividade. Compartilhe diariamente o estado da internet de sua escola com o Projeto Conectividade.",
         "next": "Próximo",
-        "learn-more": "SAIBA MAIS SOBRE O PROJECT CONNECT"
+        "learn-more": "SAIBA MAIS SOBRE O {{appName}}"
     },
     "confirmSchool": {
-        "title": "CONFIRME AS INFORMAÇÕES DA ESCOLA PARA REGISTRAR SUA ESCOLA NO PROJECT CONNECT",
+        "title": "CONFIRME AS INFORMAÇÕES DA ESCOLA PARA REGISTRAR SUA ESCOLA NO {{appName}}",
         "confirm1": "*Certifique-se de que o país correto está selecionado.",
         "confirm2": "AS INFORMAÇÕES ACIMA ESTÃO CORRETAS?"
     },
@@ -22,11 +22,11 @@
     "schoolNotFound": {
         "unableToLocate": "NÃO FOI POSSÍVEL LOCALIZAR SUA ESCOLA",
         "notFound": "Infelizmente, não foi possível localizar a sua escola",
-        "notRegister": "Infelizmente, sua escola não está registrada no Project Connect\nPor favor, entre em contato com o administrador da sua escola para registrar sua escola novamente no\nPCDC."
+        "notRegister": "Infelizmente, sua escola não está registrada no {{appName}}\nPor favor, entre em contato com o administrador da sua escola para registrar sua escola novamente no\nPCDC."
     },
     "schoolSuccess": {
         "congratulations": "PARABÉNS!",
-        "school-registered": "Sua escola foi registada no <br />Project Connect",
+        "school-registered": "Sua escola foi registada no <br />{{appName}}",
         "success-txt": "O SEU CONTROLO DIÁRIO DE INTERNET <br />ESTÁ CONFIGURADO",
         "internet-checks": "Este aplicativo verificará a sua <br />situação de internet duas vezes ao dia",
         "app-run": "ESTE APLICATIVO FUNCIONARÁ <br />EM SEGUNDO PLANO",
@@ -38,7 +38,7 @@
         "country": "País",
         "country-not-accurate": "Parece que o país que selecionou pode não ser exato.",
         "please-double-check": "Verifique novamente a sua seleção.",
-        "not-available": "Desculpe, o Aplicativo de Verificação Diária do Project Connect não está disponível em {{selectedCountry}}"
+        "not-available": "Desculpe, o Aplicativo de Verificação Diária do {{appName}} não está disponível em {{selectedCountry}}"
     },
     "searchSchool": {
         "search": "Procurando por sua escola...",
@@ -52,7 +52,7 @@
         "what-is-school-id-desc": "O ID da escola é um identificador único para a sua escola, fornecido pelo governo. Existem diferentes formatos, mas, geralmente, é parecido com \"BR12345\" ou \"12345678\"",
         "how-find-school-id": "Como encontro o ID da minha escola?",
         "how-find-school-id-desc": "O diretor da escola ou o departamento de Tecnologias de Informação saberão. O ID da escola é o número utilizado no sistema nacional de registo.",
-        "school-id-not-found": "A minha escola ainda não faz parte do Project Connect. O que posso fazer?",
+        "school-id-not-found": "A minha escola ainda não faz parte do {{appName}}. O que posso fazer?",
         "school-id-not-found-desc": "Pode visitar o nosso website e preencher o formulário de contacto para nos indicar que gostaria de se juntar à nossa iniciativa.",
         "can-close-app": "Posso fechar o aplicativo?",
         "can-close-app-desc": "Sim, você pode fechar o aplicativo clicando no botão de fechar no canto superior direito. O aplicativo continuará sendo executado em segundo plano e relatará o seu estado de conectividade.",
@@ -67,14 +67,14 @@
     },
     "app": {
         "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Perguntas frequentes",
-        "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>Sobre o Project Connect",
+        "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>Sobre o {{appName}}",
         "school-id": "ID DA SUA ESCOLA",
         "my-school-id": "<span class=\"hash\">#</span>ID da Minha Escola",
         "version": "VERSÃO {{ app_version }}",
-        "about-project-connect": "SOBRE O PROJECT CONNECT",
+        "about-project-connect": "SOBRE O {{appName}}",
         "project-connect-desc": "O Projeto Connect está a mapear a conectividade de todas as escolas do mundo. O nosso objetivo é ligar todas as escolas à Internet e todos os jovens e crianças à informação, à oportunidade e à escolha.",
-        "thank-you": "Obrigado por contribuir para o Project Connect. Encontre a sua escola e saiba mais no nosso site. Adicionamos novas escolas todos os dias!",
-        "view-project-connect": "VER PROJECT CONNECT"
+        "thank-you": "Obrigado por contribuir para o {{appName}}. Encontre a sua escola e saiba mais no nosso site. Adicionamos novas escolas todos os dias!",
+        "view-project-connect": "VER {{appName}}"
     },
     "startTest": {
         "startTest": "INICIAR TESTE",

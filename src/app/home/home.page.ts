@@ -7,6 +7,7 @@ import { LoadingService } from '../services/loading.service';
 import { SchoolService } from '../services/school.service';
 import { StorageService } from '../services/storage.service';
 import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
+import { environment } from '../../environments/environment';
 
 @Component({
   selector: 'app-home',
@@ -14,6 +15,8 @@ import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
   styleUrls: ['home.page.scss'],
 })
 export class HomePage {
+  appName = environment.appName;
+  appNameSuffix = environment.appNameSuffix;
   constructor(
     public router: Router,
     public translate: TranslateService,
@@ -43,7 +46,12 @@ export class HomePage {
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
     if (this.storage.get('schoolId')) {
       let schoolId = this.storage.get('schoolId');
+      const gigaId = this.storage.get('gigaId');
+      const schoolUserId = this.storage.get('schoolUserId');
+
       try {
+        // get the feature flags
+        settingsService.getFeatureFlags();
         // check if the gigaId is correct
         checkRightGigaId(
           this.storage.get('gigaId'),
