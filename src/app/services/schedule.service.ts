@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/member-ordering */
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
@@ -22,7 +24,7 @@ export class ScheduleService {
     private settingsService: SettingsService,
     private sharedService: SharedService,
     private networkService: NetworkService
-  ) {}
+  ) { }
 
   // Initialize the service
   initiate() {
@@ -83,7 +85,7 @@ export class ScheduleService {
     const currentTime = Date.now();
 
     if (scheduleSemaphore.choice && currentTime > scheduleSemaphore.choice) {
-      const networkInfo = await this.networkService.getNetworkInfo();
+      const networkInfo = await this.networkService.getNetInfo();
       if (!networkInfo) {
         console.log('Network not available, rescheduling measurement.');
         this.rescheduleFailedMeasurement(scheduleSemaphore);
@@ -185,7 +187,7 @@ export class ScheduleService {
   }
 
   // Keeping these methods to maintain compatibility with existing code
-  initializeScheduleInitializers() {}
+  initializeScheduleInitializers() { }
   scheduleInitializers(type: string) {
     return this.createIntervalSemaphore(Date.now(), 24 * 60 * 60 * 1000);
   }

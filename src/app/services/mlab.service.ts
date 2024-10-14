@@ -21,8 +21,8 @@ export class MlabService {
   responseObject: any;
 
   constructor(
-    private http: HttpClient, 
-    private storageSerivce: StorageService) { 
+    private http: HttpClient,
+    private storageSerivce: StorageService) {
     const headersItem = new HttpHeaders({
       'Content-Type': 'application/json'
     });
@@ -37,10 +37,10 @@ export class MlabService {
   get(key) {
     let settings = this.storageSerivce.get("savedSettings");
     let settingsret;
-    if(settings){
+    if (settings) {
       settings = JSON.parse(settings);
       settingsret = key ? settings[key] : settings;
-    }    
+    }
     return settingsret;
   }
 
@@ -49,32 +49,44 @@ export class MlabService {
    * @param metroSelection 
    * @returns server details
    */
-  findServer(metroSelection) {
+  findServer(metroSelection, tries = 0) {
     let mlabNsUrlApi = this.mlabNsUrlNoPolicy;
     if (metroSelection && metroSelection !== "automatic") {
       mlabNsUrlApi = this.mlabNsUrlMetro + metroSelection;
     }
     this.CACHE.type = metroSelection;
+    console.log(mlabNsUrlApi);
+
+    if (this.CACHE.answer) {
+      return new Observable(observer => {
+        observer.next(this.CACHE.answer);
+      });
+    }
     return this.http.get(mlabNsUrlApi)
       .pipe(
         map((response: any) => {
-          if(response) {
-            return response;
-          } else {            
-            throw new Error('This request has failed');
-          }          
-        }),
-        tap(responseObject => {
-          if(responseObject){
-            if(responseObject.city){
-              responseObject.label = responseObject.city.replace('_', ' ');
+          if (response) {
+            if (response.city) {
+              response.label = response.city.replace('_', ' ');
             } else {
-              responseObject.label = '';
-            }            
-            responseObject.metro = responseObject.site.slice(0, 3);
-            this.CACHE.answer = responseObject;
-            // console.log(responseObject);
-          }          
+              response.label = '';
+            }
+            response.metro = response.site.slice(0, 3);
+            this.CACHE.answer = response;
+            return response;
+          } else {
+            if (tries < 3) {
+              console.log('Retrying to get server information');
+              return new Observable(observer => {
+                setTimeout(() => {
+                  observer.next(this.findServer(metroSelection, tries + 1));
+                }, 1000);
+              }
+              );
+            } else {
+              throw new Error('This request has failed');
+            }
+          }
         }),
         catchError(this.handleError)
       );
@@ -96,7 +108,7 @@ export class MlabService {
               resolve(responseObject);
             }),
             tap(data => console.log(JSON.stringify(data))),
-            catchError( async (error) => reject(error))
+            catchError(async (error) => reject(error))
           );
       } else {
         resolve(this.CACHE.all);
@@ -109,10 +121,10 @@ export class MlabService {
    * @returns metro and location information
    */
   findAllServer(): Observable<any[]> {
-    this.options = {headers: this.headers};
+    this.options = { headers: this.headers };
     return this.http.get(this.mlabNsUrl)
       .pipe(
-        map((response: any) => response ),
+        map((response: any) => response),
         tap(data => {
           this.CACHE.all = [];
           data.forEach(responseObject => {

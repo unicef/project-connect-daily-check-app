@@ -194,47 +194,12 @@ export class StarttestPage implements OnInit {
     let loadingMsg =
       '<div class="loadContent"><ion-img src="assets/loader/loader.gif" class="loaderGif"></ion-img><p class="white">Fetching Internet Provider Info...</p></div>';
     this.loading.present(loadingMsg, 15000, 'pdcaLoaderClass', 'null');
-    this.mlabService
-      .findServer(this.settingsService.get('metroSelection'))
-      .subscribe(
-        (res) => {
-          this.mlabInformation = res;
-
-          this.connectionStatus = 'success';
-          if (this.loading.isStillLoading()) {
-            this.loading.dismiss();
-          }
-          /*
-      this.networkService.getAccessInformation().subscribe(results => {
-        this.accessInformation = results;
-        
-        if(this.loading.isStillLoading()){
-          this.loading.dismiss();
-        }
-      },(err) => {
-        if(this.loading.isStillLoading()){
-          this.loading.dismiss();
-        }
-        //this.presentAlertConfirm();
-        this.connectionStatus = "error";
-        this.currentRate = "error";
-        this.isErrorClosed = false;
-        // this.presentTestFailModal();
-      });
-
-      */
-        },
-        (err) => {
-          if (this.loading.isStillLoading()) {
-            this.loading.dismiss();
-          }
-          //this.presentAlertConfirm();
-          this.connectionStatus = 'error';
-          this.currentRate = 'error';
-          this.isErrorClosed = false;
-          // this.presentTestFailModal();
-        }
-      );
+    this.networkService.getNetInfo().then((res) => {
+      this.connectionStatus = 'success';
+      if (this.loading.isStillLoading()) {
+        this.loading.dismiss();
+      }
+    });
   }
 
   refreshHistory() {
