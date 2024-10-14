@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/naming-convention */
+/* eslint-disable @typescript-eslint/member-ordering */
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { SettingsService } from '../services/settings.service';
-import { CustomScheduleService } from '../services/custom-schedule.service';
 import { SharedService } from '../services/shared-service.service';
 import { NetworkService } from './network.service';
 
@@ -10,372 +11,193 @@ import { NetworkService } from './network.service';
   providedIn: 'root',
 })
 export class ScheduleService {
+  // Constants for slot timings and retry mechanism
+  private readonly SLOT_A_START = 8; // 8 AM
+  private readonly SLOT_B_START = 12; // 12 PM
+  private readonly SLOT_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+  private readonly MAX_RETRY_ATTEMPTS = 3; // Maximum number of retry attempts
+  private readonly RETRY_DELAY = 15 * 60 * 1000; // 15 minutes in milliseconds
+
   constructor(
     private storageService: StorageService,
     private measurementClientService: MeasurementClientService,
     private settingsService: SettingsService,
     private sharedService: SharedService,
-    private networkService: NetworkService,
-    private customScheduleService: CustomScheduleService
+    private networkService: NetworkService
   ) { }
 
+  // Initialize the service
   initiate() {
     this.watch();
   }
 
-  initializeScheduleInitializers() {
-    this.scheduleInitializers('daily');
-    this.scheduleInitializers('weekly');
-    this.scheduleInitializers('monthly');
-    this.scheduleInitializers('custom');
+  // Calculate start times for both slots on a given date
+  private getSlotTimes(date: Date): { slotA: number; slotB: number } {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    return {
+      slotA: new Date(year, month, day, this.SLOT_A_START).getTime(),
+      slotB: new Date(year, month, day, this.SLOT_B_START).getTime(),
+    };
   }
 
-  scheduleInitializers(type) {
-    let result;
-    switch (type) {
-      case 'daily':
-        result = this.createIntervalSemaphore(Date.now(), 60 * 60 * 24 * 1000);
-        break;
-      case 'weekly':
-        result = this.createIntervalSemaphore(
-          Date.now(),
-          60 * 60 * 24 * 7 * 1000
-        );
-        break;
-      case 'monthly':
-        result = this.createMonthlyIntervalSemaphore(Date.now());
-        break;
-      case 'custom':
-        result = this.createCustomSemaphore();
-        break;
+  // Create a semaphore for the next available slot
+  createIntervalSemaphore(start: number, interval_ms: number) {
+    const now = new Date();
+    const lastMeasurementTime = this.getLastMeasurementTime();
+    const { slotA, slotB } = this.getSlotTimes(now);
+
+    if (lastMeasurementTime < slotA) {
+      return this.createSlotSemaphore(slotA, 'A');
+    } else if (lastMeasurementTime < slotB) {
+      return this.createSlotSemaphore(slotB, 'B');
+    } else {
+      const nextDaySlotA = slotA + 24 * 60 * 60 * 1000;
+      return this.createSlotSemaphore(nextDaySlotA, 'A');
     }
-    return result;
   }
 
-  setSemaphore(semaphore) {
+  // Create a semaphore for a specific slot
+  private createSlotSemaphore(start: number, slotName: string) {
+    const end = start + this.SLOT_DURATION;
+    const choice = start + Math.floor(Math.random() * this.SLOT_DURATION);
+    console.log(
+      `Scheduling for slot ${slotName}: ${new Date(choice).toISOString()}`
+    );
+    return { start, end, choice, intervalType: 'daily', retryAttempts: 0 };
+  }
+
+  // Get the timestamp of the last measurement
+  private getLastMeasurementTime(): number {
+    const lastMeasurement = this.storageService.get('lastMeasurement');
+    return lastMeasurement ? parseInt(lastMeasurement, 10) : 0;
+  }
+
+  // Save the semaphore to storage
+  setSemaphore(semaphore: any) {
     this.storageService.set('scheduleSemaphore', JSON.stringify(semaphore));
     return JSON.parse(this.storageService.get('scheduleSemaphore'));
   }
 
-  setSpecialSemaphore(semaphore) {
-    this.storageService.set(
-      'scheduleSpecialSemaphore',
-      JSON.stringify(semaphore)
-    );
-    return JSON.parse(this.storageService.get('scheduleSpecialSemaphore'));
-  }
-
-  async decide(scheduleSemaphore) {
+  // Decide whether to run a measurement based on the current semaphore
+  async decide(scheduleSemaphore: any) {
     const currentTime = Date.now();
 
-    if (
-      scheduleSemaphore.choice !== undefined &&
-      currentTime > scheduleSemaphore.choice
-    ) {
+    if (scheduleSemaphore.choice && currentTime > scheduleSemaphore.choice) {
       const networkInfo = await this.networkService.getNetInfo();
-      if (networkInfo === null) {
-        console.log('Network not available, skipping schedule check.');
-        this.storageService.set('measurementOfReconnect', true);
-        this.setSemaphore({});
+      if (!networkInfo) {
+        console.log('Network not available, rescheduling measurement.');
+        this.rescheduleFailedMeasurement(scheduleSemaphore);
         return;
       }
+
       console.log(
-        'On ' +
-        new Date(currentTime).toUTCString() +
-        ' found scheduled test covering ' +
-        new Date(scheduleSemaphore.start).toUTCString() +
-        ' and ' +
-        new Date(scheduleSemaphore.end).toUTCString() +
-        ' scheduled to run near ' +
-        new Date(scheduleSemaphore.choice).toUTCString()
+        `Scheduled test at ${new Date(scheduleSemaphore.choice).toISOString()}`
       );
-      console.log('Found scheduled measurement ready, triggering.');
-      this.storageService.set('lastMeasurement', currentTime);
+
       try {
         await this.measurementClientService.runTest(
           scheduleSemaphore.intervalType
         );
         console.log('Measurement completed successfully');
+        this.storageService.set('lastMeasurement', currentTime.toString());
         this.setSemaphore({});
-        this.setSpecialSemaphore({});
       } catch (error) {
-        this.handleMeasurementFailure(error, scheduleSemaphore);
+        console.error('Measurement failed:', error);
+        this.rescheduleFailedMeasurement(scheduleSemaphore);
       }
-      this.setSemaphore({});
-      this.setSpecialSemaphore({});
     }
   }
-  private handleMeasurementFailure(error: any, scheduleSemaphore: any) {
-    console.error('Measurement failed:', error);
-    // Log the error or send it to an error reporting service
-    // Optionally, reschedule the measurement
-    const rescheduleTime = Date.now() + 15 * 60 * 1000; // Reschedule in 15 minutes
-    const newSemaphore = {
-      ...scheduleSemaphore,
-      choice: rescheduleTime,
-    };
-    this.setSemaphore(newSemaphore);
-  }
 
-  createSpecialIntervalSemaphore(
-    start,
-    interval_ms
-  ): {
-    start: number;
-    end: number;
-    choice: number;
-    intervalType: string;
-  } {
-    const today = new Date();
-    let lastMeasurement = this.storageService.get('lastMeasurement');
-    const measurementOfReconnect = this.storageService.get(
-      'measurementOfReconnect',
-      false
-    );
+  // Reschedule a failed measurement
+  private rescheduleFailedMeasurement(scheduleSemaphore: any) {
+    const currentTime = Date.now();
+    const retryAttempts = (scheduleSemaphore.retryAttempts || 0) + 1;
 
-    let featureFlags = this.storageService.get('featureFlags');
-    featureFlags = featureFlags ? JSON.parse(featureFlags) : {};
-
-    console.log('Feature flags:', featureFlags);
-    lastMeasurement = lastMeasurement
-      ? new Date(parseInt(lastMeasurement, 10))
-      : new Date(0);
-
-    if (featureFlags?.measurement_of_reconnect && measurementOfReconnect) {
-      const _10min = 60 * 10 * 1000;
-      console.log(
-        'Measurement of reconnect found. Scheduling a test in the next 10 minutes.'
-      );
-      const semaphore = {
-        start: today.getTime(),
-        end: today.getTime() + _10min,
-        choice: today.getTime() + Math.floor(Math.random() * _10min),
-        intervalType: 'onReconnect',
-      };
-      this.storageService.set('measurementOfReconnect', false);
-      return semaphore;
-    }
-
-    // if there is not measurement made today, schedule a test in the next 30 minutes
-    // This day is in local tim
     if (
-      featureFlags?.enable_daily_test &&
-      (!lastMeasurement || lastMeasurement.getDate() < today.getDate())
+      retryAttempts <= this.MAX_RETRY_ATTEMPTS &&
+      currentTime < scheduleSemaphore.end
     ) {
-      const _30min = 60 * 30 * 1000;
-      console.log(
-        'No last measurement or last measurement was not today. Scheduling a test in the next 30 minutes.'
-      );
-      const semaphore = {
-        start: today.getTime(),
-        end: today.getTime() + _30min,
-        choice: today.getTime() + Math.floor(Math.random() * _30min),
-        intervalType: 'onStart',
+      const rescheduleTime = currentTime + this.RETRY_DELAY;
+      const newSemaphore = {
+        ...scheduleSemaphore,
+        choice: Math.min(rescheduleTime, scheduleSemaphore.end),
+        retryAttempts,
       };
-      return semaphore;
+      this.setSemaphore(newSemaphore);
+      console.log(
+        `Rescheduled measurement for ${new Date(
+          newSemaphore.choice
+        ).toISOString()}`
+      );
+    } else {
+      console.log(
+        'Max retry attempts reached or slot ended. Scheduling for next slot.'
+      );
+      this.setSemaphore({});
     }
   }
-  createIntervalSemaphore(start, interval_ms) {
-    const today = new Date();
-    let lastMeasurement = this.storageService.get('lastMeasurement');
 
-    lastMeasurement = lastMeasurement
-      ? new Date(parseInt(lastMeasurement, 10))
-      : new Date(0);
-    const dtStr =
-      today.getMonth() + 1 + ' ' + today.getDate() + ' ' + today.getFullYear();
-    const scheduledDailySlotA = new Date(dtStr + ' 08:00').getTime();
-    const scheduledDailySlotB = new Date(dtStr + ' 12:00').getTime();
+  // Get the current semaphore or create a new one
+  getSemaphore() {
+    const scheduledTesting = this.settingsService.get('scheduledTesting');
+    if (!scheduledTesting) {
+      this.sharedService.broadcast('semaphore:refresh', 'semaphore:refresh');
+      return this.setSemaphore({});
+    }
 
-    const slotIntervalMs = 60 * 60 * 4 * 1000;
+    const current = this.getCurrentSemaphore();
+    const next = this.createIntervalSemaphore(Date.now(), 24 * 60 * 60 * 1000);
 
-    if (lastMeasurement < scheduledDailySlotA) {
-      const startOfSlot =
-        start > scheduledDailySlotA ? start : scheduledDailySlotA;
-      const choice = startOfSlot + Math.floor(Math.random() * slotIntervalMs);
-      console.log(
-        'Last measurement was before the first slot, scheduling for slot A'
-      );
-      return {
-        start: scheduledDailySlotA,
-        end: scheduledDailySlotA + slotIntervalMs,
-        choice,
-      };
-    } else if (
-      lastMeasurement > scheduledDailySlotA &&
-      lastMeasurement < scheduledDailySlotB
+    if (
+      current &&
+      current.choice &&
+      current.intervalType === next.intervalType &&
+      next.start >= current.start
     ) {
-      const startOfSlot =
-        start > scheduledDailySlotB ? start : scheduledDailySlotB;
-      const choice = startOfSlot + Math.floor(Math.random() * slotIntervalMs);
-      console.log(
-        'Last measurement was before the second slot, scheduling for slot B'
-      );
-      return {
-        start: scheduledDailySlotB,
-        end: scheduledDailySlotB + slotIntervalMs,
-        choice,
-      };
+      return current;
     } else {
-      const startOfSlot = scheduledDailySlotA + 60 * 60 * 24 * 1000;
-      const choice = startOfSlot + Math.floor(Math.random() * slotIntervalMs);
-      console.log(
-        'Last measurement was after the second slot, scheduling for slot A of the next day'
-      );
-      return {
-        start: startOfSlot,
-        end: startOfSlot + slotIntervalMs,
-        choice,
-      };
+      return this.setSemaphore(next);
     }
   }
 
-  createMonthlyIntervalSemaphore(start: number) {
-    const startDate = new Date(start);
-    const endDate = new Date(
-      startDate.getFullYear(),
-      startDate.getMonth() + 1,
-      startDate.getDate()
-    );
-    const intervalMs = endDate.getTime() - startDate.getTime();
-
-    return {
-      start: startDate.getTime(),
-      end: endDate.getTime(),
-      choice: startDate.getTime() + Math.floor(Math.random() * intervalMs),
-      intervalType: 'monthly',
-    };
+  // Retrieve the current semaphore from storage
+  private getCurrentSemaphore() {
+    const semaphore = this.storageService.get('scheduleSemaphore');
+    return semaphore && this.isJsonString(semaphore)
+      ? JSON.parse(semaphore)
+      : undefined;
   }
 
-  createCustomIntervalSemaphore(start, interval_ms) {
-    return {
-      start: start,
-      end: start + interval_ms,
-      choice: start + Math.floor(Math.random() * interval_ms),
-    };
-  }
-
-  createCustomSemaphore() {
-    let schedules = this.customScheduleService.getSchedules();
-    // bail if there is no schedule
-    if (!schedules || schedules.length === 0) {
-      return {};
-    }
-
-    let now = new Date();
-    let nowHour = { date: now.getDay(), timespan: now.getHours() };
-    let INTERVAL_MS = 60 * 60 * 1000;
-    let epochHour = now.getTime() - (now.getTime() % INTERVAL_MS);
-
-    // next is the first schedule after "now" in the week, with wraparound (concat)
-    schedules.sort((a, b) => {
-      return this.hourOfWeek(a) < this.hourOfWeek(b) ? 1 : -1;
-    });
-    let next = schedules
-      .filter((s) => {
-        return this.hourOfWeek(s) - this.hourOfWeek(nowHour) > 0;
-      })
-      .concat(schedules)[0];
-    let hoursToAdd =
-      (this.hourOfWeek(nowHour) >= this.hourOfWeek(next)
-        ? 169 /*one week in hours, plus 1 */
-        : 0) +
-      this.hourOfWeek(next) -
-      this.hourOfWeek(nowHour);
-    let start = epochHour + hoursToAdd * INTERVAL_MS;
-    return this.createCustomIntervalSemaphore(start, INTERVAL_MS);
-  }
-
-  hourOfWeek(s) {
-    return Number(s.date) * 24 + Number(s.timespan);
-  }
-
-  createScheduleSemaphore() {
-    let scheduleInterval = this.settingsService.get('scheduleInterval');
-    if (scheduleInterval) {
-      if (this.scheduleInitializers(scheduleInterval)) {
-        let scheduleSemaphore = this.scheduleInitializers(scheduleInterval);
-        scheduleSemaphore.intervalType =
-          scheduleSemaphore.intervalType ?? scheduleInterval;
-        return scheduleSemaphore;
-      }
-    } else {
-      return false;
-    }
-  }
-  IsJsonString(str) {
+  // Check if a string is valid JSON
+  private isJsonString(str: string): boolean {
     try {
       JSON.parse(str);
+      return true;
     } catch (e) {
       return false;
     }
-    return true;
-  }
-  getSemaphore() {
-    let next = this.createScheduleSemaphore();
-    // console.log(next);
-    let scheduledTesting = this.settingsService.get('scheduledTesting');
-    let current = this.storageService.get('scheduleSemaphore', []);
-    if (this.IsJsonString(current)) {
-      current = JSON.parse(current);
-    } else {
-      current = undefined;
-    }
-    if (!scheduledTesting) {
-      this.sharedService.broadcast('semaphore:refresh', 'semaphore:refresh');
-      return this.setSemaphore({});
-    } else if (
-      current &&
-      current.choice &&
-      current.intervalType == next.intervalType &&
-      next.start >= current.start
-    ) {
-      return current;
-    } else {
-      if (next) {
-        return this.setSemaphore(next);
-      }
-    }
   }
 
-  getSpecialSemaphore() {
-    let next = this.createSpecialIntervalSemaphore(
-      Date.now(),
-      60 * 60 * 24 * 1000
-    );
-    console.log('getSpecialSemaphore next', next);
-    if (!next) {
-      return {};
-    }
-    let current = this.storageService.get('scheduleSpecialSemaphore', []);
-    if (this.IsJsonString(current)) {
-      current = JSON.parse(current);
-    } else {
-      current = undefined;
-    }
-    let scheduledTesting = this.settingsService.get('scheduledTesting');
-    if (!scheduledTesting) {
-      this.sharedService.broadcast('semaphore:refresh', 'semaphore:refresh');
-      return this.setSemaphore({});
-    }
-
-    if (
-      current &&
-      current.choice &&
-      next.choice &&
-      next.start >= current.start
-    ) {
-      return current;
-    } else {
-      if (next) {
-        return this.setSpecialSemaphore(next);
-      }
-    }
-  }
-
+  // Main method to check and run scheduled measurements
   async watch() {
     await this.decide(this.getSemaphore());
-    await this.decide(this.getSpecialSemaphore());
     this.sharedService.broadcast('semaphore:refresh', 'semaphore:refresh');
+  }
+
+  // Keeping these methods to maintain compatibility with existing code
+  initializeScheduleInitializers() { }
+  scheduleInitializers(type: string) {
+    return this.createIntervalSemaphore(Date.now(), 24 * 60 * 60 * 1000);
+  }
+  createScheduleSemaphore() {
+    return this.createIntervalSemaphore(Date.now(), 24 * 60 * 60 * 1000);
+  }
+  getSpecialSemaphore() {
+    return {};
+  }
+  setSpecialSemaphore(semaphore: any) {
+    return semaphore;
   }
 }
