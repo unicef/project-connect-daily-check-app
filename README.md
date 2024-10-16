@@ -5,7 +5,7 @@
 
 <div style="padding-top: 20px;"> </div>
 <h1><a id="gigameter" class="anchor" aria-hidden="true" href="#gigablocks"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
-GigaMeter </h1> 
+GigaMeter Frontend</h1> 
 
 <div align="center" >
 
