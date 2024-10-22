@@ -36,9 +36,10 @@ export class UploadService {
       Upload: record.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps,
       Latency: ((record.results['NDTResult.S2C'].LastServerMeasurement.BBRInfo.MinRTT +
         record.results['NDTResult.C2S'].LastServerMeasurement.BBRInfo.MinRTT) / 2 / 1000).toFixed(0),
-      DataUsage: record.dataUsage.total,
-      DataUploaded: record.dataUsage.upload,
-      DataDownloaded: record.dataUsage.download,
+      // TODO: Uncomment when new backend is ready
+      // DataUsage: record.dataUsage.total,
+      // DataUploaded: record.dataUsage.upload,
+      // DataDownloaded: record.dataUsage.download,
       Results: record.results,
       Annotation: '',
       ServerInfo: {
