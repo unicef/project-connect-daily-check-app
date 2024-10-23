@@ -69,11 +69,9 @@ export class AppComponent {
       this.refreshHistory.bind(this)
     );
     this.refreshHistory();
-    if (this.storage.get('schoolId')) {
-      setInterval(() => {
-        this.scheduleService.initiate();
-      }, 60000);
-    }
+    setInterval(() => {
+      this.scheduleService.initiate();
+    }, 60000);
   }
 
   openSecond() {

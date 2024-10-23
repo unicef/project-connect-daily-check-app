@@ -20,6 +20,8 @@ export class ScheduleService {
   private readonly RETRY_DELAY = 15 * 60 * 1000; // 15 minutes in milliseconds
   private readonly STARTUP_TEST_DELAY = 15 * 60 * 1000; // 15 minutes in milliseconds
   private readonly STARTUP_TEST_KEY = 'lastStartupTest';
+  private readonly STARTUP_TEST_SCHEDULED_KEY = 'startupTestScheduled';
+  private readonly TEN_MINUTE = 60 * 1000 * 10; // 10 minutes in milliseconds
 
   constructor(
     private storageService: StorageService,
@@ -34,8 +36,12 @@ export class ScheduleService {
   async initiate() {
     console.log('ScheduleService initiate called');
     try {
+      if (!this.storageService.get('schoolId')) {
+        return console.log('No schoolId found, skipping schedule service');
+      }
+
+      this.scheduleStartupTestIfNeeded();
       await this.watch();
-      await this.scheduleStartupTestIfNeeded();
     } catch (error) {
       console.error('Error during ScheduleService initiation:', error);
     }
@@ -84,9 +90,9 @@ export class ScheduleService {
     );
     const nextDaySlotA = this.getSlotTimes(tomorrow).slotA;
 
-    if (lastMeasurementTime < slotA) {
+    if (lastMeasurementTime < slotA && now.getTime() < slotB) {
       return this.createSlotSemaphore(slotA, 'A');
-    } else if (lastMeasurementTime < slotB) {
+    } else if (lastMeasurementTime < slotB && now.getTime() < slotC) {
       return this.createSlotSemaphore(slotB, 'B');
     } else if (lastMeasurementTime < slotC) {
       return this.createSlotSemaphore(slotC, 'C');
@@ -144,6 +150,11 @@ export class ScheduleService {
       if (!networkInfo) {
         console.log('Network not available, rescheduling measurement.');
         await this.rescheduleFailedMeasurement(scheduleSemaphore);
+        return;
+      }
+      if (currentTime > scheduleSemaphore.end) {
+        console.log('Slot ended, Skiping measurement.');
+        await this.setSemaphore({});
         return;
       }
 
@@ -261,7 +272,7 @@ export class ScheduleService {
   }
 
   // Keeping these methods to maintain compatibility with existing code
-  initializeScheduleInitializers() {}
+  initializeScheduleInitializers() { }
   async scheduleInitializers(type: string) {
     return this.createIntervalSemaphore(Date.now(), 24 * 60 * 60 * 1000);
   }
@@ -280,6 +291,15 @@ export class ScheduleService {
     const lastStartupTest = await this.storageService.get(
       this.STARTUP_TEST_KEY
     );
+    const startupTestScheduled = await this.storageService.get(
+      this.STARTUP_TEST_SCHEDULED_KEY
+    );
+    console.log(`Startup test scheduled for: ${startupTestScheduled}`);
+    if (parseInt(startupTestScheduled, 10) + this.TEN_MINUTE > Date.now()) {
+      console.log('Startup test already scheduled, skipping.');
+      return;
+    }
+
     const now = new Date();
     const today = new Date(
       now.getFullYear(),
@@ -291,9 +311,9 @@ export class ScheduleService {
     if (!lastStartupTest || parseInt(lastStartupTest, 10) < today) {
       const startupDelay = Math.floor(Math.random() * this.STARTUP_TEST_DELAY);
       const scheduledTime = new Date(Date.now() + startupDelay);
-
-      setTimeout(() => this.runStartupTest(), startupDelay);
+      this.storageService.set(this.STARTUP_TEST_SCHEDULED_KEY, scheduledTime.getTime().toString());
       console.log(`Scheduling startup test for ${scheduledTime.toISOString()}`);
+      setTimeout(() => this.runStartupTest(), startupDelay);
     } else {
       console.log('Startup test already run today, skipping.');
     }
