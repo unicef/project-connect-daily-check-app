@@ -55,7 +55,7 @@ GigaMeter is a client desktop application, which can be installed on windows and
 
 It can be installed on a user device (such as a computer or laptop) and configured easily to send daily internet connectivity information to a database. It utilizes the Network Diagnostic Tool (NDT), developed and maintained by Internet 2 and hosted by Measurement Lab (M-Lab). 
 
-Giga uses GigaMeter to measure school connectivity, sending daily internet connectivity information to Project Connect, helping Giga create an accurate picture of a school’s network quality over time. It was developed in partnership with Ericsson. 
+Giga uses GigaMeter to measure school connectivity, sending daily internet connectivity information to Giga Maps, helping Giga create an accurate picture of a school’s network quality over time. It was developed in partnership with Ericsson. 
 
 <h3><a id="project-objective" class="anchor" aria-hidden="true" href="#project-objective"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 Project Objective</h3>
