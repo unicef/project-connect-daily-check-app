@@ -39,6 +39,7 @@ GigaMeter Frontend</h1>
     <li><a href="#code-of-conduct">Code of Conduct</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
+    <li><a href="#contributors">Contributors</a></li>
     <li><a href="#acknowledgements">Acknowledgements</a></li>
   </ol>
 </details>
@@ -68,7 +69,7 @@ Project Objective</h3>
 <h3><a id="design-and-architecture" class="anchor" aria-hidden="true" href="#design-and-architecture"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 Design and Architecture</h3>
 <p></p>
-GigaMeter is a Windows-based desktop application that can be installed on a school's computer and configured easily to send internet connectivity information to the GigaMeter database. It uses a Network Diagnostic Tool (developed and maintained by M-Lab) to test internet connectivity.
+GigaMeter is a Windows-based desktop application that can be installed on a school's computer and configured easily to send internet connectivity information to the Giga Maps database. It uses a Network Diagnostic Tool (developed and maintained by M-Lab) to test internet connectivity.
 
 
 <h3><a id="system-requirements" class="anchor" aria-hidden="true" href="#system-requirements"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
@@ -116,7 +117,7 @@ Getting Started</h2>
 
     -  The installation process is straightforward, follow the wizard by clicking ‘Next’ on each step.  
 
-- After successfully installing the app, it will send schools' internet connectivity information to Project Connect twice a day. 
+- After successfully installing the app, it will send schools' internet connectivity information to Giga Maps twice a day. 
 
 #### Development Commands 
 
@@ -171,7 +172,7 @@ npm run electron:make
 
 <b>Network Diagnostic Tool</b> 
 
-The application implements the same Network Diagnostic Tool (NDT) as the M-Lab chrome browser extension. The GigaMeter app integrates the NDT test using M-Lab's Javascript client library (for more information see [M-Lab developer resources](https://www.measurementlab.net/develop/)). The result of the test is sent as a JSON object to the application, which is then passed on to GigaMeter via the Service level API. 
+The application implements the same Network Diagnostic Tool (NDT) as the M-Lab chrome browser extension. The GigaMeter app integrates the NDT test using M-Lab's Javascript client library (for more information see [M-Lab developer resources](https://www.measurementlab.net/develop/)). The result of the test is sent as a JSON object to the application, which is then passed on to Giga Maps via the Service level API. 
 
 <h2><a id="contribution-guidelines" class="anchor" aria-hidden="true" href="#contribution-guidelines"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 Contribution Guidelines</h2>
