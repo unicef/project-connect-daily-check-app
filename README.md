@@ -69,7 +69,7 @@ Project Objective</h3>
 <h3><a id="design-and-architecture" class="anchor" aria-hidden="true" href="#design-and-architecture"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 Design and Architecture</h3>
 <p></p>
-GigaMeter is a Windows-based desktop application that can be installed on a school's computer and configured easily to send internet connectivity information to the Project Connect database. It uses a Network Diagnostic Tool (developed and maintained by M-Lab) to test internet connectivity.
+GigaMeter is a Windows-based desktop application that can be installed on a school's computer and configured easily to send internet connectivity information to the GigaMeter database. It uses a Network Diagnostic Tool (developed and maintained by M-Lab) to test internet connectivity.
 
 
 <h3><a id="system-requirements" class="anchor" aria-hidden="true" href="#system-requirements"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
@@ -123,33 +123,56 @@ Getting Started</h2>
 
 <b>Basic development commands</b> 
 
-- After cloning the code from the GitHub repository https://github.com/unicef/project-connect-daily-check-app, install all the dependencies modules by running this command: npm install 
-
-- To run the app the application in a browser, run this command: Ionic serve 
-
-- To run the application directly during the development without creating exe, run the following command from electron folder: npm run electron:start-live 
-
+- After cloning the code from the GitHub repository
+```sh
+https://github.com/unicef/project-connect-daily-check-app
+```
+- Install all the dependencies modules by running this command: 
+```sh
+npm install 
+```
+- To run the app the application in a browser, run this command:
+```sh
+Ionic serve 
+```
+- To run the application directly during the development without creating exe, run the following command from electron folder: 
+```sh
+npm run electron:start-live 
+```
 <b>Ionic build generation</b> 
 
-- To create a build from Ionic, run the following command: Ionic build (for development), or Ionic build –prod (for production) 
+- To create a build from Ionic, run the following command: 
+```sh
+Ionic build (for development)
+```
+or
+```sh
+Ionic build –prod (for production)
+```
 
 - After running the above command, ionic build will be generated.  
 
-- To transfer the build to electron side, run the following command: npx cap sync @capacitor-community/electron 
-
+- To transfer the build to electron side, run the following command: 
+```sh
+npx cap sync @capacitor-community/electron 
+```
 <b>Setup file generation</b>
 
-- Navigate to the electron folder, then run the following command: npm run electron:make 
-
-- The windows build can be found inside /electron/dist folder 
-
+- Navigate to the electron folder, then run the following command:
+```sh
+npm run electron:make 
+```
+- The windows build can be found inside 
+```sh
+/electron/dist folder 
+```
  
 
 #### Third-party Integrations 
 
 <b>Network Diagnostic Tool</b> 
 
-The application implements the same Network Diagnostic Tool (NDT) as the M-Lab chrome browser extension. The PCDC App integrates the NDT test using M-Lab's Javascript client library (for more information see M-Lab developer resources). The result of the test is sent as a JSON object to the application, which is then passed on to Project Connect via the Service level API. 
+The application implements the same Network Diagnostic Tool (NDT) as the M-Lab chrome browser extension. The GigaMeter app integrates the NDT test using M-Lab's Javascript client library (for more information see [M-Lab developer resources](https://www.measurementlab.net/develop/)). The result of the test is sent as a JSON object to the application, which is then passed on to GigaMeter via the Service level API. 
 
 <h2><a id="contribution-guidelines" class="anchor" aria-hidden="true" href="#contribution-guidelines"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 Contribution Guidelines</h2>
@@ -167,7 +190,7 @@ Code Design</h2>
 
 Backend Application Structure 
 
-Ionic/Angula Structure: The application business logic for PCDCA resides in this section. Active development should reside inside the src folder of the application.
+Ionic/Angular Structure: The application business logic for GigaMeter resides in this section. Active development should reside inside the src folder of the application.
 
 <img src="http://giga.global/wp-content/uploads/2024/10/gigameter_pic1.png" alt="Giga Meter Ionic" title="GigaMeterIonic" height="300" style="padding-left: 20px; padding-right: 10px;" />
 
