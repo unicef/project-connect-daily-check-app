@@ -39,7 +39,6 @@ GigaMeter Frontend</h1>
     <li><a href="#code-of-conduct">Code of Conduct</a></li>
     <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#contributors">Contributors</a></li>
     <li><a href="#acknowledgements">Acknowledgements</a></li>
   </ol>
 </details>
