@@ -9,8 +9,8 @@ export const environment = {
   restAPI: env.mode === 'dev' ? env.restAPIDev : env.restAPI,
   token,
   app_version: '1.0.9',
-  appName: 'Project Connect',
-  appNameSuffix: 'Daily Check',
+  appName: 'Giga',
+  appNameSuffix: 'Meter',
   showAboutMenu: true,
   languages: [
     {
