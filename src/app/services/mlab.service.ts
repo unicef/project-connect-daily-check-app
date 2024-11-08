@@ -58,8 +58,9 @@ export class MlabService {
     console.log(mlabNsUrlApi);
 
     if (this.CACHE.answer) {
-      return new Observable(observer => {
+      return new Observable((observer) => {
         observer.next(this.CACHE.answer);
+        observer.complete();
       });
     }
     return this.http.get(mlabNsUrlApi)
