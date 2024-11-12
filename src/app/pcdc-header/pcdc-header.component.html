@@ -1,18 +1,12 @@
 <ion-header no-shadow>
-  <ion-toolbar>
+  <ion-toolbar class="header-toolbar">
     <ion-label [routerLink]="['/home']">
-      PROJECT CONNECT
-      <span class="daily-chk"> DAILY CHECK </span>
+      {{ appName | uppercase }}
+      <span class="daily-chk"> {{ appNameSuffix | uppercase }} </span>
     </ion-label>
     <ion-buttons slot="end">
-      <ion-select
-        [(ngModel)]="selectedLanguage"
-        (ionChange)="onLanguageChange()"
-      >
-        <ion-select-option
-          *ngFor="let language of languages"
-          [value]="language.code"
-        >
+      <ion-select [(ngModel)]="selectedLanguage" (ionChange)="onLanguageChange()">
+        <ion-select-option *ngFor="let language of languages" [value]="language.code">
           {{ language.name }}
         </ion-select-option>
       </ion-select>
@@ -22,10 +16,9 @@
     </ion-buttons>
   </ion-toolbar>
   <div class="closeAppBtn">
-    <ion-icon
-      slot="icon-only"
-      name="close-outline"
-      (click)="closeApp()"
-    ></ion-icon>
+    <ion-icon slot="icon-only" name="close-outline" (click)="closeApp()"></ion-icon>
   </div>
 </ion-header>
+<div class="testMode">
+  {{ test ? "Test Mode" :"" }}
+</div>

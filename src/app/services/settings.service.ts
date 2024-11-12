@@ -1,6 +1,12 @@
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
 import { SharedService } from '../services/shared-service.service';
+import { environment } from 'src/environments/environment';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { map } from 'rxjs/operators';
+
+const TEN_MINUTES = 1000 * 60 * 10;
+const DAY = 1000 * 60 * 60 * 24;
 @Injectable({
   providedIn: 'root',
 })
@@ -112,7 +118,8 @@ export class SettingsService {
   };
   constructor(
     private storageSerivce: StorageService,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private http: HttpClient
   ) {
     this.restore();
   }
@@ -205,5 +212,44 @@ export class SettingsService {
   }
   getShell() {
     return (window as any).shell;
+  }
+
+  async getFeatureFlags() {
+    const macAddress = this.storageSerivce.get('macAddress');
+    console.log('Checking for flags', { macAddress });
+    if (!macAddress) {
+      console.log('No macAddress found');
+      return {};
+    }
+    let featureFlags = this.storageSerivce.get('featureFlags');
+    if (featureFlags) {
+      featureFlags = JSON.parse(featureFlags);
+    }
+    console.log({ featureFlags, macAddress });
+    if (featureFlags?.updateDate && new Date(parseInt(featureFlags.updateDate, 10)).getTime() > Date.now() - DAY) {
+      return featureFlags;
+    };
+    try {
+      const newFlags = await this.http.get(environment.restAPI + `dailycheckapp_schools/features_flags`, {
+        observe: 'response',
+        headers: new HttpHeaders({
+          'Content-type': 'application/json',
+        }),
+        params: {
+          mac_address: macAddress
+        }
+      }).pipe(map((response: any) => response.body)).toPromise();
+      console.log({ newFlags });
+      if (!newFlags || newFlags.data.length === 0) {
+        return featureFlags;
+      }
+
+      this.storageSerivce.set('featureFlags', JSON.stringify({ ...newFlags.data, updateDate: Date.now() }));
+
+      return newFlags;
+    } catch (e) {
+      console.log(e);
+      return featureFlags;
+    }
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "unicef-pdca",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "description": "Unicef Project Connect Daily Check App",
   "author": {
     "name": "Unicef"
@@ -18,7 +18,8 @@
     "electron:start-live": "node ./live-runner.js",
     "electron:start": "npm run build && electron --inspect=5858 ./",
     "electron:pack": "npm run build && electron-builder build --dir -c ./electron-builder.config.json",
-    "electron:make": "npm run build && electron-builder build -c ./electron-builder.config.json -p always --x64 --ia32"
+    "electron:make": "npm run build && electron-builder build -c ./electron-builder.config.json -p always --x64 --ia32",
+    "electron:make-not-publish": "npm run build && electron-builder build -c ./electron-builder.config.json always --x64 --ia32"
   },
   "dependencies": {
     "@capacitor-community/electron": "^4.1.0",

@@ -21,6 +21,8 @@ export class AppComponent {
   scheduleSemaphore: any;
   // eslint-disable-next-line @typescript-eslint/naming-convention
   app_version: any;
+  appName = environment.appName;
+  showAboutMenu = environment.showAboutMenu;
   constructor(
     private menu: MenuController,
     private storage: StorageService,
@@ -67,11 +69,9 @@ export class AppComponent {
       this.refreshHistory.bind(this)
     );
     this.refreshHistory();
-    if (this.storage.get('schoolId')) {
-      setInterval(() => {
-        this.scheduleService.initiate();
-      }, 60000);
-    }
+    setInterval(() => {
+      this.scheduleService.initiate();
+    }, 60000);
   }
 
   openSecond() {

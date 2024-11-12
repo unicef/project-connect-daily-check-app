@@ -20,7 +20,7 @@ export class UploadService {
     private http: HttpClient,
     private settingService: SettingsService,
     private storage: StorageService
-  ) {}
+  ) { }
 
   /**
    * Return all network related information
@@ -32,9 +32,14 @@ export class UploadService {
     this.ts = new Date(record.timestamp);
     let measurement = {
       UUID: record.uuid,
-      Download: record.results.s2cRate,
-      Upload: record.results.c2sRate,
-      Latency: parseInt(record.results.MinRTT),
+      Download: record.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps,
+      Upload: record.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps,
+      Latency: ((record.results['NDTResult.S2C'].LastServerMeasurement.BBRInfo.MinRTT +
+        record.results['NDTResult.C2S'].LastServerMeasurement.BBRInfo.MinRTT) / 2 / 1000).toFixed(0),
+      // TODO: Uncomment when new backend is ready
+      // DataUsage: record.dataUsage.total,
+      // DataUploaded: record.dataUsage.upload,
+      // DataDownloaded: record.dataUsage.download,
       Results: record.results,
       Annotation: '',
       ServerInfo: {
@@ -65,29 +70,13 @@ export class UploadService {
       Timestamp: '',
       timestamplocal: '',
       DeviceType: '',
-      Notes: '',
+      Notes: record.Notes,
       school_id: '',
       ip_address: '', //record.accessInformation.ip,
       country_code: '', //record.accessInformation.country,
       giga_id_school: '',
       app_version: environment.app_version,
     };
-    if (record.hasOwnProperty('mlabInformation')) {
-      // If we've got server data from mlab-ns, add it to the Measurement
-      // object.
-      let serverInfo = record.mlabInformation;
-      console.log('server info', serverInfo);
-      measurement.ServerInfo.FQDN = serverInfo.fqdn;
-      measurement.ServerInfo.IPv4 = serverInfo.ip[0];
-      measurement.ServerInfo.IPv6 = serverInfo.ip[1];
-      measurement.ServerInfo.City = serverInfo.city;
-      measurement.ServerInfo.Country = serverInfo.country;
-      measurement.ServerInfo.Label = serverInfo.label;
-      measurement.ServerInfo.Metro = serverInfo.metro;
-      measurement.ServerInfo.Site = serverInfo.site;
-      measurement.ServerInfo.URL = serverInfo.url;
-    }
-
     if (record.hasOwnProperty('accessInformation')) {
       let clientInfo = record.accessInformation;
 
@@ -134,16 +123,17 @@ export class UploadService {
     const apiKey = this.settingService.get('uploadAPIKey');
     // const browserID = this.settingService.get("browserID");
     // const deviceType = this.settingService.get("deviceType");
-    const notes = this.settingService.get('notes');
+
+    const notes = record.Notes;
     let measurement = this.makeMeasurement(record);
 
     this.storage.get('country_code') === '' ||
-    this.storage.get('country_code') === null
+      this.storage.get('country_code') === null
       ? (measurement.country_code = measurement.ClientInfo.Country)
       : (measurement.country_code = this.storage.get('country_code'));
 
     this.storage.get('ip_address') === '' ||
-    this.storage.get('ip_address') === null
+      this.storage.get('ip_address') === null
       ? (measurement.ip_address = measurement.ClientInfo.IP)
       : (measurement.ip_address = this.storage.get('ip_address'));
     measurement.country_code = measurement.ClientInfo.Country;
