@@ -60,9 +60,17 @@ export class NetworkService {
    */
   async getNetInfo() {
     console.log('getNetInfo');
-    const ipGeoResponse = await fetch('https://ipv4.geojs.io/v1/ip/geo.json');
-    const ipGeoData = await ipGeoResponse.json();
-    return this.mapData(ipGeoData);
+    const options = { headers: this.headers };
+    let response = null;
+    try {
+      response = await this.http.get(this.accessServiceUrl, options).toPromise<any>();
+    } catch (error) {
+      console.error('Error:', error);
+      const ipGeoResponse = await fetch('https://ipv4.geojs.io/v1/ip/geo.json');
+      const ipGeoData = await ipGeoResponse.json();
+      return this.mapData(ipGeoData);
+    }
+    return response;
   }
 
   private mapData(source: Ip4Data): IpInfoData {
