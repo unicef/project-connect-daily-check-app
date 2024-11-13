@@ -32,6 +32,7 @@ type IpInfoData = {
   org: string;
   postal: string;
   timezone: string;
+  asn?: string | any;
 };
 @Injectable({
   providedIn: 'root',
@@ -98,6 +99,7 @@ export class NetworkService {
       org: source?.org ?? '',
       postal: source?.postal ?? '',
       timezone: source?.timezone ?? '',
+      asn: source?.asn?.asn ?? source?.org.match(/AS[0-9]+/)?.[0] ?? '',
     };
   }
 }
