@@ -4,7 +4,6 @@ import { throwError } from 'rxjs';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
-
 type Ip4Data = {
   organization: string;
   country: string;
@@ -35,7 +34,7 @@ type IpInfoData = {
   timezone: string;
 };
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class NetworkService {
   accessServiceUrl = 'https://ipinfo.io?token=9906baf67eda8b';
@@ -46,10 +45,10 @@ export class NetworkService {
   connectionType = {
     icon: 'ion-help',
     label: 'Unknown',
-  }
+  };
   constructor(private http: HttpClient, private network: Network) {
     const headersItem = new HttpHeaders({
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
     });
     this.headers = headersItem;
   }
@@ -63,7 +62,9 @@ export class NetworkService {
     const options = { headers: this.headers };
     let response = null;
     try {
-      response = await this.http.get(this.accessServiceUrl, options).toPromise<any>();
+      response = this.standardData(await this.http
+        .get(this.accessServiceUrl, options)
+        .toPromise<any>());
     } catch (error) {
       console.error('Error:', error);
       const ipGeoResponse = await fetch('https://ipv4.geojs.io/v1/ip/geo.json');
@@ -74,16 +75,29 @@ export class NetworkService {
   }
 
   private mapData(source: Ip4Data): IpInfoData {
-    return {
+    return this.standardData({
       ip: source.ip,
       hostname: source.ip,
-      city: source.city || "",
-      region: source.region || "",
+      city: source.city ?? '',
+      region: source.region ?? '',
       country: source.country_code,
       loc: `${source.latitude},${source.longitude}`,
-      org: source.organization || source.organization_name,
-      postal: "",
+      org: source.organization ?? source.organization_name,
+      postal: '',
       timezone: source.timezone,
+    });
+  }
+  private standardData(source: IpInfoData): IpInfoData {
+    return {
+      ip: source?.ip ?? '',
+      hostname: source?.hostname ?? '',
+      city: source?.city ?? '',
+      region: source?.region ?? '',
+      country: source?.country ?? '',
+      loc: source?.loc ?? '',
+      org: source?.org ?? '',
+      postal: source?.postal ?? '',
+      timezone: source?.timezone ?? '',
     };
   }
 }
