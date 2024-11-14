@@ -32,8 +32,8 @@ export class UploadService {
     this.ts = new Date(record.timestamp);
     let measurement = {
       UUID: record.uuid,
-      Download: record.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps,
-      Upload: record.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps,
+      Download: record.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps * 1000,
+      Upload: record.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps * 1000,
       Latency: ((record.results['NDTResult.S2C'].LastServerMeasurement.BBRInfo.MinRTT +
         record.results['NDTResult.C2S'].LastServerMeasurement.BBRInfo.MinRTT) / 2 / 1000).toFixed(0),
       // TODO: Uncomment when new backend is ready
