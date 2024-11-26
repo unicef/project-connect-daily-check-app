@@ -216,13 +216,7 @@ Distributed under the AGPL-3.0 License. See [LICENSE](https://github.com/unicef/
 <h2><a id="contact" class="anchor" aria-hidden="true" href="#contact"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 Contact</h2>
 
-GigaMeter Project Lead: Shilpa Arora: sharora@unicef.org 
-
-GigaMeter Project Member: Vipul Bhavsar: vbhavsar@unicef.org 
-
-Giga Open-Source Community Manager: David Njagah: dnjagah@unicef.org 
-
-Giga Website: https://giga.global/contact-us/ 
+Giga Meter Website: https://meter.giga.global/contact-us/
 
 <br>
 
