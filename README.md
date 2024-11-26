@@ -51,7 +51,7 @@ Giga is a UNICEF-ITU global initiative to connect every school to the Internet a
 <h2><a id="about-gigameter" class="anchor" aria-hidden="true" href="#about-gigameter"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 About GigaMeter</h2>
 
-GigaMeter is a client desktop application, which can be installed on windows and android, that automatically measures the internet upload and download speed of a network using minimal data. The App is automatically scheduled to run two random internet speed tests daily. 
+GigaMeter is a client desktop application that can be installed on Windows that automatically measures the internet upload and download speed of a network using minimal data. The App is automatically scheduled to run four internet speed tests daily. The first test runs within 15 minutes of the device being turned on, while the remaining three runs in the following time slots of the user's machine - 8 am to 12 pm, 12 pm to 4 pm, 4 pm to 8 pm.
 
 It can be installed on a user device (such as a computer or laptop) and configured easily to send daily internet connectivity information to a database. It utilizes the Network Diagnostic Tool (NDT), developed and maintained by Internet 2 and hosted by Measurement Lab (M-Lab). 
 
@@ -62,7 +62,7 @@ Project Objective</h3>
 
 - Improve accountability and transparency by tracking the progress and quality of connectivity of schools over time 
 
-- Easily check, understand, share and visualize the quality of the internet service experienced in a school  
+- Easily check, understand, share, and visualize the quality of the internet service experienced in a school  
 
 - Measure impact by generating updated estimates on the number of schools and children who have fast and reliable access to internet connectivity 
 
@@ -75,7 +75,7 @@ GigaMeter is a Windows-based desktop application that can be installed on a scho
 <h3><a id="system-requirements" class="anchor" aria-hidden="true" href="#system-requirements"><svg class="octicon octicon-link" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"></path></svg></a>
 System Requirements </h3>
 <p></p>
-To run GigaMeter, the following are minimum requirements: 
+To run GigaMeter, the following are the minimum requirements: 
 
 - Internet connection 
 
@@ -89,7 +89,7 @@ Built With </h3>
 <b>Our Tech Stacks</b>  
 - Ionic - an open-source UI toolkit (version 6.0.3) 
 
-- Angular – a TypeScript-based, free and open-source web application framework (version 13) 
+- Angular – a TypeScript-based, free, and open-source web application framework (version 13) 
 
 - Capacitor - Community/Electron - (version 4.1.0)  
 
@@ -113,11 +113,11 @@ Getting Started</h2>
 
     - The download will start automatically.  
 
-    - When the download is complete, double-click on the file – this usually appears on the bottom bar of your browser, otherwise, you will find the file in your ‘Downloads’ folder.  
+    - When the download is complete, double-click on the file. This usually appears at the bottom bar of your browser. Otherwise, you will find the file in your ‘Downloads’ folder.  
 
-    -  The installation process is straightforward, follow the wizard by clicking ‘Next’ on each step.  
+    -  The installation process is straightforward. Follow the wizard by clicking ‘Next’ on each step.  
 
-- After successfully installing the app, it will send schools' internet connectivity information to Giga Maps twice a day. 
+- After successfully installing the app, it will send schools' internet connectivity information to Giga Maps four times daily. 
 
 #### Development Commands 
 
