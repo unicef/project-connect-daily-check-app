@@ -5,11 +5,15 @@
       <span class="daily-chk"> {{ appNameSuffix | uppercase }} </span>
     </ion-label>
     <ion-buttons slot="end">
-      <ion-select [(ngModel)]="selectedLanguage" (ionChange)="onLanguageChange()">
+      <ion-select [(ngModel)]="selectedLanguage" (ionChange)="onLanguageChange()" class="custom-select">
         <ion-select-option *ngFor="let language of languages" [value]="language.code">
-          {{ language.name }}
+          {{ language.label }}
         </ion-select-option>
       </ion-select>
+      <ion-label class="selected-label" onclick="document.querySelector('ion-select').open()"
+        onmouseover="this.style.cursor='pointer'">
+        {{ selectedLanguageName }}
+      </ion-label>
     </ion-buttons>
     <ion-buttons slot="end">
       <ion-menu-button color="light"></ion-menu-button>
