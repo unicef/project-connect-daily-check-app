@@ -11,6 +11,7 @@ import { SettingsService } from '../services/settings.service';
 export class PcdcHeaderComponent implements OnInit {
   languages = env.languages;
   selectedLanguage: string;
+  selectedLanguageName: string;
   test = false;
   appName = env.appName;
   appNameSuffix = env.appNameSuffix;
@@ -22,6 +23,9 @@ export class PcdcHeaderComponent implements OnInit {
     this.selectedLanguage =
       this.settingsService.get('applicationLanguage')?.code ||
       translate.defaultLang;
+    this.selectedLanguageName = this.languages.find(
+      (l) => l.code === this.selectedLanguage
+    ).name;
     translate.use(this.selectedLanguage);
     this.test = env.mode === 'dev';
   }
@@ -32,6 +36,9 @@ export class PcdcHeaderComponent implements OnInit {
       'applicationLanguage',
       this.languages.find((l) => l.code === this.selectedLanguage)
     );
+    this.selectedLanguageName = this.languages.find(
+      (l) => l.code === this.selectedLanguage
+    ).name;
     window.location.reload();
   }
   closeApp() {
