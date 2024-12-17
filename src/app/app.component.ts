@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { MenuController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../app/services/storage.service';
@@ -7,6 +7,9 @@ import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
 import { ScheduleService } from './services/schedule.service';
 import { environment } from '../environments/environment'; // './esrc/environments/environment';
+import { PingResult, PingService } from './services/ping.service';
+import { LocalStorageService } from './services/local-storage.service';
+import { SyncService } from './services/sync.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -14,13 +17,13 @@ import { environment } from '../environments/environment'; // './esrc/environmen
   templateUrl: 'app.component.html',
   styleUrls: ['app.component.scss'],
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   school: any;
   historyState: any;
   availableSettings: any;
   scheduleSemaphore: any;
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  app_version: any;
+  app_version: any;   
   appName = environment.appName;
   showAboutMenu = environment.showAboutMenu;
   constructor(
@@ -30,7 +33,10 @@ export class AppComponent {
     private sharedService: SharedService,
     private historyService: HistoryService,
     private settingsService: SettingsService,
-    private scheduleService: ScheduleService
+    private scheduleService: ScheduleService,
+    private pingService: PingService,
+    private localStorageService: LocalStorageService,
+    private syncService: SyncService
   ) {
     translate.setDefaultLang('en');
     const appLang = this.settingsService.get('applicationLanguage') ?? {
@@ -49,6 +55,12 @@ export class AppComponent {
         }
       }
     );
+
+
+  
+    //15 min call to 3 diff hosts
+    // 2hours save the data from localstorage
+    //if it fails thn delete from local storage
 
     this.settingsService.setSetting(
       'scheduledTesting',
@@ -72,6 +84,16 @@ export class AppComponent {
     setInterval(() => {
       this.scheduleService.initiate();
     }, 60000);
+  }
+  ngOnInit(): void {
+    // Start periodic checks every 15 minutes (15 * 60 * 1000 ms)
+
+    this.pingService.startPeriodicChecks(15 * 60 * 1000, (result: PingResult) => {
+      console.log('Ping result:', result);
+      this.localStorageService.savePingResult(result);
+    });
+
+    this.syncService.startPeriodicSync();
   }
 
   openSecond() {
