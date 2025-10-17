@@ -814,11 +814,11 @@ export class StarttestPage implements OnInit, OnDestroy {
     }
 
     const testStatus = data.testStatus;
-    const toFixedOrDefault = (value: number | undefined, digits = 2) => {
+    const convertToMbpsOrDefault = (value: number | undefined, digits = 2) => {
       if (value === undefined || !Number.isFinite(value)) {
         return '0.00';
       }
-      return (value/ 1000000).toFixed(digits);
+      return (value/ 1048576).toFixed(digits);
     };
 
     switch (testStatus) {
@@ -858,7 +858,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       case 'cf_interval_download': {
         const downloadMbps = Number(data.downloadCurrentSpeed ?? 0);
         this.currentState = 'Running Test (Download)';
-        this.currentRate = toFixedOrDefault(downloadMbps);
+        this.currentRate = convertToMbpsOrDefault(downloadMbps);
         this.currentRateDownload = this.currentRate;
         this.ref.markForCheck();
         return;
@@ -867,7 +867,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       case 'cf_interval_upload': {
         const uploadMbps = Number(data.uploadCurrentSpeed ?? 0);
         this.currentState = 'Running Test (Upload)';
-        this.currentRate = toFixedOrDefault(uploadMbps);
+        this.currentRate = convertToMbpsOrDefault(uploadMbps);
         this.currentRateUpload = this.currentRate;
         this.ref.markForCheck();
         return;
@@ -889,9 +889,9 @@ export class StarttestPage implements OnInit, OnDestroy {
 
         this.currentState = 'Completed';
         this.currentDate = new Date();
-        this.currentRate = toFixedOrDefault(downloadSummary);
-        this.currentRateDownload = toFixedOrDefault(downloadSummary);
-        this.currentRateUpload = toFixedOrDefault(uploadSummary);
+        this.currentRate = convertToMbpsOrDefault(downloadSummary);
+        this.currentRateDownload = convertToMbpsOrDefault(downloadSummary);
+        this.currentRateUpload = convertToMbpsOrDefault(uploadSummary);
         this.latency = Number.isFinite(latencySummary)
           ? latencySummary.toFixed(0)
           : undefined;
