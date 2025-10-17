@@ -6,6 +6,7 @@ import { SettingsService } from './settings.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
+import { MeasurementRecord } from './measurement.types.js';
 
 @Injectable({
   providedIn: 'root',
@@ -137,7 +138,7 @@ export class MeasurementClientService {
     }
   }
 
-  private initializeMeasurementRecord(notes: string) {
+  private initializeMeasurementRecord(notes: string):MeasurementRecord {
     return {
       timestamp: Date.now(),
       results: {},
