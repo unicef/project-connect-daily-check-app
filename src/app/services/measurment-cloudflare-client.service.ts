@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import SpeedTest from '@cloudflare/speedtest';
-import { Subject } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 import { HistoryService } from './history.service';
 import { SettingsService } from './settings.service';
 import { NetworkService } from './network.service';
@@ -431,6 +431,13 @@ export class CloudflareMeasurementService  {
     measurementRecord.version = environment.app_version;
     measurementRecord.dataUsage = this.calculateDataUsage(results);
 
+    if ('snapLog' in measurementRecord) {
+      delete (measurementRecord as any).snapLog;
+    }
+    if (measurementRecord.results && 'bandwidthPoints' in (measurementRecord.results as any)) {
+      delete (measurementRecord.results as any).bandwidthPoints;
+    }
+
     if (this.settingsService.get('uploadEnabled')) {
       try {
         this.historyService.add(measurementRecord);
@@ -438,7 +445,9 @@ export class CloudflareMeasurementService  {
           'history:measurement:change',
           'history:measurement:change'
         );
-        //   await this.uploadService.uploadMeasurement(measurementRecord).toPromise();
+        await firstValueFrom(
+           this.uploadService.uploadCloudflareMeasurement(measurementRecord)
+        );
         measurementRecord.uploaded = true;
       } catch (error) {
         console.error('Upload failed:', error);

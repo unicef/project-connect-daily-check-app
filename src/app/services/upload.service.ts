@@ -7,22 +7,26 @@ import {
 } from '@angular/common/http';
 import { catchError, map, tap } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
-import { Observable, throwError } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { SettingsService } from '../services/settings.service';
 import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
+import { MeasurementRecord } from './measurement.types';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UploadService {
   ts: any;
+  apiV2Url: string;
   constructor(
     private http: HttpClient,
     private settingService: SettingsService,
     private storage: StorageService,
     private hardwareIdService: HardwareIdService
-  ) {}
+  ) {
+    this.apiV2Url = environment.restAPI.replace(/\/api\/v1\/$/, '/api/v2/') + 'measurements';
+  }
 
   /**
    * Return all network related information
@@ -182,7 +186,52 @@ export class UploadService {
     ); // ...errors if any
   }
 
+  uploadCloudflareMeasurement(record: MeasurementRecord): Observable<any> {
+    if (!this.settingService.currentSettings.uploadEnabled) {
+      return of(null);
+    }
+
+    let uploadURL = this.apiV2Url;
+
+    const payload = {
+      uuid: record.uuid,
+      version: record.version,
+      provider: record.provider ?? 'cloudflare',
+      notes: record.Notes,
+      timestamp: record.timestamp,
+      appVersion: environment.app_version,
+      dataUsage: record.dataUsage,
+      accessInformation: record.accessInformation,
+      results: record.results,
+      browserID: this.storage.get('schoolUserId') || '',
+      deviceType: 'windows',
+      schoolID: this.storage.get('schoolId') || '',
+      gigaIDSchool: this.storage.get('gigaId') || '',
+      ipAddress: record.accessInformation?.ip || '',
+      countryCode: record.accessInformation?.country || '',
+    };
+    console.log('Uploading Cloudflare measurement', payload);
+    return this.http.post(uploadURL, payload).pipe(
+      map((res: any) => res),
+      tap((data) => data),
+      catchError((error) => {console.error('Upload error', error); return this.handleError(error); })
+    );
+  }
+
   private handleError(error: Response) {
     return throwError(error);
+  }
+
+  private toMegabytes(dataUsage?: { download?: number; upload?: number; total?: number }) {
+    const base = dataUsage ?? { download: 0, upload: 0, total: 0 };
+    const toMb = (value?: number) => {
+      const bytes = Number(value ?? 0);
+      return Number((bytes / (1024 * 1024)).toFixed(4));
+    };
+    return {
+      download: toMb(base.download),
+      upload: toMb(base.upload),
+      total: toMb(base.total),
+    };
   }
 }
