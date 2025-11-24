@@ -19,6 +19,7 @@ import { MeasurementRecord } from './measurement.types';
 export class UploadService {
   ts: any;
   apiV2Url: string;
+  cloudflareApiV2Url: string;
   constructor(
     private http: HttpClient,
     private settingService: SettingsService,
@@ -26,6 +27,7 @@ export class UploadService {
     private hardwareIdService: HardwareIdService
   ) {
     this.apiV2Url = environment.restAPI.replace(/\/api\/v1\/$/, '/api/v2/') + 'measurements';
+    this.cloudflareApiV2Url = environment.restAPI.replace(/\/api\/v1\/$/, '/api/v2/') + 'measurements/cloudflare';
   }
 
   /**
@@ -191,7 +193,7 @@ export class UploadService {
       return of(null);
     }
 
-    let uploadURL = this.apiV2Url;
+    let uploadURL = this.cloudflareApiV2Url;
 
     const payload = {
       uuid: record.uuid,
