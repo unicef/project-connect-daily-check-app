@@ -437,9 +437,10 @@ export class CloudflareMeasurementService  {
     if (measurementRecord.results && 'bandwidthPoints' in (measurementRecord.results as any)) {
       delete (measurementRecord.results as any).bandwidthPoints;
     }
-
+    
     if (this.settingsService.get('uploadEnabled')) {
       try {
+        measurementRecord.provider = 'cloudflare';
         this.historyService.add(measurementRecord);
         this.sharedService.broadcast(
           'history:measurement:change',

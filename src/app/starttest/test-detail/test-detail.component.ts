@@ -15,7 +15,7 @@ export class TestDetailComponent implements OnInit {
   schoolId: string;
   school: any;
   historicalData: any;
-  measurementsData: [];
+  measurementsData: any[];
   accessInformation = {
     ip: '',
     city: '',
@@ -86,13 +86,62 @@ export class TestDetailComponent implements OnInit {
       const allMeasurements = this.historicalData.measurements;
 
       // Get the last 10 measurements (sorted by timestamp descending)
-      this.measurementsData = allMeasurements
-        .sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        ) // descending order
-        .slice(0, 10); // take last 10
+      this.measurementsData = this.parseMeasurementData(
+        allMeasurements
+          .sort(
+            (a, b) =>
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          ) // descending order
+          .slice(0, 10)
+      ); // take last 10
     }
+  }
+
+  parseMeasurementData(measurementsData) {
+    const parsedMeasurements = [];
+    for (let measurement of measurementsData) {
+      console.log('Measurement to parse:', measurement);
+      if (measurement?.provider === 'cloudflare') {
+        console.log('Processing Cloudflare measurement data');
+        console.log(measurement);
+        const downloadMbps =
+          (measurement?.results?.summary?.download || 0) / 1048576;
+        const uploadMbps =
+          (measurement?.results?.summary?.upload || 0) / 1048576;
+        const latencyMs =
+          ((measurement?.results?.summary?.downLoadedLatency || 0) +
+            (measurement?.results?.summary?.upLoadedLatency || 0)) /
+          2;
+        parsedMeasurements.push({
+          ...measurement,
+          download: downloadMbps,
+          upload: uploadMbps,
+          latency: latencyMs,
+        });
+        // Process Cloudflare measurement data
+      } else if (measurement?.provider === 'mlab' || !measurement?.provider) {
+        const downloadMbps =
+          measurement.results['NDTResult.S2C']?.LastClientMeasurement
+            ?.MeanClientMbps || 0;
+        const uploadMbps =
+          measurement.results['NDTResult.C2S']?.LastClientMeasurement
+            ?.MeanClientMbps || 0;
+        const latencyMs =
+          ((measurement.results['NDTResult.S2C']?.LastServerMeasurement?.BBRInfo
+            ?.MinRTT || 0) +
+            (measurement.results['NDTResult.C2S']?.LastServerMeasurement
+              ?.BBRInfo?.MinRTT || 0)) /
+          2000;
+        parsedMeasurements.push({
+          ...measurement,
+          download: downloadMbps,
+          upload: uploadMbps,
+          latency: latencyMs,
+        });
+      }
+      // Process M-Lab measurement data
+    }
+    return parsedMeasurements;
   }
 
   /**
