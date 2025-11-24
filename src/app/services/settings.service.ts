@@ -229,7 +229,7 @@ export class SettingsService {
       return this.defaultCountryConfig;
     }
     let countryConfig = this.storageSerivce.get('countryConfig');
-    if (countryConfig) {
+    if (countryConfig && countryConfig?.savedAt < Date.now() - DAY ) {
       countryConfig = JSON.parse(countryConfig);
       return countryConfig;
     }
@@ -247,6 +247,7 @@ export class SettingsService {
         if (!newConfig || newConfig.data.length === 0) {
           return this.defaultCountryConfig;
         }
+        newConfig.data.savedAt = Date.now();
         this.storageSerivce.set(
           'countryConfig',
           JSON.stringify(newConfig.data)

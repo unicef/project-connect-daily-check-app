@@ -299,7 +299,8 @@ export class MeasurementClientService {
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
     measurementRecord.dataUsage = dataUsage;
-
+    measurementRecord.provider = 'mlab';
+    
     if (this.settingsService.get('uploadEnabled')) {
       try {
         // Try to upload first before saving to localStorage
