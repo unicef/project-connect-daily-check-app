@@ -14,6 +14,9 @@ const DAY = 1000 * 60 * 60 * 24;
   providedIn: 'root',
 })
 export class SettingsService {
+  defaultCountryConfig = {
+    measurementProvider: 'mlab',
+  };
   currentSettings = {
     onlyWifi: {
       default: false,
@@ -215,6 +218,45 @@ export class SettingsService {
   }
   getShell() {
     return (window as any).shell;
+  }
+
+  async getCountryConfig():
+  Promise<{ measurementProvider: string;} > {  
+    const countryCode = this.storageSerivce.get('country_code');
+    console.log('Checking for country config', { country_code: countryCode });
+    if (!countryCode) {
+      console.log('No country code found');
+      return this.defaultCountryConfig;
+    }
+    let countryConfig = this.storageSerivce.get('countryConfig');
+    if (countryConfig) {
+      countryConfig = JSON.parse(countryConfig);
+      return countryConfig;
+    }
+    if(!countryConfig || countryConfig?.code !== countryCode) {
+      try {
+        // localhost:3000/api/v1/country-config/code/ES
+        const newConfig = await this.http
+          .get(environment.restAPI + `country-config/code/${countryCode}`, {
+            observe: 'response',
+            headers: new HttpHeaders({
+              'Content-type': 'application/json',
+            }),
+          }).pipe(map((response: any) => response.body))
+          .toPromise();
+        if (!newConfig || newConfig.data.length === 0) {
+          return this.defaultCountryConfig;
+        }
+        this.storageSerivce.set(
+          'countryConfig',
+          JSON.stringify(newConfig.data)
+        );
+        return newConfig?.data || this.defaultCountryConfig;
+      } catch (e) {
+        console.log(e);
+        return this.defaultCountryConfig;
+      }
+    }
   }
 
   async getFeatureFlags() {

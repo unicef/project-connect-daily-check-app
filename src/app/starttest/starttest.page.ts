@@ -608,17 +608,17 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.router.navigate(['connectivitytest']);
   }
 
-  startMeasurement() {
-    let provider: 'cloudflare' | 'ndt7' ; // This can be dynamic based on feature flags 
-    provider = 'cloudflare'; // For example, hardcoded to 'cloudflare' for now
+  async startMeasurement() {
+    const provider = (await this.settingsService.getCountryConfig()).measurementProvider;
+    console.log('Measurement provider selected:', provider);
     switch (provider) {
-      // @ts-ignore
       case 'cloudflare':
           this.startCloudflare();
+          console.log('Cloudflare measurement started');
         break;
-      // @ts-ignore
-      case 'ndt7':
+      case 'mlab':
         this.startNDT();
+        console.log('NDT7 measurement started');
         break;
     }
   }
