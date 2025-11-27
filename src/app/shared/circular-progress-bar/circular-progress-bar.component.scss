@@ -13,45 +13,60 @@
   margin-top: -13px;
 }
 
-.circle-background {
-  // stroke: #46C66D;
-  stroke-width: 4;
+/* ====================================================== */
+/*   ⭐ NUEVO: SPINNER ANIMADO COMO FONDO DEL PROGRESO     */
+/* ====================================================== */
+.spinner-background {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
 
-  &.error {
-    stroke: #F94B4B;
-    --color: #F94B4B !important;
-    color: #F94B4B !important;
-  }
+  background: conic-gradient(
+    #46C66D 0%,
+    #F5F5F5 30%,
+    #F5F5F5 60%,
+    #46C66D 100%
+  );
 
-  &.green {
-    stroke: #46C66D;
-  }
+  -webkit-mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 4px),
+      black calc(100% - 4px)
+  );
+  mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 4px),
+      black calc(100% - 4px)
+  );
 
-  &.gray {
-    stroke: #fff;
+  animation: spinnerRotate 1.3s linear infinite;
+}
+
+/* Giro completo */
+@keyframes spinnerRotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 
+/* ====================================================== */
+/*     BARRA VERDE DEL PROGRESO (TAPA EL SPINNER)         */
+/* ====================================================== */
 .circle-progress {
   stroke: #46C66D;
   stroke-width: 4;
-  transition: stroke-dashoffset 350ms;
+  transition: stroke-dashoffset 350ms linear;
   transform: rotate(90deg);
   transform-origin: 50% 50%;
 
   &.error {
-    stroke: red;
-  }
-
-  &.green {
-    stroke: #46C66D;
-  }
-
-  &.gray {
-    stroke: #fff;
+    stroke: #F94B4B;
   }
 }
 
+/* ====================================================== */
+/*     ESTILOS QUE YA TENÍAS (NO LOS TOQUÉ)               */
+/* ====================================================== */
 .second-label {
   position: relative;
   left: 50%;
@@ -76,8 +91,7 @@
     opacity: 1;
   }
 
-  75%,
-  100% {
+  75%, 100% {
     transform: scale(1.2);
     opacity: 0;
   }
@@ -85,14 +99,12 @@
 
 .ping-animation {
   position: absolute;
-  width: 40px; // Adjust as needed
-  height: 40px;
+  width: 130px;
+  height: 130px;
   background-color: rgba(70, 198, 109, 0.1);
   border-radius: 50%;
-  height: 130px;
-  width: 130px;
   margin-left: -5px;
-    margin-top: -5px;
+  margin-top: -5px;
 
   &::after {
     content: "";
@@ -102,7 +114,7 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background-color: rgb(81, 225, 43, 0.2); // Semi-transparent blue
+    background-color: rgba(81, 225, 43, 0.2);
     animation: ping 1s infinite;
   }
 }
@@ -120,7 +132,7 @@
 }
 
 .fill-color-tertiary {
-  fill: #222222
+  fill: #222222;
 }
 
 .fill-green {
@@ -130,14 +142,4 @@
 .circular-progress-container {
   width: 120px;
   height: 120px;
-}
-
-.ping-animation {
-  width: 130px;
-  height: 130px;
-
-  &::after {
-    width: 100%;
-    height: 100%;
-  }
 }
