@@ -19,10 +19,11 @@
     ></circle>
 
     <!-- ⭐ SPINNER ANIMADO COMO FONDO (SE VE EN LA PARTE NO COMPLETADA) -->
-    <foreignObject
-      *ngIf="secondLabel === 'DOWNLOAD' || secondLabel === 'UPLOAD'"
-      x="6" y="6" width="88" height="88">
-      <div class="spinner-background"></div>
+    <foreignObject x="4" y="4" width="92" height="92">
+      <div
+        class="spinner-background"
+        [style.opacity]="(secondLabel === 'DOWNLOAD' || secondLabel === 'UPLOAD') ? 1 : 0">
+      </div>
     </foreignObject>
 
     <!-- ⭐ BARRA VERDE QUE TAPA EL SPINNER (PROGRESO REAL) -->
