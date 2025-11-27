@@ -13,9 +13,7 @@
   margin-top: -13px;
 }
 
-/* ====================================================== */
-/*   ⭐ NUEVO: SPINNER ANIMADO COMO FONDO DEL PROGRESO     */
-/* ====================================================== */
+
 .spinner-background {
   width: 100%;
   height: 100%;
@@ -42,31 +40,14 @@
   animation: spinnerRotate 1.3s linear infinite;
 }
 
-/* Giro completo */
+
 @keyframes spinnerRotate {
   to {
     transform: rotate(360deg);
   }
 }
 
-/* ====================================================== */
-/*     BARRA VERDE DEL PROGRESO (TAPA EL SPINNER)         */
-/* ====================================================== */
-.circle-progress {
-  stroke: #46C66D;
-  stroke-width: 4;
-  transition: stroke-dashoffset 350ms linear;
-  transform: rotate(90deg);
-  transform-origin: 50% 50%;
 
-  &.error {
-    stroke: #F94B4B;
-  }
-}
-
-/* ====================================================== */
-/*     ESTILOS QUE YA TENÍAS (NO LOS TOQUÉ)               */
-/* ====================================================== */
 .second-label {
   position: relative;
   left: 50%;
@@ -99,12 +80,13 @@
 
 .ping-animation {
   position: absolute;
+  top: 50%;
+  left: 50%;
   width: 130px;
   height: 130px;
   background-color: rgba(70, 198, 109, 0.1);
   border-radius: 50%;
-  margin-left: -5px;
-  margin-top: -5px;
+  transform: translate(-50%, -50%);
 
   &::after {
     content: "";
@@ -139,7 +121,4 @@
   fill: #46C66D;
 }
 
-.circular-progress-container {
-  width: 120px;
-  height: 120px;
-}
+
