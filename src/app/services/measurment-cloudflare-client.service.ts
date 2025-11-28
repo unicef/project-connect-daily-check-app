@@ -247,7 +247,7 @@ export class CloudflareMeasurementService  {
     };
 
     const obj: ResultsObject = {
-      isFinished: safe(() => results.isFinished) as unknown as boolean,
+      isFinished: true,
 
       summary: safe(() => results.getSummary()),
 
