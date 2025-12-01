@@ -22,7 +22,7 @@
     <foreignObject x="4" y="4" width="92" height="92">
       <div
         class="spinner-background"
-        [style.opacity]="(secondLabel === 'DOWNLOAD' || secondLabel === 'UPLOAD') ? 1 : 0">
+        [class.visible]="isSpinnerVisible">
       </div>
     </foreignObject>
 
