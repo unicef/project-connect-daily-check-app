@@ -12,6 +12,11 @@ export const removeUnregisterSchool = async (
 ) => {
   const gigaId = storage.get('gigaId');
   const countryCode = storage.get('country_code');
+  // NEW: get the userId or browserId stored on the device
+  const localUserId =
+    storage.get('browser_id') ||
+    storage.get('user_id');
+
   let response;
 
   try {
@@ -30,9 +35,25 @@ export const removeUnregisterSchool = async (
     console.log('Existing school on the device not found on backend');
     captureMessage('Existing school on the device not found on backend');
     return false;
-  } else {
-    return true;
   }
+
+  //NEW: validate if there is a record with the same user_id
+
+  const userMatch = response.some((entry: any) => {
+    return entry.user_id === localUserId;
+  });
+
+  if (!userMatch) {
+    storage.clear();
+    console.log(
+      'No matching user_id found for this gigaId → clearing local storage'
+    );
+    captureMessage('User_id mismatch → clearing local storage');
+    return false;
+  }
+
+  // All good
+  return true;
 };
 
 /**
