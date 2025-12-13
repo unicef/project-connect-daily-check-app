@@ -96,6 +96,10 @@ export class CloudflareMeasurementService  {
   private finishedDownload = false;
   private startedUpload = false;
   private finishedUpload = false;
+  //(Persist UI stage for DEV)
+  private lastStage: 'DOWNLOAD' | 'UPLOAD' | null = null;
+   // DEV / PROD environment flag
+  private readonly isDev = !environment.production;
 
   async runTest(notes = 'manual'): Promise<void> {
     // 1) Obtener/crear registro base
@@ -128,74 +132,118 @@ export class CloudflareMeasurementService  {
     }
 
     this.st = new SpeedTest(cfg);
-    this.st.play();
+
+    // ===============================
+    // RESET STATE (IMPORTANT IN DEV)
+    // ===============================
+    this.startedDownload = false;
+    this.finishedDownload = false;
+    this.startedUpload = false;
+    this.finishedUpload = false;
+    this.lastStage = null;
+    this.progress = 0;
+
+
 
     // 4) Inicio
     // this.broadcast('onstart', { running: true, progress: 0, notes });
-    this.broadcastMeasurementStatus('cf_onstart', {});
+    // ADDED FOR DEV SPINNER SUPPORT
+    // Reset visual state at start
 
-    // 5) Eventos
-    this.st.onResultsChange = (info: { type: string }) => {
-      this.updateStageFlags(info?.type);
-      this.bumpProgress(info?.type);
 
-      const results = this.st?.results;
-      if (!results) return;
+    this.broadcastMeasurementStatus('cf_onstart', {
+      running: true,
+      progress: 0,
+      secondLabel: this.isDev ? 'DOWNLOAD' : null,
+    });
 
-      const resultsObject = this.buildResultsObject(results);
-      this.resultData.passedResults = resultsObject;
-      if (this.measurementRecord) {
-        this.measurementRecord.results = resultsObject;
-        const downloadSpeed =
-          info?.type === 'download'
-            ? Number(resultsObject?.bandwidth?.download)
-            : undefined;
-        if (downloadSpeed !== undefined && Number.isFinite(downloadSpeed)) {
-          this.measurementRecord.snapLog?.s2cRate.push(downloadSpeed);
-        }
+   // 5) Eventos
+this.st.onResultsChange = (info: { type?: string }) => {
+  // ⬅️ CAMBIO 1: type ahora es opcional y se normaliza una sola vez
+  const type = info?.type;
 
-        const uploadSpeed =
-          info?.type === 'upload'
-            ? Number(resultsObject?.bandwidth?.upload)
-            : undefined;
-        if (uploadSpeed !== undefined && Number.isFinite(uploadSpeed)) {
-          this.measurementRecord.snapLog?.c2sRate.push(uploadSpeed);
-        }
-      }
+  if (type === 'download') {
+  this.lastStage = 'DOWNLOAD';
+  }
 
-      
-      console.log(info);
-      const intervalType =
-        info?.type === 'download'
-          ? 'cf_interval_download'
-          : info?.type === 'upload'
-          ? 'cf_interval_upload'
-          : 'cf_interval_other';
-      this.broadcastMeasurementStatus(intervalType, {
-        running: true,
-        progress: this.progress,
-        downloadCurrentSpeed:
-          resultsObject?.bandwidth?.download?.toFixed(2) || 0,
-        uploadCurrentSpeed: resultsObject?.bandwidth?.upload?.toFixed(2) || 0,
-        passedResults: resultsObject,
-      });
+  if (type === 'upload') {
+    this.lastStage = 'UPLOAD';
+  }
 
-      // Emisiones específicas
-      if (
-        info?.type === 'download' &&
-        this.startedDownload &&
-        !this.finishedDownload
-      ) {
-        this.downloadStarted$.next({ started: true });
-      }
-      if (
-        info?.type === 'upload' &&
-        this.startedUpload &&
-        !this.finishedUpload
-      ) {
-        this.uploadStarted$.next({ started: true });
-      }
-    };
+  this.updateStageFlags(type);
+  this.bumpProgress(type);
+
+  const results = this.st?.results;
+  if (!results) return;
+
+  const resultsObject = this.buildResultsObject(results);
+  this.resultData.passedResults = resultsObject;
+
+  if (this.measurementRecord) {
+    this.measurementRecord.results = resultsObject;
+
+    // CAMBIO 2: uso de `type` normalizado (misma lógica, más segura)
+    const downloadSpeed =
+      type === 'download'
+        ? Number(resultsObject?.bandwidth?.download)
+        : undefined;
+
+    if (downloadSpeed !== undefined && Number.isFinite(downloadSpeed)) {
+      this.measurementRecord.snapLog?.s2cRate.push(downloadSpeed);
+    }
+
+    const uploadSpeed =
+      type === 'upload'
+        ? Number(resultsObject?.bandwidth?.upload)
+        : undefined;
+
+    if (uploadSpeed !== undefined && Number.isFinite(uploadSpeed)) {
+      this.measurementRecord.snapLog?.c2sRate.push(uploadSpeed);
+    }
+  }
+
+  // console.log se mantiene (útil para debug Cloudflare)
+  console.log(info);
+
+  // CAMBIO 3: se usa `type` ya normalizado
+  const intervalType =
+    type === 'download'
+      ? 'cf_interval_download'
+      : type === 'upload'
+      ? 'cf_interval_upload'
+      : 'cf_interval_other';
+
+  // ADDED FOR DEV SPINNER SUPPORT
+  // Map Cloudflare type -> UI label
+  // CAMBIO: UI tolerante a eventos sin tipo
+  // Tolerant mapping for Cloudflare DEV (localhost may not emit type)
+  // DEV fallback: if Cloudflare does not emit type,
+  // keep a stable visual stage once it starts
+
+   const secondLabel = this.lastStage;
+
+  this.broadcastMeasurementStatus(intervalType, {
+    running: true,
+    progress: this.progress,
+    secondLabel, // THIS IS THE KEY
+    downloadCurrentSpeed:
+      resultsObject?.bandwidth?.download?.toFixed(2) || 0,
+    uploadCurrentSpeed:
+      resultsObject?.bandwidth?.upload?.toFixed(2) || 0,
+    passedResults: resultsObject,
+  });
+
+  // Emisiones específicas
+  // CAMBIO 5: se usa `type` (mismo comportamiento, menos riesgo)
+  if (type === 'download' && this.startedDownload && !this.finishedDownload) {
+    this.downloadStarted$.next({ started: true });
+  }
+
+  if (type === 'upload' && this.startedUpload && !this.finishedUpload) {
+    this.uploadStarted$.next({ started: true });
+  }
+};
+
 
     this.st.onFinish = async (_: any) => {
       const results = this.st?.results;
@@ -218,8 +266,19 @@ export class CloudflareMeasurementService  {
       }
 
       this.progress = 1;
-      this.resultData.testStatus = { status: 'cf_complete', notes };
-      this.resultData.passedResults = resultsObject ?? {};
+
+    // ===============================
+      // ADDED FOR DEV SPINNER SUPPORT
+      // Clear spinner label on finish
+      // ===============================
+
+      this.broadcastMeasurementStatus('cf_complete', {
+        passedResults: resultsObject ?? {},
+        running: false,
+        progress: 1,
+        secondLabel: null,
+      });
+
 
       await this.finalizeMeasurement(resultsObject);
     };
@@ -228,8 +287,12 @@ export class CloudflareMeasurementService  {
       this.broadcastMeasurementStatus('cf_error', {
         error: (error && (error.message ?? String(error))) || 'Unknown error',
         running: false,
+        secondLabel: null, // ADDED FOR DEV SPINNER SUPPORT
       });
     };
+
+    // Start test
+    this.st.play();
   }
 
   // ----------------- Helpers -----------------
@@ -246,7 +309,8 @@ export class CloudflareMeasurementService  {
       }
     };
 
-    const obj: ResultsObject = {
+    //const obj: ResultsObject = {
+    return {
       isFinished: true,
 
       summary: safe(() => results.getSummary()),
@@ -286,27 +350,20 @@ export class CloudflareMeasurementService  {
 
       scores: safe(() => results.getScores()),
     };
-
-    return obj;
   }
 
-  /** Marca inicios/finales heurísticos por etapa para emitir started/complete */
+
   private updateStageFlags(type?: string) {
-    if (!type) return;
-    if (type === 'download') {
-      this.startedDownload = true;
-    } else if (this.startedDownload && !this.finishedDownload) {
-      this.finishedDownload = true;
-      this.downloadComplete$.next({});
-    }
+   if (!type) return;
 
-    if (type === 'upload') {
-      this.startedUpload = true;
-    } else if (this.startedUpload && !this.finishedUpload) {
-      this.finishedUpload = true;
-      this.uploadComplete$.next({});
-    }
-  }
+   if (type === 'download') {
+     this.startedDownload = true;
+   }
+
+   if (type === 'upload') {
+     this.startedUpload = true;
+   }
+ }
 
   /** Progreso suave en función del tipo reportado */
   private bumpProgress(type?: string) {
@@ -437,7 +494,7 @@ export class CloudflareMeasurementService  {
     if (measurementRecord.results && 'bandwidthPoints' in (measurementRecord.results as any)) {
       delete (measurementRecord.results as any).bandwidthPoints;
     }
-    
+
     if (this.settingsService.get('uploadEnabled')) {
       try {
         measurementRecord.provider = 'cloudflare';
