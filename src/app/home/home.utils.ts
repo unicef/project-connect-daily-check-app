@@ -13,9 +13,9 @@ export const removeUnregisterSchool = async (
   const gigaId = storage.get('gigaId');
   const countryCode = storage.get('country_code');
   // NEW: get the userId or browserId stored on the device
-  const localUserId =
+  /*const localUserId =
     storage.get('browser_id') ||
-    storage.get('user_id');
+    storage.get('user_id');*/
 
   let response;
 
@@ -39,7 +39,7 @@ export const removeUnregisterSchool = async (
 
   //NEW: validate if there is a record with the same user_id
 
-  const userMatch = response.some((entry: any) => {
+ /* const userMatch = response.some((entry: any) => {
     return entry.user_id === localUserId;
   });
 
@@ -50,7 +50,7 @@ export const removeUnregisterSchool = async (
     );
     captureMessage('User_id mismatch → clearing local storage');
     return false;
-  }
+  }*/
 
   // All good
   return true;
