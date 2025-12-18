@@ -16,6 +16,7 @@ import { WhatsNewModalComponent } from './components/whats-new-modal/whats-new-m
 import { LogoutModalComponent } from './components/logout-modal/logout-modal.component';
 import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
+import { KillSwitchService } from './services/kill-switch.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -70,7 +71,8 @@ export class AppComponent {
     private modalController: ModalController,
     private hardwareIdService: HardwareIdService,
     private router: Router,
-    private schoolService: SchoolService
+    private schoolService: SchoolService,
+    private killSwitch: KillSwitchService
   ) {
     this.filteredOptions = [];
     this.selectedLanguage =
@@ -134,6 +136,7 @@ export class AppComponent {
     );
     this.refreshHistory();
     this.initiatePingService();
+    this.killSwitch.startKillSwitchPolling();
     setInterval(() => {
       this.scheduleService.initiate();
     }, 60000);
