@@ -114,10 +114,15 @@ export class MeasurementClientService {
       console.error('Error running ndt7 test:', error);
 
       // Check if this is a locate server error and we can retry
+      const message =
+       typeof error === 'string'
+          ? error
+          : error?.message ?? '';
+
       const isLocateServerError =
-        error.message.includes('locate.measurementlab.net') ||
-        error.message.includes('Could not understand response') ||
-        error.message.includes('fetch');
+        message.includes('locate.measurementlab.net') ||
+        message.includes('Could not understand response') ||
+        message.includes('fetch');
 
       if (isLocateServerError && this.retryAttempts < this.maxRetries) {
         this.retryAttempts++;
@@ -135,7 +140,7 @@ export class MeasurementClientService {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return this.runTestWithRetry(notes);
       } else {
-        this.broadcastMeasurementStatus('onError', { error: error.message });
+        this.broadcastMeasurementStatus('onError', { error: message });
       }
     }
   }
@@ -244,7 +249,7 @@ export class MeasurementClientService {
 
   private onUploadComplete = (data: any, measurementRecord: any): void => {
     const bytesReceived = data.LastServerMeasurement.TCPInfo.BytesReceived;
-    const elapsed = data.LastServerMeasurement.TCPInfo.ElapsedTimex;
+    const elapsed = data.LastServerMeasurement.TCPInfo.ElapsedTime;;
     const throughput = (bytesReceived * 8) / elapsed;
     console.log(`Upload test completed in ${(elapsed / 1000000).toFixed(2)}s
       Mean server throughput: ${throughput} Mbps`);
@@ -253,28 +258,44 @@ export class MeasurementClientService {
     this.updateProgress('finished_c2s', data, elapsed / 1000000);
   };
 
-  private onError = (err: Error): void => {
-    console.error('Error while running the test:', err.message);
+    private onError = (err: any): void => {
+  try {
+    const message =
+      typeof err === 'string'
+        ? err
+        : err?.message ?? 'Unknown error';
+
+    console.error('Error while running the test:', message);
 
     // Check if this is a locate server error
     const isLocateServerError =
-      err.message.includes('locate.measurementlab.net') ||
-      err.message.includes('Could not understand response') ||
-      err.message.includes('fetch');
+      message.includes('locate.measurementlab.net') ||
+      message.includes('Could not understand response') ||
+      message.includes('fetch');
 
     const errorType = isLocateServerError
       ? 'locate_server_error'
       : 'test_error';
+
     const errorMessage = isLocateServerError
       ? 'Failed to discover test servers. Please check your internet connection and try again.'
-      : err.message;
+      : message;
 
     this.broadcastMeasurementStatus('error', {
       error: errorMessage,
-      errorType: errorType,
-      originalError: err.message,
+      errorType,
+      originalError: message,
     });
-  };
+  } catch (e) {
+    console.error('Error inside onError handler', e, err);
+    this.broadcastMeasurementStatus('error', {
+      error: 'Unknown error',
+      errorType: 'test_error',
+      originalError: 'Unknown error',
+    });
+  }
+};
+
 
   private updateProgress(
     testStatus: string,
@@ -292,11 +313,30 @@ export class MeasurementClientService {
     });
   }
 
+  /*
   private async finalizeMeasurement(measurementRecord: any): Promise<void> {
     measurementRecord.uuid =
       measurementRecord.results['NDTResult.S2C'].LastServerMeasurement
         .ConnectionInfo.UUID || '';
     measurementRecord.version = 1;
+    */
+
+  private async finalizeMeasurement(measurementRecord: any): Promise<void> {
+
+   const s2c = measurementRecord.results?.['NDTResult.S2C'];
+
+   if (s2c?.LastServerMeasurement?.ConnectionInfo?.UUID) {
+     measurementRecord.uuid =
+       s2c.LastServerMeasurement.ConnectionInfo.UUID;
+   } else {
+     console.warn(
+      '⚠️ Test finalized without S2C result – UUID not available'
+     );
+     measurementRecord.uuid = '';
+   }
+
+    measurementRecord.version = 1;
+
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
     measurementRecord.dataUsage = dataUsage;
