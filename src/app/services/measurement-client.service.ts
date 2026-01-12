@@ -214,19 +214,36 @@ export class MeasurementClientService {
   };
 
   private onDownloadComplete = (data: any, measurementRecord: any): void => {
-    const serverBw = (data.LastServerMeasurement.BBRInfo.BW * 8) / 1000000;
-    const clientGoodput = data.LastClientMeasurement.MeanClientMbps;
-    console.log(`Download test is complete:
-    Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
-    Mean client goodput: ${clientGoodput} Mbps`);
+   const bbrInfo = data?.LastServerMeasurement?.BBRInfo;
+
+   if (!bbrInfo) {
+    console.warn('⚠️ Download result received without BBRInfo');
     measurementRecord.results['NDTResult.S2C'] = data;
-    this.downloadComplete$.next(data); // Emit event
+    this.downloadComplete$.next(data);
     this.updateProgress(
       'finished_s2c',
       data,
-      data.LastClientMeasurement.ElapsedTime
+      data?.LastClientMeasurement?.ElapsedTime || 0
     );
+    return;
+   }
+
+   const serverBw = (bbrInfo.BW * 8) / 1000000;
+   const clientGoodput = data.LastClientMeasurement.MeanClientMbps;
+
+   console.log(`Download test is complete:
+    Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
+    Mean client goodput: ${clientGoodput} Mbps`);
+
+   measurementRecord.results['NDTResult.S2C'] = data;
+   this.downloadComplete$.next(data);
+   this.updateProgress(
+    'finished_s2c',
+    data,
+    data.LastClientMeasurement.ElapsedTime
+   );
   };
+
 
   private onUploadMeasurement = (data: any, measurementRecord: any): void => {
     if (data.Source === 'server') {
