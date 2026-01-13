@@ -66,50 +66,55 @@ class BootBroadCastReceiver(
    * @param context : Context of app, used to access the Shared Preferences
    */
   private fun scheduleAlarmOnRestart(context: Context) {
-    val alarmPrefs = prefProvider(context)
-    /**
-     * This check used to check if speed test need to schedule for the
-     * new day
-     */
-    if (alarmPrefs.isNewDay()) {
-      alarmPrefs.resetForNewDay()
-      val now = System.currentTimeMillis()
-      val randomIn15Min = now + Random.nextLong(0, 15 * 60 * 1000L)
-      alarmPrefs.first15ScheduledTime = randomIn15Min
-      AppLogger.d("GIGA BootBroadCastReceiver", "On Boot New Day 15 Min $randomIn15Min")
-      alarmPrefs.nextExecutionTime = randomIn15Min
-      alarmHelper.scheduleExactAlarm(context, randomIn15Min, FIRST_15_MIN)
-    }
-    /**
-     * This check used to check if first 15 min speed test was scheduled
-     * but not executed for the day
-     */
-    else if (alarmPrefs.first15ExecutedTime == -1L) {
-      val now = System.currentTimeMillis()
-      val randomIn15Min = now + Random.nextLong(0, 15 * 60 * 1000L)
-      alarmPrefs.first15ScheduledTime = randomIn15Min
-      AppLogger.d("GIGA BootBroadCastReceiver", "On Boot Not Executed 15 Min $randomIn15Min")
-      alarmPrefs.nextExecutionTime = randomIn15Min
-      alarmHelper.scheduleExactAlarm(context, randomIn15Min, FIRST_15_MIN)
-    }
-    /**
-     * This schedules slot speed test based on current time
-     * if speed test for current slot already executed ,
-     * it schedules for next slot else for current slot
-     */
-    else {
-      val executedTime = alarmPrefs.first15ExecutedTime
-      val lastExecutionDate = alarmPrefs.lastExecutionDay
-      val currentSlotStartHour = alarmHelper.getSlotStartHour(executedTime)
-      val (start, end) = alarmHelper.getNextSlotRange(
-        executedTime,
-        currentSlotStartHour,
-        lastExecutionDate
-      )
-      val nextAlarmTime = Random.nextLong(start, end)
-      AppLogger.d("GIGA BootBroadCastReceiver", "On Boot For Slot $nextAlarmTime")
-      alarmPrefs.nextExecutionTime = nextAlarmTime
-      alarmHelper.scheduleExactAlarm(context, nextAlarmTime, NEXT_SLOT)
+    try {
+      val alarmPrefs = prefProvider(context)
+      /**
+       * This check used to check if speed test need to schedule for the
+       * new day
+       */
+      if (alarmPrefs.isNewDay()) {
+        alarmPrefs.resetForNewDay()
+        val now = System.currentTimeMillis()
+        val randomIn15Min = now + Random.nextLong(5 * 60 * 1000L, 15 * 60 * 1000L)
+        alarmPrefs.first15ScheduledTime = randomIn15Min
+        AppLogger.d("GIGA BootBroadCastReceiver", "On Boot New Day 15 Min $randomIn15Min")
+        alarmPrefs.nextExecutionTime = randomIn15Min
+        alarmHelper.scheduleExactAlarm(context, randomIn15Min, FIRST_15_MIN)
+      }
+      /**
+       * This check used to check if first 15 min speed test was scheduled
+       * but not executed for the day
+       */
+      else if (alarmPrefs.first15ExecutedTime == -1L) {
+        val now = System.currentTimeMillis()
+        val randomIn15Min = now + Random.nextLong(5 * 60 * 1000L, 15 * 60 * 1000L)
+        alarmPrefs.first15ScheduledTime = randomIn15Min
+        AppLogger.d("GIGA BootBroadCastReceiver", "On Boot Not Executed 15 Min $randomIn15Min")
+        alarmPrefs.nextExecutionTime = randomIn15Min
+        alarmHelper.scheduleExactAlarm(context, randomIn15Min, FIRST_15_MIN)
+      }
+      /**
+       * This schedules slot speed test based on current time
+       * if speed test for current slot already executed ,
+       * it schedules for next slot else for current slot
+       */
+      else {
+        val executedTime = alarmPrefs.first15ExecutedTime
+        val lastExecutionDate = alarmPrefs.lastExecutionDay
+        val currentSlotStartHour = alarmHelper.getSlotStartHour(executedTime)
+        val (start, end) = alarmHelper.getNextSlotRange(
+          executedTime,
+          currentSlotStartHour,
+          lastExecutionDate
+        )
+        val nextAlarmTime = Random.nextLong(start, end)
+        AppLogger.d("GIGA BootBroadCastReceiver", "On Boot For Slot $nextAlarmTime")
+        alarmPrefs.nextExecutionTime = nextAlarmTime
+        alarmHelper.scheduleExactAlarm(context, nextAlarmTime, NEXT_SLOT)
+      }
+    } catch (e: Exception) {
+      AppLogger.d("GIGA BootBroadCastReceiver", "On Boot For Slot ${e.toString()}")
+      Sentry.capture("Received Exception while scheduling the speed test after boot completed")
     }
   }
 }
