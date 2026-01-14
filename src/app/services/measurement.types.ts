@@ -13,4 +13,7 @@ export interface MeasurementRecord {
   Notes: string;
   dataUsage: any;
   provider?: 'cloudflare' | 'ndt7';
+  windowsUsername?: string;
+  installedPath?: string;
+  wifiConnections?: any;
 }
