@@ -81,6 +81,16 @@ export class MeasurementClientService {
     private sharedService: SharedService
   ) {}
 
+  private isValidNdt7Block(block: any): boolean {
+    return !!(
+      block &&
+      block.LastServerMeasurement &&
+      block.LastServerMeasurement.TCPInfo &&
+      block.LastClientMeasurement &&
+      typeof block.LastClientMeasurement.ElapsedTime === 'number'
+    );
+  }
+
   async runTest(notes = 'manual'): Promise<void> {
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
@@ -205,22 +215,30 @@ export class MeasurementClientService {
   };
 
   private onDownloadMeasurement = (data: any, measurementRecord: any): void => {
-    if (data.Source === 'client') {
+    if (data?.Source === 'client' && data?.Data?.MeanClientMbps !== undefined) {
       console.log(`Download: ${data.Data.MeanClientMbps.toFixed(2)} Mb/s`);
       measurementRecord.snapLog.s2cRate.push(data.Data.MeanClientMbps);
       this.downloadStarted$.next(data);
-      this.updateProgress('interval_s2c', data, data.Data.ElapsedTime);
+      this.updateProgress('interval_s2c', data, data.Data.ElapsedTime || 0);
     }
   };
 
   private onDownloadComplete = (data: any, measurementRecord: any): void => {
-    const serverBw = (data.LastServerMeasurement.BBRInfo.BW * 8) / 1000000;
+    if (!this.isValidNdt7Block(data) || !data.LastServerMeasurement.BBRInfo) {
+      console.warn('⚠️ Invalid download block ignored', data);
+      return;
+    }
+
+    const serverBw =
+      (data.LastServerMeasurement.BBRInfo.BW * 8) / 1_000_000;
     const clientGoodput = data.LastClientMeasurement.MeanClientMbps;
+
     console.log(`Download test is complete:
-    Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
-    Mean client goodput: ${clientGoodput} Mbps`);
+      Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
+      Mean client goodput: ${clientGoodput} Mbps`);
+
     measurementRecord.results['NDTResult.S2C'] = data;
-    this.downloadComplete$.next(data); // Emit event
+    this.downloadComplete$.next(data);
     this.updateProgress(
       'finished_s2c',
       data,
@@ -229,28 +247,39 @@ export class MeasurementClientService {
   };
 
   private onUploadMeasurement = (data: any, measurementRecord: any): void => {
-    if (data.Source === 'server') {
-      const elapsed = data.Data.TCPInfo.ElapsedTime;
+    if (data?.Source === 'server' && data?.Data?.TCPInfo) {
+      const elapsed = data.Data.TCPInfo.ElapsedTime || 0;
       const uploadSpeed = (
-        (data.Data.TCPInfo.BytesReceived / data.Data.TCPInfo.ElapsedTime) *
+        (data.Data.TCPInfo.BytesReceived / elapsed) *
         8
       ).toFixed(2);
+
       console.log(`Upload: ${uploadSpeed} Mb/s`);
       this.uploadStarted$.next(data);
       measurementRecord.snapLog.c2sRate.push(Number(uploadSpeed));
-      this.updateProgress('interval_c2s', data, elapsed / 1000000);
+      this.updateProgress('interval_c2s', data, elapsed / 1_000_000);
     }
   };
 
   private onUploadComplete = (data: any, measurementRecord: any): void => {
-    const bytesReceived = data.LastServerMeasurement.TCPInfo.BytesReceived;
-    const elapsed = data.LastServerMeasurement.TCPInfo.ElapsedTimex;
+    if (!this.isValidNdt7Block(data)) {
+      console.warn('⚠️ Invalid upload block ignored', data);
+      return;
+    }
+
+    const bytesReceived =
+      data.LastServerMeasurement.TCPInfo.BytesReceived;
+    const elapsed =
+      data.LastServerMeasurement.TCPInfo.ElapsedTime;
+
     const throughput = (bytesReceived * 8) / elapsed;
-    console.log(`Upload test completed in ${(elapsed / 1000000).toFixed(2)}s
-      Mean server throughput: ${throughput} Mbps`);
+
+    console.log(`Upload test completed in ${(elapsed / 1_000_000).toFixed(2)}s
+        Mean server throughput: ${throughput} Mbps`);
+
     measurementRecord.results['NDTResult.C2S'] = data;
-    this.uploadComplete$.next(data); // Emit event
-    this.updateProgress('finished_c2s', data, elapsed / 1000000);
+    this.uploadComplete$.next(data);
+    this.updateProgress('finished_c2s', data, elapsed / 1_000_000);
   };
 
   private onError = (err: Error): void => {
@@ -293,6 +322,12 @@ export class MeasurementClientService {
   }
 
   private async finalizeMeasurement(measurementRecord: any): Promise<void> {
+
+    if (!this.isValidNdt7Block(measurementRecord.results['NDTResult.S2C'])) {
+      console.warn('Invalid final measurement, aborting save');
+      return;
+    }
+
     measurementRecord.uuid =
       measurementRecord.results['NDTResult.S2C'].LastServerMeasurement
         .ConnectionInfo.UUID || '';
@@ -339,6 +374,14 @@ export class MeasurementClientService {
     upload: number;
     total: number;
   } {
+
+    if (
+      !this.isValidNdt7Block(passedResults['NDTResult.S2C']) ||
+      !this.isValidNdt7Block(passedResults['NDTResult.C2S'])
+    ) {
+      return this.dataUsage;
+    }
+
     const bytesSent =
       Number(
         passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
