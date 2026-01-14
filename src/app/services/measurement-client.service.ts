@@ -101,6 +101,13 @@ export class MeasurementClientService {
 
     try {
       const info = await this.getTestInfo();
+      if (
+      !info?.mlabInformation ||
+      !info.mlabInformation.fqdn ||
+      !info.mlabInformation.url
+      ) {
+      throw new Error('locate.measurementlab.net unavailable');
+      }
       Object.assign(measurementRecord, info);
 
       const exitCode = await ndt7.test(
