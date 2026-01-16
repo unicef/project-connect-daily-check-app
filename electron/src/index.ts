@@ -193,18 +193,31 @@ if (!gotTheLock) {
   /*
       app.on('ready', () => {
         updateApp = require('update-electron-app');
-      
-        updateApp({          
+
+        updateApp({
             updateInterval: '5 minute',
             notifyUser: true
-        });      
+        });
       });
-  
+
       */
   autoUpdater.autoDownload = true;
 
   setInterval(() => {
-    autoUpdater.checkForUpdates();
+    autoUpdater.checkForUpdates().catch((error) => {
+      const message = error?.message || '';
+
+      if (
+        message.includes('ERR_CONNECTION_TIMED_OUT') ||
+        message.includes('ERR_CERT_DATE_INVALID')
+      ) {
+        console.warn('[AutoUpdater] Network error (ignored):', message);
+        return;
+      }
+
+      console.error('[AutoUpdater] Unexpected update error:', error);
+      captureException(error);
+    });
   }, 3600000);
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
@@ -267,26 +280,36 @@ if (!gotTheLock) {
     }
   });
   autoUpdater.on('error', (error) => {
-    console.error('Update Error:', error);
+    const message = error?.message || '';
+
+    if (
+      message.includes('ERR_CONNECTION_TIMED_OUT') ||
+      message.includes('ERR_CERT_DATE_INVALID')
+    ) {
+      console.warn('[AutoUpdater] Network error:', message);
+      return; // error esperado, no enviar a Sentry
+    }
+
+    console.error('[AutoUpdater] Unexpected update error:', error);
     captureException(error);
   });
   /*
     autoUpdater.on('error', (error) => {
       console.error('Update Error:', error);
-    
+
       const dialogOpts = {
         type: 'info',
         buttons: ['Restart / Reinicie / Перезапустить', 'Later / Después / Позже'],
         title: 'PCDC Update',
-       
+
         message:  `A new version of PCDC has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de PCDC ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nБыла загружена новая версия PCDC. Перезапустите приложение, чтобы применить обновления.`
       };
       dialog.showMessageBox(dialogOpts).then((returnValue) => {
         if (returnValue.response === 0) autoUpdater.quitAndInstall(false, true)
       })
-  
+
     });
-  
+
   */
 
   // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
