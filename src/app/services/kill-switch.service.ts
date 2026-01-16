@@ -1,13 +1,15 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { interval, switchMap, of, map } from 'rxjs';
+import { interval, switchMap, of, map, catchError } from 'rxjs';
 import { environment } from 'src/environments/_environment.prod';
+import { HardwareIdService } from './hardware-id.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class KillSwitchService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient,
+    private hardwareIdService: HardwareIdService) { }
 
   startKillSwitchPolling() {
     // Run every hour
@@ -42,12 +44,33 @@ export class KillSwitchService {
     }
   }
 
+
+
   private checkStatusFromServer(schoolId: string) {
-    return this.http.get<any>(`${environment.restAPI}dailycheckapp_schools/id/${schoolId}`)
+    const hardwareId = this.hardwareIdService.getHardwareId();
+
+    
+    const payload = {
+      device_hardware_id: hardwareId,
+      giga_id_school: schoolId,
+    };
+
+    return this.http
+      .post<any>(
+        `${environment.restAPI}dailycheckapp_schools/check-device-school-status`,
+        payload
+      )
       .pipe(
-        map(resp => resp.schoolActive === true)
+        map(
+          (resp) => resp?.data?.isActive === true
+        ),
+        catchError((err) => {
+          console.error('❌ KillSwitch API error:', err);
+          return of(false); // secure fallback
+        })
       );
   }
+
 
   private async triggerKillSwitch() {
     console.warn('Kill Switch Activated — App Disabled');
