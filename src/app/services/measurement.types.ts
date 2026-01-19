@@ -6,7 +6,10 @@ export interface MeasurementRecord {
     c2sRate: number[];
   };
   uploaded: boolean;
-  mlabInformation: any;
+  synced?: boolean;
+  index?: number;
+  mlabInformation?: any;
+  serverInformation?: any;
   accessInformation: any;
   uuid: string;
   version: number | string;

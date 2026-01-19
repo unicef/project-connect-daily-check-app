@@ -42,6 +42,13 @@ export interface mlabInformation {
     label: string;
     metro: string;
 }
+export interface serverInformation {
+    city: string;
+    site: string;
+    country: string;
+    label: string;
+    metro: string;
+}
 
 export interface accessInformation {
     ip: string;
