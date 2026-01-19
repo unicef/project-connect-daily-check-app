@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
 import SpeedTest from '@cloudflare/speedtest';
 import { Subject, firstValueFrom } from 'rxjs';
 import { HistoryService } from './history.service';
@@ -6,8 +7,10 @@ import { SettingsService } from './settings.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
+import { StorageService } from './storage.service';
 import { environment } from 'src/environments/environment';
 import { MeasurementRecord } from './measurement.types';
+import { serverInformation } from '../models/models';
 
 type ScaleOptions = {
   latencyScale?: number;
@@ -77,7 +80,9 @@ export class CloudflareMeasurementService  {
     private settingsService: SettingsService,
     private networkService: NetworkService,
     private uploadService: UploadService,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private http: HttpClient,
+    private storageService: StorageService
   ) {}
 
   // -- Contrato de la interfaz --
@@ -444,12 +449,19 @@ this.st.onResultsChange = (info: { type?: string }) => {
       console.error('Unable to retrieve access information:', err);
     }
 
+    let serverInformation: any = {};
+    try {
+      serverInformation = await this.getCloudflareServerLocation();
+    } catch (err) {
+      console.error('Unable to retrieve Cloudflare server location:', err);
+    }
+
     return {
       timestamp: Date.now(),
       results: {},
       snapLog: { s2cRate: [], c2sRate: [] },
       uploaded: false,
-      mlabInformation: {},
+      serverInformation,
       accessInformation,
       uuid: '',
       version: environment.app_version,
@@ -457,6 +469,88 @@ this.st.onResultsChange = (info: { type?: string }) => {
       dataUsage: { download: 0, upload: 0, total: 0 },
       provider: 'cloudflare',
     };
+  }
+
+  /**
+   * Gets Cloudflare server location based on colo
+   * Caches colo and server location in localStorage
+   * Only fetches locations if colo changes
+   */
+  private async getCloudflareServerLocation(): Promise<Partial<serverInformation>> {
+    try {
+      // Step 1: Get colo from ip-check endpoint
+      const ipCheckResponse = await firstValueFrom(
+        this.http.get<{
+          colo: string;
+          asn: number;
+          continent: string;
+          country: string;
+          region: string;
+          city: string;
+          latitude: string;
+          longitude: string;
+          ip_address: string;
+          ip_version: string;
+        }>('https://ip-check-perf.radar.cloudflare.com/')
+      );
+
+      const currentColo = ipCheckResponse.colo;
+      if (!currentColo) {
+        console.warn('No colo found in ip-check response');
+        return {};
+      }
+
+      // Step 2: Check cached colo and server location
+      const cachedColo = this.storageService.get('cloudflare_colo');
+      const cachedServerLocation = this.storageService.get('cloudflare_server_location');
+
+      // Step 3: If colo hasn't changed and we have cached server, return it
+      if (cachedColo === currentColo && cachedServerLocation) {
+        try {
+          return JSON.parse(cachedServerLocation);
+        } catch (e) {
+          console.warn('Failed to parse cached server location, fetching new one');
+        }
+      }
+
+      // Step 4: Fetch locations and find matching server
+      const locationsResponse = await firstValueFrom(
+        this.http.get<Array<{
+          iata: string;
+          lat: number;
+          lon: number;
+          cca2: string;
+          region: string;
+          city: string;
+        }>>('https://speed.cloudflare.com/locations')
+      );
+
+      // Step 5: Find server with matching IATA
+      const server = locationsResponse.find((loc) => loc.iata === currentColo);
+
+      if (!server) {
+        console.warn(`No server found for colo: ${currentColo}`);
+        return {};
+      }
+
+      // Step 6: Parse to serverInformation schema
+      const serverInfo: serverInformation = {
+        city: server.city || '',
+        site: server.iata || '',
+        country: server.cca2 || '',
+        label: server.city || '',
+        metro: server.iata || '',
+      };
+
+      // Step 7: Store in localStorage
+      await this.storageService.set('cloudflare_colo', currentColo);
+      await this.storageService.set('cloudflare_server_location', JSON.stringify(serverInfo));
+
+      return serverInfo;
+    } catch (error) {
+      console.error('Error getting Cloudflare server location:', error);
+      return {};
+    }
   }
 
   private broadcastMeasurementStatus(
@@ -498,15 +592,17 @@ this.st.onResultsChange = (info: { type?: string }) => {
     if (this.settingsService.get('uploadEnabled')) {
       try {
         measurementRecord.provider = 'cloudflare';
+        
+        await firstValueFrom(
+           this.uploadService.uploadCloudflareMeasurement(measurementRecord)
+        );
+        measurementRecord.uploaded = true;
+        measurementRecord.synced = true;
         this.historyService.add(measurementRecord);
         this.sharedService.broadcast(
           'history:measurement:change',
           'history:measurement:change'
         );
-        await firstValueFrom(
-           this.uploadService.uploadCloudflareMeasurement(measurementRecord)
-        );
-        measurementRecord.uploaded = true;
       } catch (error) {
         console.error('Upload failed:', error);
       }
