@@ -226,6 +226,7 @@ export class UploadService {
       appVersion: environment.app_version,
       dataUsage: record.dataUsage,
       accessInformation: record.accessInformation,
+      serverInformation: record.serverInformation,
       results: record.results,
       browserID: this.storage.get('schoolUserId') || '',
       deviceType: 'windows',

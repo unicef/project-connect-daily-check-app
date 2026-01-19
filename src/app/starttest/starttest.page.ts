@@ -22,7 +22,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../services/storage.service';
 import { Subscription } from 'rxjs';
 import { CountryService } from '../services/country.service';
-import { mlabInformation, accessInformation } from '../models/models';
+import { mlabInformation, accessInformation, serverInformation } from '../models/models';
 import { FirstTestSuccessModalComponent } from '../components/first-test-success-modal/first-test-success-modal.component';
 import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
@@ -495,7 +495,11 @@ export class StarttestPage implements OnInit, OnDestroy {
           }
 
           // Update server and ISP information
-          if (latestMeasurement.mlabInformation?.city) {
+          // Use serverInformation for Cloudflare, mlabInformation for NDT
+          if (latestMeasurement.provider === 'cloudflare' && latestMeasurement.serverInformation?.city) {
+            this.measurementnetworkServer =
+              latestMeasurement.serverInformation.city;
+          } else if (latestMeasurement.mlabInformation?.city) {
             this.measurementnetworkServer =
               latestMeasurement.mlabInformation.city;
           }
@@ -608,16 +612,16 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.router.navigate(['connectivitytest']);
   }
 
-  async startMeasurement() {
+  async startMeasurement(notes: string = 'manual') {
     const provider = (await this.settingsService.getCountryConfig()).measurementProvider;
     console.log('Measurement provider selected:', provider);
     switch (provider) {
       case 'cloudflare':
-          this.startCloudflare();
+          this.startCloudflare(notes);
           console.log('Cloudflare measurement started');
         break;
       case 'mlab':
-        this.startNDT();
+        this.startNDT(notes);
         console.log('NDT7 measurement started');
         break;
     }
@@ -668,7 +672,9 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.ref.markForCheck();
   }
 
-  startCloudflare() {
+  startCloudflare(
+    notes: string = 'manual'
+  ) {
     try {
       this.uploadProgressStarted = false;
       this.downloadStarted = false;
@@ -693,7 +699,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.connectionStatus = '';
       this.uploadProgressStarted = false;
       this.beginCloudflareProgressSimulation();
-      this.cloudflareMeasurementService.runTest();
+      this.cloudflareMeasurementService.runTest(notes);
     } catch (e) {
       console.error(e);
     }
@@ -911,8 +917,12 @@ export class StarttestPage implements OnInit, OnDestroy {
             ? cloudflareMeasurements[cloudflareMeasurements.length - 1]
             : undefined;
         if (lastMeasurement) {
-          this.measurementnetworkServer =
-            lastMeasurement?.mlabInformation?.city || '';
+          // Use serverInformation for Cloudflare
+          if (lastMeasurement.provider === 'cloudflare' && lastMeasurement.serverInformation?.city) {
+            this.measurementnetworkServer = lastMeasurement.serverInformation.city;
+          } else {
+            this.measurementnetworkServer = lastMeasurement?.mlabInformation?.city || '';
+          }
           this.measurementISP = lastMeasurement?.accessInformation?.org || '';
         }
 
@@ -1009,8 +1019,12 @@ export class StarttestPage implements OnInit, OnDestroy {
         const measurements = historicalData?.measurements;
         if (Array.isArray(measurements) && measurements.length) {
           const lastMeasurement = measurements[measurements.length - 1];
-          this.measurementnetworkServer =
-            lastMeasurement?.mlabInformation?.city || '';
+          // Use serverInformation for Cloudflare, mlabInformation for NDT
+          if (lastMeasurement.provider === 'cloudflare' && lastMeasurement.serverInformation?.city) {
+            this.measurementnetworkServer = lastMeasurement.serverInformation.city;
+          } else {
+            this.measurementnetworkServer = lastMeasurement?.mlabInformation?.city || '';
+          }
           this.measurementISP = lastMeasurement?.accessInformation?.org || '';
         }
         this.ref.markForCheck();
@@ -1145,7 +1159,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       }
 
       // Start the NDT test
-      this.startNDT('first');
+      this.startMeasurement('first');
     } else {
       console.log('Auto-trigger conditions not met:', {
         firstTestTriggered: this.firstTestTriggered,
