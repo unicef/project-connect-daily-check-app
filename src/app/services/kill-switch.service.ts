@@ -52,7 +52,7 @@ export class KillSwitchService {
     
     const payload = {
       device_hardware_id: hardwareId,
-      giga_id_school: schoolId,
+      external_id: schoolId,
     };
 
     return this.http
