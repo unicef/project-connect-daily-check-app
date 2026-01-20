@@ -73,7 +73,7 @@ export class TestDetailComponent implements OnInit {
       this.measurementnetworkServer =
         historicalData.measurements[
           historicalData.measurements.length - 1
-        ].mlabInformation.city;
+        ].mlabInformation?.city || historicalData[historicalData.measurements.length - 1]?.serverInformation?.city || '';
       this.measurementISP =
         historicalData.measurements[
           historicalData.measurements.length - 1
