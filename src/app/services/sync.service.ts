@@ -49,6 +49,7 @@ export class SyncService {
     await this.indexedDBService.cleanupOldRecords();
   }
 
+  /*
   private async postWithRetry(batch: any[]): Promise<void> {
     const updatedUsers = batch.map(({ isSynced, ...rest }) => rest);
     const payload = updatedUsers.map(({ createdAt, ...rest }) => rest);
@@ -75,6 +76,44 @@ export class SyncService {
       }
     }
   }
+  */
+
+  private async postWithRetry(batch: any[]): Promise<void> {
+    const gigaId = this.storage.get('gigaId');
+
+    if (!gigaId) {
+      console.warn(
+        '[SyncService] No gigaId found. Skipping connectivity sync.'
+      );
+      return;
+    }
+
+    const updatedUsers = batch.map(({ isSynced, ...rest }) => rest);
+    const payload = updatedUsers.map(({ createdAt, ...rest }) => rest);
+
+    try {
+      await this.http
+        .post(
+          `${environment.restAPI}connectivity/${gigaId}`,
+          { records: payload }
+        )
+        .toPromise();
+    } catch (error) {
+      console.warn('Initial sync attempt failed. Retrying...');
+      try {
+        await this.http
+          .post(
+            `${environment.restAPI}connectivity/${gigaId}`,
+            { records: payload }
+          )
+          .toPromise();
+      } catch (retryError) {
+        console.error('Retry failed:', retryError);
+        throw retryError;
+      }
+    }
+  }
+
 
   startPeriodicSync(): void {
     setInterval(() => {
