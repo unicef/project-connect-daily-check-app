@@ -7,14 +7,24 @@ import * as Sentry from '@sentry/browser';
 export class SentryService {
   constructor() {}
 
-  captureException(error: Error, context?: Record<string, any>) {
+  captureException(error: any, context?: Record<string, any>) {
     Sentry.withScope((scope) => {
       if (context) {
         Object.keys(context).forEach(key => {
           scope.setExtra(key, context[key]);
         });
       }
-      Sentry.captureException(error);
+
+      if (error instanceof Error) {
+        Sentry.captureException(error);
+      } else {
+        Sentry.captureMessage('Non-error exception', {
+          level: Sentry.Severity.Warning,
+          extra: {
+            originalError: error
+          }
+        });
+      }
     });
   }
 
@@ -40,4 +50,4 @@ export class SentryService {
   clearUser() {
     Sentry.setUser(null);
   }
-} 
+}
