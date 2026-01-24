@@ -210,18 +210,27 @@ if (!gotTheLock) {
   */
 
   setInterval(async () => {
-  try {
-    await autoUpdater.checkForUpdates();
-  } catch (error: any) {
-    if (error?.message?.includes('ERR_NETWORK_IO_SUSPENDED')) {
-      console.warn('[AutoUpdater] Network suspended during scheduled update check');
-      return;
-    }
+    try {
+      await autoUpdater.checkForUpdates();
+    } catch (error: any) {
 
-    console.error('[AutoUpdater] Scheduled update error:', error);
-    captureException(error);
-  }
-}, 3600000);
+      const msg = error?.message || error?.code || '';
+
+      if (
+        msg.includes('ERR_NETWORK_IO_SUSPENDED') ||
+        msg.includes('ERR_NETWORK_CHANGED') ||
+        msg.includes('ERR_PROXY_CONNECTION_FAILED') ||
+        msg.includes('ERR_CONNECTION_TIMED_OUT') ||
+        msg.includes('ERR_CERT_DATE_INVALID')
+      ) {
+        console.warn('[AutoUpdater] Network-related error, skipping:', msg);
+        return;
+      }
+
+      console.error('[AutoUpdater] Scheduled update error:', error);
+      captureException(error);
+    }
+  }, 3600000);
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
     const dialogOpts = {
@@ -284,13 +293,22 @@ if (!gotTheLock) {
   });
 
   autoUpdater.on('error', (error: any) => {
-  if (error?.message?.includes('ERR_NETWORK_IO_SUSPENDED')) {
-    console.warn('[AutoUpdater] Network suspended, skipping update check');
-    return;
-  }
 
-  console.error('[AutoUpdater] Update Error:', error);
-  captureException(error);
+    const msg = error?.message || error?.code || '';
+
+    if (
+      msg.includes('ERR_NETWORK_IO_SUSPENDED') ||
+      msg.includes('ERR_NETWORK_CHANGED') ||
+      msg.includes('ERR_PROXY_CONNECTION_FAILED') ||
+      msg.includes('ERR_CONNECTION_TIMED_OUT') ||
+      msg.includes('ERR_CERT_DATE_INVALID')
+    ) {
+      console.warn('[AutoUpdater] Network-related error, ignored:', msg);
+      return;
+    }
+
+    console.error('[AutoUpdater] Update Error:', error);
+    captureException(error);
   });
 
 
