@@ -221,7 +221,9 @@ if (!gotTheLock) {
         msg.includes('ERR_NETWORK_CHANGED') ||
         msg.includes('ERR_PROXY_CONNECTION_FAILED') ||
         msg.includes('ERR_CONNECTION_TIMED_OUT') ||
-        msg.includes('ERR_CERT_DATE_INVALID')
+        msg.includes('ERR_CERT_DATE_INVALID') ||
+        msg.includes('ERR_NAME_NOT_RESOLVED') ||
+        msg.includes('ERR_CONNECTION_RESET')
       ) {
         console.warn('[AutoUpdater] Network-related error, skipping:', msg);
         return;
@@ -301,7 +303,9 @@ if (!gotTheLock) {
       msg.includes('ERR_NETWORK_CHANGED') ||
       msg.includes('ERR_PROXY_CONNECTION_FAILED') ||
       msg.includes('ERR_CONNECTION_TIMED_OUT') ||
-      msg.includes('ERR_CERT_DATE_INVALID')
+      msg.includes('ERR_CERT_DATE_INVALID') ||
+      msg.includes('ERR_NAME_NOT_RESOLVED') ||
+      msg.includes('ERR_CONNECTION_RESET')
     ) {
       console.warn('[AutoUpdater] Network-related error, ignored:', msg);
       return;
