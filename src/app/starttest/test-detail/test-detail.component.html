@@ -30,9 +30,9 @@
             <h3 [translate]="'startTest.server'"></h3>
             <p title="{{ measurementnetworkServer }}">
               {{
-                measurementnetworkServer?.length
-                  ? measurementnetworkServer
-                  : "---"
+              measurementnetworkServer?.length
+              ? measurementnetworkServer
+              : "---"
               }}
             </p>
           </ion-label>
@@ -69,10 +69,15 @@
           <span>Last detected location:</span>
           <div class="tooltip">
             <ion-icon name="information-circle-outline" class="info_icon"></ion-icon>
-            <span class="tooltip_text">Accuracy = {{locationDetail?.accuracy || '-'}}</span>
+            <span class="tooltip_text"> Accuracy = {{ locationDetail?.accuracy !== null && locationDetail?.accuracy !==
+              undefined
+              ? (locationDetail.accuracy | number:'1.2-2') + 'm'
+              : '-' }}
+            </span>
+
           </div>
         </div>
-        <a class="location_link"  (click)="openExternalUrl()" >
+        <a class="location_link" (click)="openExternalUrl()">
           {{locationDetail?.location?.lat}} {{locationDetail?.location?.lng}}
         </a>
       </div>
@@ -110,40 +115,37 @@
               <span class="unit-text">(ms)</span>
             </div>
           </ion-col>
-          <ion-col size="2.1" [translate]="'startTest.testTrigger'"
-            >Test Trigger</ion-col
-          >
+          <ion-col size="2.1" [translate]="'startTest.testTrigger'">Test Trigger</ion-col>
           <ion-col size="1.8" [translate]="'startTest.status'">Status</ion-col>
         </ion-row>
 
         <!-- Data Rows -->
         <span *ngIf="measurementsData?.length <= 10">
           <ion-row *ngFor="let data of measurementsData">
-            <ion-col size="2.2"
-              >{{ data.timestamp | date : "dd-MM-yyyy HH:mm" }}
+            <ion-col size="2.2">{{ data.timestamp | date : "dd-MM-yyyy HH:mm" }}
             </ion-col>
             <ion-col size="2.2">{{
               data.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps
-                | number : "1.2-2"
-            }}</ion-col>
+              | number : "1.2-2"
+              }}</ion-col>
             <ion-col size="2.2">{{
               data.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps
-                | number : "1.2-2"
-            }}</ion-col>
+              | number : "1.2-2"
+              }}</ion-col>
             <ion-col size="1.5">{{
               (data.results["NDTResult.S2C"].LastServerMeasurement.BBRInfo
-                .MinRTT +
-                data.results["NDTResult.C2S"].LastServerMeasurement.BBRInfo
-                  .MinRTT) /
-                2 /
-                1000 | number : "1.2-2"
-            }}</ion-col>
+              .MinRTT +
+              data.results["NDTResult.C2S"].LastServerMeasurement.BBRInfo
+              .MinRTT) /
+              2 /
+              1000 | number : "1.2-2"
+              }}</ion-col>
             <ion-col size="2.1">{{
               getTestTriggerDisplayText(data.Notes)
-            }}</ion-col>
+              }}</ion-col>
             <ion-col [ngClass]="getSyncStatusClass(data)" size="1.8">{{
               getSyncStatusText(data)
-            }}</ion-col>
+              }}</ion-col>
           </ion-row>
         </span>
       </ion-grid>
