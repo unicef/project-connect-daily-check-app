@@ -10,6 +10,7 @@ import unhandled from 'electron-unhandled';
 import { autoUpdater } from 'electron-updater';
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import * as si from 'systeminformation';
 
 import {
@@ -330,6 +331,64 @@ app.on('before-quit', () => {
 
 ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
+});
+
+// IPC handler to get Windows username from renderer process
+ipcMain.handle('get-windows-username', async () => {
+  try {
+    console.log('📤 [Electron] Windows username requested via IPC');
+    const userInfo = os.userInfo();
+    const username = userInfo.username;
+
+    console.log('✅ [Electron] Windows username returned via IPC:', username);
+    return { username };
+  } catch (error) {
+    console.error(
+      '❌ [Electron] Error getting Windows username via IPC:',
+      error
+    );
+    captureException(error);
+    return { error: error.message };
+  }
+});
+
+// IPC handler to get application installed path from renderer process
+ipcMain.handle('get-installed-path', async () => {
+  try {
+    console.log('📤 [Electron] Installed path requested via IPC');
+    const installedPath = app.getAppPath();
+
+    console.log(
+      '✅ [Electron] Installed path returned via IPC:',
+      installedPath
+    );
+    return { installedPath };
+  } catch (error) {
+    console.error('❌ [Electron] Error getting installed path via IPC:', error);
+    captureException(error);
+    return { error: error.message };
+  }
+});
+
+// IPC handler to get WiFi connections from renderer process
+ipcMain.handle('get-wifi-connections', async () => {
+  try {
+    console.log('📤 [Electron] WiFi connections requested via IPC');
+    const wifiConnections = await si.wifiConnections();
+
+    console.log(
+      '✅ [Electron] WiFi connections returned via IPC:',
+      wifiConnections
+    );
+    return { wifiConnections };
+  } catch (error) {
+    console.error(
+      '❌ [Electron] Error getting WiFi connections via IPC:',
+      error
+    );
+    captureException(error);
+    return { error: error.message };
+  }
 });
 
 // IPC handler to get hardware ID from renderer process

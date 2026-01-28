@@ -72,14 +72,14 @@
       <ion-grid>
         <!-- Header Row -->
         <ion-row class="table-header">
-          <ion-col size="2.5" [translate]="'startTest.date'">Date</ion-col>
-          <ion-col size="2">
+          <ion-col size="2.2" [translate]="'startTest.date'">Date</ion-col>
+          <ion-col size="2.2">
             <div class="header-with-unit">
               <span [translate]="'startTest.downloadLowerCase'"></span>
               <span class="unit-text">(Mbps)</span>
             </div>
           </ion-col>
-          <ion-col size="2">
+          <ion-col size="2.2">
             <div class="header-with-unit">
               <span [translate]="'startTest.uploadLowerCase'"></span>
               <span class="unit-text">(Mbps)</span>
@@ -91,23 +91,23 @@
               <span class="unit-text">(ms)</span>
             </div>
           </ion-col>
-          <ion-col size="2" [translate]="'startTest.testTrigger'"
+          <ion-col size="2.1" [translate]="'startTest.testTrigger'"
             >Test Trigger</ion-col
           >
-          <ion-col size="2" [translate]="'startTest.status'">Status</ion-col>
+          <ion-col size="1.8" [translate]="'startTest.status'">Status</ion-col>
         </ion-row>
 
         <!-- Data Rows -->
         <span *ngIf="measurementsData?.length <= 10">
           <ion-row *ngFor="let data of measurementsData">
-            <ion-col size="2.5"
+            <ion-col size="2.2"
               >{{ data.timestamp | date : "dd-MM-yyyy HH:mm" }}
             </ion-col>
-            <ion-col size="2">{{
+            <ion-col size="2.2">{{
               data.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps
                 | number : "1.2-2"
             }}</ion-col>
-            <ion-col size="2">{{
+            <ion-col size="2.2">{{
               data.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps
                 | number : "1.2-2"
             }}</ion-col>
@@ -119,10 +119,10 @@
                 2 /
                 1000 | number : "1.2-2"
             }}</ion-col>
-            <ion-col size="2">{{
+            <ion-col size="2.1">{{
               getTestTriggerDisplayText(data.Notes)
             }}</ion-col>
-            <ion-col [ngClass]="getSyncStatusClass(data)" size="2">{{
+            <ion-col [ngClass]="getSyncStatusClass(data)" size="1.8">{{
               getSyncStatusText(data)
             }}</ion-col>
           </ion-row>

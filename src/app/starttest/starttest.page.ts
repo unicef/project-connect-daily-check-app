@@ -687,7 +687,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.progress = 0.05;
       } else if (data.testStatus === 'interval_c2s') {
         console.log('Running Test (Upload)');
-        this.currentState = 'Running Test (Upload)';
+        this.currentState = this.translate.instant('startTest.runningTestUpload');
         this.currentRate = (
           (data.passedResults.Data.TCPInfo.BytesReceived /
             data.passedResults.Data.TCPInfo.ElapsedTime) *
@@ -699,7 +699,7 @@ export class StarttestPage implements OnInit, OnDestroy {
           this.startUploadProgress();
         }
       } else if (data.testStatus === 'interval_s2c') {
-        this.currentState = 'Running Test (Download)';
+        this.currentState = this.translate.instant('startTest.runningTestDownload');
         this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults.Data.MeanClientMbps?.toFixed(2);

@@ -122,7 +122,7 @@
       [attr.font-weight]="400"
       [ngClass]="getTextClass()"
     >
-      TRY AGAIN
+      {{ "startTest.tryAgain" | translate }}
     </text>
     <text
       *ngIf="completed"
@@ -134,7 +134,7 @@
       [attr.font-weight]="400"
       [ngClass]="getTextClass()"
     >
-      TRY AGAIN
+      {{ "startTest.tryAgain" | translate }}
     </text>
 
     <!-- <text x="57" y="50" [attr.font-size]="10" text-anchor="middle" alignment-baseline="top"

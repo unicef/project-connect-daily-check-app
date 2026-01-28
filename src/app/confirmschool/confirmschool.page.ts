@@ -80,100 +80,110 @@ export class ConfirmschoolPage {
           // Get hardware ID for machine-level registration
           const hardwareId = this.hardwareIdService.getHardwareId();
 
-          schoolData = {
-            giga_id_school: this.school.giga_id_school,
-            mac_address: b.identifier,
-            os: a.operatingSystem,
-            app_version: environment.app_version,
-            created: today,
-            ip_address: c, // c.ip,
-            //country_code: c.country,
-            country_code: this.selectedCountry,
-            device_hardware_id: hardwareId || null, // Add hardware ID
-            //school_id: this.school.school_id
-          };
+          // Get Windows username, installed path, and WiFi connections
+          this.getWindowsUsername().then((windowsUsername) => {
+            this.getInstalledPath().then((installedPath) => {
+              this.getWifiConnections().then((wifiConnections) => {
+                schoolData = {
+                  giga_id_school: this.school.giga_id_school,
+                  mac_address: b.identifier,
+                  os: a.operatingSystem,
+                  app_version: environment.app_version,
+                  created: today,
+                  ip_address: c, // c.ip,
+                  //country_code: c.country,
+                  country_code: this.selectedCountry,
+                  device_hardware_id: hardwareId || null, // Add hardware ID
+                  windows_username: windowsUsername || null, // Add Windows username
+                  installed_path: installedPath || null, // Add installed path
+                  wifi_connections: wifiConnections || null, // Add WiFi connections
+                  //school_id: this.school.school_id
+                };
 
-          // if(this.school.code === c.country){
+                // if(this.school.code === c.country){
 
-          this.schoolService
-            .registerSchoolDevice(schoolData)
-            .subscribe((response) => {
-              this.storage.set('deviceType', a.operatingSystem);
-              this.storage.set('macAddress', b.identifier);
-              this.storage.set('schoolUserId', response);
-              this.storage.set('schoolId', this.schoolId);
-              this.storage.set('gigaId', this.school.giga_id_school);
-              this.storage.set('ip_address', c?.ip);
-              this.storage.set('version', environment.app_version);
-              //this.storage.set('country_code', c.country);
-              this.storage.set('country_code', this.selectedCountry);
-              this.storage.set('school_id', this.school.school_id);
-              this.storage.set('schoolInfo', JSON.stringify(this.school));
+                this.schoolService
+                  .registerSchoolDevice(schoolData)
+                  .subscribe((response) => {
+                    this.storage.set('deviceType', a.operatingSystem);
+                    this.storage.set('macAddress', b.identifier);
+                    this.storage.set('schoolUserId', response);
+                    this.storage.set('schoolId', this.schoolId);
+                    this.storage.set('gigaId', this.school.giga_id_school);
+                    this.storage.set('ip_address', c?.ip);
+                    this.storage.set('version', environment.app_version);
+                    //this.storage.set('country_code', c.country);
+                    this.storage.set('country_code', this.selectedCountry);
+                    this.storage.set('school_id', this.school.school_id);
+                    this.storage.set('schoolInfo', JSON.stringify(this.school));
 
-              // Set first-time visit flags for new registration flow
-              this.storage.setFirstTimeVisit(true);
-              this.storage.setRegistrationCompleted(Date.now());
+                    // Set first-time visit flags for new registration flow
+                    this.storage.setFirstTimeVisit(true);
+                    this.storage.setRegistrationCompleted(Date.now());
 
-              this.loading.dismiss();
+                    this.loading.dismiss();
 
-              // Navigate to starttest page normally
-              this.router.navigate(['/starttest']).then(() => {
-                // Broadcast registration completion event after navigation
-                // This will trigger the first-time flow in StartTest component
-                this.sharedService.broadcast('registration:completed');
-              });
+                    // Navigate to starttest page normally
+                    this.router.navigate(['/starttest']).then(() => {
+                      // Broadcast registration completion event after navigation
+                      // This will trigger the first-time flow in StartTest component
+                      this.sharedService.broadcast('registration:completed');
+                    });
 
-              this.settings.setSetting('scheduledTesting', true);
-            }),
-            (err) => {
-              this.loading.dismiss();
-              this.router.navigate([
-                'schoolnotfound',
-                this.schoolId,
-                this.selectedCountry,
-                this.detectedCountry,
-                this.selectedCountryName,
-              ]);
-              /* Redirect to no result found page */
-            };
+                    this.settings.setSetting('scheduledTesting', true);
+                  }),
+                  (err) => {
+                    this.loading.dismiss();
+                    this.router.navigate([
+                      'schoolnotfound',
+                      this.schoolId,
+                      this.selectedCountry,
+                      this.detectedCountry,
+                      this.selectedCountryName,
+                    ]);
+                    /* Redirect to no result found page */
+                  };
 
-          if (this.selectedCountry !== this.detectedCountry) {
-            flaggedSchoolData = {
-              detected_country: this.detectedCountry,
-              selected_country: this.selectedCountry,
-              school_id: this.school.school_id,
-              created: today,
-              giga_id_school: this.school.giga_id_school,
-            };
-            console.log('flagged', flaggedSchoolData);
-            this.schoolService
-              .registerFlaggedSchool(flaggedSchoolData)
-              .subscribe((response) => {
-                this.storage.set('detectedCountry', this.detectedCountry);
-                this.storage.set('selectedCountry', this.selectedCountry);
-                this.storage.set('schoolId', this.schoolId);
-                //this.loading.dismiss();
-                // this.router.navigate(['/schoolsuccess']);
-              }),
-              (err) => {
-                this.loading.dismiss();
-                //this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
-                /* Redirect to no result found page */
-              };
-          }
+                if (this.selectedCountry !== this.detectedCountry) {
+                  flaggedSchoolData = {
+                    detected_country: this.detectedCountry,
+                    selected_country: this.selectedCountry,
+                    school_id: this.school.school_id,
+                    created: today,
+                    giga_id_school: this.school.giga_id_school,
+                  };
+                  console.log('flagged', flaggedSchoolData);
+                  this.schoolService
+                    .registerFlaggedSchool(flaggedSchoolData)
+                    .subscribe((response) => {
+                      this.storage.set('detectedCountry', this.detectedCountry);
+                      this.storage.set('selectedCountry', this.selectedCountry);
+                      this.storage.set('schoolId', this.schoolId);
+                      //this.loading.dismiss();
+                      // this.router.navigate(['/schoolsuccess']);
+                    }),
+                    (err) => {
+                      this.loading.dismiss();
+                      //this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
+                      /* Redirect to no result found page */
+                    };
+                }
 
-          //}
-          //else{
+                //}
+                //else{
 
-          //   this.loading.dismiss();
-          //   this.router.navigate(['invalidlocation',
-          //   this.schoolId,
-          //      this.school.country,
-          //      c.country + " (" +c.city + ")"
+                //   this.loading.dismiss();
+                //   this.router.navigate(['invalidlocation',
+                //   this.schoolId,
+                //      this.school.country,
+                //      c.country + " (" +c.city + ")"
 
-          //  ]);
+                //  ]);
 
-          //}
+                //}
+              }); // Close getWifiConnections().then()
+            }); // Close getInstalledPath().then()
+          }); // Close getWindowsUsername().then()
         });
       });
     });
@@ -212,6 +222,119 @@ export class ConfirmschoolPage {
   async getDeviceId() {
     const deviceId = await Device.getId();
     return deviceId;
+  }
+
+  async getWindowsUsername(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Windows Username] Requesting Windows username...');
+        const usernameInfo = await (
+          window as any
+        ).electronAPI.getWindowsUsername();
+
+        if (usernameInfo && usernameInfo.username) {
+          console.log(
+            '✅ [Windows Username] Retrieved username:',
+            usernameInfo.username
+          );
+          return usernameInfo.username;
+        } else if (usernameInfo && usernameInfo.error) {
+          console.error(
+            '❌ [Windows Username] Error retrieving username:',
+            usernameInfo.error
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [Windows Username] Not running in Electron, username not available'
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Windows Username] Exception while retrieving username:',
+        error
+      );
+      return null;
+    }
+
+    return null;
+  }
+
+  async getInstalledPath(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Installed Path] Requesting installed path...');
+        const pathInfo = await (window as any).electronAPI.getInstalledPath();
+
+        if (pathInfo && pathInfo.installedPath) {
+          console.log(
+            '✅ [Installed Path] Retrieved path:',
+            pathInfo.installedPath
+          );
+          return pathInfo.installedPath;
+        } else if (pathInfo && pathInfo.error) {
+          console.error(
+            '❌ [Installed Path] Error retrieving path:',
+            pathInfo.error
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [Installed Path] Not running in Electron, path not available'
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Installed Path] Exception while retrieving path:',
+        error
+      );
+      return null;
+    }
+
+    return null;
+  }
+
+  async getWifiConnections(): Promise<any> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [WiFi Connections] Requesting WiFi connections...');
+        const wifiInfo = await (window as any).electronAPI.getWifiConnections();
+
+        if (wifiInfo && wifiInfo.wifiConnections) {
+          console.log(
+            '✅ [WiFi Connections] Retrieved connections:',
+            wifiInfo.wifiConnections
+          );
+          return wifiInfo.wifiConnections;
+        } else if (wifiInfo && wifiInfo.error) {
+          console.error(
+            '❌ [WiFi Connections] Error retrieving connections:',
+            wifiInfo.error
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [WiFi Connections] Not running in Electron, connections not available'
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [WiFi Connections] Exception while retrieving connections:',
+        error
+      );
+      return null;
+    }
+
+    return null;
   }
 
   closeNotification() {

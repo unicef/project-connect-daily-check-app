@@ -102,10 +102,14 @@ export class HomePage {
       if (status.data.exists && status.data.is_active === false) {
         // Device was deactivated by another user (logged out)
         console.warn('🚫 [HomePage] Device has been deactivated (logged out)');
-        console.log('   Clearing localStorage and forcing new registration...');
+        console.log('   Clearing localStorage...');
         await this.storage.clear();
-        this.loading.dismiss();
-        // Stay on home page - user will see registration options
+        console.log(
+          '   Checking if registration still exists for this hardware ID...'
+        );
+        // Check if device registration still exists in backend
+        // This handles the case where User A logs out, but User B can claim the registration
+        await this.checkMachineRegistration(hardwareId);
       } else if (status.data.exists && status.data.is_active === true) {
         // Device is active, proceed normally
         console.log(
@@ -222,6 +226,7 @@ export class HomePage {
       console.log('📥 [HomePage] Backend response:', response);
 
       // Backend returns: { success: true, data: { exists: true/false, ... }, timestamp, message }
+      // Note: Backend only returns active registrations, so if exists=true, it's active
       if (response?.success && response?.data?.exists === true) {
         // Found existing registration - populate localStorage
         console.log(

@@ -177,6 +177,8 @@
     "network": "Device network",
     "ping": "Ping",
     "retrying": "Retry {{attempt}}/{{maxRetries}}",
+    "runningTestDownload": "Running Test (Download)",
+    "runningTestUpload": "Running Test (Upload)",
     "schoolRegistered": "School registered successfully",
     "server": "Nearest server",
     "serverSelected": "Server found",
@@ -187,7 +189,7 @@
     "testAgain": "TEST AGAIN",
     "testFailed": "Test failed",
     "testFailedDesc": "The connection was interrupted before testing could be completed. Try again.",
-    "testTrigger": "Trigger",
+    "testTrigger": "Type",
     "testWorking": "Completed first test",
     "total": "Test history (latest 10 measurements)",
     "tryAgain": "TRY AGAIN",
@@ -205,13 +207,22 @@
   "releaseNotes": {
     "2.0.2": {
       "title": "Track uptime with Ping and enhanced user experience",
-      "date": "Monday, 15 Sep 2025",
+      "date": "Monday, 10th November 2025",
       "items": [
         "Track uptime with the new Ping feature",
         "View your speed test history",
         "Enjoy an improved user experience"
       ]
     }
+  },
+  "logout": {
+    "title": "Confirm Logout",
+    "warning": "This will log you and other user accounts on this device out of the app, unregister the school, and clear all local data.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm the school ID for unregistration.",
+    "placeholder": "Enter school ID",
+    "errorMessage": "School ID does not match. Please try again.",
+    "logoutButton": "Logout",
+    "cancelButton": "Cancel"
   },
   "yes": "Yes"
 }

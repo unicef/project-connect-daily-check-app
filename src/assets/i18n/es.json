@@ -177,6 +177,8 @@
     "network": "Red del dispositivo",
     "ping": "Ping",
     "retrying": "Reintento {{attempt}}/{{maxRetries}}",
+    "runningTestDownload": "Ejecutando prueba (Descarga)",
+    "runningTestUpload": "Ejecutando prueba (Carga)",
     "schoolRegistered": "Escuela registrada exitosamente",
     "server": "Servidor más cercano",
     "serverSelected": "Servidor encontrado",
@@ -187,14 +189,14 @@
     "testAgain": "INICIAR PRUEBA",
     "testFailed": "PRUEBA FALLIDA",
     "testFailedDesc": "La conexión se interrumpió antes de completar la prueba. Inténtelo de nuevo.",
-    "testTrigger": "Activador",
+    "testTrigger": "Tipo",
     "testWorking": "Primera prueba completada",
     "total": "Historial de pruebas (últimas 10 mediciones)",
-    "tryAgain": "INTENTAR DE NUEVO",
+    "tryAgain": "INTENTAR\nDE NUEVO",
     "upload": "CARGA",
     "uploadLowerCase": "Carga"
   },
-  "tryAgain": "INTENTAR DE NUEVO",
+  "tryAgain": "INTENTAR\nDE NUEVO",
   "welcome": "Bienvenido a",
   "whatsNew": {
     "checkReleaseNotes": "Ver notas de lanzamiento",
@@ -204,14 +206,23 @@
   },
   "releaseNotes": {
     "2.0.2": {
-      "title": "Seguimiento del tiempo de actividad con Ping y experiencia de usuario mejorada",
-      "date": "Lunes, 15 de septiembre de 2025",
+      "title": "Mida el tiempo de actividad con la utilidad Ping y disfrute de una experiencia de usuario mejorada.",
+      "date": "Lunes, 10 de noviembre de 2025",
       "items": [
-        "Seguimiento del tiempo de actividad con la nueva función Ping",
-        "Visualice su historial de pruebas de velocidad",
-        "Disfrute de una experiencia de usuario mejorada"
+        "Realice un seguimiento del tiempo de actividad con la nueva utilidad Ping.",
+        "Consulte su historial de pruebas de velocidad.",
+        "Disfrute de una experiencia de usuario mejorada."
       ]
     }
+  },
+  "logout": {
+    "title": "Confirmar cierre de sesión",
+    "warning": "Esta acción cerrará su sesión y la de otras cuentas de usuario en este dispositivo, cancelará el registro de la escuela y borrará todos los datos locales.",
+    "confirmText": "Por favor, escriba <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar el ID de la escuela para la cancelación del registro.",
+    "placeholder": "Ingrese el ID de la escuela",
+    "errorMessage": "El ID de la escuela no coincide. Por favor, inténtelo de nuevo.",
+    "logoutButton": "Cerrar sesión",
+    "cancelButton": "Cancelar"
   },
   "yes": "Sí"
 }

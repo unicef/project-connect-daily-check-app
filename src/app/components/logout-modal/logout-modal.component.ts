@@ -40,7 +40,8 @@ export class LogoutModalComponent implements OnInit {
     if (this.enteredSchoolId.trim() === this.schoolId.trim()) {
       this.modalController.dismiss({ action: 'logout' });
     } else {
-      this.errorMessage = 'School ID does not match. Please try again.';
+      // Error message is now handled by translation in template
+      this.errorMessage = 'error';
     }
   }
 

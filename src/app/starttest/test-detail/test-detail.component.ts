@@ -112,12 +112,15 @@ export class TestDetailComponent implements OnInit {
   }
 
   /**
-   * Get sync status text based on uploaded flag
+   * Get sync status text based on synced attribute
    * @param measurement The measurement data
    * @returns Status text
    */
   getSyncStatusText(measurement: any): string {
-    return measurement.uploaded ? 'Success' : '-';
+    if (measurement.synced === undefined || measurement.synced === null) {
+      return '-';
+    }
+    return measurement.synced ? 'Synced' : 'Not Synced';
   }
 
   /**
@@ -126,6 +129,9 @@ export class TestDetailComponent implements OnInit {
    * @returns CSS class name
    */
   getSyncStatusClass(measurement: any): string {
-    return measurement.uploaded ? 'green_color' : 'orange_color';
+    if (measurement.synced === undefined || measurement.synced === null) {
+      return '';
+    }
+    return measurement.synced ? 'green_color' : 'orange_color';
   }
 }

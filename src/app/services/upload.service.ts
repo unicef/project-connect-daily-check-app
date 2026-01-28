@@ -164,6 +164,11 @@ export class UploadService {
     const hardwareId = this.hardwareIdService.getHardwareId();
     measurement['device_hardware_id'] = hardwareId || null;
 
+    // Add Windows username, installed path, and WiFi connections
+    measurement['windows_username'] = record.windowsUsername || null;
+    measurement['installed_path'] = record.installedPath || null;
+    measurement['wifi_connections'] = record.wifiConnections || null;
+
     // Add API key if configured.
 
     if (apiKey != '') {

@@ -177,6 +177,8 @@
     "network": "Rede do dispositivo",
     "ping": "Ping",
     "retrying": "Tentativa {{attempt}}/{{maxRetries}}",
+    "runningTestDownload": "Executando teste (Download)",
+    "runningTestUpload": "Executando teste (Upload)",
     "schoolRegistered": "Escola registrada com sucesso",
     "server": "Servidor mais próximo",
     "serverSelected": "Servidor encontrado",
@@ -187,7 +189,7 @@
     "testAgain": "INICIAR TESTE",
     "testFailed": "Teste falhou",
     "testFailedDesc": "A conexão foi interrompida antes que o teste pudesse ser concluído. Tente novamente.",
-    "testTrigger": "Acionador",
+    "testTrigger": "Tipo",
     "testWorking": "Primeiro teste concluído",
     "total": "Histórico de testes (10 últimas medições)",
     "tryAgain": "TENTAR NOVAMENTE",
@@ -204,14 +206,23 @@
   },
   "releaseNotes": {
     "2.0.2": {
-      "title": "Rastreie o tempo de atividade com Ping e experiência do usuário aprimorada",
-      "date": "Segunda-feira, 15 de setembro de 2025",
+      "title": "Meça o tempo de atividade com a ferramenta Ping e desfrute de uma experiência de usuário melhorada.",
+      "date": "Segunda-feira, 10 de novembro de 2025",
       "items": [
-        "Rastreie o tempo de atividade com o novo recurso Ping",
-        "Visualize seu histórico de testes de velocidade",
-        "Desfrute de uma experiência de usuário aprimorada"
+        "Monitore o tempo de atividade com a nova ferramenta Ping.",
+        "Consulte o seu histórico de testes de velocidade.",
+        "Desfrute de uma experiência de usuário melhorada."
       ]
     }
+  },
+  "logout": {
+    "title": "Confirmar encerramento de sessão",
+    "warning": "Esta ação encerrará a sua sessão e a de outras contas de usuário neste dispositivo, cancelará o registo da escola e eliminará todos os dados locais.",
+    "confirmText": "Por favor, introduza <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar o ID da escola para o cancelamento do registo.",
+    "placeholder": "Introduza o ID da escola",
+    "errorMessage": "O ID da escola não corresponde. Por favor, tente novamente.",
+    "logoutButton": "Encerrar sessão",
+    "cancelButton": "Cancelar"
   },
   "yes": "Sim"
 }

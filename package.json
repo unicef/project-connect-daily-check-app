@@ -11,6 +11,8 @@
     "start:electron": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:start-live",
     "build:electron": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-not-publish",
     "build:electron-publish": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make",
+    "build:electron-signed": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-signed",
+    "build:electron-signed-test": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-signed-no-publish",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"

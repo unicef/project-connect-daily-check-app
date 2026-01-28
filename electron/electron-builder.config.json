@@ -5,22 +5,21 @@
   "directories": {
     "buildResources": "resources"
   },
-  "files": [
-    "assets/**/*",
-    "build/**/*",
-    "capacitor.config.*",
-    "app/**/*"
-  ],
+  "files": ["assets/**/*", "build/**/*", "capacitor.config.*", "app/**/*"],
   "nsis": {
     "allowElevation": true,
     "oneClick": false,
     "deleteAppDataOnUninstall": true,
-    "allowToChangeInstallationDirectory": true//,
+    "allowToChangeInstallationDirectory": true //,
     //"include": "build/uninstaller.nsh"
   },
   "win": {
     "target": "nsis",
     "icon": "assets/appIcon.ico"
+    // "signingHashAlgorithms": ["sha256"],
+    //  "certificateSubjectName": "UNICEF",
+    //  "rfc3161TimeStampServer": "http://timestamp.digicert.com",
+    //  "sign": "./resources/sign.js"
   },
   "mac": {
     "category": "your.app.category.type",

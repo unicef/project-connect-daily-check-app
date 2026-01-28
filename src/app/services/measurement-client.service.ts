@@ -91,6 +91,14 @@ export class MeasurementClientService {
     this.broadcastMeasurementStatus('onstart', {});
     const measurementRecord = this.initializeMeasurementRecord(notes);
 
+    // Get Windows username, installed path, and WiFi connections
+    const windowsUsername = await this.getWindowsUsername();
+    const installedPath = await this.getInstalledPath();
+    const wifiConnections = await this.getWifiConnections();
+    measurementRecord.windowsUsername = windowsUsername;
+    measurementRecord.installedPath = installedPath;
+    measurementRecord.wifiConnections = wifiConnections;
+
     try {
       const info = await this.getTestInfo();
       Object.assign(measurementRecord, info);
@@ -144,6 +152,9 @@ export class MeasurementClientService {
       version: 0,
       Notes: notes,
       dataUsage: this.dataUsage,
+      windowsUsername: '',
+      installedPath: '',
+      wifiConnections: null,
     };
   }
 
@@ -297,13 +308,16 @@ export class MeasurementClientService {
           .uploadMeasurement(measurementRecord)
           .toPromise();
         measurementRecord.uploaded = true;
+        measurementRecord.synced = true;
       } catch (error) {
         console.error('Upload failed:', error);
         measurementRecord.uploaded = false;
+        measurementRecord.synced = false;
       }
     } else {
       // If upload is disabled, mark as not uploaded
       measurementRecord.uploaded = false;
+      measurementRecord.synced = false;
     }
 
     // Now save to localStorage with the correct uploaded status
@@ -369,5 +383,130 @@ export class MeasurementClientService {
       testStatus,
       ...additionalData,
     });
+  }
+
+  /**
+   * Get Windows username from Electron process
+   * @returns Windows username string or fallback value
+   */
+  private async getWindowsUsername(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Windows Username] Requesting Windows username...');
+        const usernameInfo = await (
+          window as any
+        ).electronAPI.getWindowsUsername();
+
+        if (usernameInfo && usernameInfo.username) {
+          console.log(
+            '✅ [Windows Username] Retrieved username:',
+            usernameInfo.username
+          );
+          return usernameInfo.username;
+        } else if (usernameInfo && usernameInfo.error) {
+          console.error(
+            '❌ [Windows Username] Error retrieving username:',
+            usernameInfo.error
+          );
+          return 'Error';
+        }
+      } else {
+        console.log(
+          '⚠️ [Windows Username] Not running in Electron, username not available'
+        );
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Windows Username] Exception while retrieving username:',
+        error
+      );
+      return 'Error';
+    }
+
+    return 'Unknown';
+  }
+
+  /**
+   * Get application installed path from Electron process
+   * @returns Installed path string or fallback value
+   */
+  private async getInstalledPath(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Installed Path] Requesting installed path...');
+        const pathInfo = await (window as any).electronAPI.getInstalledPath();
+
+        if (pathInfo && pathInfo.installedPath) {
+          console.log(
+            '✅ [Installed Path] Retrieved path:',
+            pathInfo.installedPath
+          );
+          return pathInfo.installedPath;
+        } else if (pathInfo && pathInfo.error) {
+          console.error(
+            '❌ [Installed Path] Error retrieving path:',
+            pathInfo.error
+          );
+          return 'Error';
+        }
+      } else {
+        console.log(
+          '⚠️ [Installed Path] Not running in Electron, path not available'
+        );
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Installed Path] Exception while retrieving path:',
+        error
+      );
+      return 'Error';
+    }
+
+    return 'Unknown';
+  }
+
+  /**
+   * Get WiFi connections from Electron process
+   * @returns WiFi connections array or null
+   */
+  private async getWifiConnections(): Promise<any> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [WiFi Connections] Requesting WiFi connections...');
+        const wifiInfo = await (window as any).electronAPI.getWifiConnections();
+
+        if (wifiInfo && wifiInfo.wifiConnections) {
+          console.log(
+            '✅ [WiFi Connections] Retrieved connections:',
+            wifiInfo.wifiConnections
+          );
+          return wifiInfo.wifiConnections;
+        } else if (wifiInfo && wifiInfo.error) {
+          console.error(
+            '❌ [WiFi Connections] Error retrieving connections:',
+            wifiInfo.error
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [WiFi Connections] Not running in Electron, connections not available'
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [WiFi Connections] Exception while retrieving connections:',
+        error
+      );
+      return null;
+    }
+
+    return null;
   }
 }
