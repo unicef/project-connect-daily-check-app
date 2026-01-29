@@ -1,5 +1,6 @@
 package com.meter.giga.receiver
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -16,7 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [Build.VERSION_CODES.S])
+@Config(sdk = [Build.VERSION_CODES.S], application = Application::class)
 class BootBroadCastReceiverTest {
 
   private lateinit var context: Context

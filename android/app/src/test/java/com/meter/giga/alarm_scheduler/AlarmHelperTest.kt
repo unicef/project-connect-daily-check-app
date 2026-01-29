@@ -1,15 +1,22 @@
 package com.meter.giga.alarm_scheduler
 
+import io.mockk.mockk
+
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import com.meter.giga.ararm_scheduler.AlarmHelper
+import com.meter.giga.utils.AppLogger
+import com.meter.giga.utils.Logger
 import io.mockk.*
 import junit.framework.TestCase.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import org.mockito.Mockito.mockStatic
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import kotlin.test.assertEquals
 
@@ -36,7 +43,10 @@ class AlarmHelperTest {
 
   @After
   fun tearDown() {
+    AlarmHelper.logger = AppLogger
     unmockkAll()
+    unmockkStatic(LocalDateTime::class)
+
   }
 
   @Test
@@ -155,4 +165,60 @@ class AlarmHelperTest {
     assert(start >= now)
     assert(end >= start)
   }
+
+  @Test
+  fun `before 13_30 schedules same day`() {
+
+    val fakeNow = LocalDateTime.of(2026, 1, 29, 10, 0)
+
+    mockkStatic(LocalDateTime::class)
+    every { LocalDateTime.now() } returns fakeNow
+
+    val result = AlarmHelper.getNextDayTimeToCheckVersionUpdate()
+
+    val expected =
+      ChronoUnit.MILLIS.between(
+        fakeNow,
+        fakeNow.withHour(13).withMinute(30).withSecond(0).withNano(0)
+      )
+
+    assertEquals(expected, result)
+  }
+
+  @Test
+  fun `after 13_30 schedules next day`() {
+
+    val fakeNow = LocalDateTime.of(2026, 1, 29, 15, 0)
+
+    mockkStatic(LocalDateTime::class)
+    every { LocalDateTime.now() } returns fakeNow
+
+    val result = AlarmHelper.getNextDayTimeToCheckVersionUpdate()
+
+    val expected =
+      ChronoUnit.MILLIS.between(
+        fakeNow,
+        fakeNow.plusDays(1)
+          .withHour(13)
+          .withMinute(30)
+          .withSecond(0)
+          .withNano(0)
+      )
+
+    assertEquals(expected, result)
+  }
+
+  @Test
+  fun `exactly 13_30 returns zero`() {
+
+    val fakeNow = LocalDateTime.of(2026, 1, 29, 13, 30, 0)
+
+    mockkStatic(LocalDateTime::class)
+    every { LocalDateTime.now() } returns fakeNow
+
+    val result = AlarmHelper.getNextDayTimeToCheckVersionUpdate()
+
+    assertEquals(0L, result)
+  }
 }
+

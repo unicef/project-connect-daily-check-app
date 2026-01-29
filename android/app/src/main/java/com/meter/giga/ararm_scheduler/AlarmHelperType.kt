@@ -9,4 +9,5 @@ interface AlarmHelperType {
   ): Pair<Long, Long>
 
   fun getSlotStartHour(millis: Long): Int
+  fun getNextDayTimeToCheckVersionUpdate(): Long
 }

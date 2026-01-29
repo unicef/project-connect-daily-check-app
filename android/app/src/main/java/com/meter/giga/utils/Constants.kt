@@ -12,8 +12,11 @@ object Constants {
   const val ENV_TYPE = "env"
   const val BASE_URL = "base_url"
   const val IP_INFO_TOKEN = "ip_info_token"
-  const val CHANNEL_ID = "ip_info_token"
+  const val SPEED_TEST_CHANNEL_ID = "speed_test_channel"
   const val FOREGROUND_SERVICE_TAG = "GIGA_SPEED_TEST_SERVICE"
+  const val APP_UPDATE_CHANNEL_ID = "app_update_channel"
+  const val WORKER_TAG = "APP_UPDATE_CHECK_WORKER"
+
   const val FIRST_15_MIN = "FIRST_15_MIN"
   const val NEXT_SLOT = "NEXT_SLOT"
   const val SCHEDULE_TYPE = "SCHEDULE_TYPE"

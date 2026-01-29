@@ -10,6 +10,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.IntentSender;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
@@ -19,17 +20,48 @@ import android.provider.Settings;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.IntentSenderRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ListenableWorker;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.getcapacitor.BridgeActivity;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.play.core.appupdate.AppUpdateInfo;
+import com.google.android.play.core.appupdate.AppUpdateManager;
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory;
+import com.google.android.play.core.appupdate.AppUpdateOptions;
+import com.google.android.play.core.install.InstallStateUpdatedListener;
+import com.google.android.play.core.install.model.AppUpdateType;
+import com.google.android.play.core.install.model.InstallStatus;
+import com.google.android.play.core.install.model.UpdateAvailability;
+import com.meter.giga.ararm_scheduler.AlarmHelper;
 import com.meter.giga.ionic_plugin.GigaAppPlugin;
 import com.meter.giga.utils.AppLogger;
+import com.meter.giga.worker.UpdateCheckWorker;
+
+import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BridgeActivity {
+  private AppUpdateManager appUpdateManager;
+
+
+  private final ActivityResultLauncher<IntentSenderRequest> updateFlowLauncher =
+    registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(),
+      result -> {
+        if (result.getResultCode() != RESULT_OK) {
+          // Handle update not started/cancelled
+          Log.d("Update", "Update flow cancelled");
+        }
+      });
 
   private final ActivityResultLauncher<Intent> alarmPermissionLauncher =
     registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -44,6 +76,12 @@ public class MainActivity extends BridgeActivity {
         }
       });
 
+  private final InstallStateUpdatedListener installStateListener = state -> {
+    if (state.installStatus() == InstallStatus.DOWNLOADED) {
+      popupSnackbarForCompleteUpdate();
+    }
+  };
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     registerPlugin(GigaAppPlugin.class);
@@ -52,6 +90,52 @@ public class MainActivity extends BridgeActivity {
     // This will required if local file read/write required
     //checkStoragePermission(this);
     checkNotificationPermission(this);
+    handleIntent(getIntent());
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    handleIntent(intent);
+  }
+
+  private void handleIntent(Intent intent) {
+    if (intent != null && intent.getBooleanExtra("START_UPDATE", false)) {
+      startUpdateFlow();
+    }
+  }
+
+  private void popupSnackbarForCompleteUpdate() {
+    Snackbar snackbar = Snackbar.make(
+      findViewById(android.R.id.content),
+      "New update ready! Restart to install.",
+      Snackbar.LENGTH_INDEFINITE
+    );
+    snackbar.setAction("RESTART", v -> {
+      if (appUpdateManager != null) {
+        appUpdateManager.completeUpdate();
+      }
+    });
+    snackbar.setActionTextColor(ContextCompat.getColor(this, android.R.color.holo_blue_dark));
+    snackbar.show();
+  }
+
+  private void startUpdateFlow() {
+    appUpdateManager = AppUpdateManagerFactory.create(this);
+    appUpdateManager.registerListener(installStateListener);
+    Task<AppUpdateInfo> appUpdateInfo = appUpdateManager.getAppUpdateInfo();
+    appUpdateInfo.addOnSuccessListener(info -> {
+      if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
+        // Use modern API with AppUpdateOptions
+        AppUpdateOptions options = AppUpdateOptions.defaultOptions(AppUpdateType.FLEXIBLE);
+
+        appUpdateManager.startUpdateFlowForResult(
+          info,
+          updateFlowLauncher,
+          options);
+      }
+    });
   }
 
   private void showPermissionDialog() {

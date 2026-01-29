@@ -12,6 +12,8 @@ import com.meter.giga.receiver.ScheduleBroadcastReceiver
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Logger
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import java.util.Date
 import kotlin.jvm.java
@@ -147,5 +149,16 @@ object AlarmHelper : AlarmHelperType {
       in 16 until 20 -> 16
       else -> -1
     }
+  }
+
+  override fun getNextDayTimeToCheckVersionUpdate(): Long {
+    val now = LocalDateTime.now()
+    var target = now.withHour(13).withMinute(30).withSecond(0).withNano(0)
+    if (now.isAfter(target)) {
+      target = target.plusDays(1)
+    }
+    val delayMs = ChronoUnit.MILLIS.between(now, target)
+    logger.d("Daily Schedule Interval", "Scheduled at time ${delayMs}")
+    return delayMs
   }
 }

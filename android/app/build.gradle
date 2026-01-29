@@ -10,8 +10,8 @@ android {
     applicationId "com.meter.giga"
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
-    versionCode 21
-    versionName "1.1.21"
+    versionCode 22
+    versionName "1.1.22"
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     aaptOptions {
       // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -90,6 +90,10 @@ dependencies {
   implementation "com.squareup.okhttp3:logging-interceptor:4.9.0"
   implementation 'com.squareup.retrofit2:retrofit:2.9.0'
   implementation 'com.squareup.retrofit2:converter-gson:2.9.0'
+  implementation 'androidx.work:work-runtime-ktx:2.11.0'
+  implementation 'com.google.android.play:app-update:2.1.0'
+  implementation 'com.google.android.play:app-update-ktx:2.1.0'
+  implementation 'com.google.android.material:material:1.13.0'
   implementation 'androidx.lifecycle:lifecycle-service:2.9.3'
   implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0'
   implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
@@ -104,6 +108,9 @@ dependencies {
   androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
   androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
   testImplementation "org.robolectric:robolectric:4.12.1"
+  testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3"
+  testImplementation "androidx.work:work-testing:2.11.1"
+
   // Mockito Core
   testImplementation 'org.mockito:mockito-core:5.14.1'
   testImplementation "io.mockk:mockk:1.13.10"

@@ -1,5 +1,6 @@
 package com.meter.giga.receiver
 
+import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -22,7 +23,7 @@ import org.robolectric.annotation.Config
 import java.util.Calendar
 
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [Build.VERSION_CODES.S])
+@Config(sdk = [Build.VERSION_CODES.S], application = Application::class)
 class ScheduleBroadcastReceiverTest {
 
   private lateinit var context: Context

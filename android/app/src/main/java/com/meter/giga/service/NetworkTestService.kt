@@ -26,13 +26,13 @@ import com.meter.giga.prefrences.AlarmSharedPref
 // import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.prefrences.SecureDataStore
 import com.meter.giga.utils.AppLogger
-import com.meter.giga.utils.Constants.CHANNEL_ID
 import com.meter.giga.utils.Constants.DEVICE_TYPE_ANDROID
 import com.meter.giga.utils.Constants.DEVICE_TYPE_CHROMEBOOK
 import com.meter.giga.utils.Constants.FOREGROUND_SERVICE_TAG
 import com.meter.giga.utils.Constants.NOTIFICATION_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
+import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.ResultState
 import io.sentry.Sentry
@@ -161,7 +161,7 @@ class NetworkTestService : LifecycleService() {
       intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
-    return NotificationCompat.Builder(this, CHANNEL_ID)
+    return NotificationCompat.Builder(this, SPEED_TEST_CHANNEL_ID)
       .setContentTitle(this.applicationContext.getString(R.string.notification_header))
       .setContentText(content)
       .setSmallIcon(R.mipmap.ic_launcher_round)
@@ -188,7 +188,7 @@ class NetworkTestService : LifecycleService() {
    */
   private fun createNotificationChannel() {
     val channel = NotificationChannel(
-      CHANNEL_ID, FOREGROUND_SERVICE_TAG,
+      SPEED_TEST_CHANNEL_ID, FOREGROUND_SERVICE_TAG,
       NotificationManager.IMPORTANCE_LOW
     )
     val manager = getSystemService(NotificationManager::class.java)

@@ -1,5 +1,6 @@
 package com.meter.giga.network
 
+import android.app.Application
 import com.google.gson.Gson
 import io.sentry.Sentry
 import org.junit.Assert.*
@@ -7,9 +8,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.*
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
-
+@Config(application = Application::class)
 class RetrofitInstanceBuilderTest {
 
   @Test

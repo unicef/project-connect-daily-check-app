@@ -90,7 +90,7 @@ if (process.platform === 'linux') {
 const myCapacitorApp = new ElectronCapacitorApp(
   capacitorFileConfig,
   trayMenuTemplate,
-  appMenuBarMenuTemplate
+  appMenuBarMenuTemplate,
 );
 
 // If deeplinking is enabled then we will set it up here.
@@ -168,7 +168,7 @@ if (!gotTheLock) {
           mainWindow.webContents.once('did-finish-load', () => {
             mainWindow.webContents.send('system-hardware-id', hardwareData);
             console.log(
-              '✅ [Electron] Hardware ID sent to renderer (after load)'
+              '✅ [Electron] Hardware ID sent to renderer (after load)',
             );
           });
         } else {
@@ -193,13 +193,13 @@ if (!gotTheLock) {
           mainWindow.webContents.once('did-finish-load', () => {
             mainWindow.webContents.send('system-hardware-id-error', errorData);
             console.log(
-              '❌ [Electron] Hardware ID error sent to renderer (after load)'
+              '❌ [Electron] Hardware ID error sent to renderer (after load)',
             );
           });
         } else {
           mainWindow.webContents.send('system-hardware-id-error', errorData);
           console.log(
-            '❌ [Electron] Hardware ID error sent to renderer (immediate)'
+            '❌ [Electron] Hardware ID error sent to renderer (immediate)',
           );
         }
       }
@@ -211,11 +211,18 @@ if (!gotTheLock) {
     webContents.on('unresponsive', async () => {
       try {
         // Interrupt execution and collect call stack from unresponsive renderer
-        const callStack = await webContents.mainFrame.collectJavaScriptCallStack();
-        console.log('Renderer unresponsive - JavaScript call stack:', callStack);
+        const callStack =
+          await webContents.mainFrame.collectJavaScriptCallStack();
+        console.log(
+          'Renderer unresponsive - JavaScript call stack:',
+          callStack,
+        );
         captureException(new Error(`Renderer unresponsive: ${callStack}`));
       } catch (error) {
-        console.error('Error collecting call stack from unresponsive renderer:', error);
+        console.error(
+          'Error collecting call stack from unresponsive renderer:',
+          error,
+        );
         captureException(error);
       }
     });
