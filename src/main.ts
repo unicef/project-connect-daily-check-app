@@ -8,6 +8,23 @@ import * as Sentry from '@sentry/browser';
 // Initialize Sentry
 initSentry();
 
+// Guard global contra PerformanceResourceTiming mal formado
+if (typeof window !== 'undefined' && window.performance) {
+  const originalGetEntriesByName = window.performance.getEntriesByName;
+
+  window.performance.getEntriesByName = function (...args: any[]) {
+    try {
+      const entries = originalGetEntriesByName.apply(this, args) || [];
+      return entries.filter(
+        (e: any) => e && typeof e.transferSize === 'number'
+      );
+    } catch (err) {
+      console.warn('⚠️ Performance API error suppressed', err);
+      return [];
+    }
+  };
+}
+
 enableProdMode();
 
 // Only include Electron code when running in Electron
