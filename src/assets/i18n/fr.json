@@ -149,7 +149,7 @@
     "country-not-accurate": "Il semble que le pays que vous avez sélectionné ne corresponde pas à votre emplacement. Êtes-vous sûr de vouloir continuer ?",
     "detected-auto": "Votre pays est détecté automatiquement",
     "loading": "Chargement",
-    "not-available": "l'application {{appName}} {{appNameSuffix}} n'est pas disponible dans ce pays. Veuillez choisir un autre pays.",
+    "not-available": "Le pays que vous avez choisi n'est pas encore sur la liste blanche pour Giga Meter. Cliquez ci-dessous pour demander l'accès.",
     "please-double-check": "Veuillez vérifier votre sélection."
   },
   "searchSchool": {

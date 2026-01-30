@@ -1239,4 +1239,14 @@ export class SearchcountryPage {
     this.isPcdcCountry = true; // temporarily assume it's valid during input
     this.filterCountries(event);
   }
+  openExternalUrl(href) {
+    const url = new URL(href);
+
+    // Only add if countryName is defined and not empty
+    if (this.selectedCountry) {
+      url.searchParams.set('country', this.selectedCountry);
+    }
+
+    this.settingsService.getShell().shell.openExternal(url.toString());
+  }
 }

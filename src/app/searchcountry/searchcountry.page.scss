@@ -208,5 +208,24 @@ ion-select:hover {
     scrollbar-width: thin;
   }
   
+  
    
+}
+.no-padding {
+  padding: 4px 5px 16px 0px;
+}
+.request-access {
+  display: block; /* ensures it appears on next line */
+  font-size: 12px;
+  font-weight: 400;
+  color: #0078D7; /* blue link-like color */
+  text-decoration: underline;
+  margin-top: -8px; /* adjust to match spacing below red text */
+  cursor: pointer;
+  line-height: 16px;
+
+  &:hover {
+    color: #005ea6; /* darker blue on hover */
+    text-decoration: none;
+  }
 }
