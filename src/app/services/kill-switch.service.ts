@@ -13,7 +13,7 @@ export class KillSwitchService {
 
   startKillSwitchPolling() {
     // Run every hour
-    interval(60 * 1000)
+    interval(60 * 60 * 1000)
       .pipe(
         switchMap(() => {
           const schoolId = localStorage.getItem('school_id');
