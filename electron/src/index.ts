@@ -22,6 +22,15 @@ import {
 } from './setup';
 import { captureException } from '@sentry/node';
 
+function updaterConfigExists(): boolean {
+  try {
+    const updateFile = path.join(process.resourcesPath, 'app-update.yml');
+    return fs.existsSync(updateFile);
+  } catch {
+    return false;
+  }
+}
+
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
 app.setPath('userData', userDataPath);
@@ -193,21 +202,32 @@ if (!gotTheLock) {
   /*
       app.on('ready', () => {
         updateApp = require('update-electron-app');
-      
-        updateApp({          
+
+        updateApp({
             updateInterval: '5 minute',
             notifyUser: true
-        });      
+        });
       });
-  
+
       */
-  autoUpdater.autoDownload = true;
+  /*
+      autoUpdater.autoDownload = true;
 
   setInterval(() => {
     autoUpdater.checkForUpdates();
   }, 3600000);
+  */
 
-  autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
+  if (updaterConfigExists()) {
+  autoUpdater.autoDownload = true;
+
+    setInterval(() => {
+      autoUpdater.checkForUpdates().catch((err) => {
+        console.warn('Updater failed:', err.message);
+      });
+    }, 3600000);
+
+    autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
     const dialogOpts = {
       type: 'info' as const,
       buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
@@ -270,23 +290,30 @@ if (!gotTheLock) {
     console.error('Update Error:', error);
     captureException(error);
   });
+
+
+  } else {
+    console.log('Auto-updater disabled: app-update.yml not found');
+  }
+
+
   /*
     autoUpdater.on('error', (error) => {
       console.error('Update Error:', error);
-    
+
       const dialogOpts = {
         type: 'info',
         buttons: ['Restart / Reinicie / Перезапустить', 'Later / Después / Позже'],
         title: 'PCDC Update',
-       
+
         message:  `A new version of PCDC has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de PCDC ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nБыла загружена новая версия PCDC. Перезапустите приложение, чтобы применить обновления.`
       };
       dialog.showMessageBox(dialogOpts).then((returnValue) => {
         if (returnValue.response === 0) autoUpdater.quitAndInstall(false, true)
       })
-  
+
     });
-  
+
   */
 
   // Security - Set Content-Security-Policy based on whether or not we are in dev mode.
