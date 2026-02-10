@@ -14,7 +14,7 @@ import { switchMap, catchError } from 'rxjs/operators';
 declare global {
   interface Window {
     deviceAPI: {
-      getDeviceFingerprint: () => Promise<string>;
+      getHashId: () => Promise<string>;
       saveToken: (token: string) => Promise<void>;
       getToken: () => Promise<string | null>;
     };
@@ -23,9 +23,7 @@ declare global {
         secretkey: string;
         token: string;
         nonce: string;
-        payload?: any;
-        timestamp?: number;
-      }) => Promise<{ signature: string; timestamp: number }>;
+      }) => Promise<{ signature: string }>;
     };
   }
 }
@@ -34,7 +32,11 @@ declare global {
 export class TokenInterceptor implements HttpInterceptor {
   constructor(private http: HttpClient) {}
 
-  intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
+  intercept(
+    request: HttpRequest<any>,
+    next: HttpHandler
+  ): Observable<HttpEvent<any>> {
+
     if (!this.isHeaderNeeded(request.url)) {
       return next.handle(request);
     }
@@ -42,11 +44,9 @@ export class TokenInterceptor implements HttpInterceptor {
     return from(window.deviceAPI.getToken()).pipe(
       switchMap((token) => {
         if (!token) {
-          // No token → continue without headers
           return next.handle(request);
         }
 
-        // Generate nonce + signature (convert Promise to Observable)
         const nonceBytes = crypto.getRandomValues(new Uint8Array(32));
         const nonce = btoa(String.fromCharCode(...nonceBytes));
 
@@ -54,47 +54,48 @@ export class TokenInterceptor implements HttpInterceptor {
           window.hmac.sign({
             secretkey: environment.HMAC_SECRET,
             token,
-            nonce,
+            nonce
           })
         ).pipe(
-          switchMap(({ signature, timestamp }) => {
+          switchMap(({ signature }) => {
             const authReq = request.clone({
               setHeaders: {
                 Authorization: `Device ${token}`,
                 'x-device-nonce': nonce,
-                'X-HMAC-Signature': signature,
-                'x-timestamp': String(timestamp),
-              },
+                'X-HMAC-Signature': signature
+              }
             });
 
             return next.handle(authReq).pipe(
               catchError((error: HttpErrorResponse) => {
                 if (
                   error.status === 401 &&
-                  error.error?.message === 'Invalid device token or not authorized to access'
+                  error.error?.message ===
+                    'Invalid device token or not authorized to access'
                 ) {
-                  // Token invalid → fetch new one
                   return this.fetchNewToken().pipe(
                     switchMap((newToken) => {
                       const newNonceBytes = crypto.getRandomValues(new Uint8Array(32));
-                      const newNonce = btoa(String.fromCharCode(...newNonceBytes));
+                      const newNonce = btoa(
+                        String.fromCharCode(...newNonceBytes)
+                      );
 
                       return from(
                         window.hmac.sign({
                           secretkey: environment.HMAC_SECRET,
                           token: newToken,
-                          nonce: newNonce,
+                          nonce: newNonce
                         })
                       ).pipe(
-                        switchMap(({ signature: newSignature, timestamp: newTimestamp }) => {
+                        switchMap(({ signature: newSignature }) => {
                           const retryReq = request.clone({
                             setHeaders: {
                               Authorization: `Device ${newToken}`,
                               'x-device-nonce': newNonce,
-                              'X-HMAC-Signature': newSignature,
-                              'x-timestamp': String(newTimestamp),
-                            },
+                              'X-HMAC-Signature': newSignature
+                            }
                           });
+
                           return next.handle(retryReq);
                         })
                       );
@@ -111,20 +112,18 @@ export class TokenInterceptor implements HttpInterceptor {
     );
   }
 
-  private isHeaderNeeded(url: string) {
+  private isHeaderNeeded(url: string): boolean {
     return url.includes(environment.restAPI);
   }
 
-  /**
-   * Fetch a new device token and save it
-   */
   private fetchNewToken(): Observable<string> {
-    return from(window.deviceAPI.getDeviceFingerprint()).pipe(
-      switchMap((fingerprint) =>
+    return from(window.deviceAPI.getHashId()).pipe(
+      switchMap((hash_id) =>
         this.http
-          .post<{ token: string }>(`${environment.restAPI}auth/initialize`, {
-            deviceId: fingerprint,
-          })
+          .post<{ token: string }>(
+            `${environment.restAPI}auth/initialize`,
+            { hash_id }
+          )
           .pipe(
             switchMap((response) =>
               from(window.deviceAPI.saveToken(response.token)).pipe(

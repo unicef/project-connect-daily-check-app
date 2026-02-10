@@ -12,7 +12,7 @@ import { autoUpdater } from 'electron-updater';
 import fs from 'fs-extra';
 import path from 'path';
 import * as si from 'systeminformation';
-import { createHmac, randomBytes } from "crypto";
+import { createHmac, randomBytes, randomUUID  } from "crypto";
 
 import {
   ElectronCapacitorApp,
@@ -23,6 +23,7 @@ import {
 } from './setup';
 import { captureException } from '@sentry/node';
 let encryptedToken: Buffer | null = null;
+let installUUID: string | null = null;
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
@@ -89,19 +90,18 @@ if (capacitorFileConfig.electron?.deepLinkingEnabled) {
   });
 }
 
-ipcMain.handle("hmac-sign", async (_event, { secretkey, token, nonce, timestamp }) => {
-  const ts = timestamp ?? Date.now();
+ipcMain.handle("hmac-sign", async (_event, { secretkey, token, nonce }) => {
+  // Construct message WITHOUT timestamp
+  const msg = [token, nonce].join("|");
 
-  // Construct message
-  const msg = [token, nonce, ts.toString()].join("|");
-
-  // Use token or a separate secret key as HMAC secret
   const signature = createHmac("sha256", secretkey)
     .update(msg, "utf8")
     .digest("base64");
 
-  return { signature, timestamp: ts };
+  return { signature };
 });
+
+
 
 // Optional helper if you want Electron to generate nonce centrally
 ipcMain.handle("generate-nonce", async () => {
@@ -166,6 +166,7 @@ if (!gotTheLock) {
   // Wait for electron app to be ready.
   app.whenReady().then(async () => {
     mainWindow = await myCapacitorApp.init();
+    installUUID = getOrCreateInstallUUID(); 
 
     // Get and log system hardware ID
     try {
@@ -346,10 +347,29 @@ app.on('before-quit', () => {
   myCapacitorApp.cleanup();
 });
 
+
+function getOrCreateInstallUUID(): string {
+  const filePath = path.join(app.getPath('userData'), 'install-uuid');
+
+  if (fs.existsSync(filePath)) {
+    return fs.readFileSync(filePath, 'utf8');
+  }
+
+  const uuid = randomUUID();
+  fs.writeFileSync(filePath, uuid);
+  return uuid;
+}
 // Place all ipc or other electron api calls and custom functionality under this line
 
 ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
+});
+
+ipcMain.handle('get-install-uuid', async () => {
+  if (!installUUID) {
+    installUUID = getOrCreateInstallUUID();
+  }
+  return installUUID;
 });
 
 // IPC handler to get hardware ID from renderer process
