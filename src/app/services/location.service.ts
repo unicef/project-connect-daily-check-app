@@ -1,13 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { from, map, Observable, switchMap, tap } from 'rxjs';
+import { from, map, Observable, retry, switchMap, tap } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class LocationService {
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   async getWifiAccessPoints(): Promise<{ macAddress: string; signalStrength: number }[]> {
     const wifiList = await (window as any).electronAPI.getWifiList();
@@ -17,18 +17,24 @@ export class LocationService {
     }));
   }
 
-
   resolveGeolocation(wifiAccessPoints: any) {
-  return this.http.post(
-    `${environment.restAPI}geolocation/geolocate`,
-    { "considerIp":false,  wifiAccessPoints }
-  ).pipe(
-    map(response => ({
-      ...response,
-      timestamp: Date.now() // add timestamp before returning
-    }))
-  );
-}
+    return this.http.post(
+      `${environment.restAPI}geolocation/geolocate`,
+      { considerIp: false, wifiAccessPoints }
+    ).pipe(
+
+      //  Retry once with 1 second delay
+      retry({
+        count: 1,
+        delay: 1000
+      }),
+
+      map((response: any) => ({
+        ...response,
+        timestamp: Date.now()
+      }))
+    );
+  }
 
   /** Save geolocation in localStorage */
   saveGeolocation(geo: { latitude: number; longitude: number }) {
@@ -43,14 +49,16 @@ export class LocationService {
 
 
   fetchAndSaveGeolocation(): Observable<{ latitude: number; longitude: number }> {
-    return from(this.getWifiAccessPoints()).pipe(
-      switchMap(wifiList => this.resolveGeolocation(wifiList)),
-      tap((geo: any) => {
-        // Save only lat/lng
-        console.log('geolocation', geo)
-        this.saveGeolocation(geo);
-      }),
-      map((geo: any) => (geo))
-    );
-  }
+  return from(this.getWifiAccessPoints()).pipe(
+    switchMap(wifiList => this.resolveGeolocation(wifiList)),
+
+    tap((geo: any) => {
+      console.log('Geolocation success:', geo);
+      this.saveGeolocation(geo);
+    }),
+
+    map((geo: any) => geo)
+  );
+}
+
 }
