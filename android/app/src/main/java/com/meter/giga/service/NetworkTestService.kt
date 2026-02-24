@@ -24,7 +24,7 @@ import com.meter.giga.ionic_plugin.GigaAppPlugin
 import com.meter.giga.network.util.NetworkCheckerImpl
 import com.meter.giga.prefrences.AlarmSharedPref
 // import com.meter.giga.prefrences.AlarmSharedPref
-import com.meter.giga.prefrences.SecureDataStore
+//import com.meter.giga.prefrences.SecureDataStore
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.DEVICE_TYPE_ANDROID
 import com.meter.giga.utils.Constants.DEVICE_TYPE_CHROMEBOOK
@@ -78,7 +78,8 @@ class NetworkTestService : LifecycleService() {
    * should execute, standard is perform api calls on IO thread, avoid Main thread
    */
   private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
-  private lateinit var secureDataStore: SecureDataStore
+
+  //  private lateinit var secureDataStore: SecureDataStore
   override fun onCreate() {
     super.onCreate()
     createNotificationChannel()
@@ -96,7 +97,7 @@ class NetworkTestService : LifecycleService() {
         // Example logging
         Sentry.capture("Foreground Service started")
 
-        secureDataStore = SecureDataStore(this)
+//        secureDataStore = SecureDataStore(this)
         val scheduleType = intent?.getStringExtra(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_DAILY
         AppLogger.d("GIGA NetworkTestService SCHEDULE_TYPE", scheduleType)
         val appVersion = GigaUtil.getAppVersionName(this)
@@ -107,8 +108,8 @@ class NetworkTestService : LifecycleService() {
           scheduleType,
           appVersion,
           isRunningOnChromebook,
-          prefs,
-          secureDataStore
+          prefs
+          //secureDataStore
         )
         GigaAppPlugin.sendSpeedTestStarted()
         client.setServerDiscoveryHelper(object : ServerDiscoveryHelper {
@@ -232,7 +233,7 @@ class NetworkTestService : LifecycleService() {
     private val appVersion: String,
     private val isRunningOnChromebook: Boolean,
     private val prefs: AlarmSharedPref,
-    private val secureDataStore: SecureDataStore
+    // private val secureDataStore: SecureDataStore
   ) :
     NDTTest(okHttpClient) {
     var downloadSpeed = 0.0;

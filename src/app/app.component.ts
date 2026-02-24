@@ -57,7 +57,7 @@ export class AppComponent {
     { name: 'LAN', ssid: 'SSID', checked: false },
   ];
   networkSelected = false;
-  whatsNewReleases: any[] = [];;
+  whatsNewReleases: any[] = [];
   constructor(
     private menu: MenuController,
     private storage: StorageService,
@@ -73,7 +73,7 @@ export class AppComponent {
     private modalController: ModalController,
     private hardwareIdService: HardwareIdService,
     private router: Router,
-    private schoolService: SchoolService
+    private schoolService: SchoolService,
   ) {
     this.isNative = Capacitor.isNativePlatform();
     this.filteredOptions = [];
@@ -90,6 +90,12 @@ export class AppComponent {
     this.translate.use(appLang.code);
     this.app_version = environment.app_version;
     // Use system hardware ID instead of schoolUserId
+    console.log(
+      'GIGA : Hardware',
+      this.hardwareIdService.getHardwareId() ||
+        this.storage.get('system_hardware_id') ||
+        'unknown-device',
+    );
     this.device_id =
       this.hardwareIdService.getHardwareId() ||
       this.storage.get('system_hardware_id') ||
@@ -105,7 +111,7 @@ export class AppComponent {
         if (nameValue.name === 'applicationLanguage') {
           translate.use(nameValue.value.code);
         }
-      }
+      },
     );
 
     //15 min call to 3 diff hosts
@@ -114,11 +120,11 @@ export class AppComponent {
 
     this.settingsService.setSetting(
       'scheduledTesting',
-      this.settingsService.currentSettings.scheduledTesting
+      this.settingsService.currentSettings.scheduledTesting,
     );
     this.settingsService.setSetting(
       'scheduleInterval',
-      this.settingsService.currentSettings.scheduleInterval
+      this.settingsService.currentSettings.scheduleInterval,
     );
     this.availableSettings = this.settingsService.availableSettings;
     if (!this.isNative) {
@@ -127,19 +133,19 @@ export class AppComponent {
       }
       this.sharedService.on(
         'semaphore:refresh',
-        this.refreshSchedule.bind(this)
+        this.refreshSchedule.bind(this),
       );
     }
 
     this.sharedService.on(
       'history:measurement:change',
-      this.refreshHistory.bind(this)
+      this.refreshHistory.bind(this),
     );
 
     // Listen for registration completion to update device ID
     this.sharedService.on(
       'registration:completed',
-      this.updateDeviceId.bind(this)
+      this.updateDeviceId.bind(this),
     );
     this.refreshHistory();
     this.initiatePingService();
@@ -153,7 +159,7 @@ export class AppComponent {
     }
     this.setPlatformClass();
 
-        // Check for What's New dialog after app initialization
+    // Check for What's New dialog after app initialization
     this.checkAndShowWhatsNew();
 
     // Load release notes for help sidebar
@@ -187,7 +193,7 @@ export class AppComponent {
     // Enable crashlytics collection
     console.log(
       'GIGA Enable Chrashlytics for Native Android App',
-      this.isNative
+      this.isNative,
     );
     await FirebaseCrashlytics.setEnabled({ enabled: true });
 
@@ -210,7 +216,6 @@ export class AppComponent {
 
   isNativeApp(): boolean {
     return Capacitor.isNativePlatform();
-
   }
 
   startSyncingPeriodicProcess() {
@@ -224,7 +229,7 @@ export class AppComponent {
         } else {
           console.log('Ping skipped: Outside active hours.');
         }
-      }
+      },
     );
     this.syncService.startPeriodicSync();
   }
@@ -278,7 +283,7 @@ export class AppComponent {
     const langSearched = event.target.value.toLowerCase();
     this.languageSearch = event.target.value;
     this.filteredLanguages = this.languages.filter((option) =>
-      option.label.toLowerCase().includes(langSearched)
+      option.label.toLowerCase().includes(langSearched),
     );
   }
 
@@ -288,7 +293,7 @@ export class AppComponent {
     this.filteredLanguages = [];
     this.settingsService.setSetting(
       'applicationLanguage',
-      this.languages.find((l) => l.code === option.code)
+      this.languages.find((l) => l.code === option.code),
     );
     // this.selectedLanguageName = this.languages.find(
     //   (l) => l.code === option.code
@@ -303,13 +308,13 @@ export class AppComponent {
     this.searchTerm = event.target.value;
     console.log(this.searchTerm);
     this.filteredOptions = this.testOptions.filter((option) =>
-      option.toLowerCase().includes(term)
+      option.toLowerCase().includes(term),
     );
     console.log(
       'hhhih',
       this.filteredOptions.length,
       this.searchTerm.length,
-      term.length
+      term.length,
     );
 
     // Show dropdown if there's at least one match and user has typed something
@@ -331,7 +336,7 @@ export class AppComponent {
     const dataConsumed = data.measurements.reduce(
       (p: any, c: { results: { [x: string]: any } }) =>
         p + c.results.receivedBytes,
-      0
+      0,
     );
     this.historyState = { dataConsumed };
   }
@@ -346,7 +351,7 @@ export class AppComponent {
     // e.g., call an API, or navigate to another page
     console.log(
       'Selection confirmed:',
-      this.networks.filter((n) => n.checked)
+      this.networks.filter((n) => n.checked),
     );
   }
 
@@ -555,12 +560,12 @@ export class AppComponent {
     if (environment.isElectron && window.require) {
       const { shell } = window.require('electron');
       shell.openExternal(
-        'https://github.com/unicef/project-connect-daily-check-app/releases'
+        'https://github.com/unicef/project-connect-daily-check-app/releases',
       );
     } else {
       window.open(
         'https://github.com/unicef/project-connect-daily-check-app/releases',
-        '_blank'
+        '_blank',
       );
     }
   }
@@ -607,13 +612,13 @@ export class AppComponent {
         } catch (deactivateError) {
           console.error(
             '⚠️ Error deactivating device on backend:',
-            deactivateError
+            deactivateError,
           );
           // Continue with logout even if deactivation fails
         }
       } else {
         console.warn(
-          '⚠️ Missing hardware ID or giga ID, skipping backend deactivation'
+          '⚠️ Missing hardware ID or giga ID, skipping backend deactivation',
         );
       }
 

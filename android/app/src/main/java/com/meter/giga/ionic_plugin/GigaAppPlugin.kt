@@ -19,7 +19,6 @@ import com.meter.giga.domain.entity.SpeedTestResultEntity
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
-import com.meter.giga.prefrences.SecureDataStore
 import com.meter.giga.service.NetworkTestService
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.BASE_URL
