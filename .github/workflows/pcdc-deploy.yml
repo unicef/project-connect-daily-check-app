@@ -42,9 +42,9 @@ jobs:
         run: |
           echo "Creating environment file for ${{ github.event.inputs.environment }}"
           if ($env:GITHUB_EVENT_INPUTS_environment -eq 'prod') {
-            node -e "const fs=require('fs'); fs.writeFileSync('src/environments/_environment.prod.ts', 'export const environment = { production: true, name: \"prod\" };\n');"
+            Set-Content -Path 'src/environments/_environment.prod.ts' -Value "export const environment = { production: true, name: `"prod`" };" -Encoding utf8
           } else {
-            node -e "const fs=require('fs'); fs.writeFileSync('src/environments/_environment.prod.ts', 'export const environment = { production: false, name: \"dev\" };\n');"
+            Set-Content -Path 'src/environments/_environment.prod.ts' -Value "export const environment = { production: false, name: `"dev`" };" -Encoding utf8
           }
         shell: pwsh
 
@@ -72,6 +72,8 @@ jobs:
       - name: Production create prerelease and upload .exe
         if: ${{ github.event.inputs.environment == 'prod' }}
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: create_release
         with:
           tag_name: release-${{ github.run_number }}-${{ github.sha }}
@@ -83,6 +85,8 @@ jobs:
       - name: Production upload .exe to release
         if: ${{ github.event.inputs.environment == 'prod' }}
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: ${{ steps.find-exe.outputs.exe }}
