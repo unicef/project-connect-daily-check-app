@@ -1,4 +1,8 @@
 import { Injectable } from '@angular/core';
+import { isAndroid } from '../android/android_util';
+import { Capacitor } from '@capacitor/core';
+import { GigaAppPlugin } from '../android/giga-app-android-plugin';
+import { Device } from '@capacitor/device';
 
 interface HardwareData {
   hardwareId: string;
@@ -42,7 +46,7 @@ export class HardwareIdService {
       this.getElectronAPI()?.onHardwareId((data: HardwareData) => {
         console.log(
           '✅ [HardwareID] Received hardware ID from Electron:',
-          data.hardwareId
+          data.hardwareId,
         );
         this.saveHardwareData(data);
 
@@ -58,7 +62,7 @@ export class HardwareIdService {
       this.getElectronAPI()?.onHardwareIdError((error: HardwareError) => {
         console.error(
           '❌ [HardwareID] Hardware ID error from Electron:',
-          error
+          error,
         );
 
         // Reject any pending promises
@@ -72,9 +76,17 @@ export class HardwareIdService {
       // Also try to fetch it immediately via IPC
       this.fetchHardwareId();
     } else {
-      console.warn(
-        '⚠️ [HardwareID] Not running in Electron, hardware ID not available'
-      );
+      const isAndroidDevice = Capacitor.getPlatform() === 'android';
+      console.log(`GIGA Android ${isAndroidDevice}`);
+
+      if (isAndroidDevice) {
+        this.processAndroidId();
+      } else {
+        console.warn(
+          '⚠️ [HardwareID] Not running in Electron, hardware ID not available',
+        );
+        console.log('GIGA No Hardware ID');
+      }
     }
   }
 
@@ -83,10 +95,34 @@ export class HardwareIdService {
    */
   async fetchHardwareId(): Promise<HardwareData | null> {
     if (!this.isElectron()) {
-      console.warn(
-        '⚠️ [HardwareID] Not running in Electron, hardware ID not available'
-      );
-      return null;
+      const isAndroidDevice = Capacitor.getPlatform() === 'android';
+      console.log(`GIGA Android ${isAndroidDevice}`);
+
+      if (isAndroidDevice) {
+        const result = await GigaAppPlugin.getAndroidId();
+        const deviceInfo = await Device.getInfo();
+        if (deviceInfo && result && result.androidId) {
+          const hardwareData: HardwareData = {
+            hardwareId: result.androidId,
+            uuid: result.androidId,
+            serial: result.androidId,
+            sku: '',
+            manufacturer: deviceInfo.manufacturer,
+            model: deviceInfo.model,
+            osSerial: `${deviceInfo.androidSDKVersion}`,
+            timestamp: new Date().toISOString(),
+          };
+          this.saveHardwareData(hardwareData);
+          return hardwareData;
+        } else {
+          return null;
+        }
+      } else {
+        console.warn(
+          '⚠️ [HardwareID] Not running in Electron, hardware ID not available',
+        );
+        return null;
+      }
     }
 
     try {
@@ -97,7 +133,7 @@ export class HardwareIdService {
         console.error(
           '❌ [HardwareID] IPC returned error:',
           data.error,
-          data.message
+          data.message,
         );
         return null;
       }
@@ -105,7 +141,7 @@ export class HardwareIdService {
       if (data && data.hardwareId) {
         console.log(
           '✅ [HardwareID] Fetched hardware ID via IPC:',
-          data.hardwareId
+          data.hardwareId,
         );
         this.saveHardwareData(data);
         return data;
@@ -116,7 +152,7 @@ export class HardwareIdService {
     } catch (error) {
       console.error(
         '❌ [HardwareID] Error fetching hardware ID via IPC:',
-        error
+        error,
       );
       return null;
     }
@@ -169,6 +205,24 @@ export class HardwareIdService {
     return (window as any).electronAPI;
   }
 
+  private async processAndroidId() {
+    const result = await GigaAppPlugin.getAndroidId();
+    const deviceInfo = await Device.getInfo();
+    if (deviceInfo && result && result.androidId) {
+      const hardwareData: HardwareData = {
+        hardwareId: result.androidId,
+        uuid: result.androidId,
+        serial: result.androidId,
+        sku: '',
+        manufacturer: deviceInfo.manufacturer,
+        model: deviceInfo.model,
+        osSerial: `${deviceInfo.androidSDKVersion}`,
+        timestamp: new Date().toISOString(),
+      };
+      this.saveHardwareData(hardwareData);
+    }
+  }
+
   /**
    * Wait for hardware ID to be available with timeout (polling localStorage)
    * The constructor's event listeners handle saving to localStorage,
@@ -185,20 +239,21 @@ export class HardwareIdService {
     if (existingId) {
       console.log(
         '✅ [HardwareID] Hardware ID already available from storage:',
-        existingId
+        existingId,
       );
       return existingId;
     }
-
-    if (!this.isElectron()) {
+    const isAndroidDevice = Capacitor.getPlatform() === 'android';
+    console.log(`GIGA Android ${isAndroidDevice}`);
+    if (!this.isElectron() && !isAndroidDevice) {
       console.warn(
-        '⚠️ [HardwareID] Not in Electron environment, cannot retrieve hardware ID'
+        '⚠️ [HardwareID] Not in Electron environment, cannot retrieve hardware ID',
       );
       return null;
     }
 
     console.log(
-      `⏳ [HardwareID] Waiting for hardware ID (timeout: ${timeoutMs}ms)...`
+      `⏳ [HardwareID] Waiting for hardware ID (timeout: ${timeoutMs}ms)...`,
     );
 
     // Poll localStorage for hardware ID (saved by constructor's event listeners)
@@ -216,14 +271,14 @@ export class HardwareIdService {
             const elapsed = Date.now() - startTime;
             console.log(
               `✅ [HardwareID] Hardware ID found after ${elapsed}ms:`,
-              id
+              id,
             );
             resolve(id);
           }
         } catch (error) {
           console.error(
             '❌ [HardwareID] Error reading from localStorage:',
-            error
+            error,
           );
           // Continue polling, might be a temporary issue
         }
@@ -241,7 +296,7 @@ export class HardwareIdService {
           console.error(`❌ [HardwareID] Timeout after ${elapsed}ms`);
           console.error('   Possible causes:');
           console.error(
-            '   1. Electron main process failed to retrieve system info'
+            '   1. Electron main process failed to retrieve system info',
           );
           console.error('   2. IPC communication is broken');
           console.error('   3. Hardware ID not saved to localStorage');

@@ -8,11 +8,12 @@ import { SchoolService } from '../services/school.service';
 import { StorageService } from '../services/storage.service';
 import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { GigaAppPlugin } from '../android/giga-app-android-plugin';
 import { HistoryService } from '../services/history.service';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { isAndroid } from '../android/android_util';
 
 @Component({
   selector: 'app-home',
@@ -28,6 +29,7 @@ export class HomePage {
   targetUrl = '_blank';
   isPrivacyChecked = false;
   isNative: boolean;
+  gigaAppPlugin: any;
   constructor(
     public router: Router,
     public translate: TranslateService,
@@ -36,11 +38,14 @@ export class HomePage {
     private loading: LoadingService,
     private historyService: HistoryService,
     private readonly schoolService: SchoolService,
-    private hardwareIdService: HardwareIdService
+    private hardwareIdService: HardwareIdService,
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
     this.isNative = Capacitor.isNativePlatform();
+    if (Capacitor.isNativePlatform()) {
+      this.gigaAppPlugin = registerPlugin<any>('GigaAppPlugin');
+    }
     if (!applicationLanguage) {
       this.settingsService.setSetting('applicationLanguage', {
         code: 'en',
@@ -77,9 +82,8 @@ export class HomePage {
    */
   private async checkDeviceStatusAndProceed() {
     console.log(
-      '🔍 [HomePage] Checking device status for existing registration...'
+      '🔍 [HomePage] Checking device status for existing registration...',
     );
-
     const gigaId = this.storage.get('gigaId');
 
     // Need hardware ID to check status
@@ -88,7 +92,7 @@ export class HomePage {
     if (!hardwareId || !gigaId) {
       // Can't check status without hardware ID or gigaId, proceed with existing registration
       console.warn(
-        '⚠️ [HomePage] Missing hardwareId or gigaId, proceeding with existing registration'
+        '⚠️ [HomePage] Missing hardwareId or gigaId, proceeding with existing registration',
       );
       this.proceedWithExistingRegistration();
       return;
@@ -104,7 +108,7 @@ export class HomePage {
       // Failsafe: Check if status and status.data exist
       if (!status || !status.data) {
         console.warn(
-          '⚠️ [HomePage] Invalid status response, proceeding with existing registration'
+          '⚠️ [HomePage] Invalid status response, proceeding with existing registration',
         );
         this.proceedWithExistingRegistration();
         return;
@@ -120,17 +124,17 @@ export class HomePage {
       } else if (status.data.exists && status.data.is_active === true) {
         // Device is active, proceed normally
         console.log(
-          '✅ [HomePage] Device is active, proceeding with existing registration...'
+          '✅ [HomePage] Device is active, proceeding with existing registration...',
         );
         this.proceedWithExistingRegistration();
       } else if (!status.data.exists) {
         // Device not found in backend - backward compatibility
         // Keep local data for old registrations before hardware ID tracking
         console.warn(
-          '⚠️ [HomePage] Device not found in backend (may be old registration)'
+          '⚠️ [HomePage] Device not found in backend (may be old registration)',
         );
         console.log(
-          '   Proceeding with existing registration for backward compatibility...'
+          '   Proceeding with existing registration for backward compatibility...',
         );
         this.proceedWithExistingRegistration();
       }
@@ -161,7 +165,7 @@ export class HomePage {
           schoolId,
           this.schoolService,
           this.storage,
-          this.settingsService
+          this.settingsService,
         ).then((response) => {
           if (response) {
             this.loading.dismiss();
@@ -204,13 +208,13 @@ export class HomePage {
       if (hardwareId) {
         console.log(
           '🔍 [HomePage] Checking for existing registration with hardware ID:',
-          hardwareId
+          hardwareId,
         );
         await this.checkMachineRegistration(hardwareId);
       } else {
         // No hardware ID available after timeout - proceed normally
         console.warn(
-          '⚠️ [HomePage] No hardware ID available, proceeding with normal flow'
+          '⚠️ [HomePage] No hardware ID available, proceeding with normal flow',
         );
         console.log('   User will need to manually register the device');
         this.loading.dismiss();
@@ -218,7 +222,7 @@ export class HomePage {
     } catch (error) {
       console.error(
         '❌ [HomePage] Error in hardware registration check:',
-        error
+        error,
       );
       this.loading.dismiss();
     }
@@ -230,7 +234,7 @@ export class HomePage {
   private async checkMachineRegistration(hardwareId: string) {
     try {
       console.log(
-        '🌐 [HomePage] Querying backend for existing registration...'
+        '🌐 [HomePage] Querying backend for existing registration...',
       );
       const response = await this.schoolService
         .checkRegistrationByHardwareId(hardwareId)
@@ -242,7 +246,7 @@ export class HomePage {
       if (response?.success && response?.data?.exists === true) {
         // Found existing registration - populate localStorage
         console.log(
-          '✅ [HomePage] Found existing registration for this machine!'
+          '✅ [HomePage] Found existing registration for this machine!',
         );
         console.log('   User ID:', response.data.user_id);
         console.log('   School ID:', response.data.school_id);
@@ -255,7 +259,7 @@ export class HomePage {
       } else {
         // No registration found - user needs to register
         console.log(
-          'ℹ️ [HomePage] No existing registration found for this hardware ID'
+          'ℹ️ [HomePage] No existing registration found for this hardware ID',
         );
         console.log('   User needs to manually register the device');
         this.loading.dismiss();
@@ -268,12 +272,31 @@ export class HomePage {
     }
   }
 
+  async storeRegistrationDataAndScheduleSpeedTest(
+    registrationData: any,
+    apiKey: String,
+    baseUrl: String,
+    ipInfoToken: String,
+  ) {
+    const result = await this.gigaAppPlugin.storeAndScheduleSpeedTest({
+      browser_id: registrationData?.user_id || '',
+      school_id: registrationData?.school_id || '',
+      giga_school_id: registrationData?.giga_id_school || '',
+      country_code: registrationData?.country_code || '',
+      ip_address: registrationData?.ip_address || '',
+      mlab_uploadKey: apiKey || '',
+      base_url: baseUrl || '',
+      ip_info_token: ipInfoToken || '',
+    });
+    console.log('GIGA Plugin Call Result : ', result);
+  }
+
   /**
    * Populate localStorage with existing registration data
    */
   private async applyExistingRegistration(registrationData: any) {
     console.log(
-      '💾 [HomePage] Applying existing registration to localStorage...'
+      '💾 [HomePage] Applying existing registration to localStorage...',
     );
     console.log('   Registration data:', registrationData);
 
@@ -322,8 +345,24 @@ export class HomePage {
       console.log('   ✓ Set schoolInfo');
     }
 
+    if (Capacitor.isNativePlatform()) {
+      //This we need to pass to native background servie to execute the
+      // api calls to publish speed test data
+      console.log('GIGA Registration data:', JSON.stringify(registrationData));
+
+      const apiKey = environment.token;
+      const baseUrl = environment.restAPI;
+      const clientInfoToken = environment.ipInfoToken;
+      this.storeRegistrationDataAndScheduleSpeedTest(
+        registrationData,
+        apiKey,
+        baseUrl,
+        clientInfoToken,
+      );
+    }
+
     console.log(
-      '✅ [HomePage] Registration data successfully loaded from hardware ID'
+      '✅ [HomePage] Registration data successfully loaded from hardware ID',
     );
   }
 
@@ -332,7 +371,7 @@ export class HomePage {
       const result = await GigaAppPlugin.getHistoricalSpeedTestData();
       console.log(
         'Queue from native: home',
-        JSON.parse(JSON.stringify(result.historicalData))
+        JSON.parse(JSON.stringify(result.historicalData)),
       );
       console.log('Queue from native: home', result.historicalData);
       let historicalData = result.historicalData;
@@ -345,7 +384,7 @@ export class HomePage {
         const allHistoryData = this.historyService.getAll();
         console.log(
           'Queue from native: home all',
-          allHistoryData.measurements.length
+          allHistoryData.measurements.length,
         );
         if (historicalData.measurements.length > 0) {
           const merged = [

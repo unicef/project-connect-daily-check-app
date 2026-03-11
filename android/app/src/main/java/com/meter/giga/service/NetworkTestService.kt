@@ -244,6 +244,7 @@ class NetworkTestService : LifecycleService() {
     var lastUploadResponse: ClientResponse? = null//GigaUtil.getDefaultClientInfo("upload")
     var allDoneInvoked: Int = 0
     var schoolId = prefs.schoolId
+    var deviceHardwareId = prefs.deviceHardwareId
     var gigaSchoolId = prefs.gigaSchoolId
     var browserId = prefs.browserId
     var ipAddress = prefs.ipAddress
@@ -552,7 +553,8 @@ class NetworkTestService : LifecycleService() {
           countryCode,
           ipAddress,
           lastDownloadResponse,
-          lastUploadResponse
+          lastUploadResponse,
+          deviceHardwareId
         )
         val existingSpeedTestData = prefs.oldSpeedTestData
         val historyDataIndex = prefs.historyDataIndex

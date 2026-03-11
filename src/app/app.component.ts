@@ -19,6 +19,7 @@ import { SchoolService } from './services/school.service';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
+import { isAndroid } from './android/android_util';
 // const shell = require('electron').shell;
 @Component({
   selector: 'app-root',
@@ -199,7 +200,6 @@ export class AppComponent {
 
     // Test log
     await FirebaseCrashlytics.log({ message: 'App started!' });
-
     // Force test crash (for testing only!)
 
     // this.testCrash();

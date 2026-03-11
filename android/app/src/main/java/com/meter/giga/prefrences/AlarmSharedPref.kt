@@ -8,6 +8,7 @@ import com.meter.giga.utils.Constants.GIGA_APP_PREFERENCES
 import com.meter.giga.utils.Constants.KEY_BASE_URL
 import com.meter.giga.utils.Constants.KEY_BROWSER_ID
 import com.meter.giga.utils.Constants.KEY_COUNTRY_CODE
+import com.meter.giga.utils.Constants.KEY_DEVICE_HARDWARE_ID
 import com.meter.giga.utils.Constants.KEY_FIRST_15_EXECUTED_TIME
 import com.meter.giga.utils.Constants.KEY_FIRST_15_SCHEDULED_TIME
 import com.meter.giga.utils.Constants.KEY_GIGA_SCHOOL_ID
@@ -172,6 +173,15 @@ class AlarmSharedPref(context: Context) {
     val today = Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
     return today != lastExecutionDay
   }
+
+  /**
+   * This provides school id which
+   * user has registered
+   */
+  var deviceHardwareId: String
+    get() = prefs.getString(KEY_DEVICE_HARDWARE_ID, "").toString()
+    set(value) = prefs.edit() { putString(KEY_DEVICE_HARDWARE_ID, value) }
+
 
   /**
    * This provides environment

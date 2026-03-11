@@ -4,9 +4,8 @@ package com.meter.giga.ionic_plugin
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
-import android.util.Log
+import android.provider.Settings
 import com.getcapacitor.JSArray
-import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
@@ -31,14 +30,11 @@ import com.meter.giga.utils.Constants.REGISTRATION_GIGA_SCHOOL_ID
 import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
-import com.meter.giga.utils.Constants.SCHEDULE_TYPE_MANUAL
 import com.meter.giga.utils.GigaUtil
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import com.getcapacitor.JSObject
 
 @CapacitorPlugin(name = "GigaAppPlugin")
 class GigaAppPlugin : Plugin() {
@@ -178,6 +174,27 @@ class GigaAppPlugin : Plugin() {
 
   override fun load() {
     pluginInstance = this
+  }
+
+
+  @PluginMethod
+  fun getAndroidId(call: PluginCall) {
+    val androidId = Settings.Secure.getString(
+      context.contentResolver,
+      Settings.Secure.ANDROID_ID
+    )
+    AppLogger.d("GIGA Android", androidId)
+    val ret = JSObject()
+    try {
+      val context = bridge.context
+      val alarmPrefs = AlarmSharedPref(context)
+      alarmPrefs.deviceHardwareId = androidId
+      ret.put("androidId", androidId)
+    } catch (e: JSONException) {
+      call.reject("Error getting Android ID")
+      return
+    }
+    call.resolve(ret)
   }
 
   /**
