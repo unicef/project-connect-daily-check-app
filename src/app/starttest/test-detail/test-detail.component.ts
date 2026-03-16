@@ -4,6 +4,8 @@ import { HistoryService } from 'src/app/services/history.service';
 import { NetworkService } from 'src/app/services/network.service';
 import { StorageService } from 'src/app/services/storage.service';
 import { Router, NavigationEnd } from '@angular/router';
+import { LocationService } from 'src/app/services/location.service';
+import { SettingsService } from 'src/app/services/settings.service';
 
 @Component({
   selector: 'app-test-detail',
@@ -16,6 +18,7 @@ export class TestDetailComponent implements OnInit {
   school: any;
   historicalData: any;
   measurementsData: [];
+  locationDetail: any;
   accessInformation = {
     ip: '',
     city: '',
@@ -39,13 +42,17 @@ export class TestDetailComponent implements OnInit {
     private storage: StorageService,
     private historyService: HistoryService,
     private countryService: CountryService,
-    private router: Router
+    private router: Router,
+    private locationService: LocationService,
+    private settingsService: SettingsService
   ) {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         this.loadData();
       }
     });
+    this.locationDetail = this.locationService.getSavedGeolocation();
+
   }
 
   ngOnInit() {
@@ -133,5 +140,9 @@ export class TestDetailComponent implements OnInit {
       return '';
     }
     return measurement.synced ? 'green_color' : 'orange_color';
+  }
+
+  openExternalUrl() {
+    this.settingsService.getShell().shell.openExternal('https://www.google.com/maps?q=' + this.locationDetail?.location?.lat + ',' + this.locationDetail?.location?.lng);
   }
 }

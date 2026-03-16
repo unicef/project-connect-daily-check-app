@@ -35,8 +35,7 @@
     "electron-updater": "~4.3.9",
     "electron-window-state": "^5.0.3",
     "fs-extra": "^10.0.1",
-    "systeminformation": "^5.23.5"
-
+    "systeminformation": "^5.27.8"
   },
   "devDependencies": {
     "electron": "^29.4.6",

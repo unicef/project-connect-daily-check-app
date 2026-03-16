@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('shell', { shell });
 
 // Expose hardware ID, Windows username, installed path, and WiFi connections API
 contextBridge.exposeInMainWorld('electronAPI', {
+  getWifiList: () => ipcRenderer.invoke('get-wifi-list'),
   getHardwareId: () => ipcRenderer.invoke('get-hardware-id'),
   getWindowsUsername: () => ipcRenderer.invoke('get-windows-username'),
   getInstalledPath: () => ipcRenderer.invoke('get-installed-path'),
