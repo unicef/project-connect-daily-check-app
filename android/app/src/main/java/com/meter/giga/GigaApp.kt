@@ -1,6 +1,7 @@
 package com.meter.giga
 
 import android.app.Application
+import android.os.Build
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
@@ -23,7 +24,28 @@ class GigaApp : Application() {
   override fun onCreate() {
     super.onCreate()
     initSentry()
-    initAppUpdateCheck()
+    if (isInstalledFromPlayStore()) {
+      initAppUpdateCheck()
+    } else {
+      AppLogger.d("Giga Meter", "App not installed from playstore")
+    }
+  }
+
+  fun getInstallerPackage(): String? {
+    val pm = applicationContext.packageManager
+
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      val installSourceInfo = pm.getInstallSourceInfo(applicationContext.packageName)
+      installSourceInfo.installingPackageName
+    } else {
+      @Suppress("DEPRECATION")
+      pm.getInstallerPackageName(applicationContext.packageName)
+    }
+  }
+
+  fun isInstalledFromPlayStore(): Boolean {
+    val installer = getInstallerPackage()
+    return installer == "com.android.vending"
   }
 
   private fun initAppUpdateCheck() {

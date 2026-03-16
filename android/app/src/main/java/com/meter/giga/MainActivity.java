@@ -70,9 +70,6 @@ public class MainActivity extends BridgeActivity {
         AlarmManager am = (AlarmManager) getSystemService(ALARM_SERVICE);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
           showPermissionDialog();
-        } else {
-          // Need to allow if need to grant background operations
-          // checkAllowBackGroundPermission();              // 3️⃣
         }
       });
 
@@ -155,9 +152,6 @@ public class MainActivity extends BridgeActivity {
             intent.setData(Uri.parse("package:" + activity.getPackageName()));
 
             alarmPermissionLauncher.launch(intent);    // modern API
-          } else {
-            // Enable it if need to allow background operation in doze/sleep mode
-            //checkAllowBackGroundPermission();              // 3️⃣
           }
         }
       }

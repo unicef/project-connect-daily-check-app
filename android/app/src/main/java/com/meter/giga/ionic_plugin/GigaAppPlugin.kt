@@ -2,9 +2,12 @@ package com.meter.giga.ionic_plugin
 
 
 import android.annotation.SuppressLint
+import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.provider.Settings
+import androidx.core.content.ContextCompat.startActivity
 import com.getcapacitor.JSArray
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -35,6 +38,7 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 import com.getcapacitor.JSObject
+import androidx.core.net.toUri
 
 @CapacitorPlugin(name = "GigaAppPlugin")
 class GigaAppPlugin : Plugin() {
@@ -311,6 +315,20 @@ class GigaAppPlugin : Plugin() {
   }
 
   /**
+   * This function is invoked from ionic app UI
+   * to clear the stored data from preferences
+   * @param call : This contains all the passed params
+   * as key value pair
+   */
+  @PluginMethod
+  fun clearStoredData(call: PluginCall) {
+    val context = bridge.context
+    val alarmPrefs = AlarmSharedPref(context)
+    alarmPrefs.resetAllData()
+    call.resolve()
+  }
+
+  /**
    * This function is getting used to schedule the Alarm
    * to perform the speed test in background, when user updates/register
    * school in App
@@ -320,33 +338,47 @@ class GigaAppPlugin : Plugin() {
    */
   @SuppressLint("ScheduleExactAlarm")
   private fun scheduleAlarm(context: Context, alarmPrefs: AlarmSharedPref) {
-    val now = System.currentTimeMillis()
-    val lastExecutionDate = alarmPrefs.lastExecutionDay
+    var canScheduleAlarm = true
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+      val alarmManager = context.getSystemService(AlarmManager::class.java)
+      canScheduleAlarm = alarmManager.canScheduleExactAlarms()
+    }
 
-    if (alarmPrefs.isNewDay()) {
-      alarmPrefs.resetForNewDay()
-      val randomIn15Min = now + (Math.random() * (15 * 60 * 1000L)).toLong()
-      alarmPrefs.first15ScheduledTime = randomIn15Min
-      AppLogger.d("GIGA GigaAppPlugin", "On New Registraion New Day 15 Min $randomIn15Min")
-      alarmPrefs.nextExecutionTime = randomIn15Min
-      AlarmHelper.scheduleExactAlarm(context, randomIn15Min, "FIRST_15_MIN")
-    } else if (alarmPrefs.first15ExecutedTime == -1L) {
-      val randomIn15Min = now + (Math.random() * (15 * 60 * 1000L)).toLong()
-      alarmPrefs.first15ScheduledTime = randomIn15Min
-      AppLogger.d("GIGA GigaAppPlugin", "Not Executed 15 Min $randomIn15Min")
-      alarmPrefs.nextExecutionTime = randomIn15Min
-      AlarmHelper.scheduleExactAlarm(context, randomIn15Min, "FIRST_15_MIN")
+    if (canScheduleAlarm) {
+      val now = System.currentTimeMillis()
+      val lastExecutionDate = alarmPrefs.lastExecutionDay
+
+      if (alarmPrefs.isNewDay()) {
+        alarmPrefs.resetForNewDay()
+        val randomIn15Min = now + (Math.random() * (15 * 60 * 1000L)).toLong()
+        alarmPrefs.first15ScheduledTime = randomIn15Min
+        AppLogger.d("GIGA GigaAppPlugin", "On New Registraion New Day 15 Min $randomIn15Min")
+        alarmPrefs.nextExecutionTime = randomIn15Min
+        AlarmHelper.scheduleExactAlarm(context, randomIn15Min, "FIRST_15_MIN")
+      } else if (alarmPrefs.first15ExecutedTime == -1L) {
+        val randomIn15Min = now + (Math.random() * (15 * 60 * 1000L)).toLong()
+        alarmPrefs.first15ScheduledTime = randomIn15Min
+        AppLogger.d("GIGA GigaAppPlugin", "Not Executed 15 Min $randomIn15Min")
+        alarmPrefs.nextExecutionTime = randomIn15Min
+        AlarmHelper.scheduleExactAlarm(context, randomIn15Min, "FIRST_15_MIN")
+      } else {
+        val executedTime = alarmPrefs.first15ExecutedTime
+        val currentSlotStartHour = getSlotStartHour(executedTime)
+        val range: Pair<Long?, Long?> =
+          getNextSlotRange(executedTime, currentSlotStartHour, lastExecutionDate)
+        val start: Long = range.first!!
+        val end: Long = range.second!!
+        val nextAlarmTime = start + (Math.random() * (end - start)).toLong()
+        AppLogger.d("GIGA GigaAppPlugin", "For New Slot $nextAlarmTime")
+        alarmPrefs.nextExecutionTime = nextAlarmTime
+        AlarmHelper.scheduleExactAlarm(context, nextAlarmTime, "NEXT_SLOT")
+      }
     } else {
-      val executedTime = alarmPrefs.first15ExecutedTime
-      val currentSlotStartHour = getSlotStartHour(executedTime)
-      val range: Pair<Long?, Long?> =
-        getNextSlotRange(executedTime, currentSlotStartHour, lastExecutionDate)
-      val start: Long = range.first!!
-      val end: Long = range.second!!
-      val nextAlarmTime = start + (Math.random() * (end - start)).toLong()
-      AppLogger.d("GIGA GigaAppPlugin", "For New Slot $nextAlarmTime")
-      alarmPrefs.nextExecutionTime = nextAlarmTime
-      AlarmHelper.scheduleExactAlarm(context, nextAlarmTime, "NEXT_SLOT")
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        val intent = Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM)
+        intent.data = "package:${context.packageName}".toUri()
+        context.startActivity(intent)
+      }
     }
   }
 }

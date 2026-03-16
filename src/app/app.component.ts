@@ -16,10 +16,11 @@ import { WhatsNewModalComponent } from './components/whats-new-modal/whats-new-m
 import { LogoutModalComponent } from './components/logout-modal/logout-modal.component';
 import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
 import { isAndroid } from './android/android_util';
+import { App } from '@capacitor/app';
 // const shell = require('electron').shell;
 @Component({
   selector: 'app-root',
@@ -59,6 +60,8 @@ export class AppComponent {
   ];
   networkSelected = false;
   whatsNewReleases: any[] = [];
+  gigaAppPlugin: any;
+
   constructor(
     private menu: MenuController,
     private storage: StorageService,
@@ -77,6 +80,12 @@ export class AppComponent {
     private schoolService: SchoolService,
   ) {
     this.isNative = Capacitor.isNativePlatform();
+    if (Capacitor.isNativePlatform()) {
+      this.gigaAppPlugin = registerPlugin<any>('GigaAppPlugin');
+      this.getBuildInfo();
+    } else {
+      this.app_version = environment.app_version;
+    }
     this.filteredOptions = [];
     this.selectedLanguage =
       this.settingsService.get('applicationLanguage')?.code ??
@@ -89,7 +98,6 @@ export class AppComponent {
       code: 'en',
     };
     this.translate.use(appLang.code);
-    this.app_version = environment.app_version;
     // Use system hardware ID instead of schoolUserId
     console.log(
       'GIGA : Hardware',
@@ -179,6 +187,11 @@ export class AppComponent {
       };
       console.log('🧪 Testing helpers available: window.testWhatsNew');
     }
+  }
+
+  async getBuildInfo() {
+    const info = await App.getInfo();
+    this.app_version = info.version;
   }
 
   private setPlatformClass() {
@@ -620,6 +633,10 @@ export class AppComponent {
         console.warn(
           '⚠️ Missing hardware ID or giga ID, skipping backend deactivation',
         );
+      }
+
+      if (this.isNative) {
+        await this.gigaAppPlugin.clearStoredData();
       }
 
       // Clear all localStorage data

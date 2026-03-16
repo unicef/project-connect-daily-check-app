@@ -44,3 +44,16 @@
 -dontwarn javax.naming.**
 -dontwarn javax.servlet.**
 -dontwarn org.slf4j.impl.**
+
+
+# Capacitor
+-keep class com.getcapacitor.** { *; }
+
+# Capacitor plugins
+-keep class com.capacitorjs.plugins.** { *; }
+
+# Keep annotations used by Capacitor permissions
+-keepattributes *Annotation*
+
+# Google location
+-keep class com.google.android.gms.location.** { *; }
