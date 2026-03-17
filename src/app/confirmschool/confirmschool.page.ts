@@ -249,23 +249,7 @@ export class ConfirmschoolPage {
                       // Set first-time visit flags for new registration flow
                       this.storage.setFirstTimeVisit(true);
                       this.storage.setRegistrationCompleted(Date.now());
-                      if (this.isNative) {
-                        //This we need to pass to native background servie to execute the
-                        // api calls to publish speed test data
-                        const apiKey = environment.token;
-                        const baseUrl = environment.restAPI;
-                        const clientInfoToken = environment.ipInfoToken;
-                        this.storeRegistrationDataAndScheduleSpeedTest(
-                          response,
-                          this.school.school_id,
-                          this.school.giga_id_school,
-                          this.selectedCountry,
-                          c?.ip,
-                          apiKey,
-                          baseUrl,
-                          clientInfoToken,
-                        );
-                      }
+
                       this.loading.dismiss();
 
                       // Navigate to starttest page normally
@@ -364,15 +348,6 @@ export class ConfirmschoolPage {
     baseUrl: String,
     ipInfoToken: String,
   ) {
-    console.log('GIGA GigaAppPlugin : Schedule Speed Test ');
-    console.log('GIGA Params : browserId : ', browserId);
-    console.log('GIGA Params : schoolId : ', schoolId);
-    console.log('GIGA Params : gigaSchoolId : ', gigaSchoolId);
-    console.log('GIGA Params : countryCode : ', countryCode);
-    console.log('GIGA Params : ipAddress : ', ipAddress);
-    console.log('GIGA Params : uploadKey : ', apiKey);
-    console.log('GIGA Params : baseUrl : ', baseUrl);
-    console.log('GIGA Params : ipInfoToken : ', ipInfoToken);
     const result = await this.gigaAppPlugin.storeAndScheduleSpeedTest({
       browser_id: browserId || '',
       school_id: schoolId || '',
