@@ -1,6 +1,5 @@
 package com.meter.giga.data.repository
 
-import android.util.Log
 import com.google.gson.GsonBuilder
 import com.meter.giga.data.models.responses.AsnData
 import com.meter.giga.data.util.AsnDataAdapter
@@ -17,7 +16,6 @@ import com.meter.giga.utils.toEntity
 import com.meter.giga.utils.toModel
 import io.sentry.Sentry
 import kotlinx.coroutines.delay
-import retrofit2.Response
 
 /**
  * SpeedTestRepositoryImpl provides abstract implementation of

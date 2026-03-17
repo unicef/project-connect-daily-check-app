@@ -5,7 +5,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 
 
-class NetworkCheckerImpl constructor(
+class NetworkCheckerImpl(
   private val context: Context
 ) : NetworkChecker {
 

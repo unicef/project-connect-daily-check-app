@@ -47,7 +47,7 @@ class BootBroadCastReceiver(
         }
       } else {
         if (schoolId == "") {
-          AppLogger.d("BootBroadCastReceiver", "Failed to schedule due no school is registered")
+          AppLogger.d("BootBroadCastReceiver", "Failed to schedule due to no school is registered")
         } else {
           AppLogger.d("BootBroadCastReceiver", "Failed to schedule due to No permission granted")
 

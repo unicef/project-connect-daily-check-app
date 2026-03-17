@@ -10,8 +10,8 @@ android {
     applicationId "com.meter.giga"
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
-    versionCode 24
-    versionName "1.1.24"
+    versionCode 25
+    versionName "1.1.25"
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     aaptOptions {
       // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -105,6 +105,7 @@ dependencies {
   implementation "androidx.security:security-crypto:1.1.0"
   implementation "androidx.datastore:datastore-preferences:1.1.7"
   implementation 'io.sentry:sentry-android:1.7.30'
+  implementation "com.google.android.gms:play-services-location:21.3.0"
   implementation project(':capacitor-android')
   implementation project(':ndt7lib')
   testImplementation "junit:junit:$junitVersion"

@@ -56,18 +56,6 @@ object RetrofitInstanceBuilder {
    * Creates ApiService service instance to
    * post the speed test data
    */
-//  val speedTestApi: ApiService by lazy {
-//    Retrofit.Builder()
-//      .baseUrl(BASE_URL)
-//      .addConverterFactory(GsonConverterFactory.create())
-//      .build()
-//      .create(ApiService::class.java)
-//  }
-
-  /**
-   * Creates ApiService service instance to
-   * post the speed test data
-   */
   fun getSpeedTestApi(baseUrl: String): ApiService {
     Sentry.capture("Base Url is : $baseUrl");
     return Retrofit.Builder()
@@ -77,6 +65,12 @@ object RetrofitInstanceBuilder {
       .create(ApiService::class.java)
   }
 
+  /**
+   * Creates ApiService service instance to
+   * post the speed test data
+   * @param baseUrl: Base URL
+   * @param gson : custom adapters
+   */
   fun getSpeedTestApiWithCustomAdapter(baseUrl: String, gson: Gson): ApiService {
     return Retrofit.Builder()
       .baseUrl(baseUrl)

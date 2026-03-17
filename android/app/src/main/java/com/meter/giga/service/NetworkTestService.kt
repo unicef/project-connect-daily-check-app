@@ -1,14 +1,20 @@
 package com.meter.giga.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.location.Location
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.meter.giga.MainActivity
 import com.meter.giga.R
@@ -79,10 +85,35 @@ class NetworkTestService : LifecycleService() {
    */
   private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
 
-  //  private lateinit var secureDataStore: SecureDataStore
+  private lateinit var fusedLocationClient: FusedLocationProviderClient
+
   override fun onCreate() {
     super.onCreate()
+    fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+    getLocation()
     createNotificationChannel()
+  }
+
+  private fun getLocation() {
+
+    if (ActivityCompat.checkSelfPermission(
+        this,
+        Manifest.permission.ACCESS_FINE_LOCATION
+      ) != PackageManager.PERMISSION_GRANTED
+    ) {
+      AppLogger.d("LOCATION", "No Permissions")
+
+      return
+    }
+
+    fusedLocationClient.lastLocation
+      .addOnSuccessListener { location: Location? ->
+        location?.let {
+          val latitude = it.latitude
+          val longitude = it.longitude
+          AppLogger.d("LOCATION", "Lat: $latitude Lng: $longitude")
+        }
+      }
   }
 
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {

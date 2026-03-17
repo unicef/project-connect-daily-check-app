@@ -180,7 +180,13 @@ class GigaAppPlugin : Plugin() {
     pluginInstance = this
   }
 
-
+  /**
+   * This function is invoked from ionic app UI
+   * to get the Android ID
+   * @param call : This contains all the passed params
+   * as key value pair
+   */
+  @SuppressLint("HardwareIds")
   @PluginMethod
   fun getAndroidId(call: PluginCall) {
     val androidId = Settings.Secure.getString(
