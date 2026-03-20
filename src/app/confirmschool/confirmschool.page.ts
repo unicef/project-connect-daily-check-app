@@ -114,14 +114,17 @@ export class ConfirmschoolPage {
                 };
 
                 // if(this.school.code === c.country){
-                var position = null;
                 if (this.isNative) {
-                  position = this.ensureLocationPermission().then(
+                  const position = this.ensureLocationPermission().then(
                     (position) => {
                       const schoolDataWithLocation = {
                         ...schoolData,
-                        lat: position.coords.latitude,
-                        long: position.coords.longitude,
+                        geolocation: position
+                          ? {
+                              latitude: position.coords.latitude,
+                              longitude: position.coords.longitude,
+                            }
+                          : null,
                       };
                       console.log(
                         'Register School Data ',
@@ -368,7 +371,7 @@ export class ConfirmschoolPage {
       const request = await Geolocation.requestPermissions();
       if (request.location !== 'granted') {
         console.log('Permission denied');
-        this.ensureLocationPermission;
+        return null;
       }
     }
 

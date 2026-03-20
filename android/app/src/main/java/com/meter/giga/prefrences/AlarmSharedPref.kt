@@ -18,6 +18,7 @@ import com.meter.giga.utils.Constants.KEY_IP_INFO_TOKEN
 import com.meter.giga.utils.Constants.KEY_IS_TEST_RUNNING
 import com.meter.giga.utils.Constants.KEY_LAST_EXECUTION_DAY
 import com.meter.giga.utils.Constants.KEY_LAST_SLOT_EXECUTION_HOUR
+import com.meter.giga.utils.Constants.KEY_LAST_UPDATE_CHECK_DATE
 import com.meter.giga.utils.Constants.KEY_MLAB_UPLOAD_KEY
 import com.meter.giga.utils.Constants.KEY_NEXT_EXECUTION_TIME
 import com.meter.giga.utils.Constants.KEY_OLD_SPEEDTEST_DATA
@@ -181,6 +182,13 @@ class AlarmSharedPref(context: Context) {
   var deviceHardwareId: String
     get() = prefs.getString(KEY_DEVICE_HARDWARE_ID, "").toString()
     set(value) = prefs.edit() { putString(KEY_DEVICE_HARDWARE_ID, value) }
+
+  /**
+   * This provides day of update check
+   */
+  var dateOfLastUpdateCheck: Int
+    get() = prefs.getInt(KEY_LAST_UPDATE_CHECK_DATE, -1)
+    set(value) = prefs.edit() { putInt(KEY_LAST_UPDATE_CHECK_DATE, value) }
 
 
   /**

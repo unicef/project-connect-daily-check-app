@@ -5,6 +5,7 @@ import android.content.Context
 import com.google.gson.Gson
 import com.meter.giga.domain.entity.history.AccessInformation
 import com.meter.giga.domain.entity.history.DataUsage
+import com.meter.giga.domain.entity.history.Geo
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.history.MlabInformation
 import com.meter.giga.domain.entity.history.SnapLog
@@ -879,7 +880,11 @@ class GigaUtilTest {
       timestamp = 1L,
       uploaded = false,
       uuid = "u1",
-      version = 1
+      version = 1,
+      geolocation = Geo(
+        latitude = 0.0,
+        longitude = 0.0
+      )
     )
 
     val item2 = item1.copy(uploaded = true, uuid = "u2")

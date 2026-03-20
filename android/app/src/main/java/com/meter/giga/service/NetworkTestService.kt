@@ -86,6 +86,7 @@ class NetworkTestService : LifecycleService() {
   private val serviceScope = CoroutineScope(Dispatchers.IO + serviceJob)
 
   private lateinit var fusedLocationClient: FusedLocationProviderClient
+  private var currentLocation: Location? = null
 
   override fun onCreate() {
     super.onCreate()
@@ -111,6 +112,7 @@ class NetworkTestService : LifecycleService() {
         location?.let {
           val latitude = it.latitude
           val longitude = it.longitude
+          currentLocation = location
           AppLogger.d("LOCATION", "Lat: $latitude Lng: $longitude")
         }
       }
@@ -140,7 +142,6 @@ class NetworkTestService : LifecycleService() {
           appVersion,
           isRunningOnChromebook,
           prefs
-          //secureDataStore
         )
         GigaAppPlugin.sendSpeedTestStarted()
         client.setServerDiscoveryHelper(object : ServerDiscoveryHelper {
@@ -264,7 +265,6 @@ class NetworkTestService : LifecycleService() {
     private val appVersion: String,
     private val isRunningOnChromebook: Boolean,
     private val prefs: AlarmSharedPref,
-    // private val secureDataStore: SecureDataStore
   ) :
     NDTTest(okHttpClient) {
     var downloadSpeed = 0.0;
@@ -443,7 +443,6 @@ class NetworkTestService : LifecycleService() {
           }
           val clientInfo = clientInfoState.await()
           val serverInfo = serverInfoState.await()
-          var speedTestResultRequestEntity: SpeedTestResultRequestEntity? = null
           var clientInfoResponse: ClientInfoResponseEntity? = null
           var serverInfoResponse: ServerInfoResponseEntity? = null
           var clientInfoRequest: ClientInfoRequestEntity? = null
@@ -598,7 +597,8 @@ class NetworkTestService : LifecycleService() {
           results = speedTestResultRequestEntity?.results,
           c2sRate = c2sRate,
           s2cRate = s2cRate,
-          historyDataIndex
+          historyDataIndex,
+          currentLocation
         )
         prefs.historyDataIndex = historyDataIndex + 1
         AppLogger.d(

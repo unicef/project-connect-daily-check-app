@@ -75,7 +75,7 @@ class BootBroadCastReceiver(
       if (alarmPrefs.isNewDay()) {
         alarmPrefs.resetForNewDay()
         val now = System.currentTimeMillis()
-        val randomIn15Min = now + Random.nextLong(5 * 60 * 1000L, 15 * 60 * 1000L)
+        val randomIn15Min = now + Random.nextLong(10 * 60 * 1000L, 15 * 60 * 1000L)
         alarmPrefs.first15ScheduledTime = randomIn15Min
         AppLogger.d("GIGA BootBroadCastReceiver", "On Boot New Day 15 Min $randomIn15Min")
         alarmPrefs.nextExecutionTime = randomIn15Min

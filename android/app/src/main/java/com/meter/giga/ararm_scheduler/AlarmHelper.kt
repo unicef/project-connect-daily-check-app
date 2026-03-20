@@ -153,7 +153,7 @@ object AlarmHelper : AlarmHelperType {
 
   override fun getNextDayTimeToCheckVersionUpdate(): Long {
     val now = LocalDateTime.now()
-    var target = now.withHour(13).withMinute(30).withSecond(0).withNano(0)
+    var target = now.withHour(12).withMinute(0).withSecond(0).withNano(0)
     if (now.isAfter(target)) {
       target = target.plusDays(1)
     }

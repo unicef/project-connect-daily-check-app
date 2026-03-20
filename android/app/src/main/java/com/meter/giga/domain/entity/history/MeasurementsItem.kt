@@ -26,5 +26,7 @@ data class MeasurementsItem(
   @SerializedName("uuid")
   val uuid: String?,
   @SerializedName("version")
-  val version: Int?
+  val version: Int?,
+  @SerializedName("geolocation")
+  val geolocation: Geo?
 )

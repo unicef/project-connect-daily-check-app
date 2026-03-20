@@ -2,6 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
+apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 android {
   namespace "com.meter.giga"
@@ -10,8 +11,10 @@ android {
     applicationId "com.meter.giga"
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
-    versionCode 25
-    versionName "1.1.25"
+//    versionCode 25
+//    versionName "1.1.25"
+    versionCode project.VERSION_CODE.toInteger()
+    versionName project.VERSION_NAME
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     aaptOptions {
       // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -50,25 +53,6 @@ android {
     }
   }
 
-
-//  flavorDimensions "environment"
-//
-//  productFlavors {
-//    dev {
-//      dimension "environment"
-//      buildConfigField "String", "BASE_URL", "\"${BASE_URL_DEVELOPMENT}\""
-//
-//    }
-//    staging {
-//      dimension "environment"
-//      buildConfigField "String", "BASE_URL", "\"${BASE_URL_STAGING}\""
-//
-//    }
-//    prod {
-//      dimension "environment"
-//      buildConfigField "String", "BASE_URL", "\"${BASE_URL_PRODUCTION}\""
-//    }
-//  }
   buildFeatures {
     buildConfig true
   }
@@ -79,6 +63,11 @@ android {
   testOptions {
     unitTests.includeAndroidResources = true
   }
+}
+
+sentry {
+  uploadNativeSymbols.set(true)
+  autoUploadProguardMapping.set(true)
 }
 
 repositories {
@@ -108,6 +97,7 @@ dependencies {
   implementation "com.google.android.gms:play-services-location:21.3.0"
   implementation project(':capacitor-android')
   implementation project(':ndt7lib')
+  implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.7.3"
   testImplementation "junit:junit:$junitVersion"
   androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
   androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
@@ -188,4 +178,27 @@ tasks.register('jacocoTestReport', JacocoReport) {
 tasks.withType(Test).configureEach {
   jacoco.includeNoLocationClasses = true
   jacoco.excludes = ['jdk.internal.*']
+}
+
+tasks.register("incrementVersion") {
+  doLast {
+    def propsFile = rootProject.file("gradle.properties")
+    def props = new Properties()
+    props.load(new FileInputStream(propsFile))
+
+    def versionCode = props["VERSION_CODE"].toInteger() + 1
+    def versionName = props["VERSION_NAME"]
+
+    // Increment versionName (patch)
+    def parts = versionName.tokenize('.')
+    parts[2] = (parts[2].toInteger() + 1).toString()
+    versionName = parts.join('.')
+
+    props["VERSION_CODE"] = versionCode.toString()
+    props["VERSION_NAME"] = versionName
+
+    props.store(new FileOutputStream(propsFile), null)
+
+    println "Updated to versionCode=$versionCode, versionName=$versionName"
+  }
 }

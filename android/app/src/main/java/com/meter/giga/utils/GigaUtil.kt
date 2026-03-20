@@ -2,12 +2,14 @@ package com.meter.giga.utils
 
 import android.app.AlarmManager
 import android.content.Context
+import android.location.Location
 import android.os.Build
 import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.meter.giga.domain.entity.history.AccessInformation
 import com.meter.giga.domain.entity.history.DataUsage
+import com.meter.giga.domain.entity.history.Geo
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.history.MlabInformation
 import com.meter.giga.domain.entity.history.SnapLog
@@ -154,7 +156,7 @@ object GigaUtil {
     ipAddress: String,
     lastDownloadResponse: ClientResponse?,
     lastUploadResponse: ClientResponse?,
-    deviceHardwareId: String
+    deviceHardwareId: String,
   ): SpeedTestResultRequestEntity? {
     try {
       val currentTime = getCurrentFormattedTime()
@@ -284,7 +286,8 @@ object GigaUtil {
     results: ResultsRequestEntity?,
     c2sRate: ArrayList<Double>,
     s2cRate: ArrayList<Double>,
-    historyDataIndex: Int
+    historyDataIndex: Int,
+    currentLocation: Location?
   ): MeasurementsItem {
     return MeasurementsItem(
       accessInformation = AccessInformation(
@@ -320,7 +323,11 @@ object GigaUtil {
       timestamp = System.currentTimeMillis(),
       uploaded = false,
       uuid = c2sLastServerManagement?.connectionInfo?.uuid,
-      version = 1
+      version = 1,
+      geolocation = if (currentLocation !== null) Geo(
+        latitude = currentLocation.latitude,
+        longitude = currentLocation.longitude
+      ) else null
     )
   }
 

@@ -3,6 +3,7 @@ package com.meter.giga
 import android.app.Application
 import android.os.Build
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequest
 import androidx.work.PeriodicWorkRequest
 import androidx.work.WorkManager
 import com.meter.giga.ararm_scheduler.AlarmHelper.getNextDayTimeToCheckVersionUpdate
@@ -24,11 +25,12 @@ class GigaApp : Application() {
   override fun onCreate() {
     super.onCreate()
     initSentry()
-    if (isInstalledFromPlayStore()) {
-      initAppUpdateCheck()
-    } else {
-      AppLogger.d("Giga Meter", "App not installed from playstore")
-    }
+    initAppUpdateCheck()
+//    if (isInstalledFromPlayStore()) {
+//      initAppUpdateCheck()
+//    } else {
+//      AppLogger.d("Giga Meter", "App not installed from playstore")
+//    }
   }
 
   fun getInstallerPackage(): String? {
@@ -49,21 +51,17 @@ class GigaApp : Application() {
   }
 
   private fun initAppUpdateCheck() {
-
-    val delayMs = getNextDayTimeToCheckVersionUpdate()
-
-    val updateWork = PeriodicWorkRequest.Builder(
-      UpdateCheckWorker::class.java,  // Worker class
-      1,  // repeatInterval
-      TimeUnit.DAYS,  // repeatInterval time unit
-      12,  // flexInterval (optional, 12 hours)
-      TimeUnit.HOURS // flexInterval time unit
-    ).setInitialDelay(delayMs, TimeUnit.MILLISECONDS).build()
+    AppLogger.d("Giga Meter", "App update check installer")
+    Sentry.capture("Updated Checker executed")
+    val workRequest = PeriodicWorkRequest.Builder(
+      UpdateCheckWorker::class.java,
+      14, TimeUnit.HOURS
+    ).build()
 
     WorkManager.getInstance(this).enqueueUniquePeriodicWork(
       "daily_update_check",
-      ExistingPeriodicWorkPolicy.KEEP,  // Or ExistingPeriodicWorkPolicy.REPLACE to reschedule
-      updateWork
+      ExistingPeriodicWorkPolicy.KEEP,
+      workRequest
     )
   }
 

@@ -52,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 
 public class MainActivity extends BridgeActivity {
   private AppUpdateManager appUpdateManager;
+  private static final int REQ_LOCATION_PERMISSION = 102;
 
 
   private final ActivityResultLauncher<IntentSenderRequest> updateFlowLauncher =
@@ -206,31 +207,6 @@ public class MainActivity extends BridgeActivity {
     checkAlarmPermission();
   }
 
-// Need to enable if need to get background operation permission
-//  private void checkAllowBackGroundPermission() {
-//    PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-//    if (pm != null && !pm.isIgnoringBatteryOptimizations(getPackageName())) {
-//      new AlertDialog.Builder(this)
-//        .setTitle("Allow background activity")
-//        .setMessage("To ensure continuous network checks and uploads even when the device sleeps, " +
-//          "please allow the app to ignore battery optimizations. This enables reliable background " +
-//          "network access. You can revoke this later in system settings.")
-//        .setPositiveButton("Allow", (dialog, which) -> {
-//          try {
-//            Intent intent = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS);
-//            intent.setData(Uri.parse("package:" + getPackageName()));
-//            startActivity(intent);
-//          } catch (Exception e) {
-//            // Fallback: open the full battery optimization settings screen
-//            Intent intent = new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
-//            startActivity(intent);
-//          }
-//        })
-//        .setNegativeButton("Cancel", null)
-//        .show();
-//    }
-//  }
-
   /**
    * This function is getting used to check the Schedule Alarm Permission
    * This is mandatory to grant to schedule the speed test in background
@@ -245,7 +221,26 @@ public class MainActivity extends BridgeActivity {
 
         alarmPermissionLauncher.launch(intent);    // modern API
       }
-    }     // ✅ all done
+    }
+
+    checkLocationPermission();// ✅ all done
+  }
+
+  private void checkLocationPermission() {
+    if (ContextCompat.checkSelfPermission(
+      this,
+      android.Manifest.permission.ACCESS_FINE_LOCATION
+    ) != PackageManager.PERMISSION_GRANTED) {
+
+      ActivityCompat.requestPermissions(
+        this,
+        new String[]{
+          android.Manifest.permission.ACCESS_FINE_LOCATION,
+          android.Manifest.permission.ACCESS_COARSE_LOCATION
+        },
+        REQ_LOCATION_PERMISSION
+      );
+    }
   }
 
   /**
@@ -264,6 +259,8 @@ public class MainActivity extends BridgeActivity {
       checkStoragePermission(this);            // continue chain
     } else if (code == REQ_NOTIF_PERMISSION) {
       checkNotificationPermission(this);
+    } else if (code == REQ_LOCATION_PERMISSION) {
+      checkLocationPermission();
     }
   }
 }
