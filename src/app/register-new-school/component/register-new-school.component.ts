@@ -15,13 +15,57 @@ export class RegisterNewSchoolComponent implements OnInit {
   private originalLat = '';
   private originalLng = '';
   isConfirmModalOpen = false;
-  confirmType: 'latitude' | 'longitude' | '' = '';
+  confirmType: string = '';
   schoolForm!: FormGroup;
   suggestions: any[] = [];
   latLngVisible = false;
   searchTimeout: any;
   showOtherInput = false;
+  emailPattern = "^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$";
 
+  // Stepper properties
+  currentStep = 1;
+  totalSteps = 3;
+  radius = 24;
+  circumference = 2 * Math.PI * this.radius;
+  dashoffset = this.circumference - (this.currentStep / this.totalSteps) * this.circumference;
+
+  get stepTitle() {
+    switch (this.currentStep) {
+      case 1: return 'Enter school details';
+      case 2: return 'Enter location details';
+      case 3: return 'Review info';
+      default: return '';
+    }
+  }
+
+  get stepSubtitle() {
+    switch (this.currentStep) {
+      case 1: return 'Next: Location details';
+      case 2: return 'Next: Review info';
+      case 3: return 'Finish registration';
+      default: return '';
+    }
+  }
+
+  nextStep() {
+    this.isConfirmModalOpen = true;
+    if (this.currentStep < this.totalSteps) {
+      this.currentStep++;
+      this.updateDashOffset();
+    }
+  }
+
+  prevStep() {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+      this.updateDashOffset();
+    }
+  }
+
+  updateDashOffset() {
+    this.dashoffset = this.circumference - (this.currentStep / this.totalSteps) * this.circumference;
+  }
 
   constructor(private fb: FormBuilder) { }
 
@@ -32,19 +76,13 @@ export class RegisterNewSchoolComponent implements OnInit {
       schoolAddress: ['', Validators.required],
       latitude: [''],
       longitude: [''],
+      contactName: ['', Validators.required],
       educationLevel: ['', Validators.required],
       otherEducationLevel: [{ value: '', disabled: true }],
-      officialEmail: ['', [Validators.email]]
+      officialEmail: ['', [Validators.required,Validators.pattern(this.emailPattern)]],
+      agreedToTerms: [false, Validators.requiredTrue]
     });
-    this.schoolForm.get('officialEmail')?.valueChanges.subscribe((value: string) => {
-      const emailControl = this.schoolForm.get('officialEmail');
-      if (value && value.length >= 1) {
-        emailControl?.setValidators([this.emailDomainValidator]);
-      } else {
-        emailControl?.clearValidators();
-      }
-      emailControl?.updateValueAndValidity({ emitEvent: false });
-    });
+   
   }
 
   // Called on typing in the address input
@@ -101,59 +139,41 @@ export class RegisterNewSchoolComponent implements OnInit {
 
 
   backToSaved(school: any) {
+    if (this.currentStep > 1) {
+      this.currentStep--;
+      this.updateDashOffset();
+    }
     console.log('Go back clicked', school);
   }
 
-  enableEdit(type: 'lat' | 'lng') {
-    if (type === 'lat') {
-      this.isEditingLat = true;
-      this.originalLat = this.schoolForm.get('latitude')?.value;
-    } else {
-      this.isEditingLng = true;
-      this.originalLng = this.schoolForm.get('longitude')?.value;
-    }
+  enableEdit(type: 'lat' | 'lng' | 'both') {
+    this.isEditingLat = true;
+    this.isEditingLng = true;
+    this.originalLat = this.schoolForm.get('latitude')?.value || '';
+    this.originalLng = this.schoolForm.get('longitude')?.value || '';
   }
 
-  cancelEdit(type: 'lat' | 'lng') {
-    if (type === 'lat') {
-      this.schoolForm.patchValue({ latitude: this.originalLat });
-      this.isEditingLat = false;
-    } else {
-      this.schoolForm.patchValue({ longitude: this.originalLng });
-      this.isEditingLng = false;
-    }
+  cancelEdit(type: 'lat' | 'lng' | 'both') {
+    this.schoolForm.patchValue({ latitude: this.originalLat, longitude: this.originalLng });
+    this.isEditingLat = false;
+    this.isEditingLng = false;
   }
 
-  // saveEdit(type: 'lat' | 'lng') {
-  //   if (type === 'lat') {
-  //     this.isEditingLat = false;
-  //   } else {
-  //     this.isEditingLng = false;
-  //   }
-  //   console.log('✅ Saved values:', this.schoolForm.value);
-  // }
-  async saveEdit(type: 'lat' | 'lng') {
-    this.confirmType = type === 'lat' ? 'latitude' : 'longitude';
+  async saveEdit(type: 'lat' | 'lng' | 'both') {
+    this.confirmType = 'location';
     this.isConfirmModalOpen = true;
   }
 
   closeConfirmModal(confirm: boolean) {
     if (confirm) {
-      if (this.confirmType === 'latitude') {
-        this.isEditingLat = false;
-      } else {
-        this.isEditingLng = false;
-      }
+      this.isEditingLat = false;
+      this.isEditingLng = false;
       console.log('✅ Saved values:', this.schoolForm.value);
     } else {
       // Revert if cancelled
-      if (this.confirmType === 'latitude') {
-        this.schoolForm.patchValue({ latitude: this.originalLat });
-        this.isEditingLat = false;
-      } else {
-        this.schoolForm.patchValue({ longitude: this.originalLng });
-        this.isEditingLng = false;
-      }
+      this.schoolForm.patchValue({ latitude: this.originalLat, longitude: this.originalLng });
+      this.isEditingLat = false;
+      this.isEditingLng = false;
     }
 
     this.isConfirmModalOpen = false;

@@ -311,8 +311,183 @@
     --border-width: 0px;
 
 }
-
 .nobtn {
     border: 2px solid #277AFF !important;
+}
 
+// Stepper Header Styles
+.stepper-header {
+  display: flex;
+  align-items: center;
+  padding: 16px 0px;
+  gap: 6px;
+  border-bottom: 1px solid #00000066;
+}
+
+
+.progress-ring-wrapper {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  .progress-ring {
+    position: absolute;
+    transform: rotate(-90deg);
+  }
+
+  .ring-bg {
+    fill: transparent;
+    stroke: #E0E4E5;
+  }
+
+  .ring-progress {
+    fill: transparent;
+    stroke: #34C759;
+    transition: stroke-dashoffset 0.3s ease;
+  }
+
+  .progress-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #1c1c1c;
+    z-index: 1;
+  }
+}
+
+.stepper-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+
+  .step-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #000;
+    line-height: 1.2;
+  }
+
+  .step-subtitle {
+    font-size: 16px;
+    font-weight: 400;
+    color: #5c626d;
+  }
+}
+
+// Wizard Styles
+.step-container {
+  padding: 0 20px 20px;
+
+  .country-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #277AFF;
+    font-weight: 600;
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+
+  .readonly-display {
+    justify-content: space-between;
+    align-items: center;
+
+    span {
+      color: #277AFF;
+      font-weight: 500;
+    }
+
+    ion-icon {
+      font-size: 20px;
+      cursor: pointer;
+    }
+  }
+
+  .map-link {
+    margin: 16px 0 32px;
+    
+    a {
+      color: #277AFF;
+      text-decoration: none;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  .terms-checkbox {
+    margin: 24px 0;
+    display: flex;
+    gap: 12px;
+    
+    ion-checkbox {
+      --size: 20px;
+    }
+
+    ion-label {
+      font-size: 13px;
+      line-height: 1.4;
+      color: #333;
+
+      b {
+        font-weight: 600;
+      }
+    }
+  }
+
+  .nav-btn {
+    --border-radius: 40px;
+    height: 48px;
+    margin-top: 20px;
+    font-weight: 600;
+    text-transform: none;
+  }
+}
+
+// Review Step Styles
+.review-step {
+  .review-card {
+    margin: 0 0 16px;
+    border: 1px solid #E0E4E5;
+    border-radius: 12px;
+    box-shadow: none;
+
+    ion-card-header {
+      padding: 12px 16px;
+      border-bottom: 1px dashed #E0E4E5;
+
+      ion-card-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #1C1C1C;
+      }
+    }
+
+    ion-card-content {
+      padding: 12px 16px;
+    }
+
+    .review-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+
+      span:first-child {
+        color: #5c626d;
+      }
+
+      .value {
+        text-align: right;
+        color: #000;
+
+        &.primary {
+          color: #277AFF;
+        }
+      }
+    }
+  }
 }
