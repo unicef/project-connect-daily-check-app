@@ -105,5 +105,17 @@
   "Wednesday": "Rabu",
   "Weekly": "Mingguan",
   "Would you like to help translate the M-Lab Measure App for other languages? Get involved as a translator or translation reviewer on <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, or <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">contact us for more information!</a>!": "Apakah Anda ingin membantu menerjemahkan M-Lab Measure App ke bahasa lain? Ikut serta sebagai penerjemah atau peninjau terjemahan di <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, atau <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">hubungi kami untuk informasi lebih lanjut</a>.",
-  "Your Location": "Lokasi Anda"
+  "Your Location": "Lokasi Anda",
+  "schoolNotFound": {
+    "unableToLocate": "Sekolah Anda tidak ada di sistem kami<br /><b>{{schoolId}}</b>",
+    "tryAgainPlaceholder": "Pastikan Anda mengetik ID yang benar atau cari dengan ID yang berbeda."
+  },
+  "registerNewSchool": {
+    "schoolNotFound": "Jika Anda tidak menemukan ID, Anda dapat mendaftar sebagai sekolah baru",
+    "signupNewSchool": "Daftar sebagai sekolah baru",
+    "educationLevelRequired": "Tingkat pendidikan wajib diisi.",
+    "contactNameRequired": "Nama kontak wajib diisi.",
+    "contactEmailRequired": "Email kontak wajib diisi.",
+    "contactEmailInvalid": "Masukkan alamat email yang valid."
+  }
 }

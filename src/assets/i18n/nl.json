@@ -105,5 +105,17 @@
   "Wednesday": "Woensdag",
   "Weekly": "Wekelijks",
   "Would you like to help translate the M-Lab Measure App for other languages? Get involved as a translator or translation reviewer on <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, or <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">contact us for more information!</a>!": "Wilt u helpen bij het vertalen van M-Lab Measure App naar andere talen? Werk mee als vertaler of reviewer op <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, of <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">neem voor meer informatie contact met ons op</a>!",
-  "Your Location": "Uw locatie"
+  "Your Location": "Uw locatie",
+  "schoolNotFound": {
+    "unableToLocate": "Uw school staat niet in ons systeem<br /><b>{{schoolId}}</b>",
+    "tryAgainPlaceholder": "Zorg ervoor dat u de juiste ID hebt getypt of zoek met een andere ID."
+  },
+  "registerNewSchool": {
+    "schoolNotFound": "Als u de ID niet kunt vinden, kunt u zich registreren als een nieuwe school",
+    "signupNewSchool": "Aanmelden als een nieuwe school",
+    "educationLevelRequired": "Onderwijsniveau is verplicht.",
+    "contactNameRequired": "Contactnaam is verplicht.",
+    "contactEmailRequired": "Contact-e-mail is verplicht.",
+    "contactEmailInvalid": "Voer een geldig e-mailadres in."
+  }
 }

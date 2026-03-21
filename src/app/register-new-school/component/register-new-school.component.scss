@@ -23,14 +23,32 @@
 }
 
 .custom-gray-item {
-    --background: #E5E5E5; // Light gray
+    --background: #EAEAEA; // Light gray
+    background: var(--background);
     display: flex;
-    height: 40px;
-    padding: 15px 16px;
-    align-items: flex-start;
+    min-height: 52px;
+    
+    // Set padding using Ionic custom CSS properties to properly pad the shadow DOM
+    --padding-start: 16px;
+    --padding-end: 16px;
+    --padding-top: 14px;
+    --padding-bottom: 14px;
+    
+    // For non-Ionic elements (like div) using this class
+    padding: 0 16px;
+    
+    align-items: center;
     gap: 16px;
     align-self: stretch;
+    border: none;
     border-bottom: 1px solid #6F6F6F;
+    box-sizing: border-box;
+}
+
+// Reset explicit host padding on Ionic elements so it doesn't break inner constraints
+ion-input.custom-gray-item,
+ion-select.custom-gray-item {
+    padding: 0;
 }
 
 .latlng-box {
@@ -320,8 +338,12 @@
   display: flex;
   align-items: center;
   padding: 16px 0px;
-  gap: 6px;
+  gap: 16px;
   border-bottom: 1px solid #00000066;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  background: var(--ion-background-color, #fff);
+  z-index: 10;
 }
 
 
@@ -378,7 +400,7 @@
 
 // Wizard Styles
 .step-container {
-  padding: 0 20px 20px;
+  padding: 0px;
 
   .country-badge {
     display: flex;
@@ -450,7 +472,7 @@
 // Review Step Styles
 .review-step {
   .review-card {
-    margin: 0 0 16px;
+    margin: 16px 0;
     border: 1px solid #E0E4E5;
     border-radius: 12px;
     box-shadow: none;
@@ -489,5 +511,35 @@
         }
       }
     }
+  }
+}
+
+.page-layout-wrapper {
+  display: flex;
+  flex-direction: column;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  overflow: hidden;
+}
+
+.form-scrollable-area {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 20px;
+  padding-top: 10px;
+}
+
+.step-container.sticky-footer {
+  flex-shrink: 0;
+  background: var(--ion-background-color, #fff);
+  z-index: 10;
+  border-top: 1px solid #eaeaea;
+  padding: 10px 16px 20px 16px;
+
+  .nav-btn {
+    margin-top: 0;
   }
 }

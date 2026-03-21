@@ -105,5 +105,17 @@
   "Wednesday": "बुधवार",
   "Weekly": "साप्ताहिक",
   "Would you like to help translate the M-Lab Measure App for other languages? Get involved as a translator or translation reviewer on <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, or <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">contact us for more information!</a>!": "क्या आप अन्य भाषाओं के लिए एम-लैब मेज़र ऐप का अनुवाद करने में सहायता करना चाहेंगे? <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\"> Transifex </a>, या <a href = \"http पर एक अनुवादक या अनुवाद समीक्षक के रूप में शामिल हों : //www.measurementlab.net/contact \"target =\" _ system \"> अधिक जानकारी के लिए हमसे संपर्क करें! </a>!",
-  "Your Location": "आपकी स्थिति"
+  "Your Location": "आपकी स्थिति",
+  "schoolNotFound": {
+    "unableToLocate": "आपका स्कूल हमारे सिस्टम में नहीं है<br /><b>{{schoolId}}</b>",
+    "tryAgainPlaceholder": "कृपया सुनिश्चित करें कि आपने सही ID टाइप किया है या एक अलग ID के साथ खोजें।"
+  },
+  "registerNewSchool": {
+    "schoolNotFound": "यदि आपको ID नहीं मिलती है, तो आप एक नए स्कूल के रूप में पंजीकरण कर सकते हैं",
+    "signupNewSchool": "नए स्कूल के रूप में साइन अप करें",
+    "educationLevelRequired": "शिक्षा का स्तर आवश्यक है।",
+    "contactNameRequired": "संपर्क नाम आवश्यक है।",
+    "contactEmailRequired": "संपर्क ईमेल आवश्यक है।",
+    "contactEmailInvalid": "कृपया एक मान्य ईमेल पता दर्ज करें।"
+  }
 }

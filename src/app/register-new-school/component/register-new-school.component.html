@@ -1,378 +1,312 @@
 <app-pcdc-header></app-pcdc-header>
 
-<ion-content class="font_open_sans">
+<ion-content class="font_open_sans" [scrollY]="false">
+  <div class="page-layout-wrapper">
   <!-- Back Button -->
-  <ion-button
-    class="button_disable_hover"
-    fill="clear"
-    (click)="backToSaved(school)"
-  >
-    <ion-img
-      src="assets/images/back_button.svg"
-      name="arrow-back-outline"
-      class="backIcon"
-    ></ion-img>
-  </ion-button>
+    <div class="stepper-header">
+      <ion-button
+        class="button_disable_hover"
+        fill="clear"
+        (click)="backToSaved(school)"
+      >
+        <ion-img
+          src="assets/images/back_button.svg"
+          name="arrow-back-outline"
+          class="backIcon"
+        ></ion-img>
+      </ion-button>
+      <div class="stepper-info">
+        <div class="step-title">{{ 'registerNewSchool.step' + currentStep + 'Title' | translate }}</div>
+        <div class="step-subtitle">{{ 'registerNewSchool.step' + currentStep + 'Subtitle' | translate }}</div>
+      </div>
+    </div>
 
-  <!-- Stepper Header -->
-  <div class="stepper-header">
-    <div class="progress-ring-wrapper">
-      <svg class="progress-ring" width="56" height="56">
-        <circle
-          class="ring-bg"
-          cx="28"
-          cy="28"
-          [attr.r]="radius"
-          stroke-width="5"
-        ></circle>
-        <circle
-          class="ring-progress"
-          cx="28"
-          cy="28"
-          [attr.r]="radius"
-          stroke-width="5"
-          [attr.stroke-dasharray]="circumference"
-          [attr.stroke-dashoffset]="dashoffset"
-        ></circle>
-      </svg>
-      <span class="progress-text">{{ currentStep }}/{{ totalSteps }}</span>
-    </div>
-    <div class="stepper-info">
-      <div class="step-title">{{ stepTitle }}</div>
-      <div class="step-subtitle">{{ stepSubtitle }}</div>
-    </div>
-  </div>
-  <hr />
-  <div class="country-badge">
-    <ion-icon name="location-sharp" color="primary"></ion-icon>
-    <span>Country - Spain</span>
-  </div>
   <!-- Form -->
   <!-- Step 1: School Details -->
-  <form [formGroup]="schoolForm" (ngSubmit)="onRegister()">
-    <div *ngIf="currentStep === 1" class="step-container">
-      <!-- School ID -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Enter your official school id <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input
-        class="custom-gray-item"
-        formControlName="schoolId"
-        placeholder="e.g. BA2323421233"
-      ></ion-input>
-      <div
-        class="error-msg"
-        *ngIf="
-          schoolForm.get('schoolId')?.touched &&
-          schoolForm.get('schoolId')?.invalid
-        "
-      >
-        <span *ngIf="schoolForm.get('schoolId')?.errors?.['required']"
-          >School ID is required.</span
-        >
-      </div>
-
-      <!-- School Name -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Enter school name <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input
-        class="custom-gray-item"
-        formControlName="schoolName"
-        placeholder="Enter name"
-      ></ion-input>
-      <div
-        class="error-msg"
-        *ngIf="
-          schoolForm.get('schoolName')?.touched &&
-          schoolForm.get('schoolName')?.invalid
-        "
-      >
-        <span *ngIf="schoolForm.get('schoolName')?.errors?.['required']"
-          >School name is required.</span
-        >
-      </div>
-
-      <!-- School Education Level -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          School education level <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-select class="custom-gray-item" formControlName="educationLevel" (ionChange)="onEducationChange($event)" placeholder="Select education level">
-        <ion-select-option value="primary">Primary</ion-select-option>
-        <ion-select-option value="secondary">Secondary</ion-select-option>
-        <ion-select-option value="high_school">High School</ion-select-option>
-        <ion-select-option value="others">Others</ion-select-option>
-      </ion-select>
-      <ng-container *ngIf="showOtherInput">
+  <div class="form-scrollable-area">
+    <div class="country-badge">
+      <ion-icon name="location-sharp" color="primary"></ion-icon>
+      <span>{{ 'registerNewSchool.country' | translate }} - {{ selectedCountryName }}</span>
+    </div>
+    <form [formGroup]="schoolForm" (ngSubmit)="onRegister()">
+      <div *ngIf="currentStep === 1" class="step-container">
+        <!-- School ID -->
+        <ion-item lines="none" class="label_top">
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.officialSchoolId' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
+        </ion-item>
         <ion-input
           class="custom-gray-item"
-          style="margin-top: 10px;"
-          formControlName="otherEducationLevel"
-          placeholder="Specify other education level"
+          formControlName="schoolId"
+          [placeholder]="'registerNewSchool.schoolIdPlaceholder' | translate"
         ></ion-input>
-      </ng-container>
-
-      <!-- Contact name -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Contact name <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input
-        class="custom-gray-item"
-        formControlName="contactName"
-        placeholder="Enter a valid contact name."
-      ></ion-input>
-
-      <!-- Contact email -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Contact email <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input
-        class="custom-gray-item"
-        formControlName="officialEmail"
-        placeholder="Enter a valid contact email."
-      ></ion-input>
-
-      <ion-button
-        color="primary"
-        expand="block"
-        (click)="nextStep()"
-        class="nav-btn"
-        >Next</ion-button
-      >
-    </div>
-
-    <!-- Step 2: Location Details -->
-    <div *ngIf="currentStep === 2" class="step-container">
-      <!-- Latitude/Longitude -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Latitude, Longitude <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <div class="custom-gray-item readonly-display" *ngIf="!isEditingLat">
-        <span
-          >{{ schoolForm.get("latitude")?.value || 'N/A' }},
-          {{ schoolForm.get("longitude")?.value || 'N/A' }}</span
+        <div
+          class="error-msg"
+          *ngIf="
+            schoolForm.get('schoolId')?.touched &&
+            schoolForm.get('schoolId')?.invalid
+          "
         >
-        <ion-icon
-          name="pencil-outline"
-          color="primary"
-          slot="end"
-          (click)="enableEdit('both')"
-        ></ion-icon>
-      </div>
+          <span *ngIf="schoolForm.get('schoolId')?.errors?.['required']"
+            >{{ 'registerNewSchool.schoolIdRequired' | translate }}</span
+          >
+        </div>
 
-      <div *ngIf="isEditingLat" class="edit-lat-lng-container" style="margin-top: 10px;">
+        <!-- School Name -->
         <ion-item lines="none" class="label_top">
-          <ion-label class="font_size">Latitude</ion-label>
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.schoolName' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
         </ion-item>
-        <ion-input formControlName="latitude" class="custom-gray-item" placeholder="Enter Latitude"></ion-input>
+        <ion-input
+          class="custom-gray-item"
+          formControlName="schoolName"
+          [placeholder]="'registerNewSchool.schoolNamePlaceholder' | translate"
+        ></ion-input>
+        <div
+          class="error-msg"
+          *ngIf="
+            schoolForm.get('schoolName')?.touched &&
+            schoolForm.get('schoolName')?.invalid
+          "
+        >
+          <span *ngIf="schoolForm.get('schoolName')?.errors?.['required']"
+            >{{ 'registerNewSchool.schoolNameRequired' | translate }}</span
+          >
+        </div>
 
-        <ion-item lines="none" class="label_top" style="margin-top: 10px">
-          <ion-label class="font_size">Longitude</ion-label>
+        <!-- School Education Level -->
+        <ion-item lines="none" class="label_top">
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.educationLevel' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
         </ion-item>
-        <ion-input formControlName="longitude" class="custom-gray-item" placeholder="Enter Longitude"></ion-input>
+        <ion-input
+          class="custom-gray-item"
+          formControlName="educationLevel"
+          [placeholder]="'registerNewSchool.educationLevelPlaceholder' | translate"
+        ></ion-input>
+        <div
+          class="error-msg"
+          *ngIf="
+            schoolForm.get('educationLevel')?.touched &&
+            schoolForm.get('educationLevel')?.invalid
+          "
+        >
+          <span *ngIf="schoolForm.get('educationLevel')?.errors?.['required']"
+            >{{ 'registerNewSchool.educationLevelRequired' | translate }}</span
+          >
+        </div>
 
-        <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <ion-button (click)="cancelEdit('both')" fill="outline" color="medium" style="flex:1;">Cancel</ion-button>
-          <ion-button (click)="saveEdit('both')" style="flex:1;">Save</ion-button>
+        <!-- Contact name -->
+        <ion-item lines="none" class="label_top">
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.contactName' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
+        </ion-item>
+        <ion-input
+          class="custom-gray-item"
+          formControlName="contactName"
+          [placeholder]="'registerNewSchool.contactNamePlaceholder' | translate"
+        ></ion-input>
+        <div
+          class="error-msg"
+          *ngIf="
+            schoolForm.get('contactName')?.touched &&
+            schoolForm.get('contactName')?.invalid
+          "
+        >
+          <span *ngIf="schoolForm.get('contactName')?.errors?.['required']"
+            >{{ 'registerNewSchool.contactNameRequired' | translate }}</span
+          >
+        </div>
+
+        <!-- Contact email -->
+        <ion-item lines="none" class="label_top">
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.contactEmail' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
+        </ion-item>
+        <ion-input
+          class="custom-gray-item"
+          formControlName="officialEmail"
+          [placeholder]="'registerNewSchool.contactEmailPlaceholder' | translate"
+        ></ion-input>
+        <div
+          class="error-msg"
+          *ngIf="
+            schoolForm.get('officialEmail')?.touched &&
+            schoolForm.get('officialEmail')?.invalid
+          "
+        >
+          <span *ngIf="schoolForm.get('officialEmail')?.errors?.['required']"
+            >{{ 'registerNewSchool.contactEmailRequired' | translate }}</span
+          >
+          <span *ngIf="schoolForm.get('officialEmail')?.errors?.['pattern']"
+            >{{ 'registerNewSchool.contactEmailInvalid' | translate }}</span
+          >
         </div>
       </div>
-      
-      <div class="map-link" style="margin-bottom: 20px;">
-        <a href="javascript:void(0)"
-          >Verify school location on map
-          <ion-icon name="open-outline"></ion-icon
-        ></a>
+
+      <!-- Step 2: Location Details -->
+      <div *ngIf="currentStep === 2" class="step-container">
+        <!-- Latitude/Longitude -->
+        <ion-item lines="none" class="label_top">
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.latLong' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
+        </ion-item>
+        <div class="custom-gray-item readonly-display">
+          <span
+            >{{ schoolForm.get("latitude")?.value || ('registerNewSchool.na' | translate) }},
+            {{ schoolForm.get("longitude")?.value || ('registerNewSchool.na' | translate) }}</span
+          >
+        </div>
+
+        <!-- Address Line 1 -->
+        <ion-item lines="none" class="label_top">
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.address' | translate }} <span class="required">*</span>
+            <ion-icon name="information-circle-outline"></ion-icon>
+          </ion-label>
+        </ion-item>
+        <ion-input
+          #schoolAddressInput
+          class="custom-gray-item"
+          formControlName="schoolAddress"
+          [placeholder]="'registerNewSchool.addressPlaceholder' | translate"
+          disabled="true"
+        ></ion-input>
+
+       
       </div>
 
-      <!-- Address Line 1 -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Address (Line 1) <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input
-        #schoolAddressInput
-        class="custom-gray-item"
-        formControlName="schoolAddress"
-        placeholder="123, South Paula, Brazil"
-      ></ion-input>
+      <!-- Step 3: Review Info -->
+      <div *ngIf="currentStep === 3" class="step-container review-step">
+        <!-- School Details Summary -->
+        <ion-card class="review-card">
+          <ion-card-header>
+            <ion-card-title>{{ 'registerNewSchool.schoolDetails' | translate }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.country' | translate }}</span><span class="value primary">{{ 'registerNewSchool.spain' | translate }}</span>
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.schoolId' | translate }}</span
+              ><span class="value primary">{{
+                schoolForm.get("schoolId")?.value
+              }}</span>
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.schoolName' | translate }}</span
+              ><span class="value"
+                ><b>{{ schoolForm.get("schoolName")?.value }}</b></span
+              >
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.latLong' | translate }}</span
+              ><span class="value primary"
+                >{{ schoolForm.get("latitude")?.value }},{{
+                  schoolForm.get("longitude")?.value
+                }}</span>
+            </div>
+          </ion-card-content>
+        </ion-card>
 
-      <!-- Address Line 2 -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Address (Line 2)
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input
-        class="custom-gray-item"
-        placeholder="South Paula, Brazil"
-      ></ion-input>
+        <!-- Address Details Summary -->
+        <ion-card class="review-card">
+          <ion-card-header>
+            <ion-card-title>{{ 'registerNewSchool.addressDetails' | translate }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.latLong' | translate }}</span
+              ><span class="value primary"
+                >{{ schoolForm.get("latitude")?.value }},{{
+                  schoolForm.get("longitude")?.value
+                }}</span>
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.address1' | translate }}</span
+              ><span class="value"
+                ><b>{{ schoolForm.get("schoolAddress")?.value }}</b></span
+              >
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.address2' | translate }}</span
+              ><span class="value"
+                ><b>{{ schoolForm.get("schoolAddress")?.value }}</b></span
+              >
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.cityTown' | translate }}</span><span class="value">Value</span>
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.stateProvince' | translate }}</span><span class="value">Value</span>
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.postalCode' | translate }}</span><span class="value"><b>323233</b></span>
+            </div>
+          </ion-card-content>
+        </ion-card>
 
-      <!-- City/Town -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          City/Town <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-select class="custom-gray-item" placeholder="Sau Paula">
-        <ion-select-option value="sp">Sau Paula</ion-select-option>
-      </ion-select>
+        <!-- Contact Details Summary -->
+        <ion-card class="review-card">
+          <ion-card-header>
+            <ion-card-title>{{ 'registerNewSchool.contactDetails' | translate }}</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.contactName' | translate }}</span
+              ><span class="value"
+                ><b>{{
+                  schoolForm.get("contactName")?.value || ('registerNewSchool.na' | translate)
+                }}</b></span
+              >
+            </div>
+            <div class="review-row">
+              <span>{{ 'registerNewSchool.contactEmail' | translate }}</span
+              ><span class="value"
+                ><b>{{ schoolForm.get("officialEmail")?.value }}</b></span
+              >
+            </div>
+          </ion-card-content>
+        </ion-card>
 
-      <!-- State/Province -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          State/Province <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-select class="custom-gray-item" placeholder="Sau Paula">
-        <ion-select-option value="sp">Sau Paula</ion-select-option>
-      </ion-select>
+        <div class="terms-checkbox" style="margin: 20px 0">
+          <ion-checkbox
+            mode="md"
+            formControlName="agreedToTerms"
+          ></ion-checkbox>
+          <ion-label class="font_size">
+            {{ 'registerNewSchool.agreeTerms' | translate }}
+            <b>{{ 'registerNewSchool.odbl' | translate }}</b>, the
+            <b>{{ 'registerNewSchool.mlabPrivacy' | translate }}</b> and <b>{{ 'registerNewSchool.unicefPrivacy' | translate }}</b>.
+          </ion-label>
+        </div>
+      </div>
+    </form>
+  </div>
 
-      <!-- Postal Code -->
-      <ion-item lines="none" class="label_top">
-        <ion-label class="font_size">
-          Postal code <span class="required">*</span>
-          <ion-icon name="information-circle-outline"></ion-icon>
-        </ion-label>
-      </ion-item>
-      <ion-input class="custom-gray-item" placeholder="123232"></ion-input>
-
-      <ion-button
+  <div class="step-container sticky-footer">
+     <ion-button
         color="primary"
         expand="block"
         (click)="nextStep()"
         class="nav-btn"
-        >Next</ion-button
-      >
-    </div>
+        >{{ 'registerNewSchool.next' | translate }}</ion-button
+      >  
+  </div>
 
-    <!-- Step 3: Review Info -->
-    <div *ngIf="currentStep === 3" class="step-container review-step">
-      <!-- School Details Summary -->
-      <ion-card class="review-card">
-        <ion-card-header>
-          <ion-card-title>School details</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="review-row">
-            <span>Country</span><span class="value primary">Spain</span>
-          </div>
-          <div class="review-row">
-            <span>School ID</span
-            ><span class="value primary">{{
-              schoolForm.get("schoolId")?.value
-            }}</span>
-          </div>
-          <div class="review-row">
-            <span>School Name</span
-            ><span class="value"
-              ><b>{{ schoolForm.get("schoolName")?.value }}</b></span
-            >
-          </div>
-          <div class="review-row">
-            <span>Latitude, Longitude</span
-            ><span class="value primary"
-              >{{ schoolForm.get("latitude")?.value }},{{
-                schoolForm.get("longitude")?.value
-              }}</span
-            >
-          </div>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Address Details Summary -->
-      <ion-card class="review-card">
-        <ion-card-header>
-          <ion-card-title>Address details</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="review-row">
-            <span>Latitude, Longitude</span
-            ><span class="value primary"
-              >{{ schoolForm.get("latitude")?.value }},{{
-                schoolForm.get("longitude")?.value
-              }}</span
-            >
-          </div>
-          <div class="review-row">
-            <span>Address (Line 1)</span
-            ><span class="value"
-              ><b>{{ schoolForm.get("schoolAddress")?.value }}</b></span
-            >
-          </div>
-          <div class="review-row">
-            <span>Address (Line 2)</span
-            ><span class="value"
-              ><b>{{ schoolForm.get("schoolAddress")?.value }}</b></span
-            >
-          </div>
-          <div class="review-row">
-            <span>City/Town</span><span class="value">Value</span>
-          </div>
-          <div class="review-row">
-            <span>State/Province</span><span class="value">Value</span>
-          </div>
-          <div class="review-row">
-            <span>Postal Code</span><span class="value"><b>323233</b></span>
-          </div>
-        </ion-card-content>
-      </ion-card>
-
-      <!-- Contact Details Summary -->
-      <ion-card class="review-card">
-        <ion-card-header>
-          <ion-card-title>Contact details</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div class="review-row">
-            <span>Contact Name</span
-            ><span class="value"><b>{{ schoolForm.get('contactName')?.value || 'N/A' }}</b></span>
-          </div>
-          <div class="review-row">
-            <span>Contact Email</span
-            ><span class="value"
-              ><b>{{ schoolForm.get("officialEmail")?.value }}</b></span
-            >
-          </div>
-        </ion-card-content>
-      </ion-card>
-
-      <div class="terms-checkbox" style="margin: 20px 0;">
-        <ion-checkbox mode="md" formControlName="agreedToTerms"></ion-checkbox>
-        <ion-label class="font_size">
-          I agree to the use of data by Giga under the
-          <b>Open Database License (ODBL)</b>, the
-          <b>M-Lab Privacy Policy</b> and <b>UNICEF's Privacy Policy</b>.
-        </ion-label>
-      </div>
-
-      <ion-button color="primary" expand="block" type="submit" class="nav-btn" [disabled]="schoolForm.invalid"
-        >Register</ion-button
-      >
-    </div>
-  </form>
+  </div>
   <!-- Confirmation Modal -->
   <ion-modal
     [isOpen]="isConfirmModalOpen"
@@ -383,7 +317,7 @@
       <ion-content class="ion-padding modal-content">
         <div class="confirm-container">
           <p class="confirm-message">
-            Are you sure you want to update new {{ confirmType }} coordinates?
+            {{ 'registerNewSchool.confirmMessage' | translate: { type: confirmType } }}
           </p>
           <div class="button-group">
             <ion-button
@@ -394,10 +328,10 @@
               color="medium"
               (click)="closeConfirmModal(false)"
             >
-              No
+              {{ 'registerNewSchool.no' | translate }}
             </ion-button>
             <ion-button block class="yesbtn" (click)="closeConfirmModal(true)">
-              Yes
+              {{ 'registerNewSchool.yes' | translate }}
             </ion-button>
           </div>
         </div>
