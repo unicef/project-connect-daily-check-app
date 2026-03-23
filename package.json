@@ -51,7 +51,7 @@
     "idb": "^8.0.2",
     "ngx-pipes": "^3.2.2",
     "rxjs": "~7.8.0",
-    "systeminformation": "^5.23.5",
+    "systeminformation": "^5.27.8",
     "tslib": "^2.2.0",
     "update-electron-app": "^2.0.1",
     "uuid": "^8.3.2",

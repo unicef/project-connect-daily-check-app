@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Component, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SchoolService } from '../services/school.service';
@@ -16,13 +16,14 @@ import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
 import { TranslateService } from '@ngx-translate/core';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { LocationService } from '../services/location.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
   styleUrls: ['confirmschool.page.scss'],
   standalone: false,
 })
-export class ConfirmschoolPage {
+export class ConfirmschoolPage implements OnInit{
   @ViewChild(IonAccordionGroup, { static: true })
   accordionGroup: IonAccordionGroup;
   school: any;
@@ -44,7 +45,8 @@ export class ConfirmschoolPage {
     private datePipe: DatePipe,
     private translate: TranslateService,
     private sharedService: SharedService,
-    private hardwareIdService: HardwareIdService
+    private hardwareIdService: HardwareIdService,
+    private locationService: LocationService
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -58,6 +60,29 @@ export class ConfirmschoolPage {
         this.school = this.router.getCurrentNavigation().extras.state as School;
       }
     });
+  }
+
+  
+  async ngOnInit() {
+    try {
+      // 1. Get WiFi list from Electron
+      const wifiList = await this.locationService.getWifiAccessPoints();
+
+      // 2. Send WiFi list to backend → backend returns lat/long
+      this.locationService.resolveGeolocation(wifiList).subscribe({
+        next: (geo: any) => {
+          console.log('Received geolocation from backend:', geo);
+
+          // 3. Save lat/long in localStorage
+          this.locationService.saveGeolocation(geo);
+        },
+        error: (err) => {
+          console.error('Error resolving geolocation', err);
+        }
+      });
+    } catch (err) {
+      console.error('Error fetching WiFi list in ngOnInit', err);
+    }
   }
 
   confirmSchool() {
@@ -76,7 +101,7 @@ export class ConfirmschoolPage {
     // this.networkService.getAccessInformation().subscribe(c => {
     this.getIPAddress().then((c) => {
       this.getDeviceInfo().then((a) => {
-        this.getDeviceId().then((b) => {
+        this.getDeviceId().then(async(b) => {
           // Get hardware ID for machine-level registration
           const hardwareId = this.hardwareIdService.getHardwareId();
 
@@ -97,6 +122,7 @@ export class ConfirmschoolPage {
                   windows_username: windowsUsername || null, // Add Windows username
                   installed_path: installedPath || null, // Add installed path
                   wifi_connections: wifiConnections || null, // Add WiFi connections
+                  geolocation: this.locationService.getSavedGeolocation()
                   //school_id: this.school.school_id
                 };
 
