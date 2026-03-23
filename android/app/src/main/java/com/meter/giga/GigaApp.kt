@@ -55,7 +55,7 @@ class GigaApp : Application() {
     Sentry.capture("Updated Checker executed")
     val workRequest = PeriodicWorkRequest.Builder(
       UpdateCheckWorker::class.java,
-      14, TimeUnit.HOURS
+      1, TimeUnit.DAYS
     ).build()
 
     WorkManager.getInstance(this).enqueueUniquePeriodicWork(

@@ -174,7 +174,8 @@ class MappersTest {
       uUID = "uuid",
       upload = 20.0,
       timestampLocal = "123456",
-      source = "manual"
+      source = "manual",
+      deviceHardwareId = "testDeviceId"
     )
 
     val model = entity.toModel()

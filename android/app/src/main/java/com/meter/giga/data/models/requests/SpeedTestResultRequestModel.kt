@@ -10,7 +10,7 @@ data class SpeedTestResultRequestModel(
   @SerializedName("BrowserID")
   val browserID: String?,
   @SerializedName("device_hardware_id")
-  val deviceHardwareId: String,
+  val deviceHardwareId: String?,
   @SerializedName("ClientInfo")
   val clientInfo: ClientInfoRequestModel?,
   @SerializedName("country_code")

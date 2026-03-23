@@ -156,7 +156,7 @@ object GigaUtil {
     ipAddress: String,
     lastDownloadResponse: ClientResponse?,
     lastUploadResponse: ClientResponse?,
-    deviceHardwareId: String,
+    deviceHardwareId: String?,
   ): SpeedTestResultRequestEntity? {
     try {
       val currentTime = getCurrentFormattedTime()

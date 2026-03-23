@@ -593,7 +593,8 @@ class GigaUtilTest {
       results = results,
       c2sRate = c2sRate,
       s2cRate = s2cRate,
-      historyDataIndex = 5
+      historyDataIndex = 5,
+      currentLocation = null
     )
 
     // Access Information
@@ -800,7 +801,9 @@ class GigaUtilTest {
       results = results,
       c2sRate = c2sRate,
       s2cRate = s2cRate,
-      historyDataIndex = 5
+      historyDataIndex = 5,
+      currentLocation = null
+
     )
 
     // Access Information
@@ -1014,7 +1017,8 @@ class GigaUtilTest {
       countryCode = "IN",
       ipAddress = "1.1.1.1",
       lastDownloadResponse = downloadResponse,
-      lastUploadResponse = uploadResponse
+      lastUploadResponse = uploadResponse,
+      deviceHardwareId = "testDeviceID"
     )!!
 
     // Mbps = (bytes / seconds) * 0.008 * 1000
@@ -1048,7 +1052,8 @@ class GigaUtilTest {
       countryCode = "IN",
       ipAddress = "",
       lastDownloadResponse = null,
-      lastUploadResponse = null
+      lastUploadResponse = null,
+      deviceHardwareId = "testDeviceID"
     )!!
 
     assertEquals("50", payload.latency) // 50 ms
@@ -1076,7 +1081,8 @@ class GigaUtilTest {
       countryCode = "IN",
       ipAddress = "",
       lastDownloadResponse = null,
-      lastUploadResponse = uploadResponse
+      lastUploadResponse = uploadResponse,
+      deviceHardwareId = "testDeviceID"
     )!!
 
     assertEquals(0.0, payload.upload!!, 0.1)
@@ -1112,7 +1118,9 @@ class GigaUtilTest {
       countryCode = "IN",
       ipAddress = "",
       lastDownloadResponse = null,
-      lastUploadResponse = null
+      lastUploadResponse = null,
+      deviceHardwareId = "testDeviceID"
+
     )!!
 
     assertEquals("9.9.9.9", payload.ipAddress)
@@ -1141,7 +1149,8 @@ class GigaUtilTest {
       countryCode = "IN",
       ipAddress = "",
       lastDownloadResponse = null,
-      lastUploadResponse = null
+      lastUploadResponse = null,
+      deviceHardwareId = "testDeviceID"
     )!!
 
     assertEquals("UUID-ABC", payload.uUID)

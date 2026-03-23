@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
-apply plugin: 'io.sentry.android.gradle'
+//apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 android {
   namespace "com.meter.giga"
@@ -11,8 +11,6 @@ android {
     applicationId "com.meter.giga"
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
-//    versionCode 25
-//    versionName "1.1.25"
     versionCode project.VERSION_CODE.toInteger()
     versionName project.VERSION_NAME
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -65,10 +63,15 @@ android {
   }
 }
 
-sentry {
-  uploadNativeSymbols.set(true)
-  autoUploadProguardMapping.set(true)
-}
+//sentry {
+//  org = "your-organization-slug"
+//  project = "your-project-slug"
+//
+//  // It is safer to read the token from an environment variable or local.properties
+//  authToken = System.getenv("SENTRY_AUTH_TOKEN")
+//  uploadNativeSymbols.set(true)
+//  autoUploadProguardMapping.set(true)
+//}
 
 repositories {
   flatDir {

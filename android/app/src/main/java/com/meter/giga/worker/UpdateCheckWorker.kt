@@ -21,6 +21,7 @@ import com.meter.giga.R
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.APP_UPDATE_CHANNEL_ID
+import com.meter.giga.utils.Constants.APP_UPGRADE_NOTIFICATION_ID
 import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
 import com.meter.giga.utils.Constants.WORKER_TAG
 import com.meter.giga.utils.Logger
@@ -44,15 +45,14 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
     appUpdateInfo.addOnSuccessListener { info ->
       if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
         logger.d("Daily Schedule Interval", "Worker executed")
-        showUpdateNotification("New App Update Available", "Tap to open app")
+        showUpdateNotification()
       } else {
-        logger.d("Daily Schedule Interval", "Worker executed Inside")
-        showUpdateNotification("No New App Available", "")
+        logger.d("Daily Schedule Interval", "Worker executed Inside, No new update")
       }
     }
   }
 
-  private fun showUpdateNotification(message: String, title: String) {
+  private fun showUpdateNotification() {
     createNotificationChannel()
 
     val intent = Intent(applicationContext, MainActivity::class.java).apply {
@@ -66,8 +66,8 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
     )
 
     val builder = NotificationCompat.Builder(applicationContext, APP_UPDATE_CHANNEL_ID)
-      .setContentTitle(message)
-      .setContentText(title)
+      .setContentTitle("New App Update Available")
+      .setContentText("Tap to open app")
       .setSmallIcon(R.mipmap.ic_launcher_round)
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setContentIntent(pendingIntent)
@@ -81,7 +81,7 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
       logger.d("GIGA METER", "POST_NOTIFICATION PERMISSIONS ARE MISSING")
       return
     }
-    notificationManager.notify(1001, builder.build())   // 👈 REQUIRED
+    notificationManager.notify(APP_UPGRADE_NOTIFICATION_ID, builder.build())
   }
 
   private fun createNotificationChannel() {
