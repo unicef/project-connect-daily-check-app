@@ -157,6 +157,7 @@ object GigaUtil {
     lastDownloadResponse: ClientResponse?,
     lastUploadResponse: ClientResponse?,
     deviceHardwareId: String?,
+    geo: Geo?
   ): SpeedTestResultRequestEntity? {
     try {
       val currentTime = getCurrentFormattedTime()
@@ -215,6 +216,7 @@ object GigaUtil {
         timestamp = convertToIso(currentTime),
         uUID = uploadMeasurement?.connectionInfo?.uuid,
         source = "DailyCheckApp",
+        geo = geo
 //      createdAt = null,
 //      dataDownloaded = null,
 //      dataUploaded = null,

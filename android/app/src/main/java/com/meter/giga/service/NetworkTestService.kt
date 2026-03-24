@@ -18,6 +18,7 @@ import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.meter.giga.MainActivity
 import com.meter.giga.R
+import com.meter.giga.domain.entity.history.Geo
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
 import com.meter.giga.domain.entity.request.ServerInfoRequestEntity
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
@@ -584,7 +585,13 @@ class NetworkTestService : LifecycleService() {
           ipAddress,
           lastDownloadResponse,
           lastUploadResponse,
-          deviceHardwareId
+          deviceHardwareId,
+          geo = if (currentLocation !== null) {
+            Geo(
+              latitude = currentLocation!!.latitude,
+              longitude = currentLocation!!.longitude
+            )
+          } else null
         )
         val existingSpeedTestData = prefs.oldSpeedTestData
         val historyDataIndex = prefs.historyDataIndex

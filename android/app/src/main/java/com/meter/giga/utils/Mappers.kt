@@ -103,7 +103,8 @@ fun SpeedTestResultRequestEntity.toModel(): SpeedTestResultRequestModel {
     upload = upload,
     timestampLocal = timestampLocal,
     source = source,
-    deviceHardwareId = deviceHardwareId
+    deviceHardwareId = deviceHardwareId,
+    geo = geo
 //    id = id,
 //    createdAt = createdAt,
 //    dataDownloaded = dataDownloaded,

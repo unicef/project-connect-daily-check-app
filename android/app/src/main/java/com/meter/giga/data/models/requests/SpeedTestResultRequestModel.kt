@@ -1,6 +1,7 @@
 package com.meter.giga.data.models.requests
 
 import com.google.gson.annotations.SerializedName
+import com.meter.giga.domain.entity.history.Geo
 
 data class SpeedTestResultRequestModel(
   @SerializedName("annotation")
@@ -43,7 +44,8 @@ data class SpeedTestResultRequestModel(
   val upload: Double?,
   @SerializedName("source")
   val source: String?,
-
+  @SerializedName("geolocation")
+  val geo: Geo?,
 //  @SerializedName("created_at")
 //  val createdAt: String?,
 //  @SerializedName("DataDownloaded")
