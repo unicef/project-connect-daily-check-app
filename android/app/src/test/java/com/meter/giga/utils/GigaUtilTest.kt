@@ -1018,7 +1018,8 @@ class GigaUtilTest {
       ipAddress = "1.1.1.1",
       lastDownloadResponse = downloadResponse,
       lastUploadResponse = uploadResponse,
-      deviceHardwareId = "testDeviceID"
+      deviceHardwareId = "testDeviceID",
+      geo = null
     )!!
 
     // Mbps = (bytes / seconds) * 0.008 * 1000
@@ -1053,7 +1054,8 @@ class GigaUtilTest {
       ipAddress = "",
       lastDownloadResponse = null,
       lastUploadResponse = null,
-      deviceHardwareId = "testDeviceID"
+      deviceHardwareId = "testDeviceID",
+      geo = null
     )!!
 
     assertEquals("50", payload.latency) // 50 ms
@@ -1082,7 +1084,8 @@ class GigaUtilTest {
       ipAddress = "",
       lastDownloadResponse = null,
       lastUploadResponse = uploadResponse,
-      deviceHardwareId = "testDeviceID"
+      deviceHardwareId = "testDeviceID",
+      geo = null
     )!!
 
     assertEquals(0.0, payload.upload!!, 0.1)
@@ -1119,7 +1122,8 @@ class GigaUtilTest {
       ipAddress = "",
       lastDownloadResponse = null,
       lastUploadResponse = null,
-      deviceHardwareId = "testDeviceID"
+      deviceHardwareId = "testDeviceID",
+      geo = null
 
     )!!
 
@@ -1150,7 +1154,8 @@ class GigaUtilTest {
       ipAddress = "",
       lastDownloadResponse = null,
       lastUploadResponse = null,
-      deviceHardwareId = "testDeviceID"
+      deviceHardwareId = "testDeviceID",
+      geo = null
     )!!
 
     assertEquals("UUID-ABC", payload.uUID)
