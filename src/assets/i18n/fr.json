@@ -226,6 +226,9 @@
   },
   "yes": "Oui",
   "registerNewSchool": {
+    "schoolId": "ID de l'école",
+    "schoolNameDisplay": "Nom de l'école",
+    "educationLevelDisplay": "Niveau d'éducation",
     "step1Title": "Saisir les détails de l'école",
     "step2Title": "Saisir les détails de l'emplacement",
     "step3Title": "Réviser les informations",
@@ -274,6 +277,8 @@
     "yes": "Oui",
     "spain": "Espagne",
     "schoolNotFound": "Si vous ne trouvez pas l’identifiant, vous pouvez enregistrer une nouvelle école",
-    "signupNewSchool": "S'inscrire comme nouvelle école"
+    "signupNewSchool": "S'inscrire comme nouvelle école",
+    "verifyLocation": "Vérifier l'Emplacement",
+    "register": "S'inscrire"
   }
 }

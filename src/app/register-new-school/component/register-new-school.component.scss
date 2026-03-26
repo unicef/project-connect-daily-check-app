@@ -9,6 +9,7 @@
     font-weight: 400;
     margin-bottom: 0;
     color: #222;
+    text-transform: capitalize;
 
     ion-icon {
         color: #888;
@@ -440,14 +441,17 @@ ion-select.custom-gray-item {
     }
   }
 
+  .checkbox {
+    width: 82px;
+  }
+
+
   .terms-checkbox {
     margin: 24px 0;
     display: flex;
     gap: 12px;
     
-    ion-checkbox {
-      --size: 20px;
-    }
+   
 
     ion-label {
       font-size: 13px;
@@ -537,9 +541,14 @@ ion-select.custom-gray-item {
   background: var(--ion-background-color, #fff);
   z-index: 10;
   border-top: 1px solid #eaeaea;
-  padding: 10px 16px 20px 16px;
+  padding: 10px 0 24px 0;
+  display: flex;
+  justify-content: space-around;
+  // padding: 10px 16px 20px 16px;
 
   .nav-btn {
     margin-top: 0;
+    flex-grow: 1;
+    width: 100%;
   }
 }

@@ -8,6 +8,12 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { IonInput } from '@ionic/angular';
+import { GeocodeResponse } from 'src/app/services/dto/response.dto';
+import { LoadingService } from 'src/app/services/loading.service';
+import { LocationService } from 'src/app/services/location.service';
+import { SchoolService } from 'src/app/services/school.service';
+import { SettingsService } from 'src/app/services/settings.service';
+import { SchoolRegistration } from 'src/app/services/dto/school.dto';
 
 @Component({
   selector: 'app-register-new-school',
@@ -16,7 +22,6 @@ import { IonInput } from '@ionic/angular';
   standalone: false,
 })
 export class RegisterNewSchoolComponent implements OnInit {
-  @ViewChild('schoolAddressInput', { read: IonInput })
   schoolAddressInput!: IonInput;
   isEditingLat = false;
   isEditingLng = false;
@@ -32,6 +37,9 @@ export class RegisterNewSchoolComponent implements OnInit {
   detectedCountry: any;
   selectedCountryName: any;
   schoolId: any;
+  latitude: number | string = '';
+  longitude: number | string = '';
+  geoCodeResponse: GeocodeResponse = {} as any;
 
   emailPattern = '^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$';
 
@@ -44,15 +52,81 @@ export class RegisterNewSchoolComponent implements OnInit {
     this.circumference -
     (this.currentStep / this.totalSteps) * this.circumference;
 
-  nextStep() {
-    if (this.currentStep < this.totalSteps) {
+  async nextStep() {
+    if (this.currentStep <= this.totalSteps) {
+      if (this.currentStep === 1) {
+        if (this.schoolForm.invalid) {
+          console.log('Invalid form', this.schoolForm.value);
+          this.schoolForm.markAllAsTouched();
+          return;
+        }
+        this.loading.present();
+        const response: GeocodeResponse = await new Promise(
+          (resolve, reject) => {
+            this.locationService.getCurrentAddress(false).subscribe({
+              next: (response: GeocodeResponse) => {
+                resolve(response);
+              },
+              error: (error) => {
+                resolve(null);
+              },
+            });
+          },
+        );
+        if (response) {
+          this.latitude = response.latitude;
+          this.longitude = response.longitude;
+          this.geoCodeResponse = JSON.parse(JSON.stringify(response));
+          delete this.geoCodeResponse.latitude;
+          delete this.geoCodeResponse.longitude;
+        }
+        this.loading.dismiss();
+      }
+      if (this.currentStep === 2) {
+        this.settingsService
+          .getShell()
+          .shell.openExternal('https://www.google.com');
+        return;
+      }
+      if (this.currentStep === 3) {
+        this.loading.present();
+        const response = await new Promise((resolve, reject) => {
+          const formValues = this.schoolForm.value;
+          const payload: SchoolRegistration = {
+            school_id: formValues.schoolId,
+            school_name: formValues.schoolName,
+            latitude: Number(this.latitude),
+            longitude: Number(this.longitude),
+            address: this.geoCodeResponse,
+            education_level: formValues.educationLevel,
+            contact_name: formValues.contactName,
+            contact_email: formValues.officialEmail,
+          };
+          this.schoolService.registerNewSchool(payload).subscribe({
+              next: (response: any) => {
+                resolve(response);
+                debugger;
+              },
+              error: (error) => {
+                resolve(null);
+              },
+            });
+        });
+        this.loading.dismiss();
+        if (!response) {
+         return;
+        }
+      }
       this.currentStep++;
       this.updateDashOffset();
     }
   }
 
   prevStep() {
-    if (this.currentStep > 1) {
+    if (this.currentStep >= 1) {
+      if (this.currentStep === 1) {
+        this.isConfirmModalOpen = false;
+      }
       this.currentStep--;
       this.updateDashOffset();
     }
@@ -67,6 +141,10 @@ export class RegisterNewSchoolComponent implements OnInit {
   constructor(
     private fb: FormBuilder,
     private activatedroute: ActivatedRoute,
+    private settingsService: SettingsService,
+    private locationService: LocationService,
+    private loading: LoadingService,
+    private schoolService: SchoolService,
   ) {
     this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
@@ -78,19 +156,19 @@ export class RegisterNewSchoolComponent implements OnInit {
   }
 
   ngOnInit() {
+    if (navigator.geolocation) {
+    } else {
+      console.log('Geolocation is not supported by this environment.');
+    }
     this.schoolForm = this.fb.group({
-      schoolId: ['', [Validators.required, Validators.maxLength(15)]],
-      schoolName: ['', [Validators.required, Validators.maxLength(15)]],
-      schoolAddress: ['', Validators.required],
-      latitude: [''],
-      longitude: [''],
+      schoolId: ['', [Validators.required]],
+      schoolName: ['', [Validators.required]],
       contactName: ['', Validators.required],
       educationLevel: ['', Validators.required],
       officialEmail: [
         '',
         [Validators.required, Validators.pattern(this.emailPattern)],
       ],
-      agreedToTerms: [false, Validators.requiredTrue],
     });
   }
 
@@ -199,5 +277,14 @@ export class RegisterNewSchoolComponent implements OnInit {
     const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9-]+\.[a-zA-Z]{2,}$/;
 
     return emailPattern.test(value) ? null : { invalidEmail: true };
+  }
+
+  nextSkip() {
+    this.currentStep++;
+    this.updateDashOffset();
+  }
+
+  openExternalUrl(url: string) {
+    this.settingsService.getShell().shell.openExternal(url);
   }
 }

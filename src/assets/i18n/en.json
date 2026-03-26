@@ -226,6 +226,9 @@
   },
   "yes": "Yes",
   "registerNewSchool": {
+    "schoolId": "School ID",
+    "schoolNameDisplay": "School Name",
+    "educationLevelDisplay": "Education Level",
     "step1Title": "Enter school details",
     "step2Title": "Enter location details",
     "step3Title": "Review info",
@@ -274,6 +277,8 @@
     "yes": "Yes",
     "spain": "Spain",
     "schoolNotFound": "If you don't find the ID you can register as a new school",
-    "signupNewSchool": "Sign up as a new school"
+    "signupNewSchool": "Sign up as a new school",
+    "verifyLocation": "Verify Location",
+    "register": "Register"
   }
 }

@@ -5,7 +5,7 @@ import { environment } from 'src/environments/environment';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { School } from '../models/models';
-import { WrongGigaIdSchool } from './dto/school.dto';
+import { SchoolRegistration, WrongGigaIdSchool } from './dto/school.dto';
 import { ResponseDto } from './dto/response.dto';
 
 @Injectable({
@@ -261,6 +261,18 @@ export class SchoolService {
         catchError(this.handleError)
       );
   }
+
+
+  
+  registerNewSchool(data: SchoolRegistration): Observable<any> {
+    return this.http
+      .post(environment.restAPI + 'school-registrations', data, this.options)
+      .pipe(
+        tap((response) => console.log('New school registered:', response)),
+        catchError(this.handleError)
+      );
+  }
+
   /**
    * Private function to handle error
    *
