@@ -20,6 +20,7 @@ export class WhatsNewModalComponent implements OnInit {
   @Input() releaseData: ReleaseData;
 
   appName = environment.appName;
+  private isDismissed = false;
 
   constructor(
     private modalController: ModalController,
@@ -34,6 +35,8 @@ export class WhatsNewModalComponent implements OnInit {
    * Close the modal
    */
   dismiss() {
+    if (this.isDismissed) return;
+    this.isDismissed = true;
     this.modalController.dismiss();
   }
 

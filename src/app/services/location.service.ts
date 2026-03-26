@@ -10,7 +10,13 @@ export class LocationService {
   constructor(private http: HttpClient) { }
 
   async getWifiAccessPoints(): Promise<{ macAddress: string; signalStrength: number }[]> {
-    const wifiList = await (window as any).electronAPI.getWifiList();
+    const electronAPI = (window as any).electronAPI;
+    if (!electronAPI?.getWifiList) {
+      console.warn('electronAPI not available; skipping WiFi scan');
+      return [];
+    }
+
+    const wifiList = await electronAPI.getWifiList();
     return wifiList.map((wifi: any) => ({
       macAddress: wifi.macAddress,
       signalStrength: wifi.signal
@@ -49,16 +55,16 @@ export class LocationService {
 
 
   fetchAndSaveGeolocation(): Observable<{ latitude: number; longitude: number }> {
-  return from(this.getWifiAccessPoints()).pipe(
-    switchMap(wifiList => this.resolveGeolocation(wifiList)),
+    return from(this.getWifiAccessPoints()).pipe(
+      switchMap(wifiList => this.resolveGeolocation(wifiList)),
 
-    tap((geo: any) => {
-      console.log('Geolocation success:', geo);
-      this.saveGeolocation(geo);
-    }),
+      tap((geo: any) => {
+        console.log('Geolocation success:', geo);
+        this.saveGeolocation(geo);
+      }),
 
-    map((geo: any) => geo)
-  );
-}
+      map((geo: any) => geo)
+    );
+  }
 
 }

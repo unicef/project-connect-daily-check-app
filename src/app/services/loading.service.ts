@@ -32,13 +32,16 @@ export class LoadingService {
       this.loadingObj.cssClass = cssClass;
     }
 
-    
-    return await this.loadingController.create(this.loadingObj).then(a => {
-      a.present().then(() => {
-        if (!this.isLoading) {
-          a.dismiss().then(() => console.log('abort presenting'));
+    return await this.loadingController.create(this.loadingObj).then(async a => {
+      await a.present();
+      if (!this.isLoading) {
+        // dismiss was called before present completed — safely dismiss using getTop()
+        const overlay = await this.loadingController.getTop();
+        if (overlay) {
+          await overlay.dismiss();
+          console.log('abort presenting');
         }
-      });
+      }
     });
   }
 
@@ -48,7 +51,15 @@ export class LoadingService {
    */
   async dismiss() {
     this.isLoading = false;
-    return await this.loadingController.dismiss().then(() => console.log('dismissed'));
+    try {
+      const overlay = await this.loadingController.getTop();
+      if (overlay) {
+        await overlay.dismiss();
+        console.log('dismissed');
+      }
+    } catch (e) {
+      console.warn('LoadingService: no overlay to dismiss', e);
+    }
   }
 
   /**

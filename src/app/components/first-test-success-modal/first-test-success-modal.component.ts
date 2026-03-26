@@ -15,6 +15,7 @@ export class FirstTestSuccessModalComponent implements OnInit, OnDestroy {
 
   countdown: number = 10;
   private countdownTimer: any;
+  private isDismissed = false;
 
   constructor(
     private modalController: ModalController,
@@ -55,6 +56,8 @@ export class FirstTestSuccessModalComponent implements OnInit, OnDestroy {
    * Close the modal
    */
   dismiss() {
+    if (this.isDismissed) return;
+    this.isDismissed = true;
     this.clearTimer();
     this.modalController.dismiss();
   }

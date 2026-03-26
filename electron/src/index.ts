@@ -20,19 +20,38 @@ import {
   setIsQuiting,
   getIsQuiting,
 } from './setup';
-import { captureException } from '@sentry/node';
+import { captureException, captureMessage } from '@sentry/node';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
 app.setPath('userData', userDataPath);
 
 const gotTheLock = app.requestSingleInstanceLock();
+
+// Transient network error patterns that should not be sent to Sentry
+const TRANSIENT_NETWORK_ERRORS = [
+  'ERR_NETWORK_CHANGED',
+  'ERR_INTERNET_DISCONNECTED',
+  'ERR_NAME_NOT_RESOLVED',
+  'ERR_CONNECTION_REFUSED',
+  'ERR_CONNECTION_TIMED_OUT',
+  'ENOTFOUND',
+  'ECONNRESET',
+  'ETIMEDOUT',
+];
+
+function isTransientNetworkError(error: any): boolean {
+  const message = error?.message ?? String(error);
+  return TRANSIENT_NETWORK_ERRORS.some((pattern) => message.includes(pattern));
+}
+
 // Graceful handling of unhandled errors.
 unhandled({
   logger: (e) => {
-    console.error(e);
-    captureException(e);
-    console.log('there is an error occurs');
+    console.error('Unhandled error:', e);
+    if (!isTransientNetworkError(e)) {
+      captureException(e);
+    }
   },
   showDialog: false,
   reportButton: (error) => {
@@ -203,8 +222,16 @@ if (!gotTheLock) {
       */
   autoUpdater.autoDownload = true;
 
+  // Check for updates every hour — handle promise to prevent unhandled rejections
   setInterval(() => {
-    autoUpdater.checkForUpdates();
+    autoUpdater.checkForUpdates().catch((error) => {
+      if (isTransientNetworkError(error)) {
+        console.warn('Update check failed due to transient network error:', error.message);
+      } else {
+        console.error('Update check failed:', error);
+        captureException(error);
+      }
+    });
   }, 3600000);
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
@@ -266,7 +293,13 @@ if (!gotTheLock) {
       }
     }
   });
+
+  // Filter transient network errors from Sentry — only capture real update failures
   autoUpdater.on('error', (error) => {
+    if (isTransientNetworkError(error)) {
+      console.warn('Update check failed due to transient network error:', error.message);
+      return;
+    }
     console.error('Update Error:', error);
     captureException(error);
   });

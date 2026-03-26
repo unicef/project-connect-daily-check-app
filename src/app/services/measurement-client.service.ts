@@ -212,8 +212,12 @@ export class MeasurementClientService {
   };
 
   private onDownloadComplete = (data: any, measurementRecord: any): void => {
-    const serverBw = (data.LastServerMeasurement.BBRInfo.BW * 8) / 1000000;
-    const clientGoodput = data.LastClientMeasurement.MeanClientMbps;
+    // Guard against incomplete NDT response — LastServerMeasurement can be
+    // undefined if the test is interrupted or the server response is malformed
+    const bw = data?.LastServerMeasurement?.BBRInfo?.BW;
+    const serverBw = bw ? (bw * 8) / 1000000 : 0;
+    const clientGoodput = data?.LastClientMeasurement?.MeanClientMbps ?? 0;
+
     console.log(`Download test is complete:
     Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
     Mean client goodput: ${clientGoodput} Mbps`);
@@ -222,7 +226,7 @@ export class MeasurementClientService {
     this.updateProgress(
       'finished_s2c',
       data,
-      data.LastClientMeasurement.ElapsedTime
+      data?.LastClientMeasurement?.ElapsedTime ?? 0
     );
   };
 
@@ -241,8 +245,9 @@ export class MeasurementClientService {
   };
 
   private onUploadComplete = (data: any, measurementRecord: any): void => {
-    const bytesReceived = data.LastServerMeasurement.TCPInfo.BytesReceived;
-    const elapsed = data.LastServerMeasurement.TCPInfo.ElapsedTimex;
+    const bytesReceived = data?.LastServerMeasurement?.TCPInfo?.BytesReceived ?? 0;
+    // Note: fixed typo — was ElapsedTimex (invalid), now ElapsedTime
+    const elapsed = data?.LastServerMeasurement?.TCPInfo?.ElapsedTime ?? 1;
     const throughput = (bytesReceived * 8) / elapsed;
     console.log(`Upload test completed in ${(elapsed / 1000000).toFixed(2)}s
       Mean server throughput: ${throughput} Mbps`);
@@ -251,26 +256,29 @@ export class MeasurementClientService {
     this.updateProgress('finished_c2s', data, elapsed / 1000000);
   };
 
-  private onError = (err: Error): void => {
-    console.error('Error while running the test:', err.message);
+  private onError = (err: any): void => {
+    // err may not always be an Error object — the NDT7 worker can post plain
+    // strings, MessageEvent objects, or other non-Error values, so we safely
+    // extract a message string before calling .includes()
+    const errorMessage = err?.message ?? (typeof err === 'string' ? err : JSON.stringify(err) ?? 'Unknown error');
 
-    // Check if this is a locate server error
+    console.error('Error while running the test:', errorMessage);
+
     const isLocateServerError =
-      err.message.includes('locate.measurementlab.net') ||
-      err.message.includes('Could not understand response') ||
-      err.message.includes('fetch');
+      errorMessage.includes('locate.measurementlab.net') ||
+      errorMessage.includes('Could not understand response') ||
+      errorMessage.includes('Failed to fetch') ||
+      errorMessage.includes('NetworkError');
 
-    const errorType = isLocateServerError
-      ? 'locate_server_error'
-      : 'test_error';
-    const errorMessage = isLocateServerError
+    const errorType = isLocateServerError ? 'locate_server_error' : 'test_error';
+    const userMessage = isLocateServerError
       ? 'Failed to discover test servers. Please check your internet connection and try again.'
-      : err.message;
+      : errorMessage;
 
     this.broadcastMeasurementStatus('error', {
-      error: errorMessage,
+      error: userMessage,
       errorType: errorType,
-      originalError: err.message,
+      originalError: errorMessage,
     });
   };
 
@@ -291,9 +299,18 @@ export class MeasurementClientService {
   }
 
   private async finalizeMeasurement(measurementRecord: any): Promise<void> {
-    measurementRecord.uuid =
-      measurementRecord.results['NDTResult.S2C'].LastServerMeasurement
-        .ConnectionInfo.UUID || '';
+    const connectionInfo =
+      measurementRecord.results?.['NDTResult.S2C']
+        ?.LastServerMeasurement
+        ?.ConnectionInfo;
+
+    if (!connectionInfo) {
+      console.warn('NDT ConnectionInfo missing', {
+        results: measurementRecord.results
+      });
+    }
+
+    measurementRecord.uuid = connectionInfo?.UUID ?? '';
     measurementRecord.version = 1;
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
@@ -337,21 +354,21 @@ export class MeasurementClientService {
     upload: number;
     total: number;
   } {
+
+    const s2c =
+      passedResults?.['NDTResult.S2C']?.LastServerMeasurement?.TCPInfo;
+    const c2s =
+      passedResults?.['NDTResult.C2S']?.LastServerMeasurement?.TCPInfo;
     const bytesSent =
       Number(
-        passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
-          .BytesAcked +
-          passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo
-            .BytesAcked
-      ) || 0;
+        (s2c?.BytesAcked ?? 0) +
+        (c2s?.BytesAcked ?? 0)
+      );
     const bytesReceived =
       Number(
-        passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
-          .BytesReceived +
-          passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo
-            .BytesReceived
-      ) || 0;
-
+        (s2c?.BytesReceived ?? 0) +
+        (c2s?.BytesReceived ?? 0)
+      );
     const totalBytes = bytesSent + bytesReceived;
 
     this.dataUsage.total += totalBytes;
