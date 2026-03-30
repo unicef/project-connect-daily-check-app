@@ -13,6 +13,7 @@ export interface GeocodeResponse {
     country: string;
     latitude: number;
     longitude: number;
+    ipAddress:string;
 }
 
 

@@ -199,7 +199,7 @@
           <ng-container *ngFor="let item of geoCodeResponse | keyvalue">
             <ion-item lines="none" class="label_top">
               <ion-label class="font_size">
-                {{ item.key }}
+                {{ "registerNewSchool." + item.key | translate }}
               </ion-label>
             </ion-item>
             <ion-input
@@ -275,14 +275,12 @@
               <div class="review-row">
                 <span>{{ "registerNewSchool.latLong" | translate }}</span
                 ><span class="value primary"
-                  >{{ latitude }},{{
-                    longitude
-                  }}</span
+                  >{{ latitude }},{{ longitude }}</span
                 >
               </div>
               <ng-container *ngFor="let item of geoCodeResponse | keyvalue">
                 <div class="review-row">
-                  <span>{{ item.key | translate }}</span
+                  <span>{{ "registerNewSchool." + item.key | translate }}</span
                   ><span class="value"
                     ><b>{{ item.value }}</b></span
                   >
@@ -292,11 +290,7 @@
           </ion-card>
 
           <div class="terms-checkbox" style="margin: 20px 0">
-            <ion-checkbox
-              mode="md"
-              formControlName="agreedToTerms"
-              class="checkbox"
-            ></ion-checkbox>
+            <ion-checkbox #termsCheckbox mode="md" class="checkbox"></ion-checkbox>
             <ion-label class="font_size">
               {{ "registerNewSchool.agreeTerms" | translate }}
               <b>{{ "registerNewSchool.odbl" | translate }}</b
@@ -328,6 +322,7 @@
         (click)="nextStep()"
         shape="round"
         class="nav-btn"
+        [disabled]="currentStep === 3 && !termsCheckbox?.checked"
       >
         {{ currentStep === 1 ? ("registerNewSchool.next" | translate) : "" }}
         {{

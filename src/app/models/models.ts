@@ -30,6 +30,7 @@ export interface School {
     admin_3_name?: string;
     admin_4_name?: string;
     giga_id?: string;
+    is_verified?: boolean;
 }
 
 export interface mlabInformation {

@@ -64,48 +64,61 @@ export class LocationService {
   }
 
   getCurrentAddress(considerIp: boolean = false): Observable<GeocodeResponse> {
-    return this.fetchAndSaveGeolocation(considerIp).pipe(
-      switchMap((geo: any) => {
-        if (geo?.location?.lat && geo?.location?.lng) {
-          return this.getAddress(geo.location.lat, geo.location.lng);
-        }
-        throw new Error('API did not return lat/lng');
-      }),
-      catchError((error) => {
-        console.warn('Geolocation failed, falling back to network info:', error);
-        return from(this.networkService.getNetInfo()).pipe(
-          switchMap((netInfo: any) => {
-            debugger;
+    return from(this.networkService.getNetInfo()).pipe(
+      switchMap((netInfo: any) => {
+        const ipAddress = netInfo?.ip || '';
+        return this.fetchAndSaveGeolocation(considerIp).pipe(
+          switchMap((geo: any) => {
+            if (geo?.location?.lat && geo?.location?.lng) {
+              return this.getAddress(
+                geo.location.lat,
+                geo.location.lng,
+                ipAddress,
+              );
+            }
+            throw new Error('API did not return lat/lng');
+          }),
+          catchError((error) => {
+            console.warn(
+              'Geolocation failed, falling back to network info:',
+              error,
+            );
             if (netInfo?.loc) {
-              
               const [lat, lng] = netInfo.loc.split(',');
               const parsedLat = parseFloat(lat);
               const parsedLng = parseFloat(lng);
               if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
-                return this.getAddress(parsedLat, parsedLng);
+                return this.getAddress(parsedLat, parsedLng, ipAddress);
               }
             }
             throw new Error('Could not get network info location');
-          })
+          }),
         );
-      })
+      }),
     );
   }
 
-  getAddress(latitude: number, longitude: number): Observable<GeocodeResponse> {
-    return this.http.get<GeocodeResponse>(
-      `${environment.restAPI}geolocation/geocode/flexible?latitude=${latitude}&longitude=${longitude}`
-    ).pipe(
-      map(response => ({
-        ...response,
-        latitude,
-        longitude
-      })),
-      retry({
-        count: 1,
-        delay: 1000
-      })
-    );
+  getAddress(
+    latitude: number,
+    longitude: number,
+    ipAddress: string = '',
+  ): Observable<GeocodeResponse> {
+    return this.http
+      .get<GeocodeResponse>(
+        `${environment.restAPI}geolocation/geocode/flexible?latitude=${latitude}&longitude=${longitude}`,
+      )
+      .pipe(
+        map((response) => ({
+          ...response,
+          latitude,
+          longitude,
+          ipAddress,
+        })),
+        retry({
+          count: 1,
+          delay: 1000,
+        }),
+      );
   }
 
   

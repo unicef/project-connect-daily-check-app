@@ -75,9 +75,10 @@
           <h2 class="title" title="{{school?.name}}">{{school?.name}}</h2>
         </ion-label>
       </ion-item>
-<div class="verify-row">
-  <span class="pending-badge">Pending verification</span>
-</div>
+
+      <div *ngIf="school?.is_verified == false" class="verify-row">
+        <span class="pending-badge">Pending verification</span>
+      </div>
       <!---------   Start test Section ------------------>
       <!-- {{currentState}} {{currentRate}} {{onlineStatus}} -->
       <!-- <div *ngIf="currentState == undefined && currentRate != 'error' && onlineStatus"> -->

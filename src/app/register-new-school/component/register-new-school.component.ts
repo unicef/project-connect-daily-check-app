@@ -6,14 +6,19 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
-import { IonInput } from '@ionic/angular';
+import { ActivatedRoute, Router } from '@angular/router';
+import { IonCheckbox, IonInput } from '@ionic/angular';
 import { GeocodeResponse } from 'src/app/services/dto/response.dto';
 import { LoadingService } from 'src/app/services/loading.service';
 import { LocationService } from 'src/app/services/location.service';
 import { SchoolService } from 'src/app/services/school.service';
 import { SettingsService } from 'src/app/services/settings.service';
 import { SchoolRegistration } from 'src/app/services/dto/school.dto';
+import { StorageService } from 'src/app/services/storage.service';
+import { SharedService } from 'src/app/services/shared-service.service';
+import { CountryService } from 'src/app/services/country.service';
+import { Device } from '@capacitor/device';
+import { environment } from 'src/environments/environment';
 
 @Component({
   selector: 'app-register-new-school',
@@ -22,6 +27,7 @@ import { SchoolRegistration } from 'src/app/services/dto/school.dto';
   standalone: false,
 })
 export class RegisterNewSchoolComponent implements OnInit {
+  @ViewChild('termsCheckbox') termsCheckbox!: IonCheckbox;
   schoolAddressInput!: IonInput;
   isEditingLat = false;
   isEditingLng = false;
@@ -39,6 +45,7 @@ export class RegisterNewSchoolComponent implements OnInit {
   schoolId: any;
   latitude: number | string = '';
   longitude: number | string = '';
+  ipAddress: string = '';
   geoCodeResponse: GeocodeResponse = {} as any;
 
   emailPattern = '^[a-z0-9._%+-]+@[a-z0-9.-]+\\.[a-z]{2,4}$';
@@ -76,9 +83,11 @@ export class RegisterNewSchoolComponent implements OnInit {
         if (response) {
           this.latitude = response.latitude;
           this.longitude = response.longitude;
+          this.ipAddress = response.ipAddress;
           this.geoCodeResponse = JSON.parse(JSON.stringify(response));
           delete this.geoCodeResponse.latitude;
           delete this.geoCodeResponse.longitude;
+          delete this.geoCodeResponse.ipAddress;
         }
         this.loading.dismiss();
       }
@@ -90,6 +99,20 @@ export class RegisterNewSchoolComponent implements OnInit {
       }
       if (this.currentStep === 3) {
         this.loading.present();
+
+        const countryInfo: any = await new Promise((resolve) => {
+          this.countryService
+            .getPcdcCountryByCode(this.selectedCountry)
+            .subscribe({
+              next: (response: any) => {
+                resolve(response?.[0]);
+              },
+              error: (error) => {
+                resolve(null);
+              },
+            });
+        });
+
         const response = await new Promise((resolve, reject) => {
           const formValues = this.schoolForm.value;
           const payload: SchoolRegistration = {
@@ -97,25 +120,61 @@ export class RegisterNewSchoolComponent implements OnInit {
             school_name: formValues.schoolName,
             latitude: Number(this.latitude),
             longitude: Number(this.longitude),
+            country_iso3_code: countryInfo?.code_iso3 || '',
             address: this.geoCodeResponse,
             education_level: formValues.educationLevel,
             contact_name: formValues.contactName,
             contact_email: formValues.officialEmail,
           };
           this.schoolService.registerNewSchool(payload).subscribe({
-              next: (response: any) => {
-                resolve(response);
-                debugger;
-              },
-              error: (error) => {
-                resolve(null);
-              },
-            });
+            next: async (response: any) => {
+              // Get device/network info needed for storage
+              const deviceInfo = await Device.getInfo();
+              const deviceId = await Device.getId();
+              // Store data similar to ConfirmschoolPage
+              this.storage.set('deviceType', deviceInfo.operatingSystem);
+              this.storage.set('macAddress', deviceId.identifier);
+              // For new schools, schoolUserId might not exist yet, using giga_id
+              this.storage.set('gigaId', response.data.giga_id_school);
+              this.storage.set('schoolId', payload.school_id);
+              this.storage.set('school_id', payload.school_id);
+              this.storage.set('country_code', this.selectedCountry);
+              this.storage.set('ip_address', this.ipAddress);
+              this.storage.set('version', environment.app_version);
+
+              // Create a school object mock for storage
+              const schoolMock = {
+                school_id: payload.school_id,
+                school_name: payload.school_name,
+                giga_id_school: response.data.giga_id_school,
+                country: this.selectedCountryName,
+                latitude: payload.latitude,
+                longitude: payload.longitude,
+                is_verified: false,
+              };
+              this.storage.set('schoolInfo', JSON.stringify(schoolMock));
+
+              // Set first-time visit flags
+              this.storage.setFirstTimeVisit(true);
+              this.storage.setRegistrationCompleted(Date.now());
+
+              this.settingsService.setSetting('scheduledTesting', true);
+
+              resolve(response);
+            },
+            error: (error) => {
+              console.error(error);
+              resolve(null);
+            },
+          });
         });
         this.loading.dismiss();
-        if (!response) {
-         return;
+        if (response) {
+          this.router.navigate(['/starttest']).then(() => {
+            this.sharedService.broadcast('registration:completed');
+          });
         }
+        return;
       }
       this.currentStep++;
       this.updateDashOffset();
@@ -125,7 +184,9 @@ export class RegisterNewSchoolComponent implements OnInit {
   prevStep() {
     if (this.currentStep >= 1) {
       if (this.currentStep === 1) {
-        this.isConfirmModalOpen = false;
+        //back url
+        this.router.navigate(['/home']);
+        return;
       }
       this.currentStep--;
       this.updateDashOffset();
@@ -145,6 +206,10 @@ export class RegisterNewSchoolComponent implements OnInit {
     private locationService: LocationService,
     private loading: LoadingService,
     private schoolService: SchoolService,
+    private router: Router,
+    private storage: StorageService,
+    private sharedService: SharedService,
+    private countryService: CountryService,
   ) {
     this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;

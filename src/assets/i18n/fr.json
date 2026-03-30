@@ -1,4 +1,10 @@
 {
+  "address": "Adresse",
+  "state": "État",
+  "city": "Ville",
+  "subLocality": "Sous-localité",
+  "postalCode": "Code Postal",
+  "country": "Pays",
   "andText": "et par M-Lab sous la",
   "app": {
     "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>À propos de {{appName}}",
@@ -256,6 +262,9 @@
     "longitude": "Longitude",
     "latLong": "Latitude, Longitude",
     "address": "Adresse",
+    "state": "État",
+    "city": "Ville",
+    "subLocality": "Sous-localité",
     "addressPlaceholder": "123, South Paula, Brazil",
     "schoolDetails": "Détails de l'école",
     "country": "Pays",
