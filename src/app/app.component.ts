@@ -396,9 +396,16 @@ export class AppComponent {
     this.menu.enable(true, 'help');
     this.menu.open('help');
   }
+  async checkAppUpdate() {
+    const result = await this.gigaAppPlugin.checkAppUpdateAvailable();
+  }
   openHelpMenu(menuid: string) {
-    this.menu.enable(true, menuid);
-    this.menu.open(menuid);
+    if (menuid === 'newUpdate') {
+      this.checkAppUpdate();
+    } else {
+      this.menu.enable(true, menuid);
+      this.menu.open(menuid);
+    }
   }
   async copy(text: string): Promise<boolean> {
     try {

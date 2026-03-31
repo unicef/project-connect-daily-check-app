@@ -39,6 +39,22 @@ import org.json.JSONException
 import org.json.JSONObject
 import com.getcapacitor.JSObject
 import androidx.core.net.toUri
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ListenableWorker
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequest
+import androidx.work.WorkManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
+import com.meter.giga.worker.UpdateCheckWorker
+import com.meter.giga.worker.await
+import io.sentry.Sentry
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.concurrent.TimeUnit
 
 @CapacitorPlugin(name = "GigaAppPlugin")
 class GigaAppPlugin : Plugin() {
@@ -319,6 +335,56 @@ class GigaAppPlugin : Plugin() {
     alarmPrefs.environment = env ?: "development"
     call.resolve()
   }
+
+  private suspend fun checkAppUpdate(): String {
+    return withContext(Dispatchers.IO) {
+      Sentry.capture("Updated Checker executed")
+      try {
+        Sentry.capture("Updated Checker executed before play store check")
+
+        val appUpdateManager =
+          AppUpdateManagerFactory.create(context)
+
+        // WAIT for Play Store response
+        val info = appUpdateManager.appUpdateInfo.await()
+
+        Sentry.capture("Updated Checker executed after play store check")
+        Sentry.capture("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
+        Sentry.capture("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
+
+        if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+          info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+        ) {
+          Sentry.capture("Update: Update available and allowed")
+          AppLogger.d("Update", "Update available and allowed")
+        } else {
+          Sentry.capture("Update: No update OR not allowed")
+          AppLogger.d("Update", "No update OR not allowed")
+        }
+        return@withContext "Done"
+      } catch (e: Exception) {
+        Sentry.capture("Updated Checker Failed due to ${e.message}")
+        return@withContext "Done"
+      }
+    }
+  }
+
+  @PluginMethod
+  fun checkAppUpdateAvailable(call: PluginCall) {
+    AppLogger.d("GIGA GigaAppPlugin", "Start Command Via Plugin")
+    val context = bridge.context
+    CoroutineScope(Dispatchers.Main).launch {
+      try {
+        val result = checkAppUpdate()
+        val ret = JSObject()
+        ret.put("value", result)
+        call.resolve(ret)
+      } catch (e: Exception) {
+        call.reject(e.message)
+      }
+    }
+  }
+
 
   /**
    * This function is invoked from ionic app UI

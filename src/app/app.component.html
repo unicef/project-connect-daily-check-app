@@ -284,6 +284,11 @@
             <ion-label [innerHTML]="'app.whats-new' | translate"></ion-label>
             <ion-img src="assets/images/setting_arrow.svg"></ion-img>
           </ion-item>
+                    <ion-item *ngIf="isNativeApp()" (click)="openHelpMenu('newUpdate')">
+                      <ion-img src="assets/images/new.svg"></ion-img>
+                      <ion-label [innerHTML]="'app.check-new-update' | translate"></ion-label>
+                      <ion-img src="assets/images/setting_arrow.svg"></ion-img>
+                    </ion-item>
           <div class="version-section">
             <div class="version-header">VERSION</div>
             <div class="version-container">

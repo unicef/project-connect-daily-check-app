@@ -50,6 +50,8 @@ import com.meter.giga.worker.UpdateCheckWorker;
 
 import java.util.concurrent.TimeUnit;
 
+import io.sentry.Sentry;
+
 public class MainActivity extends BridgeActivity {
   private AppUpdateManager appUpdateManager;
   private static final int REQ_LOCATION_PERMISSION = 102;
@@ -204,7 +206,25 @@ public class MainActivity extends BridgeActivity {
         REQ_NOTIF_PERMISSION);
       return;
     }
+    initAppUpdateCheck();
     checkAlarmPermission();
+  }
+
+  private void initAppUpdateCheck() {
+    AppLogger.INSTANCE.d("Giga Meter", "App update check installer");
+    Sentry.capture("Updated Checker executed On App Launch");
+
+    PeriodicWorkRequest workRequest =
+      new PeriodicWorkRequest.Builder(
+        UpdateCheckWorker.class,
+        24, TimeUnit.HOURS
+      ).build();
+
+    WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+      "update_check",
+      ExistingPeriodicWorkPolicy.KEEP,
+      workRequest
+    );
   }
 
   /**

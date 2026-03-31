@@ -18,6 +18,7 @@
     "version": "VERSION {{ app_version }}",
     "view-project-connect": "VOIR {{appName}}",
     "whats-new": "Nouveautés!",
+    "check-new-update": "Vérifiez la nouvelle mise à jour",
     "wifi-network": "Paramètres des réseaux Wifi"
   },
   "checkboxText": "En m'inscrivant et en utilisant GigaMeter, j'accepte la collecte, le traitement et la publication de mes données de mesure ainsi que d’autres données connexes par Giga conformément à la",

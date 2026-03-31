@@ -25,7 +25,7 @@ class GigaApp : Application() {
   override fun onCreate() {
     super.onCreate()
     initSentry()
-    initAppUpdateCheck()
+    //initAppUpdateCheck()
 //    if (isInstalledFromPlayStore()) {
 //      initAppUpdateCheck()
 //    } else {
@@ -52,14 +52,14 @@ class GigaApp : Application() {
 
   private fun initAppUpdateCheck() {
     AppLogger.d("Giga Meter", "App update check installer")
-    Sentry.capture("Updated Checker executed")
+    Sentry.capture("Updated Checker executed On App Launch")
     val workRequest = PeriodicWorkRequest.Builder(
       UpdateCheckWorker::class.java,
-      1, TimeUnit.DAYS
+      24, TimeUnit.HOURS
     ).build()
 
     WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-      "daily_update_check",
+      "update_check",
       ExistingPeriodicWorkPolicy.KEEP,
       workRequest
     )
@@ -90,7 +90,6 @@ class GigaApp : Application() {
       AndroidSentryClientFactory(applicationContext)
     )
     Sentry.getContext().apply {
-
       // 🏷️ Add custom tags (key-value)
       addTag("environment", getEnvironment(environment))
     }

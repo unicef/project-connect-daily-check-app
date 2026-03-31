@@ -12,43 +12,64 @@ import android.content.Intent
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.pm.PackageManager
-import android.os.Build
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat.getSystemService
+import com.google.android.gms.tasks.Task
+import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.meter.giga.MainActivity
 import com.meter.giga.R
-import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.APP_UPDATE_CHANNEL_ID
 import com.meter.giga.utils.Constants.APP_UPGRADE_NOTIFICATION_ID
-import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
 import com.meter.giga.utils.Constants.WORKER_TAG
 import com.meter.giga.utils.Logger
-import java.time.Duration
-import java.time.LocalDate
-import java.time.LocalTime
+import io.sentry.Sentry
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
-class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
-  CoroutineWorker(appContext, params) {
-  var logger: Logger = AppLogger
+class UpdateCheckWorker(
+  appContext: Context,
+  params: WorkerParameters
+) : CoroutineWorker(appContext, params) {
+
+  private var logger: Logger = AppLogger
+
   override suspend fun doWork(): Result {
     logger.d("Daily Schedule Interval", "Worker executed")
-    // ✅ Your logic
-    runUpdateCheck()
-    return Result.success()
-  }
 
-  private fun runUpdateCheck() {
-    val appUpdateManager = AppUpdateManagerFactory.create(applicationContext)
-    val appUpdateInfo = appUpdateManager.appUpdateInfo
-    appUpdateInfo.addOnSuccessListener { info ->
-      if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE) {
-        logger.d("Daily Schedule Interval", "Worker executed")
+    return try {
+      Sentry.capture("Updated Checker executed before play store check")
+
+      val appUpdateManager =
+        AppUpdateManagerFactory.create(applicationContext)
+
+      // WAIT for Play Store response
+      val info = appUpdateManager.appUpdateInfo.await()
+
+      Sentry.capture("Updated Checker executed after play store check")
+      Sentry.capture("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
+      Sentry.capture("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
+
+      if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+        info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
+      ) {
+        Sentry.capture("Update: Update available and allowed")
+
+        logger.d("Update", "Update available and allowed")
         showUpdateNotification()
+
       } else {
-        logger.d("Daily Schedule Interval", "Worker executed Inside, No new update")
+        Sentry.capture("Update: No update OR not allowed")
+
+        logger.d("Update", "No update OR not allowed")
       }
+
+      Result.success()
+
+    } catch (e: Exception) {
+      Sentry.capture("Updated Checker Failed due to ${e.message}")
+      Result.failure()
     }
   }
 
@@ -61,7 +82,9 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
     }
 
     val pendingIntent = PendingIntent.getActivity(
-      applicationContext, 0, intent,
+      applicationContext,
+      0,
+      intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
 
@@ -71,8 +94,10 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
       .setSmallIcon(R.mipmap.ic_launcher_round)
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setContentIntent(pendingIntent)
+      .setAutoCancel(true)
 
     val notificationManager = NotificationManagerCompat.from(applicationContext)
+
     if (ActivityCompat.checkSelfPermission(
         applicationContext,
         Manifest.permission.POST_NOTIFICATIONS
@@ -81,12 +106,14 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
       logger.d("GIGA METER", "POST_NOTIFICATION PERMISSIONS ARE MISSING")
       return
     }
+
     notificationManager.notify(APP_UPGRADE_NOTIFICATION_ID, builder.build())
   }
 
   private fun createNotificationChannel() {
     val channel = NotificationChannel(
-      APP_UPDATE_CHANNEL_ID, WORKER_TAG,
+      APP_UPDATE_CHANNEL_ID,
+      WORKER_TAG,
       NotificationManager.IMPORTANCE_HIGH
     ).apply {
       description = "Notifications for app updates"
@@ -94,7 +121,17 @@ class UpdateCheckWorker(appContext: Context, params: WorkerParameters) :
 
     val notificationManager =
       applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+
     notificationManager.createNotificationChannel(channel)
   }
 }
 
+
+/**
+ * Extension function to await Play Core Task
+ */
+suspend fun <T> Task<T>.await(): T =
+  suspendCancellableCoroutine { cont ->
+    addOnSuccessListener { cont.resume(it) }
+    addOnFailureListener { cont.resumeWithException(it) }
+  }
