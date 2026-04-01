@@ -10,7 +10,7 @@ export interface SchoolRegistration {
   school_name: string;
   latitude: number;
   longitude: number;
-  country_iso3_code: string;
+  country_iso3_code: string;  
   address: {
     address: string;
     city: string;

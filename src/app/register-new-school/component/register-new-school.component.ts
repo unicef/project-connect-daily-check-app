@@ -146,8 +146,9 @@ export class RegisterNewSchoolComponent implements OnInit {
               const schoolMock = {
                 school_id: payload.school_id,
                 school_name: payload.school_name,
+                name:payload.school_name,
                 giga_id_school: response.data.giga_id_school,
-                country: this.selectedCountryName,
+                country: this.selectedCountryName.trim(),
                 latitude: payload.latitude,
                 longitude: payload.longitude,
                 is_verified: false,
@@ -182,6 +183,7 @@ export class RegisterNewSchoolComponent implements OnInit {
   }
 
   prevStep() {
+    debugger;
     if (this.currentStep >= 1) {
       if (this.currentStep === 1) {
         //back url
@@ -226,7 +228,7 @@ export class RegisterNewSchoolComponent implements OnInit {
       console.log('Geolocation is not supported by this environment.');
     }
     this.schoolForm = this.fb.group({
-      schoolId: ['', [Validators.required]],
+      schoolId: [this.schoolId, [Validators.required]],
       schoolName: ['', [Validators.required]],
       contactName: ['', Validators.required],
       educationLevel: ['', Validators.required],
@@ -290,7 +292,18 @@ export class RegisterNewSchoolComponent implements OnInit {
   }
 
   backToSaved(school: any) {
-    if (this.currentStep > 1) {
+    if (this.currentStep >= 1) {
+      if (this.currentStep === 1) {
+        //back url
+        this.router.navigate([
+          '/schoolnotfound',
+          this.schoolId,
+          this.selectedCountry,
+          this.detectedCountry,
+          this.selectedCountryName,
+        ]);
+        return;
+      }
       this.currentStep--;
       this.updateDashOffset();
     }
