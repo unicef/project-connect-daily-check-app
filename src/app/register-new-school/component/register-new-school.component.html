@@ -290,13 +290,29 @@
           </ion-card>
 
           <div class="terms-checkbox" style="margin: 20px 0">
-            <ion-checkbox #termsCheckbox mode="md" class="checkbox"></ion-checkbox>
+            <ion-checkbox
+              #termsCheckbox
+              mode="md"
+              class="checkbox"
+            ></ion-checkbox>
             <ion-label class="font_size">
               {{ "registerNewSchool.agreeTerms" | translate }}
-              <b>{{ "registerNewSchool.odbl" | translate }}</b
+              <b
+                (click)="
+                  openExternalUrl('https://creativecommons.org/licenses/by/4.0/')
+                "
+                >{{ "registerNewSchool.odbl" | translate }}</b
               >, the
-              <b>{{ "registerNewSchool.mlabPrivacy" | translate }}</b> and
-              <b>{{ "registerNewSchool.unicefPrivacy" | translate }}</b
+              <b
+                (click)="
+                  openExternalUrl('https://www.measurementlab.net/privacy/')
+                "
+                >{{ "registerNewSchool.mlabPrivacy" | translate }}</b
+              >
+              and
+              <b (click)="openExternalUrl('https://www.unicef.org/privacy-policy')">{{
+                "registerNewSchool.unicefPrivacy" | translate
+              }}</b
               >.
             </ion-label>
           </div>

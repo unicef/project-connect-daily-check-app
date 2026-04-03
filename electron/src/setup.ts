@@ -423,6 +423,14 @@ export class ElectronCapacitorApp {
       if(!shortcutStatus){
         globalShortcut.register('Ctrl+Shift+N', openDevTools);
       }
+
+      if (process.argv.includes('--live-reload')) {
+        const reloadApp = () => {
+          this.MainWindow?.webContents.reloadIgnoringCache();
+        };
+        globalShortcut.register('CommandOrControl+R', reloadApp);
+        globalShortcut.register('F5', reloadApp);
+      }
       setTimeout(() => {
         if ((this.CapacitorFileConfig.electron as any)?.electronIsDev) {
           this.MainWindow.webContents.openDevTools();
