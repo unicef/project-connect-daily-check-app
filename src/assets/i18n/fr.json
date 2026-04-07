@@ -288,6 +288,9 @@
     "schoolNotFound": "Si vous ne trouvez pas l’identifiant, vous pouvez enregistrer une nouvelle école",
     "signupNewSchool": "S'inscrire comme nouvelle école",
     "verifyLocation": "Vérifier l'Emplacement",
-    "register": "S'inscrire"
+    "register": "S'inscrire",
+    "schoolExistsTitle": "ID d'école déjà enregistré",
+    "schoolExistsMessage": "Cet ID d'école officiel {{ schoolId }} est déjà enregistré. Veuillez utiliser un ID différent.",
+    "ok": "OK"
   }
 }

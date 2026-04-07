@@ -7,7 +7,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { IonCheckbox, IonInput } from '@ionic/angular';
+import { AlertController, IonCheckbox, IonInput } from '@ionic/angular';
+import { TranslateService } from '@ngx-translate/core';
 import { GeocodeResponse } from 'src/app/services/dto/response.dto';
 import { LoadingService } from 'src/app/services/loading.service';
 import { LocationService } from 'src/app/services/location.service';
@@ -68,6 +69,33 @@ export class RegisterNewSchoolComponent implements OnInit {
           return;
         }
         this.loading.present();
+
+        const schoolIdValue = this.schoolForm.get('schoolId')?.value;
+        const schoolExists = await new Promise((resolve) => {
+          this.schoolService
+            .getBySchoolIdAndCountryCode(schoolIdValue, this.selectedCountry)
+            .subscribe({
+              next: (data: any) => {
+                resolve(data && data.length > 0);
+              },
+              error: () => {
+                resolve(false);
+              },
+            });
+        });
+
+        if (schoolExists) {
+          this.loading.dismiss();
+          const alert = await this.alertController.create({
+            header: this.translate.instant('registerNewSchool.schoolExistsTitle'),
+            message: this.translate.instant(
+              'registerNewSchool.schoolExistsMessage'
+            ,{ schoolId: schoolIdValue }),
+            buttons: [this.translate.instant('registerNewSchool.ok')],
+          });
+          await alert.present();
+          return;
+        }
         const response: GeocodeResponse = await new Promise(
           (resolve, reject) => {
             this.locationService.getCurrentAddress(false).subscribe({
@@ -148,7 +176,7 @@ export class RegisterNewSchoolComponent implements OnInit {
                 school_name: payload.school_name,
                 name:payload.school_name,
                 giga_id_school: response.data.giga_id_school,
-                country: this.selectedCountryName.trim(),
+                country: this.selectedCountry.trim(),
                 latitude: payload.latitude,
                 longitude: payload.longitude,
                 is_verified: false,
@@ -183,7 +211,6 @@ export class RegisterNewSchoolComponent implements OnInit {
   }
 
   prevStep() {
-    debugger;
     if (this.currentStep >= 1) {
       if (this.currentStep === 1) {
         //back url
@@ -212,13 +239,14 @@ export class RegisterNewSchoolComponent implements OnInit {
     private storage: StorageService,
     private sharedService: SharedService,
     private countryService: CountryService,
+    private alertController: AlertController,
+    private translate: TranslateService,
   ) {
     this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;
       this.selectedCountryName = params.selectedCountryName;
-      console.log(this.selectedCountry);
     });
   }
 

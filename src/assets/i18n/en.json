@@ -282,6 +282,9 @@
     "schoolNotFound": "If you don't find the ID you can register as a new school",
     "signupNewSchool": "Sign up as a new school",
     "verifyLocation": "Verify Location",
-    "register": "Register"
+    "register": "Register",
+    "schoolExistsTitle": "School ID already registered",
+    "schoolExistsMessage": "This official school ID {{ schoolId }} is already registered. Please use a different ID.",
+    "ok": "OK"
   }
 }

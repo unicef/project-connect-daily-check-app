@@ -167,6 +167,9 @@
     "schoolNotFound": "Jika Anda tidak menemukan ID, Anda dapat mendaftar sebagai sekolah baru",
     "signupNewSchool": "Daftar sebagai sekolah baru",
     "verifyLocation": "Verifikasi Lokasi",
-    "register": "Daftar"
+    "register": "Daftar",
+    "schoolExistsTitle": "ID Sekolah sudah terdaftar",
+    "schoolExistsMessage": "ID sekolah resmi ini {{ schoolId }} sudah terdaftar. Silakan gunakan ID yang berbeda.",
+    "ok": "OK"
   }
 }
