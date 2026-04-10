@@ -343,7 +343,6 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Initialize country-related data
    */
   private initializeCountryData() {
-    debugger;
     if (this.school?.country) {
       this.countryService.getPcdcCountryByCode(this.school.country).subscribe(
         (response) => {

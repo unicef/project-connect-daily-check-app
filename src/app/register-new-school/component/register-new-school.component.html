@@ -196,18 +196,18 @@
             >
           </div>
 
-          <ng-container *ngFor="let item of geoCodeResponse | keyvalue">
-            <ion-item lines="none" class="label_top">
-              <ion-label class="font_size">
-                {{ "registerNewSchool." + item.key | translate }}
-              </ion-label>
-            </ion-item>
-            <ion-input
-              class="custom-gray-item"
-              [value]="item.value"
-              disabled="true"
-            ></ion-input>
-          </ng-container>
+          <div style="margin-top: 16px; padding: 0 4px;">
+            <ng-container *ngFor="let item of geoCodeResponse | keyvalue">
+              <div style="display: flex; justify-content: space-between; padding: 15px 0; font-size: 14px; border-bottom: 1px dashed #E0E4E5;">
+                <span style="color: #161616; text-transform: capitalize;">
+                  {{ ("registerNewSchool." + item.key | translate) !== ("registerNewSchool." + item.key) ? ("registerNewSchool." + item.key | translate) : item.key }}
+                </span>
+                <span style="color: #1c1c1c; font-weight: 600; text-align: right;">
+                  {{ item.value }}
+                </span>
+              </div>
+            </ng-container>
+          </div>
         </div>
 
         <!-- Step 3: Review Info -->
@@ -280,7 +280,7 @@
               </div>
               <ng-container *ngFor="let item of geoCodeResponse | keyvalue">
                 <div class="review-row">
-                  <span>{{ "registerNewSchool." + item.key | translate }}</span
+                  <span>{{ ("registerNewSchool." + item.key | translate) !== ("registerNewSchool." + item.key) ? ("registerNewSchool." + item.key | translate) : item.key }}</span
                   ><span class="value"
                     ><b>{{ item.value }}</b></span
                   >
@@ -321,16 +321,7 @@
     </div>
 
     <div class="step-container sticky-footer">
-      <ion-button
-        *ngIf="currentStep === 2"
-        color="primary"
-        expand="full"
-        fill="outline"
-        (click)="nextSkip()"
-        shape="round"
-        class="nav-btn"
-        >Skip</ion-button
-      >
+     
 
       <ion-button
         color="primary"
@@ -339,6 +330,7 @@
         shape="round"
         class="nav-btn"
         [disabled]="currentStep === 3 && !termsCheckbox?.checked"
+        [title]="currentStep === 2 ? 'Click to verify your address and location on an external page.' : ''"
       >
         {{ currentStep === 1 ? ("registerNewSchool.next" | translate) : "" }}
         {{
@@ -350,6 +342,16 @@
           currentStep === 3 ? ("registerNewSchool.register" | translate) : ""
         }}
       </ion-button>
+       <ion-button
+        *ngIf="currentStep === 2"
+        color="primary"
+        expand="full"
+        fill="clear"
+        (click)="nextSkip()"
+        shape="round"
+        class="nav-btn"
+        >Skip</ion-button
+      >
     </div>
   </div>
   <!-- Confirmation Modal -->

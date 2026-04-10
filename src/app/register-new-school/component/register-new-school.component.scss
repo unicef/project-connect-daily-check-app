@@ -478,13 +478,13 @@ ion-select.custom-gray-item {
 .review-step {
   .review-card {
     margin: 16px 0;
-    border: 1px solid #E0E4E5;
+    border: 1px solid #D0D5DD;
     border-radius: 12px;
     box-shadow: none;
 
     ion-card-header {
       padding: 12px 16px;
-      border-bottom: 1px dashed #E0E4E5;
+      border-bottom: 2px dashed #E1E1E1;
 
       ion-card-title {
         font-size: 16px;
@@ -504,7 +504,7 @@ ion-select.custom-gray-item {
       font-size: 14px;
 
       span:first-child {
-        color: #5c626d;
+        color: #161616;
       }
 
       .value {
@@ -542,9 +542,10 @@ ion-select.custom-gray-item {
   background: var(--ion-background-color, #fff);
   z-index: 10;
   border-top: 1px solid #eaeaea;
-  padding: 10px 0 24px 0;
+  padding: 10px 0 15px 0;
   display: flex;
   justify-content: space-around;
+  flex-direction: column;
   // padding: 10px 16px 20px 16px;
 
   .nav-btn {

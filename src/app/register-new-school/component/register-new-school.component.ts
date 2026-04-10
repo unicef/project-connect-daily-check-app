@@ -68,46 +68,42 @@ export class RegisterNewSchoolComponent implements OnInit {
           this.schoolForm.markAllAsTouched();
           return;
         }
-        this.loading.present();
+        
 
         const schoolIdValue = this.schoolForm.get('schoolId')?.value;
-        const schoolExists = await new Promise((resolve) => {
-          this.schoolService
-            .getBySchoolIdAndCountryCode(schoolIdValue, this.selectedCountry)
-            .subscribe({
-              next: (data: any) => {
-                resolve(data && data.length > 0);
-              },
-              error: () => {
-                resolve(false);
-              },
-            });
-        });
-
-        if (schoolExists) {
+        let schoolExists = false;
+        if (this.schoolId !== schoolIdValue) {
+          this.loading.present();
+          schoolExists = await new Promise((resolve) => {
+            this.schoolService
+              .getBySchoolIdAndCountryCode(schoolIdValue, this.selectedCountry)
+              .subscribe({
+                next: (data: any) => {
+                  resolve(data && data.length > 0);
+                },
+                error: () => {
+                  resolve(false);
+                },
+              });
+          });
           this.loading.dismiss();
+        }
+        if (schoolExists) {
           const alert = await this.alertController.create({
-            header: this.translate.instant('registerNewSchool.schoolExistsTitle'),
+            header: this.translate.instant(
+              'registerNewSchool.schoolExistsTitle',
+            ),
             message: this.translate.instant(
-              'registerNewSchool.schoolExistsMessage'
-            ,{ schoolId: schoolIdValue }),
+              'registerNewSchool.schoolExistsMessage',
+              { schoolId: schoolIdValue },
+            ),
             buttons: [this.translate.instant('registerNewSchool.ok')],
           });
           await alert.present();
           return;
         }
-        const response: GeocodeResponse = await new Promise(
-          (resolve, reject) => {
-            this.locationService.getCurrentAddress(false).subscribe({
-              next: (response: GeocodeResponse) => {
-                resolve(response);
-              },
-              error: (error) => {
-                resolve(null);
-              },
-            });
-          },
-        );
+        this.schoolId = schoolIdValue;
+        const response: GeocodeResponse = JSON.parse(this.storage.get('locationInfo'));
         if (response) {
           this.latitude = response.latitude;
           this.longitude = response.longitude;
@@ -117,7 +113,7 @@ export class RegisterNewSchoolComponent implements OnInit {
           delete this.geoCodeResponse.longitude;
           delete this.geoCodeResponse.ipAddress;
         }
-        this.loading.dismiss();
+        
       }
       if (this.currentStep === 2) {
         this.settingsService
@@ -174,7 +170,7 @@ export class RegisterNewSchoolComponent implements OnInit {
               const schoolMock = {
                 school_id: payload.school_id,
                 school_name: payload.school_name,
-                name:payload.school_name,
+                name: payload.school_name,
                 giga_id_school: response.data.giga_id_school,
                 country: this.selectedCountry.trim(),
                 latitude: payload.latitude,
@@ -255,6 +251,7 @@ export class RegisterNewSchoolComponent implements OnInit {
     } else {
       console.log('Geolocation is not supported by this environment.');
     }
+    
     this.schoolForm = this.fb.group({
       schoolId: [this.schoolId, [Validators.required]],
       schoolName: ['', [Validators.required]],
