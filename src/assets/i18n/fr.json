@@ -289,6 +289,7 @@
     "signupNewSchool": "S'inscrire comme nouvelle école",
     "verifyLocation": "Vérifier l'Emplacement",
     "register": "S'inscrire",
+    "skip": "Sauter",
     "schoolExistsTitle": "ID d'école déjà enregistré",
     "schoolExistsMessage": "Cet ID d'école officiel {{ schoolId }} est déjà enregistré. Veuillez utiliser un ID différent.",
     "ok": "OK"

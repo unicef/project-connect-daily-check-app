@@ -283,6 +283,7 @@
     "signupNewSchool": "Sign up as a new school",
     "verifyLocation": "Verify Location",
     "register": "Register",
+    "skip": "Skip",
     "schoolExistsTitle": "School ID already registered",
     "schoolExistsMessage": "This official school ID {{ schoolId }} is already registered. Please use a different ID.",
     "ok": "OK"

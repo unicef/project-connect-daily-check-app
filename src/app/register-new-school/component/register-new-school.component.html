@@ -42,7 +42,7 @@
             <ion-label class="font_size">
               {{ "registerNewSchool.officialSchoolId" | translate }}
               <span class="required">*</span>
-              <ion-icon name="information-circle-outline"></ion-icon>
+              <ion-icon name="information-circle-outline" [title]="'registerNewSchool.officialSchoolId' | translate"></ion-icon>
             </ion-label>
           </ion-item>
           <ion-input
@@ -67,7 +67,7 @@
             <ion-label class="font_size">
               {{ "registerNewSchool.schoolName" | translate }}
               <span class="required">*</span>
-              <ion-icon name="information-circle-outline"></ion-icon>
+              <ion-icon name="information-circle-outline" [title]="'registerNewSchool.schoolName' | translate"></ion-icon>
             </ion-label>
           </ion-item>
           <ion-input
@@ -94,7 +94,7 @@
             <ion-label class="font_size">
               {{ "registerNewSchool.educationLevel" | translate }}
               <span class="required">*</span>
-              <ion-icon name="information-circle-outline"></ion-icon>
+              <ion-icon name="information-circle-outline" [title]="'registerNewSchool.educationLevel' | translate"></ion-icon>
             </ion-label>
           </ion-item>
           <ion-input
@@ -123,8 +123,8 @@
           <ion-item lines="none" class="label_top">
             <ion-label class="font_size">
               {{ "registerNewSchool.contactName" | translate }}
-              <span class="required">*</span>
-              <ion-icon name="information-circle-outline"></ion-icon>
+              <span *ngIf="schoolForm.get('contactName')?.required" class="required">*</span>
+              <ion-icon name="information-circle-outline" [title]="'registerNewSchool.contactName' | translate"></ion-icon>
             </ion-label>
           </ion-item>
           <ion-input
@@ -150,8 +150,8 @@
           <ion-item lines="none" class="label_top">
             <ion-label class="font_size">
               {{ "registerNewSchool.contactEmail" | translate }}
-              <span class="required">*</span>
-              <ion-icon name="information-circle-outline"></ion-icon>
+              <span class="required" *ngIf="schoolForm.get('officialEmail')?.required" >*</span>
+              <ion-icon name="information-circle-outline" [title]="'registerNewSchool.contactEmail' | translate"></ion-icon>
             </ion-label>
           </ion-item>
           <ion-input
@@ -186,7 +186,7 @@
             <ion-label class="font_size">
               {{ "registerNewSchool.latLong" | translate }}
               <span class="required">*</span>
-              <ion-icon name="information-circle-outline"></ion-icon>
+              <ion-icon name="information-circle-outline" [title]="'registerNewSchool.latLong' | translate"></ion-icon>
             </ion-label>
           </ion-item>
           <div class="custom-gray-item readonly-display">
@@ -258,7 +258,9 @@
               <div class="review-row">
                 <span>{{ "registerNewSchool.contactEmail" | translate }}</span
                 ><span class="value"
-                  ><b>{{ schoolForm.get("officialEmail")?.value }}</b></span
+                  ><b>{{ schoolForm.get("officialEmail")?.value||
+                      ("registerNewSchool.na" | translate)
+                  }}</b></span
                 >
               </div>
             </ion-card-content>
@@ -303,6 +305,7 @@
                 "
                 >{{ "registerNewSchool.odbl" | translate }}</b
               >, the
+              
               <b
                 (click)="
                   openExternalUrl('https://www.measurementlab.net/privacy/')
@@ -350,7 +353,7 @@
         (click)="nextSkip()"
         shape="round"
         class="nav-btn"
-        >Skip</ion-button
+        >{{ "registerNewSchool.skip" | translate }}</ion-button
       >
     </div>
   </div>

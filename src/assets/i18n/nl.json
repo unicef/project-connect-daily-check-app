@@ -168,6 +168,7 @@
     "signupNewSchool": "Aanmelden als een nieuwe school",
     "verifyLocation": "Locatie Verifiëren",
     "register": "Registreren",
+    "skip": "Overslaan",
     "schoolExistsTitle": "School-ID al geregistreerd",
     "schoolExistsMessage": "Dit officiële school-ID {{ schoolId }} is al geregistreerd. Gebruik een ander ID.",
     "ok": "OK"

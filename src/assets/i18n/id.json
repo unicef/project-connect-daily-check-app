@@ -168,6 +168,7 @@
     "signupNewSchool": "Daftar sebagai sekolah baru",
     "verifyLocation": "Verifikasi Lokasi",
     "register": "Daftar",
+    "skip": "Lewati",
     "schoolExistsTitle": "ID Sekolah sudah terdaftar",
     "schoolExistsMessage": "ID sekolah resmi ini {{ schoolId }} sudah terdaftar. Silakan gunakan ID yang berbeda.",
     "ok": "OK"

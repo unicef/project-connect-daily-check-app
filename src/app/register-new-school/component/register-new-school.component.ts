@@ -68,7 +68,6 @@ export class RegisterNewSchoolComponent implements OnInit {
           this.schoolForm.markAllAsTouched();
           return;
         }
-        
 
         const schoolIdValue = this.schoolForm.get('schoolId')?.value;
         let schoolExists = false;
@@ -103,7 +102,9 @@ export class RegisterNewSchoolComponent implements OnInit {
           return;
         }
         this.schoolId = schoolIdValue;
-        const response: GeocodeResponse = JSON.parse(this.storage.get('locationInfo'));
+        const response: GeocodeResponse = JSON.parse(
+          this.storage.get('locationInfo'),
+        );
         if (response) {
           this.latitude = response.latitude;
           this.longitude = response.longitude;
@@ -113,7 +114,6 @@ export class RegisterNewSchoolComponent implements OnInit {
           delete this.geoCodeResponse.longitude;
           delete this.geoCodeResponse.ipAddress;
         }
-        
       }
       if (this.currentStep === 2) {
         this.settingsService
@@ -251,16 +251,13 @@ export class RegisterNewSchoolComponent implements OnInit {
     } else {
       console.log('Geolocation is not supported by this environment.');
     }
-    
+
     this.schoolForm = this.fb.group({
       schoolId: [this.schoolId, [Validators.required]],
       schoolName: ['', [Validators.required]],
-      contactName: ['', Validators.required],
       educationLevel: ['', Validators.required],
-      officialEmail: [
-        '',
-        [Validators.required, Validators.pattern(this.emailPattern)],
-      ],
+      contactName: [''],
+      officialEmail: ['', [Validators.pattern(this.emailPattern)]],
     });
   }
 
