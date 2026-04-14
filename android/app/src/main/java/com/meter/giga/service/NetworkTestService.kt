@@ -129,7 +129,7 @@ class NetworkTestService : LifecycleService() {
 
       try {
         // Example logging
-        Sentry.capture("Foreground Service started")
+        Sentry.captureMessage("Foreground Service started")
 
 //        secureDataStore = SecureDataStore(this)
         val scheduleType = intent?.getStringExtra(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_DAILY
@@ -159,20 +159,20 @@ class NetworkTestService : LifecycleService() {
         })
         client.startTest(NDTTest.TestType.DOWNLOAD_AND_UPLOAD)
       } catch (e: Exception) {
-        Sentry.capture(e)
+        Sentry.captureException(e)
       }
     } else {
       if (!networkChecker.isNetworkAvailable()) {
         AppLogger.d("GIGA NetworkTestService ", "Device is offline")
-        Sentry.capture("Device is offline, speed test skipped")
+        Sentry.captureMessage("Device is offline, speed test skipped")
         updateNotification("Device is offline, please check internet connectivity")
         GigaAppPlugin.sendNoNetworkError()
       } else if (prefs.isTestRunning) {
         AppLogger.d("GIGA NetworkTestService ", "Already Speed Test Executing")
-        Sentry.capture("Already Speed Test Executing")
+        Sentry.captureMessage("Already Speed Test Executing")
       } else {
         AppLogger.d("GIGA NetworkTestService ", "Device is offline")
-        Sentry.capture("speed test skipped")
+        Sentry.captureMessage("speed test skipped")
         updateNotification("Speed test skipped")
       }
     }
@@ -408,7 +408,7 @@ class NetworkTestService : LifecycleService() {
           allDoneInvoked = 0
         }
       } catch (e: Exception) {
-        Sentry.capture(e)
+        Sentry.captureException(e)
       }
     }
 
@@ -480,7 +480,7 @@ class NetworkTestService : LifecycleService() {
                   "GIGA NetworkTestService",
                   "Get Client Info API Failed: ${clientInfo.error}"
                 )
-                Sentry.capture("Client Info Fetch Failed")
+                Sentry.captureMessage("Client Info Fetch Failed")
               }
 
               ResultState.Loading -> {
@@ -513,7 +513,7 @@ class NetworkTestService : LifecycleService() {
                   "GIGA NetworkTestService",
                   "Get Client Info API Failed: ${serverInfo.error}"
                 )
-                Sentry.capture("Server Info Fetch Failed")
+                Sentry.captureMessage("Server Info Fetch Failed")
               }
 
               ResultState.Loading -> {
@@ -541,7 +541,7 @@ class NetworkTestService : LifecycleService() {
               null
             )
           } else {
-            Sentry.capture(e)
+            Sentry.captureException(e)
             updateNotification("Speed test measurements not available, please try again.")
             Log.e("GIGA NetworkTestService", "Error: ${e.message}")
             GigaAppPlugin.sendSpeedTestCompletedWithError(
@@ -633,7 +633,7 @@ class NetworkTestService : LifecycleService() {
                   "Updated Speed Test Data $updateSpeedTestData"
                 )
                 prefs.oldSpeedTestData = updateSpeedTestData
-                Sentry.capture("Failed to sync speed test data")
+                Sentry.captureMessage("Failed to sync speed test data")
                 updateNotification("Failed to sync speed test data.")
                 GigaAppPlugin.sendSpeedTestCompletedWithError(
                   speedTestResultRequestEntity,
@@ -676,7 +676,7 @@ class NetworkTestService : LifecycleService() {
                 )
                 stopForeground(STOP_FOREGROUND_DETACH)
                 stopSelf()
-                Sentry.capture("Synced speed test data successfully")
+                Sentry.captureMessage("Synced speed test data successfully")
               }
             }
           } catch (e: Exception) {
@@ -694,7 +694,7 @@ class NetworkTestService : LifecycleService() {
               speedTestResultRequestEntity,
               measurementsItem
             )
-            Sentry.capture(e)
+            Sentry.captureException(e)
             stopForeground(STOP_FOREGROUND_DETACH)
             stopSelf()
           }
@@ -713,7 +713,7 @@ class NetworkTestService : LifecycleService() {
             speedTestResultRequestEntity,
             measurementsItem
           )
-          Sentry.capture("Failed to generate the speed test upload payload")
+          Sentry.captureMessage("Failed to generate the speed test upload payload")
           stopForeground(STOP_FOREGROUND_DETACH)
           stopSelf()
         }

@@ -54,7 +54,7 @@ class BootBroadCastReceiver(
         }
       }
     } catch (e: Exception) {
-      Sentry.capture(e)
+      Sentry.captureException(e)
     }
   }
 
@@ -114,7 +114,7 @@ class BootBroadCastReceiver(
       }
     } catch (e: Exception) {
       AppLogger.d("GIGA BootBroadCastReceiver", "On Boot For Slot ${e.toString()}")
-      Sentry.capture("Received Exception while scheduling the speed test after boot completed")
+      Sentry.captureMessage("Received Exception while scheduling the speed test after boot completed")
     }
   }
 }

@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
-//apply plugin: 'io.sentry.android.gradle'
+apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 android {
   namespace "com.meter.giga"
@@ -96,7 +96,7 @@ dependencies {
   implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
   implementation "androidx.security:security-crypto:1.1.0"
   implementation "androidx.datastore:datastore-preferences:1.1.7"
-  implementation 'io.sentry:sentry-android:1.7.30'
+  implementation 'io.sentry:sentry-android:8.29.0'
   implementation "com.google.android.gms:play-services-location:21.3.0"
   implementation project(':capacitor-android')
   implementation project(':ndt7lib')
@@ -107,6 +107,17 @@ dependencies {
   testImplementation "org.robolectric:robolectric:4.12.1"
   testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3"
   testImplementation "androidx.work:work-testing:2.11.1"
+  implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))
+
+  // This forces the exclusion of the old jdk7/jdk8 modules that are now inside stdlib
+  constraints {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22") {
+      because("kotlin-stdlib-jdk7 is now part of kotlin-stdlib")
+    }
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22") {
+      because("kotlin-stdlib-jdk8 is now part of kotlin-stdlib")
+    }
+  }
 
   // Mockito Core
   testImplementation 'org.mockito:mockito-core:5.14.1'
@@ -118,6 +129,11 @@ dependencies {
   testImplementation "org.jetbrains.kotlin:kotlin-reflect"
   testImplementation "com.squareup.okhttp3:okhttp:4.12.0"
   androidTestImplementation 'com.linkedin.dexmaker:dexmaker-mockito:2.28.3'
+  androidTestImplementation 'androidx.test.espresso:espresso-web:3.7.0'
+  androidTestImplementation 'androidx.test.espresso:espresso-intents:3.7.0'
+  androidTestImplementation 'androidx.test:runner:1.7.0'
+  androidTestImplementation 'androidx.test:rules:1.7.0'
+  androidTestImplementation "androidx.test.uiautomator:uiautomator:2.3.0"
   implementation project(':capacitor-cordova-android-plugins')
   implementation "org.jetbrains.kotlin:kotlin-test:2.1.21"
 }

@@ -66,7 +66,7 @@ class RetrofitInstanceBuilderTest {
 
     RetrofitInstanceBuilder.getSpeedTestApi("https://baseurl.com/")
 
-    sentryMock.verify { Sentry.capture("Base Url is : https://baseurl.com/") }
+    sentryMock.verify { Sentry.captureMessage("Base Url is : https://baseurl.com/") }
     sentryMock.close()
   }
 

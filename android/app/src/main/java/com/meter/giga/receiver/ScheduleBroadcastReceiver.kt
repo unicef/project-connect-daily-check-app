@@ -103,7 +103,7 @@ class ScheduleBroadcastReceiver(
       prefs.nextExecutionTime = nextAlarmTime
       alarmHelper.scheduleExactAlarm(context, nextAlarmTime, NEXT_SLOT)
     } catch (e: Exception) {
-      Sentry.capture(e)
+      Sentry.captureException(e)
     }
   }
 }

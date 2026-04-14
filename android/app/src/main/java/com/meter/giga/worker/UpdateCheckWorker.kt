@@ -33,13 +33,13 @@ class UpdateCheckWorker(
   params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
 
-  private var logger: Logger = AppLogger
+  var logger: Logger = AppLogger
 
   override suspend fun doWork(): Result {
     logger.d("Daily Schedule Interval", "Worker executed")
 
     return try {
-      Sentry.capture("Updated Checker executed before play store check")
+      Sentry.captureMessage("Updated Checker executed before play store check")
 
       val appUpdateManager =
         AppUpdateManagerFactory.create(applicationContext)
@@ -47,20 +47,20 @@ class UpdateCheckWorker(
       // WAIT for Play Store response
       val info = appUpdateManager.appUpdateInfo.await()
 
-      Sentry.capture("Updated Checker executed after play store check")
-      Sentry.capture("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
-      Sentry.capture("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
+      Sentry.captureMessage("Updated Checker executed after play store check")
+      Sentry.captureMessage("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
+      Sentry.captureMessage("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
 
       if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
         info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
       ) {
-        Sentry.capture("Update: Update available and allowed")
+        Sentry.captureMessage("Update: Update available and allowed")
 
         logger.d("Update", "Update available and allowed")
         showUpdateNotification()
 
       } else {
-        Sentry.capture("Update: No update OR not allowed")
+        Sentry.captureMessage("Update: No update OR not allowed")
 
         logger.d("Update", "No update OR not allowed")
       }
@@ -68,7 +68,7 @@ class UpdateCheckWorker(
       Result.success()
 
     } catch (e: Exception) {
-      Sentry.capture("Updated Checker Failed due to ${e.message}")
+      Sentry.captureMessage("Updated Checker Failed due to ${e.message}")
       Result.failure()
     }
   }

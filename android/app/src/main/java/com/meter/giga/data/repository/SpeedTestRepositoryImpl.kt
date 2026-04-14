@@ -267,7 +267,7 @@ class SpeedTestRepositoryImpl(
       delay(500)
       if (retryAttemptCount < 4) {
         val attemptNo = retryAttemptCount + 1;
-        Sentry.capture("Sync data re attempt count : $attemptNo")
+        Sentry.captureMessage("Sync data re attempt count : $attemptNo")
         syncSpeedTestData(speedTestData, uploadKey, baseUrl, attemptNo)
         logger.d("GIGA SpeedTestRepositoryImpl Failed with attempt No: ", "$retryAttemptCount")
       } else {
@@ -275,7 +275,7 @@ class SpeedTestRepositoryImpl(
           "GIGA SpeedTestRepositoryImpl Failed after no of attempts",
           "$retryAttemptCount"
         )
-        Sentry.capture("Sync retry failed with $response")
+        Sentry.captureMessage("Sync retry failed with $response")
       }
     }
     return ResultState.Failure(

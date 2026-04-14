@@ -45,7 +45,7 @@ export class RegisterSchoolPageComponent implements OnInit {
     public loading: LoadingService,
     private readonly router: Router,
     private settingsService: SettingsService,
-    private translate: TranslateService
+    private translate: TranslateService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);

@@ -1,124 +1,72 @@
 <app-pcdc-header></app-pcdc-header>
 <ion-content class="font_open_sans">
-  <ion-button
-    [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'"
-    fill="clear"
-    [routerLink]="['/register-school']"
-  >
-    <ion-img
-      src="assets/images/back_button.svg"
-      name="arrow-back-outline"
-      class="backIcon"
-    ></ion-img>
+  <ion-button data-testid="search-country-back"
+    [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"
+    [routerLink]="['/register-school']">
+    <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
   </ion-button>
+
   <div class="container">
     <div class="welcomebg1">
       <div>
-        <div
-          class="search-label"
-          [translate]="'searchCountry.detected-auto'"
-        ></div>
-        <ion-item
-          lines="none"
-          class="searchCountry"
-          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && isPcdcCountry !== false) ? 'warning_color' : this.isPcdcCountry === false ? 'error_color' : ''"
-        >
-          <ion-label
-            class="label"
-            [translate]="'searchCountry.country'"
-          ></ion-label>
-          <ion-searchbar
-            [(ngModel)]="searchTerm"
-            (ionInput)="onSearchInput($event)"
-            debounce="300"
-            placeholder="Search country..."
-          ></ion-searchbar>
-          <ion-img
-            *ngIf="this.isPcdcCountry === false "
-            class="img_wifi"
-            src="assets/images/error_country.svg"
-          ></ion-img>
+        <div class="search-label" [translate]="'searchCountry.detected-auto'"></div>
+
+        <ion-item lines="none" class="searchCountry"
+          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && isPcdcCountry !== false) ? 'warning_color' : this.isPcdcCountry === false ? 'error_color' : ''">
+          <ion-label class="label" [translate]="'searchCountry.country'"></ion-label>
+
+          <ion-searchbar data-testid="search-country-input" [(ngModel)]="searchTerm" (ionInput)="onSearchInput($event)"
+            debounce="300" placeholder="Search country..."></ion-searchbar>
+
+          <!-- Icons stay without testid since they're visual only -->
+          <ion-img *ngIf="this.isPcdcCountry === false " class="img_wifi"
+            src="assets/images/error_country.svg"></ion-img>
 
           <ion-img
             *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && (this.isPcdcCountry !== false)"
             class="img_wifi"
             [ngClass]="{'margin_on_condition': this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && this.isPcdcCountry === false}"
-            src="assets/images/Warning.svg"
-          ></ion-img>
+            src="assets/images/Warning.svg"></ion-img>
         </ion-item>
 
-        <ion-list
-          *ngIf="filteredCountries.length > 0"
-          class="scrollable scrollable_content"
-        >
-          <ion-item
-            button="true"
-            class="dropdown_list half-border-bottom"
-            lines="none"
-            *ngFor="let country of filteredCountries"
-            (click)="selectCountry(country)"
-          >
+        <ion-list data-testid="search-country-list" *ngIf="filteredCountries.length > 0"
+          class="scrollable scrollable_content">
+          <ion-item data-testid="search-country-item" button="true" class="dropdown_list half-border-bottom"
+            lines="none" *ngFor="let country of filteredCountries" (click)="selectCountry(country)">
             {{ country.name }}
           </ion-item>
         </ion-list>
-        <div
-          *ngIf="automaticSearched"
-          class="search-label change-country"
-          [translate]="'searchCountry.change-country'"
-        ></div>
-        <span class="error_message" *ngIf="this.isPcdcCountry === false">
-          <ion-img
-            *ngIf="this.isPcdcCountry === false"
-            class="error_icon"
-            src="assets/images/error_country.svg"
-          ></ion-img>
 
-          <div
-            class="search-label-error"
-            [translate]="'searchCountry.not-available'"
-            [translateParams]="{ appName, appNameSuffix }"
-          ></div>
-        </span>
-        <span
-          class="error_message"
-          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && this.isPcdcCountry !== false"
-        >
-          <ion-img class="error_icon" src="assets/images/Warning.svg"></ion-img>
-          <div
-            class="search-label-error"
-            [translate]="'searchCountry.country-not-accurate'"
-          ></div>
-        </span>
-        <!-- <div
-          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry"
-          class="search-label"
-          [translate]="'searchCountry.please-double-check'"
-        ></div> -->
-      </div>
-      <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
-        <div *ngIf="isCheckingEligibility" class="search-label">
-          <ion-spinner
-            name="crescent"
-            style="zoom: 0.6; margin-right: 10px"
-          ></ion-spinner>
-          <span
-            style="font-size: 12px"
-            [translate]="'searchCountry.loading'"
-          ></span>
+        <div *ngIf="automaticSearched" class="search-label change-country" [translate]="'searchCountry.change-country'">
         </div>
-        <ion-button
-          color="primary"
-          appEnterKeyClick
-          tabindex="0"
-          block
+
+        <span data-testid="search-country-error" class="error_message" *ngIf="this.isPcdcCountry === false">
+          <ion-img *ngIf="this.isPcdcCountry === false" class="error_icon"
+            src="assets/images/error_country.svg"></ion-img>
+          <div class="search-label-error" [translate]="'searchCountry.not-available'"
+            [translateParams]="{ appName, appNameSuffix }"></div>
+        </span>
+
+        <span data-testid="search-country-warning" class="error_message"
+          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && this.isPcdcCountry !== false">
+          <ion-img class="error_icon" src="assets/images/Warning.svg"></ion-img>
+          <div class="search-label-error" [translate]="'searchCountry.country-not-accurate'"></div>
+        </span>
+      </div>
+
+      <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
+        <div data-testid="search-country-spinner-container" *ngIf="isCheckingEligibility" class="search-label">
+          <ion-spinner data-testid="search-country-spinner" name="crescent"
+            style="zoom: 0.6; margin-right: 10px"></ion-spinner>
+          <span style="font-size: 12px" [translate]="'searchCountry.loading'"></span>
+        </div>
+
+        <ion-button data-testid="search-country-confirm" color="primary" appEnterKeyClick tabindex="0" block
           class="dailycheck_btn btn_margin"
           [disabled]="isCheckingEligibility || (!selectedFromList && !automaticSearched) || this.isPcdcCountry === false || !searchTerm.length"
-          (click)="confirmCountry()"
-          ><span
-            class="submit_button_size"
-            [translate]="'searchCountry.confirm'"
-          ></span
-        ></ion-button>
+          (click)="confirmCountry()">
+          <span class="submit_button_size" [translate]="'searchCountry.confirm'"></span>
+        </ion-button>
       </div>
     </div>
   </div>

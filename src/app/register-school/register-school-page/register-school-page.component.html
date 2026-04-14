@@ -1,147 +1,85 @@
 <app-pcdc-header></app-pcdc-header>
+
 <ion-content>
-  <div class="container" [ngClass]="{ privacy_height: isLast }">
-    <ion-button
-      [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'"
-      fill="clear"
-      (click)="handleBackClick()"
-    >
-      <ion-img
-        src="assets/images/back_button.svg"
-        name="arrow-back-outline"
-        class="backIcon"
-      ></ion-img>
+  <div class="container" [ngClass]="{ privacy_height: isLast }" data-testid="register-school-page">
+    <ion-button data-testid="register-school-back"
+      [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"
+      (click)="handleBackClick()">
+      <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
     </ion-button>
-    <ion-slides
-      (ionSlideDidChange)="checkCurrentSlide()"
-      (ionSlideWillChange)="checkCurrentSlide()"
-      [options]="slideOpts"
-      (ionSlideReachEnd)="reachedEnd()"
-      class="schoolsuccess"
-      [ngClass]="{ 'last-slide-active': isLast }"
-      #mySlider
-    >
-      <ion-slide>
+
+    <ion-slides data-testid="register-school-slider" (ionSlideDidChange)="checkCurrentSlide()"
+      (ionSlideWillChange)="checkCurrentSlide()" [options]="slideOpts" (ionSlideReachEnd)="reachedEnd()"
+      class="schoolsuccess" [ngClass]="{ 'last-slide-active': isLast }" #mySlider>
+      <ion-slide data-testid="register-school-slide-1">
         <div class="top-layout">
           <div class="successInfo">
-            <ion-img
-              src="assets/images/register_plugin.svg"
-              class="icon1"
-            ></ion-img>
-            <div
-              class="success-txt txt-font"
-              [translate]="'registerSchool.register-step-1'"
-            ></div>
-            <div
-              class="success-txt"
-              [innerHtml]="
-                'registerSchool.register-part-2' | translate : { appName }
-              "
-            ></div>
+            <ion-img src="assets/images/register_plugin.svg" class="icon1"></ion-img>
+            <div class="success-txt txt-font" [translate]="'registerSchool.register-step-1'"></div>
+            <div class="success-txt" [innerHtml]="'registerSchool.register-part-2' | translate : { appName }"></div>
           </div>
         </div>
       </ion-slide>
-      <ion-slide>
+
+      <ion-slide data-testid="register-school-slide-2">
         <div class="top-layout">
           <div class="successInfo">
-            <ion-img
-              src="assets/images/installing_register.svg"
-              class="icon2"
-            ></ion-img>
-            <div
-              class="success-txt"
-              [innerHtml]="'registerSchool.register-step-2' | translate"
-            ></div>
+            <ion-img src="assets/images/installing_register.svg" class="icon2"></ion-img>
+            <div class="success-txt" [innerHtml]="'registerSchool.register-step-2' | translate"></div>
           </div>
         </div>
       </ion-slide>
-      <ion-slide>
+
+      <ion-slide data-testid="register-school-slide-3">
         <div class="top-layout">
           <div class="successInfo-slide3">
-            <ion-img
-              src="assets/images/start_registeration.svg"
-              class="icon3"
-            ></ion-img>
-            <div
-              class="success-txt last-step"
-              [innerHtml]="'registerSchool.register-step-3' | translate"
-            ></div>
+            <ion-img src="assets/images/start_registeration.svg" class="icon3"></ion-img>
+            <div class="success-txt last-step" [innerHtml]="'registerSchool.register-step-3' | translate"></div>
           </div>
         </div>
       </ion-slide>
     </ion-slides>
 
-    <div [ngClass]="isNativeApp() ? 'middle-layout-native' : 'middle-layout'" *ngIf="isLast">
-      <div class="read_content">
-        <!-- <div class="register_readMore" (click)="openExternalUrl('https://www.unicef.org/legal#privacy-policy')"
-          [translate]="'registerSchoolPage.readMore' | translate">
-
-        </div> -->
-        <!-- <ion-img src="assets/images/forward_arrow.svg"></ion-img> -->
-      </div>
+    <div data-testid="register-school-privacy-section"
+      [ngClass]="isNativeApp() ? 'middle-layout-native' : 'middle-layout'" *ngIf="isLast">
+      <div class="read_content"></div>
       <label class="privacy-container">
         <div class="input">
-          <ion-checkbox
-            name="privacy"
-            [(ngModel)]="isPrivacyChecked"
-            class="checkbox"
-          ></ion-checkbox>
+          <ion-checkbox data-testid="register-school-privacy-checkbox" name="privacy" [(ngModel)]="isPrivacyChecked"
+            class="checkbox"></ion-checkbox>
         </div>
+
         <div class="learnmore">
-          <span
-            class="learnmore"
-            [innerHTML]="'registerSchoolPage.privacy' | translate"
-          ></span>
+          <span class="learnmore" [innerHTML]="'registerSchoolPage.privacy' | translate"></span>
           <span class="learnmore">
-            <b
-              class="underline"
-              (click)="
-                openExternalUrl(
-                  'https://opendatacommons.org/licenses/odbl/1-0/'
-                )
-              "
-            >
-              CC-BY-4.0 License</b
-            >, the
-            <b
-              class="underline"
-              (click)="
-                openExternalUrl('https://www.unicef.org/legal#privacy-policy')
-              "
-              >UNICEF's Privacy Policy</b
-            >
+            <b data-testid="register-school-ccby-link" class="underline"
+              (click)="openExternalUrl('https://opendatacommons.org/licenses/odbl/1-0/')">
+              CC-BY-4.0 License
+            </b>,
+            the
+            <b data-testid="register-school-unicef-link" class="underline"
+              (click)="openExternalUrl('https://www.unicef.org/legal#privacy-policy')">
+              UNICEF's Privacy Policy
+            </b>
             and
-            <b
-              class="underline"
-              (click)="
-                openExternalUrl('https://creativecommons.org/licenses/by/4.0/')
-              "
-              >M-Lab Privacy Policy</b
-            >.</span
-          >
+            <b data-testid="register-school-mlab-link" class="underline"
+              (click)="openExternalUrl('https://creativecommons.org/licenses/by/4.0/')">
+              M-Lab Privacy Policy
+            </b>.
+          </span>
         </div>
       </label>
     </div>
+
     <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
       <div class="swiper-pagination"></div>
 
-      <ion-button
-        color="primary"
-        appEnterKeyClick
-        (click)="swipeNext()"
-        class="dailycheck_btn btn_margin"
-        *ngIf="!isLast"
-        [translate]="'next'"
-      ></ion-button>
-      <ion-button
-        color="primary"
-        [disabled]="!isPrivacyChecked"
-        appEnterKeyClick
-        (click)="moveToStartTest()"
-        class="dailycheck_btn btn_margin"
-        *ngIf="isLast"
-        [translate]="'registerSchool.start-registeration'"
-      ></ion-button>
+      <ion-button data-testid="register-school-next-button" color="primary" appEnterKeyClick (click)="swipeNext()"
+        class="dailycheck_btn btn_margin" *ngIf="!isLast" [translate]="'next'"></ion-button>
+
+      <ion-button data-testid="register-school-start-button" color="primary" [disabled]="!isPrivacyChecked"
+        appEnterKeyClick (click)="moveToStartTest()" class="dailycheck_btn btn_margin" *ngIf="isLast"
+        [translate]="'registerSchool.start-registeration'"></ion-button>
     </div>
   </div>
 </ion-content>

@@ -224,8 +224,8 @@ object GigaUtil {
 //      id = null
       )
     } catch (e: Exception) {
-      Sentry.capture("Failed to create speedtest request payload")
-      Sentry.capture(e)
+      Sentry.captureMessage("Failed to create speedtest request payload")
+      Sentry.captureException(e)
       return null;
     }
   }
@@ -270,7 +270,7 @@ object GigaUtil {
         total = totalBytes,
       )
     } catch (e: Exception) {
-      Sentry.capture(e)
+      Sentry.captureException(e)
       return DataUsage(
         download = 0,
         upload = 0,

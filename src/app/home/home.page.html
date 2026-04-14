@@ -1,27 +1,39 @@
 <app-pcdc-header></app-pcdc-header>
-<ion-content no-bounce>
+
+<ion-content data-testid="home-screen" id="home-screen" no-bounce>
   <div class="container font_open_sans">
     <div class="welcomebg1">
       <div class="middle_container_home">
         <div class="middle_container_home_content">
           <div class="top-layout">
-            <div class="welcometxt1">
-              <span [translate]="'home.welcome' | translate"> </span><ion-img src="assets/images/gigameter_logo.png"
-                class="giga_meter_logo"></ion-img>
+            <div class="welcometxt1" data-testid="home-welcome" id="home-welcome">
+              <span [translate]="'home.welcome' | translate"></span>
+              <ion-img src="assets/images/gigameter_logo.png" class="giga_meter_logo">
+              </ion-img>
             </div>
-            <div class="welcometxt2" [translate]="'home.title2' | translate:{ appName }"></div>
+
+            <div class="welcometxt2" data-testid="home-title" id="home-title"
+              [translate]="'home.title2' | translate:{ appName }">
+            </div>
           </div>
-          <ion-img src="assets/images/welcome_icon.svg" class="welcome_icon"></ion-img>
-          <div class="learn_more_text" (click)="openExternalUrl('https://meter.giga.global/')">
-            <span  [translate]="'home.learnMore' | translate"></span> <ion-img src="assets/images/Launch.png"
-               class="welcome_icon"></ion-img>
+
+          <ion-img src="assets/images/welcome_icon.svg" class="welcome_icon">
+          </ion-img>
+
+          <div class="learn_more_text" data-testid="home-learn-more" id="home-learn-more"
+            (click)="openExternalUrl('https://meter.giga.global/')">
+            <span [translate]="'home.learnMore' | translate"></span>
+            <ion-img src="assets/images/Launch.png" class="welcome_icon">
+            </ion-img>
           </div>
-         
         </div>
       </div>
-     <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
-        <ion-button color="primary" appEnterKeyClick  block [routerLink]="['/register-school']"
-          class="dailycheck_btn"><span class="submit_button_size" [translate]="'home.next'"></span></ion-button>
+
+      <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
+        <ion-button data-testid="home-next" id="home-next" color="primary" appEnterKeyClick block
+          [routerLink]="['/register-school']" class="dailycheck_btn">
+          <span class="submit_button_size" [translate]="'home.next'"></span>
+        </ion-button>
       </div>
     </div>
   </div>

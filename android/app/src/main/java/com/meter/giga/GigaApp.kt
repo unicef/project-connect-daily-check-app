@@ -10,10 +10,14 @@ import com.meter.giga.ararm_scheduler.AlarmHelper.getNextDayTimeToCheckVersionUp
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.worker.UpdateCheckWorker
+import io.sentry.ProfileLifecycle
 import io.sentry.Sentry
-import io.sentry.android.AndroidSentryClientFactory
+import io.sentry.SentryLevel
+import io.sentry.SentryOptions
+import io.sentry.android.core.SentryAndroid
 import java.util.Properties
 import java.util.concurrent.TimeUnit
+import kotlin.apply
 
 /**
  * Giga App Application class
@@ -52,7 +56,7 @@ class GigaApp : Application() {
 
   private fun initAppUpdateCheck() {
     AppLogger.d("Giga Meter", "App update check installer")
-    Sentry.capture("Updated Checker executed On App Launch")
+    Sentry.captureMessage("Updated Checker executed On App Launch")
     val workRequest = PeriodicWorkRequest.Builder(
       UpdateCheckWorker::class.java,
       24, TimeUnit.HOURS
@@ -85,29 +89,51 @@ class GigaApp : Application() {
     alarmPrefs.environment = environment
     AppLogger.d("GIGA App environment : ", environment)
     // Initialize Sentry with legacy Android factory
-    Sentry.init(
-      getString(R.string.sentry_dsn),
-      AndroidSentryClientFactory(applicationContext)
-    )
-    Sentry.getContext().apply {
-      // 🏷️ Add custom tags (key-value)
-      addTag("environment", getEnvironment(environment))
-    }
-  }
+//    Sentry.init(
+//      getString(R.string.sentry_dsn),
+//      AndroidSentryClientFactory(applicationContext)
+//    )
+//    Sentry.getContext().apply {
+//      // 🏷️ Add custom tags (key-value)
+//      addTag("environment", getEnvironment(environment))
+//    }
 
-  private fun getEnvironment(env: String): String {
-    when (env) {
-      "stg" ->
-        return "staging"
-
-
-      "prod" ->
-        return "production"
-
-
-      else ->
-        return "development"
-
+    SentryAndroid.init(this) { options ->
+      // Required: set your sentry.io project identifier (DSN)
+      options.dsn = getString(R.string.sentry_dsn)
+      // Add data like request headers, user ip address and device name, see https://docs.sentry.io/platforms/android/data-management/data-collected/ for more info
+      options.isSendDefaultPii = true
+      // enable automatic traces for user interactions (clicks, swipes, scrolls)
+      options.isEnableUserInteractionTracing = true
+      // enable screenshot for crashes
+      options.isAttachScreenshot = true
+      // enable view hierarchy for crashes
+      options.isAttachViewHierarchy = true
+      // enable the performance API by setting a sample-rate, adjust in production env
+      options.tracesSampleRate = 1.0
+      // enable UI profiling, adjust in production env. This is evaluated only once per session
+      options.profileSessionSampleRate = 1.0
+      // set profiling mode. For more info see https://docs.sentry.io/platforms/android/profiling/#enabling-ui-profiling
+      options.profileLifecycle = ProfileLifecycle.TRACE
+      // enable profiling on app start. The app start profile will be stopped automatically when the app start root span finishes
+      options.isStartProfilerOnAppStart = true
     }
   }
 }
+
+private fun getEnvironment(env: String): String {
+  when (env) {
+    "stg" ->
+      return "staging"
+
+
+    "prod" ->
+      return "production"
+
+
+    else ->
+      return "development"
+
+  }
+}
+

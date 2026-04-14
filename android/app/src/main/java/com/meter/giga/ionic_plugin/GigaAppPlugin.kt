@@ -338,9 +338,9 @@ class GigaAppPlugin : Plugin() {
 
   private suspend fun checkAppUpdate(): String {
     return withContext(Dispatchers.IO) {
-      Sentry.capture("Updated Checker executed")
+      Sentry.captureMessage("Updated Checker executed")
       try {
-        Sentry.capture("Updated Checker executed before play store check")
+        Sentry.captureMessage("Updated Checker executed before play store check")
 
         val appUpdateManager =
           AppUpdateManagerFactory.create(context)
@@ -348,22 +348,22 @@ class GigaAppPlugin : Plugin() {
         // WAIT for Play Store response
         val info = appUpdateManager.appUpdateInfo.await()
 
-        Sentry.capture("Updated Checker executed after play store check")
-        Sentry.capture("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
-        Sentry.capture("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
+        Sentry.captureMessage("Updated Checker executed after play store check")
+        Sentry.captureMessage("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
+        Sentry.captureMessage("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
 
         if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
           info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
         ) {
-          Sentry.capture("Update: Update available and allowed")
+          Sentry.captureMessage("Update: Update available and allowed")
           AppLogger.d("Update", "Update available and allowed")
         } else {
-          Sentry.capture("Update: No update OR not allowed")
+          Sentry.captureMessage("Update: No update OR not allowed")
           AppLogger.d("Update", "No update OR not allowed")
         }
         return@withContext "Done"
       } catch (e: Exception) {
-        Sentry.capture("Updated Checker Failed due to ${e.message}")
+        Sentry.captureMessage("Updated Checker Failed due to ${e.message}")
         return@withContext "Done"
       }
     }

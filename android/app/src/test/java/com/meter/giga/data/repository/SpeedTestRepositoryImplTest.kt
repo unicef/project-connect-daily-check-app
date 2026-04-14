@@ -24,6 +24,7 @@ import kotlinx.coroutines.runBlocking
 import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.ResponseBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -187,7 +188,7 @@ class SpeedTestRepositoryImplTest {
       .thenReturn(
         Response.error(
           500,
-          ResponseBody.create("text/plain".toMediaTypeOrNull(), "Error")
+          "Error".toResponseBody("text/plain".toMediaTypeOrNull())
         )
       )
 
@@ -233,7 +234,7 @@ class SpeedTestRepositoryImplTest {
   fun `getClientInfoData returns Failure when API fails`() = runBlocking {
     val response = Response.error<ClientInfoResponseModel>(
       400,
-      ResponseBody.create(null, "Bad request")
+      "Bad request".toResponseBody(null)
     )
 
     whenever(mockClientApi.getClientInfo(anyOrNull())).thenReturn(response)
@@ -412,7 +413,7 @@ class SpeedTestRepositoryImplTest {
       .thenReturn(
         Response.error(
           500,
-          ResponseBody.create("text/plain".toMediaTypeOrNull(), "Error")
+          "Error".toResponseBody("text/plain".toMediaTypeOrNull())
         )
       )
 
@@ -421,7 +422,7 @@ class SpeedTestRepositoryImplTest {
       .thenReturn(
         Response.error(
           500,
-          ResponseBody.create("text/plain".toMediaTypeOrNull(), "Error")
+          "Error".toResponseBody("text/plain".toMediaTypeOrNull())
         )
       )
 
@@ -468,7 +469,7 @@ class SpeedTestRepositoryImplTest {
     `when`(mockClientFallbackApi.getClientInfoFallback()).thenReturn(
       Response.error(
         500,
-        ResponseBody.create("text/plain".toMediaTypeOrNull(), "Error")
+        "Error".toResponseBody("text/plain".toMediaTypeOrNull())
       )
     )
 
@@ -492,7 +493,7 @@ class SpeedTestRepositoryImplTest {
   fun `getClientInfoLiteData all api calls fail returns Failure`() = runBlocking {
 
     `when`(mockClientLiteApi.getClientInfoLite("token"))
-      .thenReturn(Response.error(400, ResponseBody.create(null, "bad")))
+      .thenReturn(Response.error(400, "bad".toResponseBody(null)))
 
     val result = repo.getClientInfoLiteData("token", "key", "baseUrl")
 
@@ -553,7 +554,7 @@ class SpeedTestRepositoryImplTest {
       .thenReturn(
         Response.error(
           500,
-          ResponseBody.create("text/plain".toMediaTypeOrNull(), "Error")
+          "Error".toResponseBody("text/plain".toMediaTypeOrNull())
         )
       )
 
