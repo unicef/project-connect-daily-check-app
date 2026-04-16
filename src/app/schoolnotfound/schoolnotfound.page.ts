@@ -36,13 +36,13 @@ export class SchoolnotfoundPage {
 
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.notFound = params.notFound === NotFound.notRegister ? false : true;
-    });
-    this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;
       this.selectedCountryName = params.selectedCountryName;
-      console.log(this.selectedCountry);
+      if(!this.selectedCountryName?.trim?.()) {
+        this.router.navigate(["/"]);
+      }
     });
   }
   backToSearchDetail() {
