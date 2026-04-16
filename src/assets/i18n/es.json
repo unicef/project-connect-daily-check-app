@@ -30,6 +30,7 @@
   "confirmSchool": {
     "confirm1": "Confirme la información de la escuela para registrarla",
     "confirm2": "¿ES CORRECTA LA INFORMACIÓN ANTERIOR?",
+    "pendingVerification": "Verificación pendiente",
     "title": "¿Es correcta la información que aparece a continuación?"
   },
   "faq": {

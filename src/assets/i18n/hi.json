@@ -106,6 +106,9 @@
   "Weekly": "साप्ताहिक",
   "Would you like to help translate the M-Lab Measure App for other languages? Get involved as a translator or translation reviewer on <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, or <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">contact us for more information!</a>!": "क्या आप अन्य भाषाओं के लिए एम-लैब मेज़र ऐप का अनुवाद करने में सहायता करना चाहेंगे? <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\"> Transifex </a>, या <a href = \"http पर एक अनुवादक या अनुवाद समीक्षक के रूप में शामिल हों : //www.measurementlab.net/contact \"target =\" _ system \"> अधिक जानकारी के लिए हमसे संपर्क करें! </a>!",
   "Your Location": "आपकी स्थिति",
+  "confirmSchool": {
+    "pendingVerification": "सत्यापन लंबित"
+  },
   "schoolNotFound": {
     "unableToLocate": "आपका स्कूल हमारे सिस्टम में नहीं है<br /><b>{{schoolId}}</b>",
     "tryAgainPlaceholder": "कृपया सुनिश्चित करें कि आपने सही ID टाइप किया है या एक अलग ID के साथ खोजें।"

@@ -24,6 +24,7 @@
   "confirmSchool": {
     "confirm1": "Confirme as informações da escola para registrar sua escola",
     "confirm2": "AS INFORMAÇÕES ACIMA ESTÃO CORRETAS?",
+    "pendingVerification": "Verificação pendente",
     "title": "As informações abaixo estão corretas?"
   },
   "faq": {

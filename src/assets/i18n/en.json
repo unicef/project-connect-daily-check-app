@@ -24,6 +24,7 @@
   "confirmSchool": {
     "confirm1": "Confirm school information to register your school",
     "confirm2": "IS THE INFORMATION ABOVE CORRECT?",
+    "pendingVerification": "Pending Verification",
     "title": "Is the information below correct?"
   },
   "faq": {

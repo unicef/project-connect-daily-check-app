@@ -106,6 +106,9 @@
   "Weekly": "Εβδομαδιαία",
   "Would you like to help translate the M-Lab Measure App for other languages? Get involved as a translator or translation reviewer on <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, or <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">contact us for more information!</a>!": "Θα θέλατε να μεταφράσετε την M-Lab Measure Εφαρμογή σε άλλες γλώσσες; Ασχοληθείτε ως μεταφραστής η κριτής μεταφράσεων στο <a href=\"https://www.transifex.com/otf/mlab-app/\" target=\"_system\">Transifex</a>, η <a href=\"http://www.measurementlab.net/contact\" target=\"_system\">επικοινωνήστε με εμάς για περισσότερες πληροφορίες!</a>!",
   "Your Location": "Η τοποθεσία σας",
+  "confirmSchool": {
+    "pendingVerification": "Εκκρεμεί επαλήθευση"
+  },
   "schoolNotFound": {
     "unableToLocate": "Το σχολείο σας δεν υπάρχει στο σύστημά μας<br /><b>{{schoolId}}</b>",
     "tryAgainPlaceholder": "Βεβαιωθείτε ότι πληκτρολογήσατε το σωστό ID ή αναζητήστε με διαφορετικό ID."

@@ -77,7 +77,7 @@
       </ion-item>
 
       <div *ngIf="school?.is_verified == false" class="verify-row">
-        <span class="pending-badge">Pending verification</span>
+        <span class="pending-badge" [translate]="'confirmSchool.pendingVerification'"></span>
       </div>
       <!---------   Start test Section ------------------>
       <!-- {{currentState}} {{currentRate}} {{onlineStatus}} -->
