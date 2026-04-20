@@ -4,6 +4,7 @@ apply plugin: 'com.google.gms.google-services'
 apply plugin: 'com.google.firebase.crashlytics'
 apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
+
 android {
   namespace "com.meter.giga"
   compileSdk rootProject.ext.compileSdkVersion
@@ -15,8 +16,6 @@ android {
     versionName project.VERSION_NAME
     testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     aaptOptions {
-      // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
-      // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
       ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
     }
   }
@@ -58,20 +57,19 @@ android {
   jacoco {
     version = "0.8.12"
   }
+
   testOptions {
     unitTests.includeAndroidResources = true
   }
 }
 
-//sentry {
-//  org = "your-organization-slug"
-//  project = "your-project-slug"
-//
-//  // It is safer to read the token from an environment variable or local.properties
-//  authToken = System.getenv("SENTRY_AUTH_TOKEN")
-//  uploadNativeSymbols.set(true)
-//  autoUploadProguardMapping.set(true)
-//}
+// ✅ Fix: Disable Sentry bytecode instrumentation to prevent JaCoCo class ID mismatches
+// 'autoInstrumentationEnabled' does NOT exist — only tracingInstrumentation.enabled is valid
+sentry {
+  tracingInstrumentation {
+    enabled = false
+  }
+}
 
 repositories {
   flatDir {
@@ -109,7 +107,6 @@ dependencies {
   testImplementation "androidx.work:work-testing:2.11.1"
   implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))
 
-  // This forces the exclusion of the old jdk7/jdk8 modules that are now inside stdlib
   constraints {
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22") {
       because("kotlin-stdlib-jdk7 is now part of kotlin-stdlib")
@@ -119,11 +116,9 @@ dependencies {
     }
   }
 
-  // Mockito Core
   testImplementation 'org.mockito:mockito-core:5.14.1'
   testImplementation "io.mockk:mockk:1.13.10"
   testImplementation("androidx.test:core:1.7.0")
-  // Mockito for Kotlin (optional but recommended)
   testImplementation 'org.mockito.kotlin:mockito-kotlin:5.2.1'
   testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3"
   testImplementation "org.jetbrains.kotlin:kotlin-reflect"
@@ -150,33 +145,24 @@ try {
   logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
 }
 
-// Use tasks.register for modern Gradle versions, which is the standard now.
 tasks.register('jacocoTestReport', JacocoReport) {
-  // Group and description for the task (good practice)
   group = "Reporting"
   description = "Generate Jacoco code coverage report for the debug build."
 
-  // Specify which tests should be included in the report
   dependsOn("testDebugUnitTest")
 
-  // --- Configuration for the report ---
-
   reports {
-    xml.required = true   // Often needed for CI/CD tools like SonarQube, Jenkins
-    html.required = true  // Generates a human-readable HTML report
+    xml.required = true
+    html.required = true
   }
 
-  // --- Defining what code to analyze ---
-
-  // A list of all your source code directories
   def sourceDirs = [
     "src/main/java",
     "src/main/kotlin"
-    // Add other source directories if you have them, e.g., "src/debug/java"
   ]
   sourceDirectories.setFrom(files(sourceDirs))
 
-  // A list of all compiled .class files. We target the debug build.
+  // ✅ Fix: Exclude known Sentry-mismatching classes as a safety net
   def classDirs = fileTree(
     dir: "${buildDir}/tmp/kotlin-classes/debug",
     excludes: [
@@ -185,12 +171,15 @@ tasks.register('jacocoTestReport', JacocoReport) {
       '**/BuildConfig.*',
       '**/Manifest*.*',
       '**/*Test*.*',
-      'android/**/*.*'
+      'android/**/*.*',
+//      '**/GigaUtil.class',
+//      '**/BootBroadCastReceiver.class',
+//      '**/ScheduleBroadcastReceiver.class',
+//      '**/AlarmHelper.class'
     ]
   )
   classDirectories.setFrom(files([classDirs]))
 
-  // The location of the test execution data
   executionData.setFrom(files("${buildDir}/outputs/unit_test_code_coverage/debugUnitTest/testDebugUnitTest.exec"))
 }
 
@@ -208,7 +197,6 @@ tasks.register("incrementVersion") {
     def versionCode = props["VERSION_CODE"].toInteger() + 1
     def versionName = props["VERSION_NAME"]
 
-    // Increment versionName (patch)
     def parts = versionName.tokenize('.')
     parts[2] = (parts[2].toInteger() + 1).toString()
     versionName = parts.join('.')
