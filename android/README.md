@@ -207,15 +207,15 @@ android {
 This variables are auto incremental when app is build via command
 for apk :
 
-  ```bash
-  ./gradlew incrementVersion assembleRelease    
-  ```
+```bash
+./gradlew incrementVersion assembleRelease
+```
 
 for aab :
 
-  ```bash
-  ./gradlew incrementVersion bundleRelease    
-  ```
+```bash
+./gradlew incrementVersion bundleRelease
+```
 
 This commands need to execute when building the final builds to upload.
 
@@ -257,7 +257,7 @@ Navigate to android drectory in project and run below commands to create builds
 
 ---
 
-## 8. Generate build via Android Studio GUI
+## 8. Generate build via Android Studio GUI (This is optional if build creation via terminal/command line is not preferred)
 
 - To generate signed apk/aab
   ![Step 1](images/1.png)
@@ -282,7 +282,7 @@ Fill the details, create the password and signing config file and save. This fil
   Select the build from top menu
 - ![Step 2](images/2.png)
   Select the Generate App Bundle or APK option, Next select Generate APK/ Generate AAB. It will create the apk/aab.
-  Note:  Apk can be shared with any one and can be installed, aab file can be installed via play store only.
+  Note: Apk can be shared with any one and can be installed, aab file can be installed via play store only.
 
 ## 9. Debugging
 
@@ -293,7 +293,6 @@ Fill the details, create the password and signing config file and save. This fil
   ```
 
 - Inspect UI/WebView:
-
   - Open `android/app/src/main/java/com/meter/giga/MainActivity.java` in Chrome.
   - Add WebView.setWebContentsDebuggingEnabled(true) in oncreate function
   - Open `chrome://inspect/#devices` in Chrome.
@@ -343,15 +342,12 @@ Fill the details, create the password and signing config file and save. This fil
 ## 11. Summary
 
 - **Debug Builds**
-
   - `./gradlew assembleDebug`
 
 - **Release Builds**
-
   - `./gradlew assembleRelease`
 
 - **Play Store Bundles**
-
   - `./gradlew bundleRelease`
 
 ## 12. Special Note : Existing Sentry version is 9.x where as android latest sentry sdk support 10.x sentry servers. Do not upgrade the android sdk until sentry server migrated to 10.x version,otherwise it will block the sentry logging.
@@ -359,3 +355,22 @@ Fill the details, create the password and signing config file and save. This fil
 ---
 
 ✅ You now have a Capacitor Android app configured with **dev, staging, and production flavors driven by mode defined in \_environment.prod.ts** along with **debug/release build types**.
+
+## 🧠 Common Issues
+
+| Issue              | Fix                              |
+| ------------------ | -------------------------------- |
+| App not updating   | Run `npx cap sync android`       |
+| Env not reflecting | Run `generate-native-env.js`     |
+| Build fails        | Check Java + SDK setup           |
+| Old UI shown       | Run `ionic serve` to clear cache |
+
+---
+
+## 🎯 You're Ready
+
+You should now be able to:
+
+- Run the app locally
+- Switch environments
+- Generate builds
