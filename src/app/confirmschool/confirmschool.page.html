@@ -1,53 +1,49 @@
 <app-pcdc-header></app-pcdc-header>
-<ion-content >
-  <ion-button [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"  (click)="backToSaved(school)">
+
+<ion-content data-testid="confirm-school-page">
+  <ion-button data-testid="confirm-school-back"
+    [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"
+    (click)="backToSaved(school)">
     <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
   </ion-button>
+
   <div class="container">
-    
     <div class="top-section">
+      <div data-testid="confirm-school-title" class="label-txt" [translate]="'confirmSchool.title'"></div>
 
-      <div class="label-txt" [translate]="'confirmSchool.title'"></div>
-      <app-selected-detail></app-selected-detail>
+      <app-selected-detail data-testid="selected-detail"></app-selected-detail>
 
-      <div *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry" class="confirm-txt"
-        [translate]="'confirmSchool.confirm1'"></div>
-      <ion-item lines="none" *ngIf="school" class="detail_box">
+      <div *ngIf="this.selectedCountry !== '' && this.selectedCountry !== this.detectedCountry"
+        data-testid="confirm-school-warning-text" class="confirm-txt" [translate]="'confirmSchool.confirm1'"></div>
+
+      <ion-item data-testid="confirm-school-card" lines="none" *ngIf="school" class="detail_box">
         <ion-label class="box_margin">
-          <span *ngIf="school?.name" class="schoolName">{{school.name}}</span><br  *ngIf="school?.name" />
-          <!-- <span *ngIf="school?.education_level" class=" school_detail">{{school.education_level}}</span><br  *ngIf="school?.education_level" />
-          <span *ngIf="school?.admin_1_name" class=" school_detail">{{school.admin_1_name}}- {{school.admin_1_name}}</span><br *ngIf="school?.admin_1_name" />
-          <span *ngIf="school?.lat" class="school_detail"><span class="linkColor">admin_1_name long</span></span><br *ngIf="school?.lat" /> -->
-          <span *ngIf="school?.school_id" class="school_detail">{{school.school_id}}</span><br  *ngIf="school?.school_id"/>
-
-          <span class="school_detail googleCheck linkColor">
-            <!-- <span [translate]="'schoolDetails.checkGiga' | translate"></span>
-            <ion-img src="assets/images/Launch.png" class="welcome_icon"></ion-img> -->
-          </span>
+          <span *ngIf="school?.name" class="schoolName">{{ school.name }}</span><br *ngIf="school?.name" />
+          <span *ngIf="school?.school_id" class="school_detail">{{ school.school_id }}</span><br
+            *ngIf="school?.school_id" />
+          <span class="school_detail googleCheck linkColor"></span>
         </ion-label>
-        <!-- <div class="schoolid">School ID: {{school.school_id | uppercase}}</div> -->
       </ion-item>
     </div>
   </div>
 </ion-content>
-<ion-footer class="ion-no-border">
 
-  <!-- <div class="confirm-txt" [translate]="'confirmSchool.confirm2'"></div> -->
+<ion-footer class="ion-no-border" data-testid="confirm-school-footer">
   <ion-toolbar>
-    <div class="notification" *ngIf="showNotification">
-      <ion-img name="information-circle-outline"  src="assets/images/info_icon.svg"></ion-img>
+    <div data-testid="confirm-school-notification" class="notification" *ngIf="showNotification">
+      <ion-img data-testid="confirm-school-info-icon" name="information-circle-outline"
+        src="assets/images/info_icon.svg"></ion-img>
 
-      <p class="MakeSureText" [innerHTML]="'schoolDetails.confirmText' | translate">
-       
-      </p>
-      <!-- <ion-img src="assets/images/close_notication.svg" name="close-outline" class="close-icon" (click)="closeNotification()"></ion-img> -->
-
-      <!-- <ion-icon name="close-outline" class="close-icon" (click)="closeNotification()"></ion-icon> -->
+      <p data-testid="confirm-school-message" class="MakeSureText"
+        [innerHTML]="'schoolDetails.confirmText' | translate"></p>
     </div>
-    <div class="btn-holder" >
-      <ion-button block class="nobtn"  fill="outline" (click)="backToSearchDetail()" [translate]="'no'"></ion-button>
-      <ion-button block class="yesbtn" (click)="confirmSchool()" [translate]="'yes'"></ion-button>
+
+    <div class="btn-holder" data-testid="confirm-school-actions">
+      <ion-button data-testid="confirm-school-no-button" block class="nobtn" fill="outline"
+        (click)="backToSearchDetail()" [translate]="'no'"></ion-button>
+
+      <ion-button data-testid="confirm-school-yes-button" block class="yesbtn" (click)="confirmSchool()"
+        [translate]="'yes'"></ion-button>
     </div>
   </ion-toolbar>
-  <!-- <div class="h-line"></div> -->
 </ion-footer>
