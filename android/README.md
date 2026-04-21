@@ -25,8 +25,8 @@ This guide provides step-by-step setup and build instructions for a **Capacitor-
 
 3. **Android Studio**
 
-   - Install [Android Studio](https://developer.android.com/studio).
-   - Install SDK, build tools, and emulator images.
+- Install [Android Studio](https://developer.android.com/studio).
+- Install SDK, build tools, and emulator images.
 
 4. **Java JDK 11/17/21**
 
@@ -63,7 +63,7 @@ npx cap open android
 
 ---
 
-## 3. Configure Flavors
+## 3. Configure Flavors (In current set up it's already configured, no action required)
 
 In Giga Meter android app environment configuration driven via \_production.prod_ts file params and passed to native layer via Capacitor Plugin. In Giga Meter app/build.gradle will be having below code
 
@@ -195,7 +195,33 @@ android {
 
 ---
 
-## 6. Build Commands via Android Studio/VS Code/Terminal
+## 6. Version Code and Version Name
+
+- Version code and version name are defined in the app level build.gradle.
+  versionCode project.VERSION_CODE.toInteger()
+  versionName project.VERSION_NAME
+  Where are defined in gradle.properties file as
+  VERSION_CODE=1
+  VERSION_NAME=1.1.0
+
+This variables are auto incremental when app is build via command
+for apk :
+
+  ```bash
+  ./gradlew incrementVersion assembleRelease    
+  ```
+
+for aab :
+
+  ```bash
+  ./gradlew incrementVersion bundleRelease    
+  ```
+
+This commands need to execute when building the final builds to upload.
+
+---
+
+## 7. Build Commands via Android Studio/VS Code/Terminal
 
 Navigate to android drectory in project and run below commands to create builds
 
@@ -212,7 +238,7 @@ Navigate to android drectory in project and run below commands to create builds
 - **Build Release**
 
   ```bash
-  ./gradlew assembleRelease
+  ./gradlew incrementVersion assembleRelease
   ```
 
 ### Bundles (AAB for Play Store)
@@ -220,18 +246,45 @@ Navigate to android drectory in project and run below commands to create builds
 - **Debug**
 
   ```bash
-  ./gradlew bundleRelease
+  ./gradlew bundleDebug
   ```
 
 - **Release**
 
   ```bash
-  ./gradlew bundleReleaseRelease
+  ./gradlew incrementVersion bundleRelease
   ```
 
 ---
 
-## 7. Debugging
+## 8. Generate build via Android Studio GUI
+
+- To generate signed apk/aab
+  ![Step 1](images/1.png)
+  Select the build from top menu
+  ![Step 2](images/2.png)
+  Select the Generate Signed App Bundle or APK option
+  ![Step 3](images/3.png)
+  Select the keystore or .jks file if already available or create a new via selecting
+  Create New/ Choose Existing
+  If already file available locate the file and provide the password details and create via below steps.
+  ![Step 4](images/4.png)
+  Select Next
+  ![Step 5](images/5.png)
+  Selcte create , it will create the aab or apk file
+
+If selected Create New, it will open below screens to create the keystore/,jks file.
+![Save New Signed Configuration File](images/7.png)
+Fill the details, create the password and signing config file and save. This file should be handled and stored very carefully. Without this file and password new builds can't be uploaded on playstore
+
+- To generate testing apk/aab
+  ![Step 1](images/1.png)
+  Select the build from top menu
+- ![Step 2](images/2.png)
+  Select the Generate App Bundle or APK option, Next select Generate APK/ Generate AAB. It will create the apk/aab.
+  Note:  Apk can be shared with any one and can be installed, aab file can be installed via play store only.
+
+## 9. Debugging
 
 - Inspect logs:
 
@@ -248,7 +301,7 @@ Navigate to android drectory in project and run below commands to create builds
 
 ---
 
-## 8. Signing Release Builds
+## 10. Signing Release Builds
 
 1. Generate keystore:
 
@@ -287,7 +340,7 @@ Navigate to android drectory in project and run below commands to create builds
 
 ---
 
-## 9. Summary
+## 11. Summary
 
 - **Debug Builds**
 
@@ -301,7 +354,7 @@ Navigate to android drectory in project and run below commands to create builds
 
   - `./gradlew bundleRelease`
 
-## 10. Special Note : Existing Sentry version is 9.x where as android latest sentry sdk support 10.x sentry servers. Do not upgrade the android sdk until sentry server migrated to 10.x version,otherwise it will block the sentry logging.
+## 12. Special Note : Existing Sentry version is 9.x where as android latest sentry sdk support 10.x sentry servers. Do not upgrade the android sdk until sentry server migrated to 10.x version,otherwise it will block the sentry logging.
 
 ---
 
