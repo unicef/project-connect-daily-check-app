@@ -290,6 +290,7 @@
     "signupNewSchool": "S'inscrire comme nouvelle école",
     "signupNewSchoolSynopsis": "Inscrire l'école",
     "verifyLocation": "Vérifier l'Emplacement",
+    "verifyLocationTooltip": "Cliquez pour vérifier votre adresse et votre emplacement sur une page externe.",
     "register": "S'inscrire",
     "skip": "Sauter",
     "schoolExistsTitle": "ID d'école déjà enregistré",

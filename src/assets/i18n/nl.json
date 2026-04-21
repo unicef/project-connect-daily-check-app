@@ -171,6 +171,7 @@
     "signupNewSchool": "Aanmelden als een nieuwe school",
     "signupNewSchoolSynopsis": "Registreer school",
     "verifyLocation": "Locatie Verifiëren",
+    "verifyLocationTooltip": "Klik om uw adres en locatie te verifiëren op een externe pagina.",
     "register": "Registreren",
     "skip": "Overslaan",
     "schoolExistsTitle": "School-ID al geregistreerd",

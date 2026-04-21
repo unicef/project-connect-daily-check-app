@@ -279,6 +279,7 @@
     "signupNewSchool": "Регистрация школы",
     "signupNewSchoolSynopsis": "Регистрация",
     "verifyLocation": "Проверить Местоположение",
+    "verifyLocationTooltip": "Нажмите, чтобы подтвердить свой адрес и местоположение на внешней странице.",
     "register": "Зарегистрироваться",
     "skip": "Пропустить",
     "schoolExistsTitle": "ID школы уже зарегистрирован",

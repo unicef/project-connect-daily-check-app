@@ -171,6 +171,7 @@
     "signupNewSchool": "Daftar sebagai sekolah baru",
     "signupNewSchoolSynopsis": "Daftar sekolah",
     "verifyLocation": "Verifikasi Lokasi",
+    "verifyLocationTooltip": "Klik untuk memverifikasi alamat dan lokasi Anda di halaman eksternal.",
     "register": "Daftar",
     "skip": "Lewati",
     "schoolExistsTitle": "ID Sekolah sudah terdaftar",

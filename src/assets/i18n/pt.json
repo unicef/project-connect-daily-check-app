@@ -284,6 +284,7 @@
     "signupNewSchool": "Inscrever escola nova",
     "signupNewSchoolSynopsis": "Inscrever escola",
     "verifyLocation": "Verificar Localização",
+    "verifyLocationTooltip": "Clique para verificar a sua morada e localização numa página externa.",
     "register": "Registrar",
     "skip": "Pular",
     "schoolExistsTitle": "ID da escola já registrado",

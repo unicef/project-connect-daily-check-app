@@ -171,6 +171,7 @@
     "signupNewSchool": "नए स्कूल के रूप में साइन अप करें",
     "signupNewSchoolSynopsis": "रजिस्टर करें",
     "verifyLocation": "स्थान सत्यापित करें",
+    "verifyLocationTooltip": "बाहरी पेज पर अपना पता और स्थान सत्यापित करने के लिए क्लिक करें।",
     "register": "रजिस्टर करें",
     "skip": "छोड़ें",
     "schoolExistsTitle": "स्कूल आईडी पहले से ही पंजीकृत है",

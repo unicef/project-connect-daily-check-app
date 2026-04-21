@@ -333,7 +333,7 @@
         shape="round"
         class="nav-btn"
         [disabled]="currentStep === 3 && !termsCheckbox?.checked"
-        [title]="currentStep === 2 ? 'Click to verify your address and location on an external page.' : ''"
+        [title]="currentStep === 2 ? ('registerNewSchool.verifyLocationTooltip' | translate) : ''"
       >
         {{ currentStep === 1 ? ("registerNewSchool.next" | translate) : "" }}
         {{

@@ -171,6 +171,7 @@
     "signupNewSchool": "Εγγραφή ως νέο σχολείο",
     "signupNewSchoolSynopsis": "Εγγραφή σχολείου",
     "verifyLocation": "Επαλήθευση Τοποθεσίας",
+    "verifyLocationTooltip": "Κάντε κλικ για να επαληθεύσετε τη διεύθυνση και την τοποθεσία σας σε μια εξωτερική σελίδα.",
     "register": "Εγγραφή",
     "skip": "Παράλειψη",
     "schoolExistsTitle": "Το σχολικό ID είναι ήδη εγγεγραμμένο",

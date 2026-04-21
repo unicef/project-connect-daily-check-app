@@ -284,6 +284,7 @@
     "signupNewSchool": "Sign up as a new school",
     "signupNewSchoolSynopsis": "Sign up as a new school",
     "verifyLocation": "Verify Location",
+    "verifyLocationTooltip": "Click to verify your address and location on an external page.",
     "register": "Register",
     "skip": "Skip",
     "schoolExistsTitle": "School ID already registered",
