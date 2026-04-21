@@ -1,6 +1,9 @@
 <app-pcdc-header></app-pcdc-header>
-<ion-content>
-  <ion-button [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"  (click)="backToSearchDetail()">
+
+<ion-content data-testid="school-details-page">
+  <ion-button data-testid="school-details-back"
+    [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"
+    (click)="backToSearchDetail()">
     <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
   </ion-button>
 
@@ -8,56 +11,37 @@
     <app-selected-detail></app-selected-detail>
 
     <div>
+      <div data-testid="school-details-select-confirm" class="selectandconfirm"
+        [translate]="'schoolDetails.selectAndConfirm'"></div>
 
-      <!-- <div class="label-txt SchoolIDField"> -->
+      <div data-testid="school-details-matches-count" class="matches"
+        [translate]="'schoolDetails.totalSchools' | translate:{ schoolCount: schools?.length, schoolId: (schoolId | uppercase) }">
+      </div>
 
-        <!-- <br /> -->
-        <!-- <span class="schoolID-txt">{{ schoolId | uppercase }}</span> -->
-      <!-- </div> -->
-      <!-- <div class="h-line"></div> -->
-      <div class="selectandconfirm" [translate]="'schoolDetails.selectAndConfirm'"></div>
-      <div  class="matches" [translate]="'schoolDetails.totalSchools' | translate:{ schoolCount: schools?.length, schoolId: (schoolId | uppercase) }"></div>
-
-      <div class="ionListContainer" >
-        <div class="ionList">
-          <!-- Check if there are multiple schools -->
+      <div class="ionListContainer">
+        <div class="ionList" data-testid="school-list-container">
+          <!-- Multiple schools radio group -->
           <ng-container *ngIf="schools?.length > 1; else singleSchool">
-            <ion-radio-group [(ngModel)]="selectedSchool">
-                <ion-item class="school_item" lines="none" *ngFor="let schoolInfo of schools" 
-                [ngClass]="{ 'selected-border': selectedSchool === schoolInfo }"
-                >
-                  <ion-label>
-                    <span *ngIf="schoolInfo?.name" class="schoolName">{{ schoolInfo.name }}</span>
-                    <!-- <span *ngIf="schoolInfo?.education_level" class="education_level">{{ schoolInfo.education_level }}</span>
-                    <span *ngIf="schoolInfo?.admin_1_name" class="school_detail">{{ schoolInfo.admin_1_name }} - {{ schoolInfo.admin_1_name }}</span>
-                    <div *ngIf="schoolInfo?.lat" class="school_detail"><span class="linkColor">lat long</span> {{ schoolInfo.school_id }}</div> -->
-                    <span *ngIf="schoolInfo?.school_id" class="school_detail">{{ schoolInfo.school_id }}</span>
-                    <!-- <span class="school_detail linkColor googleCheck"> -->
-                      <!-- <span [translate]="'schoolDetails.checkGiga' | translate"></span>
-                      <ion-img src="assets/images/Launch.png" class="welcome_icon"></ion-img> -->
-                    <!-- </span> -->
-                    <!-- <br /> -->
-                  </ion-label>
-                  <ion-radio slot="end" [value]="schoolInfo"></ion-radio>
-                </ion-item>
+            <ion-radio-group [(ngModel)]="selectedSchool" data-testid="school-radio-group">
+              <ion-item data-testid="school-item-{{ $index }}" class="school_item" lines="none"
+                *ngFor="let schoolInfo of schools; let i = index"
+                [ngClass]="{ 'selected-border': selectedSchool === schoolInfo }">
+                <ion-label>
+                  <span *ngIf="schoolInfo?.name" class="schoolName">{{ schoolInfo.name }}</span>
+                  <span *ngIf="schoolInfo?.school_id" class="school_detail">{{ schoolInfo.school_id }}</span>
+                </ion-label>
+                <ion-radio slot="end" [value]="schoolInfo"></ion-radio>
+              </ion-item>
             </ion-radio-group>
           </ng-container>
 
-          <!-- Template to display when there's only one school -->
-          <ng-template #singleSchool> 
-            <ion-item  lines="none" 
-            *ngIf="schools?.length" class=" selected-border school_item single_school" >
+          <!-- Single school template -->
+          <ng-template #singleSchool>
+            <ion-item data-testid="single-school-item" lines="none" *ngIf="schools?.length"
+              class="selected-border school_item single_school">
               <ion-label>
                 <span *ngIf="schools[0]?.name" class="schoolName">{{ schools[0].name }}</span>
-                <!-- <span *ngIf="schools[0]?.education_level" class="school_detail">{{ schools[0].education_level }}</span>
-                <span *ngIf="schools[0]?.admin_1_name" class="school_detail">{{ schools[0].admin_1_name }} - {{ schools[0].admin_1_name }}</span>
-                <div *ngIf="schools[0]?.lat" class="school_detail"><span class="linkColor">lat long</span> {{ schools[0].school_id }}</div> -->
                 <span *ngIf="schools[0]?.school_id" class="school_detail">{{ schools[0].school_id }}</span>
-                <!-- <span class="school_detail linkColor googleCheck"> -->
-                  <!-- <span [translate]="'schoolDetails.checkGiga' | translate"></span>
-                  <ion-img src="assets/images/Launch.png" class="welcome_icon"></ion-img> -->
-                <!-- </span> -->
-                <!-- <br /> -->
               </ion-label>
             </ion-item>
           </ng-template>
@@ -65,10 +49,11 @@
       </div>
     </div>
 
-    <!-- Display the "Select" button only if there are multiple schools -->
     <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
-      <ion-button color="primary" appEnterKeyClick  class="searchButton btn_margin" (click)="confirmSchool(selectedSchool.school_id ? selectedSchool  : schools[0])" [disabled]="!selectedSchool.school_id && schools?.length > 1"  [translate]="'schoolDetails.select' | translate">
-      </ion-button>
+      <ion-button data-testid="school-details-select-button" color="primary" appEnterKeyClick
+        class="searchButton btn_margin" (click)="confirmSchool(selectedSchool.school_id ? selectedSchool : schools[0])"
+        [disabled]="!selectedSchool.school_id && schools?.length > 1"
+        [translate]="'schoolDetails.select' | translate"></ion-button>
     </div>
   </div>
 </ion-content>

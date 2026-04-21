@@ -730,4 +730,69 @@ class AppFlowTest {
       waitForUrlContains("/searchschool")
     }
   }
+
+  @Test
+  fun web_schoolDetails_RendersPage_AfterAsyncLoad() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .withTimeout(30, TimeUnit.SECONDS)
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/schooldetails/SpainTestSchool1/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='school-details-page']")
+      waitForElement("[data-testid='school-details-select-confirm']")
+      waitForElement("[data-testid='school-details-matches-count']")
+
+      // Wait for schools to load (either radio group OR single item)
+      Thread.sleep(5000) // Give API time to respond
+
+      // Check either multiple OR single school loaded
+      try {
+        waitForElement("[data-testid='school-radio-group']", 5)
+      } catch (e: Throwable) {
+        waitForElement("[data-testid='single-school-item']", 5)
+      }
+    }
+  }
+
+  @Test
+  fun web_schoolDetails_Back_Works() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/schooldetails/SpainTestSchool1/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='school-details-back']")
+      clickElement("[data-testid='school-details-back']")
+      waitForUrlContains("/searchschool")
+    }
+  }
+
+  @Test
+  fun web_schoolDetails_SelectButton_Exists() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/schooldetails/SpainTestSchool1/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='school-details-select-button']")
+
+      // Don't assert disabled state - it depends on async data
+      // Just verify it exists and has correct text
+      onWebView(isAssignableFrom(WebView::class.java))
+        .withElement(
+          findElement(
+            Locator.CSS_SELECTOR,
+            "[data-testid='school-details-select-button']"
+          )
+        )
+        .check(webMatches(getText(), containsString("Select")))
+    }
+  }
 }
