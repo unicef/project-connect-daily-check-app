@@ -1,27 +1,29 @@
 <app-pcdc-header></app-pcdc-header>
-<ion-content class="font_open_sans">
-  <ion-button [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear" [routerLink]="['/searchcountry']">
 
+<ion-content class="font_open_sans" data-testid="search-school-page">
+  <ion-button data-testid="search-school-back"
+    [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"
+    [routerLink]="['/register-school']">
     <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
   </ion-button>
+
   <div class="container">
     <app-selected-detail></app-selected-detail>
 
     <div>
       <div class="provide_id" [translate]="'searchSchool.provide-school-id'"></div>
+
       <div class="wrap">
         <div class="search">
-          <input type="text" class="searchTerm" placeholder="{{ 'searchSchool.placeholder-school-id' | translate }}"
-            [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2" />
-          <!-- <button type="submit" class="searchButton" (click)="searchSchoolBySchooIdAndCountryCode()"
-            [disabled]="isDisabled">
-            <ion-icon name="search-outline" class="searchIcon"></ion-icon>
-          </button> -->
+          <input data-testid="search-school-input" type="text" class="searchTerm"
+            placeholder="{{ 'searchSchool.placeholder-school-id' | translate }}" [(ngModel)]="schoolId"
+            (ngModelChange)="validateSchoolId($event)" required minlength="2" />
         </div>
       </div>
-      <div class="learn-more noschoolid-link"
-        [innerHTML]="'searchSchool.user-has-not-id' | translate"></div>
+
+      <div class="learn-more noschoolid-link" [innerHTML]="'searchSchool.user-has-not-id' | translate"></div>
     </div>
+
     <div class="bottom-layout">
       <div class="accordion-sec">
         <ion-accordion-group value="numbers" class="acc_border">
@@ -30,36 +32,28 @@
               <ion-label class="label_padding" [translate]="'faq.what-is-school-id'"></ion-label>
             </ion-item>
             <ion-list slot="content">
-              <ion-item lines="none" >
-                <ion-label class="label_padding" [translate]="'faq.what-is-school-id-desc'">
-                </ion-label>
+              <ion-item lines="none">
+                <ion-label class="label_padding" [translate]="'faq.what-is-school-id-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
+
           <ion-accordion value="faq2">
             <ion-item slot="header">
               <ion-label class="label_padding" [translate]="'faq.how-find-school-id'"></ion-label>
             </ion-item>
             <ion-list slot="content">
-              <ion-item lines="none" >
+              <ion-item lines="none">
                 <ion-label class="label_padding" [translate]="'faq.how-find-school-id-desc'"></ion-label>
               </ion-item>
             </ion-list>
           </ion-accordion>
-          <!-- <ion-accordion value="faq3">
-            <ion-item slot="header">
-              <ion-label [translate]="'faq.school-id-not-found' | translate:{ appName }"></ion-label>
-            </ion-item>
-            <ion-list slot="content">
-              <ion-item>
-                <ion-label [translate]="'faq.school-id-not-found-desc'"></ion-label>
-              </ion-item>
-            </ion-list>
-          </ion-accordion> -->
         </ion-accordion-group>
-        <ion-button color="primary" appEnterKeyClick  type="submit" [innerHTML]="'faq.search-id' | translate" [ngClass]="isNativeApp() ? 'searchButtonNative submit_button_size dailycheck_btn' : 'searchButton submit_button_size dailycheck_btn'"
-          (click)="searchSchoolBySchooIdAndCountryCode()" [disabled]="isDisabled"></ion-button>
 
+        <ion-button data-testid="search-school-submit" color="primary" appEnterKeyClick type="submit"
+          [innerHTML]="'faq.search-id' | translate"
+          [ngClass]="isNativeApp() ? 'searchButtonNative submit_button_size dailycheck_btn' : 'searchButton submit_button_size dailycheck_btn'"
+          (click)="searchSchoolBySchooIdAndCountryCode()" [disabled]="isDisabled"></ion-button>
       </div>
     </div>
   </div>

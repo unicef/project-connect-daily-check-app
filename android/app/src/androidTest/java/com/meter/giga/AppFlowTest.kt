@@ -202,6 +202,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
 import org.hamcrest.Matchers.allOf
 import org.hamcrest.Matchers.containsString
+import org.hamcrest.Matchers.not
 import org.junit.After
 import org.junit.Assume.assumeTrue
 import org.junit.Before
@@ -468,11 +469,17 @@ class AppFlowTest {
   private fun goToSearchCountry() {
     launchMainForWeb().use {
       // Navigate via JS to skip onboarding if needed, or follow the flow
+//      onWebView(isAssignableFrom(WebView::class.java))
+//        .forceJavascriptEnabled()
+//        .perform(Atoms.script("window.location.hash = '/searchcountry'"))
+//
+//      waitForWebViewVisible()
+//      waitForUrlContains("/searchcountry")
+//      waitForElement("[data-testid='search-country-input']")
+
       onWebView(isAssignableFrom(WebView::class.java))
         .forceJavascriptEnabled()
         .perform(Atoms.script("window.location.hash = '/searchcountry'"))
-
-      waitForWebViewVisible()
       waitForUrlContains("/searchcountry")
       waitForElement("[data-testid='search-country-input']")
     }
@@ -580,6 +587,147 @@ class AppFlowTest {
         .perform(Atoms.script("arguments[0].value = 'InvalidCountry'; arguments[0].dispatchEvent(new Event('input'));"))
 
       // Note: This test depends on your actual API/mock response for 'isPcdcCountry'
+    }
+  }
+
+  @Test
+  fun web_searchSchool_ValidId_EnablesButton_AndNavigates() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      // Direct navigation to search school with valid params (ES=Spain, IN=detected)
+      onWebView(isAssignableFrom(WebView::class.java))
+        .withTimeout(30, TimeUnit.SECONDS)
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/searchschool/ES/IN/Spain'"))
+
+      // Wait for page to load
+      waitForElement("[data-testid='search-school-page']")
+      waitForElement("[data-testid='search-school-input']")
+      waitForElement("[data-testid='search-school-submit']")
+
+      // Verify initial button disabled
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .withElement(findElement(Locator.CSS_SELECTOR, "[data-testid='search-school-submit']"))
+        .perform(Atoms.script("if (!arguments[0].disabled) throw new Error('Button should be initially disabled');"))
+
+      // Type valid school ID (length >= 2)
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .withElement(findElement(Locator.CSS_SELECTOR, "[data-testid='search-school-input']"))
+        .perform(
+          Atoms.script(
+            """
+          arguments[0].value = 'SpainTestSchool1';
+          arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+          arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+          """
+          )
+        )
+
+      Thread.sleep(500)
+
+      // Verify button now enabled
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .withElement(findElement(Locator.CSS_SELECTOR, "[data-testid='search-school-submit']"))
+        .perform(Atoms.script("if (arguments[0].disabled) throw new Error('Button should be enabled after valid input');"))
+
+      // Click and verify navigation (adjust expected route)
+      clickElement("[data-testid='search-school-submit']")
+      Thread.sleep(2000)
+
+      // Check navigation happened (your app goes to schooldetails or schoolnotfound)
+      onWebView(isAssignableFrom(WebView::class.java))
+        .check(
+          webMatches(
+            getCurrentUrl(),
+            allOf(containsString("/schooldetails"), not(containsString("/searchschool")))
+          )
+        )
+    }
+  }
+
+  @Test
+  fun web_searchSchool_SchoolId_Input_EnablesSearchButton() {
+    launchMainForWeb().use {
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/searchschool/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='search-school-input']")
+      waitForElement("[data-testid='search-school-submit']")
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .withElement(findElement(Locator.CSS_SELECTOR, "[data-testid='search-school-input']"))
+        .perform(
+          Atoms.script(
+            """
+          arguments[0].value = 'SpainTestSchool1';
+          arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+          arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+          """
+          )
+        )
+
+      Thread.sleep(500)
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .forceJavascriptEnabled()
+        .withElement(findElement(Locator.CSS_SELECTOR, "[data-testid='search-school-submit']"))
+        .check(webMatches(getText(), containsString("Search")))
+    }
+  }
+
+  @Test
+  fun web_schoolNotFoundPage_RendersContent() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .withTimeout(30, TimeUnit.SECONDS)
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/schoolnotfound/12345/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='school-not-found-page']")
+      waitForElement("[data-testid='school-not-found-icon']")
+      waitForElement("[data-testid='school-not-found-message']")
+      waitForElement("[data-testid='school-not-found-try-again-text']")
+      waitForElement("[data-testid='school-not-found-try-again-button']")
+    }
+  }
+
+  @Test
+  fun web_schoolNotFound_Back_Button_NavigatesToSearchSchool() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .withTimeout(30, TimeUnit.SECONDS)
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/schoolnotfound/12345/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='school-not-found-back']")
+      clickElement("[data-testid='school-not-found-back']")
+      waitForUrlContains("/searchschool")
+    }
+  }
+
+  @Test
+  fun web_schoolNotFound_TryAgain_Button_NavigatesToSearchSchool() {
+    launchMainForWeb().use {
+      waitForWebViewVisible()
+
+      onWebView(isAssignableFrom(WebView::class.java))
+        .withTimeout(30, TimeUnit.SECONDS)
+        .forceJavascriptEnabled()
+        .perform(Atoms.script("window.location.hash = '/schoolnotfound/12345/ES/IN/Spain'"))
+
+      waitForElement("[data-testid='school-not-found-try-again-button']")
+      clickElement("[data-testid='school-not-found-try-again-button']")
+      waitForUrlContains("/searchschool")
     }
   }
 }

@@ -1,31 +1,31 @@
 <app-pcdc-header></app-pcdc-header>
-<ion-content>
-  <ion-button [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear" (click)="backToSearchDetail()">
 
+<ion-content data-testid="school-not-found-page">
+  <ion-button data-testid="school-not-found-back"
+    [ngClass]="isNativeApp() ? 'button_disable_hover_native' : 'button_disable_hover'" fill="clear"
+    (click)="backToSearchDetail()">
     <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
   </ion-button>
+
   <div class="container">
     <app-selected-detail></app-selected-detail>
 
     <div class="top-layout wrap_content">
-      <!-- <div class="label-txt">
-        <span class="result-txt" [translate]="'resultSchool'"></span><br /><span class="schoolID-txt">{{schoolId |
-          uppercase}}</span>
-      </div> -->
-      <!-- <div class="h-line"></div> -->
       <div class="noschool">
-        <ion-img src="assets/images/school_not_found.svg" class="noschool-icon"></ion-img>
-        <div class="unabletolocate-txt" [innerHtml]="'schoolNotFound.unableToLocate' | translate:{ schoolId }"></div>
-        <!-- <div *ngIf="notFound" class="noschool-txt" [translate]="'schoolNotFound.notFound'"></div> -->
-        <!-- <ng-template #notRegister>
-          <div class="noschool-txt" [translate]="'schoolNotFound.notRegister' | translate:{ appName }"></div>
-        </ng-template> -->
-        <div class="try_again"  [translate]="'schoolNotFound.tryAgainPlaceholder'"></div>
+        <ion-img data-testid="school-not-found-icon" src="assets/images/school_not_found.svg"
+          class="noschool-icon"></ion-img>
+
+        <div data-testid="school-not-found-message" class="unabletolocate-txt"
+          [innerHtml]="'schoolNotFound.unableToLocate' | translate:{ schoolId }"></div>
+
+        <div data-testid="school-not-found-try-again-text" class="try_again"
+          [translate]="'schoolNotFound.tryAgainPlaceholder'"></div>
       </div>
     </div>
+
     <div [ngClass]="isNativeApp() ? 'bottom-layout-native' : 'bottom-layout'">
-      <ion-button color="primary" (click)="backToSearchDetail()" block class="dailycheck_btn submit_button_size"
-        [translate]="'tryAgain'"></ion-button>
+      <ion-button data-testid="school-not-found-try-again-button" color="primary" (click)="backToSearchDetail()" block
+        class="dailycheck_btn submit_button_size" [translate]="'tryAgain'"></ion-button>
     </div>
   </div>
 </ion-content>
