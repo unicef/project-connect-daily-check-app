@@ -295,6 +295,12 @@
     "skip": "Sauter",
     "schoolExistsTitle": "ID d'école déjà enregistré",
     "schoolExistsMessage": "Cet ID d'école officiel {{ schoolId }} est déjà enregistré. Veuillez utiliser un ID différent.",
-    "ok": "OK"
+    "ok": "OK",
+    "officialSchoolIdTooltip": "Fournissez l'identifiant officiel unique attribué à votre école par le gouvernement.",
+    "schoolNameTooltip": "Entrez le nom officiel complet de l'école.",
+    "educationLevelTooltip": "Précisez le niveau d'éducation le plus élevé proposé (ex: Primaire, Secondaire).",
+    "contactNameTooltip": "Entrez le nom de la personne de contact principale pour cette école.",
+    "contactEmailTooltip": "Fournissez une adresse e-mail valide pour les communications officielles.",
+    "latLongTooltip": "Affiche les coordonnées géographiques exactes de l'école."
   }
 }
