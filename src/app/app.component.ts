@@ -16,6 +16,7 @@ import { WhatsNewModalComponent } from './components/whats-new-modal/whats-new-m
 import { LogoutModalComponent } from './components/logout-modal/logout-modal.component';
 import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
+import { MatomoService } from './services/matomo.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -71,7 +72,13 @@ export class AppComponent {
     private hardwareIdService: HardwareIdService,
     private router: Router,
     private schoolService: SchoolService,
+    private matomoService: MatomoService,
   ) {
+    try {
+      this.matomoService.init();
+    } catch (error) {
+      console.warn('Matomo init failed:', error);
+    }
     this.filteredOptions = [];
     this.selectedLanguage =
       this.settingsService.get('applicationLanguage')?.code ??
