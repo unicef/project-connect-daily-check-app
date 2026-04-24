@@ -4,14 +4,17 @@ const environmentConfig = {
   prod: {
     restApi: env.restAPI,
     token: env.token,
+    matomoSiteId: (env as any).matomoSiteIdProd,
   },
   dev: {
     restApi: env.restAPIDev,
     token: env.tokenDev,
+    matomoSiteId: (env as any).matomoSiteIdDev,
   },
   stg: {
     restApi: env.restAPIStg,
     token: env.tokenStg,
+    matomoSiteId: (env as any).matomoSiteIdStg,
   },
 };
 export const environment = {
@@ -21,7 +24,11 @@ export const environment = {
   // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
   restAPI: environmentConfig[env.mode].restApi,
   token: environmentConfig[env.mode].token,
-  app_version: '2.0.2',
+  matomo: {
+    trackerUrl: (env as any).matomoTrackerUrl as string,
+    siteId: environmentConfig[env.mode].matomoSiteId as string,
+  },
+  app_version: '2.0.3',
   appName: 'Giga Meter',
   appNameSuffix: '',
   showAboutMenu: true,

@@ -205,6 +205,14 @@
     "headline": "Sarlavha"
   },
   "releaseNotes": {
+    "2.0.3": {
+      "title": "O'lchovlar bilan birga geolokatsiyani kuzatish",
+      "date": "Juma, 2026-yil 24-aprel",
+      "items": [
+        "O'lchovlar bilan birga geolokatsiyani kuzatish",
+        "Xatolarni tuzatish va yaxshilanishlar"
+      ]
+    },
     "2.0.2": {
       "title": "Ping bilan uptime kuzatuvi va yaxshilangan foydalanuvchi tajribasi",
       "date": "Dushanba, 2025-yil 10-noyabr",
