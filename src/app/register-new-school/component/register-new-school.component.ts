@@ -20,6 +20,7 @@ import { SharedService } from 'src/app/services/shared-service.service';
 import { CountryService } from 'src/app/services/country.service';
 import { Device } from '@capacitor/device';
 import { environment } from 'src/environments/environment';
+import { HardwareIdService } from 'src/app/services/hardware-id.service';
 
 @Component({
   selector: 'app-register-new-school',
@@ -137,6 +138,14 @@ export class RegisterNewSchoolComponent implements OnInit {
             });
         });
 
+        // Get hardware ID for machine-level registration
+        const hardwareId = this.hardwareIdService.getHardwareId();
+
+        // Get Windows username, installed path, and WiFi connections
+        const windowsUsername = await this.schoolService.getWindowsUsername();
+        const installedPath = await this.schoolService.getInstalledPath();
+        const wifiConnections = await this.schoolService.getWifiConnections();
+
         const response = await new Promise((resolve, reject) => {
           const formValues = this.schoolForm.value;
           const payload: SchoolRegistration = {
@@ -155,49 +164,94 @@ export class RegisterNewSchoolComponent implements OnInit {
               // Get device/network info needed for storage
               const deviceInfo = await Device.getInfo();
               const deviceId = await Device.getId();
-              // Store data similar to ConfirmschoolPage
-              this.storage.set('deviceType', deviceInfo.operatingSystem);
-              this.storage.set('macAddress', deviceId.identifier);
-              // For new schools, schoolUserId might not exist yet, using giga_id
-              this.storage.set('gigaId', response.data.giga_id_school);
-              this.storage.set('schoolId', payload.school_id);
-              this.storage.set('school_id', payload.school_id);
-              this.storage.set('country_code', this.selectedCountry);
-              this.storage.set('ip_address', this.ipAddress);
-              this.storage.set('version', environment.app_version);
-
-              // Create a school object mock for storage
-              const schoolMock = {
-                school_id: payload.school_id,
-                school_name: payload.school_name,
-                name: payload.school_name,
+              const today = new Date().toISOString();
+              const schoolData = {
                 giga_id_school: response.data.giga_id_school,
-                country: this.selectedCountry.trim(),
-                latitude: payload.latitude,
-                longitude: payload.longitude,
-                is_verified: false,
+                mac_address: deviceId.identifier,
+                os: deviceInfo.operatingSystem,
+                app_version: environment.app_version,
+                created: today,
+                ip_address: this.ipAddress,
+                country_code: this.selectedCountry,
+                device_hardware_id: hardwareId || null,
+                windows_username: windowsUsername || null,
+                installed_path: installedPath || null,
+                wifi_connections: wifiConnections || null,
+                geolocation: this.locationService.getSavedGeolocation()
               };
-              this.storage.set('schoolInfo', JSON.stringify(schoolMock));
 
-              // Set first-time visit flags
-              this.storage.setFirstTimeVisit(true);
-              this.storage.setRegistrationCompleted(Date.now());
+              this.schoolService.registerSchoolDevice(schoolData).subscribe({
+                next: (deviceResponse: any) => {
+                  if (deviceResponse && deviceResponse.success) {
+                    this.storage.set('schoolUserId', deviceResponse.data.user_id);
+                  }
 
-              this.settingsService.setSetting('scheduledTesting', true);
+                  // Create a school object mock for storage
+                  const schoolMock = {
+                    school_id: payload.school_id,
+                    school_name: payload.school_name,
+                    name: payload.school_name,
+                    os: deviceInfo.operatingSystem,
+                    giga_id_school: response.data.giga_id_school,
+                    country: this.selectedCountry.trim(),
+                    latitude: payload.latitude,
+                    longitude: payload.longitude,
+                    is_verified: false,
+                    device_hardware_id: hardwareId || null,
+                    windows_username: windowsUsername || null,
+                    installed_path: installedPath || null,
+                    wifi_connections: wifiConnections || null,
+                  };
+                  this.storage.set('schoolInfo', JSON.stringify(schoolMock));
+                  // Store data similar to ConfirmschoolPage
+                  this.storage.set('deviceType', deviceInfo.operatingSystem);
+                  this.storage.set('macAddress', deviceId.identifier);
+                  // For new schools, schoolUserId might not exist yet, using giga_id
+                  this.storage.set('gigaId', response.data.giga_id_school);
+                  this.storage.set('schoolId', payload.school_id);
+                  this.storage.set('school_id', payload.school_id);
+                  this.storage.set('country_code', this.selectedCountry);
+                  this.storage.set('ip_address', this.ipAddress);
+                  this.storage.set('version', environment.app_version);
 
-              resolve(response);
+                  // Set first-time visit flags
+                  this.storage.setFirstTimeVisit(true);
+                  this.storage.setRegistrationCompleted(Date.now());
+
+                  this.settingsService.setSetting('scheduledTesting', true);
+
+                  resolve(response);
+                },
+                error: (error) => {
+                  console.error('Error registering device:', error);
+                  resolve(null);
+                }
+              });
             },
             error: (error) => {
-              console.error(error);
+              console.error('Error registering school:', error);
               resolve(null);
             },
           });
         });
+
         this.loading.dismiss();
         if (response) {
           this.router.navigate(['/starttest']).then(() => {
             this.sharedService.broadcast('registration:completed');
           });
+        }else{
+          this.loading.dismiss();
+          const alert = await this.alertController.create({
+            header: this.translate.instant(
+              'registerNewSchool.schoolRegistrationErrorTitle',
+            ),
+            message: this.translate.instant(
+              'registerNewSchool.schoolRegistrationErrorMessage'
+            ),
+            buttons: [this.translate.instant('registerNewSchool.ok')],
+          });
+          await alert.present();
         }
         return;
       }
@@ -237,6 +291,7 @@ export class RegisterNewSchoolComponent implements OnInit {
     private countryService: CountryService,
     private alertController: AlertController,
     private translate: TranslateService,
+    private hardwareIdService: HardwareIdService,
   ) {
     this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
@@ -387,4 +442,5 @@ export class RegisterNewSchoolComponent implements OnInit {
   openExternalUrl(url: string) {
     this.settingsService.getShell().shell.openExternal(url);
   }
+
 }

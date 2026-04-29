@@ -27,6 +27,10 @@ import { FirstTestSuccessModalComponent } from '../components/first-test-success
 import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
 import { PingService } from '../services/ping.service';
+import {
+  checkUnverifiedSchool,
+  removeUnregisterSchool,
+} from '../home/home.utils';
 
 @Component({
   selector: 'app-starttest',
@@ -116,6 +120,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   showRegistrationBanner: boolean = false;
   registrationStatus: 'completed' | 'testing' | 'done' = 'completed';
   firstTestTriggered: boolean = false;
+  checkUnverifiedTimer: any;
 
   constructor(
     private route: ActivatedRoute,
@@ -137,7 +142,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     private countryService: CountryService,
     private confettiService: ConfettiService,
     private indexedDBService: IndexedDBService,
-    private pingService: PingService
+    private pingService: PingService,
   ) {
     if (this.storage.get('schoolId')) {
       this.school = JSON.parse(this.storage.get('schoolInfo'));
@@ -173,7 +178,7 @@ export class StarttestPage implements OnInit, OnDestroy {
           console.log(e);
         }
       },
-      false
+      false,
     );
 
     window.addEventListener(
@@ -187,7 +192,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // Hide registration banners if an error is shown during first test
         this.showRegistrationBanner = false;
       },
-      false
+      false,
     );
 
     this.sharedService.on('settings:changed', (nameValue) => {
@@ -204,6 +209,31 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
   ngOnInit() {
     this.schoolId = this.storage.get('schoolId');
+
+    // Schedule check for unverified school every 1 hour
+    if (this.school && this.school?.is_verified === false) {
+      this.checkUnverifiedTimer = setInterval(async () => {
+        try {
+          const response = await checkUnverifiedSchool(
+            this.schoolId,
+            this.schoolService,
+            this.storage,
+            this.settingsService,
+          );
+          if (response) {
+            this.school.is_verified = true;
+            this.storage.set('schoolInfo', JSON.stringify(this.school));
+            // Remove the interval
+            if (this.checkUnverifiedTimer) {
+              clearInterval(this.checkUnverifiedTimer);
+              this.checkUnverifiedTimer = null;
+            }
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      }, 3600000); // 1 hour
+    }
 
     // CRITICAL: Set up all event listeners FIRST before any auto-trigger logic
     this.setupEventListeners();
@@ -261,7 +291,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.sharedService.on('measurement:status', this.driveGauge.bind(this));
     this.sharedService.on(
       'history:measurement:change',
-      this.refreshHistory.bind(this)
+      this.refreshHistory.bind(this),
     );
     this.sharedService.on('history:reset', this.refreshHistory.bind(this));
   }
@@ -273,7 +303,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Listen for registration completion events from other components
     this.sharedService.on('registration:completed', () => {
       console.log(
-        '🎉 DEBUG: Registration completion event received - re-checking first time visit'
+        '🎉 DEBUG: Registration completion event received - re-checking first time visit',
       );
       // Re-check first time visit status after registration
       setTimeout(() => {
@@ -318,7 +348,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         }
         this.progress = 100;
         this.ref.markForCheck();
-      }
+      },
     );
 
     // Set up window event listeners
@@ -327,7 +357,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       () => {
         console.log('Online 1');
       },
-      false
+      false,
     );
 
     window.addEventListener(
@@ -335,7 +365,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       () => {
         console.log('Offline 1');
       },
-      false
+      false,
     );
   }
 
@@ -351,7 +381,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         (err) => {
           console.log('ERROR: ' + err);
           this.loading.dismiss();
-        }
+        },
       );
     }
   }
@@ -477,7 +507,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // No historical data, reset display values
         this.clearLatestMeasurementDisplay();
         console.log(
-          'No historical measurement data found, cleared dashboard display'
+          'No historical measurement data found, cleared dashboard display',
         );
       }
     } catch (error) {
@@ -497,7 +527,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // Sort by timestamp to get the latest result
         const sortedResults = pingResults.sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
 
         this.lastPingResult = sortedResults[0];
@@ -655,7 +685,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         'isFirstVisit:',
         this.isFirstVisit,
         'registrationStatus:',
-        this.registrationStatus
+        this.registrationStatus,
       );
       if (data.testStatus === 'error') {
         this.connectionStatus = 'error';
@@ -673,7 +703,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.progress = 0;
       } else if (data.testStatus === 'server_discovery') {
         this.currentState = this.translate.instant(
-          'startTest.discoveringServers'
+          'startTest.discoveringServers',
         );
         this.progress = 0.1;
       } else if (data.testStatus === 'server_chosen') {
@@ -687,7 +717,9 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.progress = 0.05;
       } else if (data.testStatus === 'interval_c2s') {
         console.log('Running Test (Upload)');
-        this.currentState = this.translate.instant('startTest.runningTestUpload');
+        this.currentState = this.translate.instant(
+          'startTest.runningTestUpload',
+        );
         this.currentRate = (
           (data.passedResults.Data.TCPInfo.BytesReceived /
             data.passedResults.Data.TCPInfo.ElapsedTime) *
@@ -699,7 +731,9 @@ export class StarttestPage implements OnInit, OnDestroy {
           this.startUploadProgress();
         }
       } else if (data.testStatus === 'interval_s2c') {
-        this.currentState = this.translate.instant('startTest.runningTestDownload');
+        this.currentState = this.translate.instant(
+          'startTest.runningTestDownload',
+        );
         this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults.Data.MeanClientMbps?.toFixed(2);
@@ -770,7 +804,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       message:
         '<strong>' +
         this.translate.instant(
-          'The connection was interupted before testing could be completed.'
+          'The connection was interupted before testing could be completed.',
         ) +
         '</strong>',
       buttons: [
@@ -790,7 +824,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       message:
         '<strong>' +
         this.translate.instant(
-          'Measurement server is not responding. Please close the app from system tray and try after sometime'
+          'Measurement server is not responding. Please close the app from system tray and try after sometime',
         ) +
         '</strong>',
       buttons: [
@@ -842,7 +876,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.registrationStatus = 'testing';
 
       console.log(
-        'Auto-triggering first test for new registration - event listeners are ready'
+        'Auto-triggering first test for new registration - event listeners are ready',
       );
 
       // Additional safety: ensure driveGauge listener is registered
@@ -853,7 +887,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         console.log('Confirmed: measurement:status listener is registered');
       } else {
         console.warn(
-          'Warning: measurement:status listener may not be registered yet'
+          'Warning: measurement:status listener may not be registered yet',
         );
       }
 
@@ -1013,6 +1047,9 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    if (this.checkUnverifiedTimer) {
+      clearInterval(this.checkUnverifiedTimer);
+    }
     this.downloadSub.unsubscribe();
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();

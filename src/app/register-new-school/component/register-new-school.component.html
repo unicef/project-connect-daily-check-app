@@ -198,7 +198,7 @@
 
           <div style="margin-top: 16px; padding: 0 4px;">
             <ng-container *ngFor="let item of geoCodeResponse | keyvalue">
-              <div style="display: flex; justify-content: space-between; padding: 15px 0; font-size: 14px; border-bottom: 1px dashed #E0E4E5;">
+              <div style="display: flex; justify-content: space-between; padding: 10px 0; font-size: 14px; border-bottom: 1px dashed #E0E4E5;">
                 <span style="color: #161616; text-transform: capitalize;">
                   {{ ("registerNewSchool." + item.key | translate) !== ("registerNewSchool." + item.key) ? ("registerNewSchool." + item.key | translate) : item.key }}
                 </span>

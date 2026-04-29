@@ -35,6 +35,40 @@ export const removeUnregisterSchool = async (
   }
 };
 
+export const checkUnverifiedSchool = async (
+  schoolId: number,
+  schoolService: SchoolService,
+  storage: StorageService,
+  settings: SettingsService
+) => {
+  const gigaId = storage.get('gigaId');
+  const countryCode = storage.get('country_code');
+  let response;
+
+  try {
+    response = await schoolService
+      .getRegisteredSchoolByGigaId(gigaId)
+      .toPromise();
+  } catch (e) {
+    captureMessage('Error getting registered school by gigaId, ' + e);
+    console.log('Error getting registered school by gigaId', e);
+  }
+
+  console.log({ response });
+
+  if (response && Array.isArray(response) && response.length>0) {
+    if (response[0].is_verified === false) {
+      storage.clear();
+      console.log('Existing school on the device not found on backend');
+      captureMessage('Existing school on the device not found on backend');
+      return false;
+    }
+    return true;
+  } else {
+    return false;
+  }
+};
+
 /**
  *  This function takes the gigaId checks if is
  * correct and if is not substitute the localstorage values

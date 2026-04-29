@@ -301,6 +301,8 @@
     "educationLevelTooltip": "Especifique el nivel más alto de educación ofrecido (por ejemplo, primaria, secundaria).",
     "contactNameTooltip": "Ingrese el nombre de la persona de contacto principal para esta escuela.",
     "contactEmailTooltip": "Proporcione una dirección de correo electrónico válida para comunicaciones oficiales.",
-    "latLongTooltip": "Muestra las coordenadas geográficas exactas de la escuela."
+    "latLongTooltip": "Muestra las coordenadas geográficas exactas de la escuela.",
+    "schoolRegistrationErrorTitle": "Error de Registro",
+    "schoolRegistrationErrorMessage": "Ocurrió un error al registrar la escuela. Por favor, inténtelo de nuevo."
   }
 }
