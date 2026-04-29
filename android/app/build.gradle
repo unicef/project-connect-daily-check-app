@@ -1,7 +1,11 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
-apply plugin: 'com.google.gms.google-services'
-apply plugin: 'com.google.firebase.crashlytics'
+//apply plugin: 'com.google.gms.google-services'
+//apply plugin: 'com.google.firebase.crashlytics'
+if (new File("$projectDir/google-services.json").exists()) {
+  apply plugin: 'com.google.gms.google-services'
+  apply plugin: 'com.google.firebase.crashlytics'
+}
 apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 
@@ -63,8 +67,6 @@ android {
   }
 }
 
-// ✅ Fix: Disable Sentry bytecode instrumentation to prevent JaCoCo class ID mismatches
-// 'autoInstrumentationEnabled' does NOT exist — only tracingInstrumentation.enabled is valid
 sentry {
   tracingInstrumentation {
     enabled = false
@@ -162,7 +164,6 @@ tasks.register('jacocoTestReport', JacocoReport) {
   ]
   sourceDirectories.setFrom(files(sourceDirs))
 
-  // ✅ Fix: Exclude known Sentry-mismatching classes as a safety net
   def classDirs = fileTree(
     dir: "${buildDir}/tmp/kotlin-classes/debug",
     excludes: [
@@ -172,10 +173,6 @@ tasks.register('jacocoTestReport', JacocoReport) {
       '**/Manifest*.*',
       '**/*Test*.*',
       'android/**/*.*',
-//      '**/GigaUtil.class',
-//      '**/BootBroadCastReceiver.class',
-//      '**/ScheduleBroadcastReceiver.class',
-//      '**/AlarmHelper.class'
     ]
   )
   classDirectories.setFrom(files([classDirs]))
