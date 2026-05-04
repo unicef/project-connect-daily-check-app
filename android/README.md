@@ -195,7 +195,18 @@ android {
 
 ---
 
-## 6. Version Code and Version Name
+## 6. Firebase Integration (it's optional implementation)
+
+- if (new File("$projectDir/google-services.json").exists()) {
+  apply plugin: 'com.google.gms.google-services'
+  apply plugin: 'com.google.firebase.crashlytics'
+  }
+- It checks for google-services.json and if it's available then only it integrates firebase.
+- If new firebase config file google-services.json need to add, it should be added in app/src/release or app/src/debug path based on environment
+
+---
+
+## 7. Version Code and Version Name
 
 - Version code and version name are defined in the app level build.gradle.
   versionCode project.VERSION_CODE.toInteger()
@@ -221,7 +232,7 @@ This commands need to execute when building the final builds to upload.
 
 ---
 
-## 7. Build Commands via Android Studio/VS Code/Terminal
+## 8. Build Commands via Android Studio/VS Code/Terminal
 
 Navigate to android drectory in project and run below commands to create builds
 
@@ -257,7 +268,7 @@ Navigate to android drectory in project and run below commands to create builds
 
 ---
 
-## 8. Generate build via Android Studio GUI (This is optional if build creation via terminal/command line is not preferred)
+## 9. Generate build via Android Studio GUI (This is optional if build creation via terminal/command line is not preferred)
 
 - To generate signed apk/aab
   ![Step 1](images/1.png)
@@ -284,7 +295,7 @@ Fill the details, create the password and signing config file and save. This fil
   Select the Generate App Bundle or APK option, Next select Generate APK/ Generate AAB. It will create the apk/aab.
   Note: Apk can be shared with any one and can be installed, aab file can be installed via play store only.
 
-## 9. Debugging
+## 10. Debugging
 
 - Inspect logs:
 
@@ -300,7 +311,7 @@ Fill the details, create the password and signing config file and save. This fil
 
 ---
 
-## 10. Signing Release Builds
+## 11. Signing Release Builds
 
 1. Generate keystore:
 
@@ -339,7 +350,7 @@ Fill the details, create the password and signing config file and save. This fil
 
 ---
 
-## 11. Summary
+## 12. Summary
 
 - **Debug Builds**
   - `./gradlew assembleDebug`
@@ -350,16 +361,12 @@ Fill the details, create the password and signing config file and save. This fil
 - **Play Store Bundles**
   - `./gradlew bundleRelease`
 
-## 12. Special Note : Existing Sentry version is 9.x where as android latest sentry sdk support 10.x sentry servers. Do not upgrade the android sdk until sentry server migrated to 10.x version,otherwise it will block the sentry logging.
-
----
-
 ✅ You now have a Capacitor Android app configured with **dev, staging, and production flavors driven by mode defined in \_environment.prod.ts** along with **debug/release build types**.
 
 ## 🧠 Common Issues
 
 | Issue              | Fix                              |
-| ------------------ | -------------------------------- |
+|--------------------|----------------------------------|
 | App not updating   | Run `npx cap sync android`       |
 | Env not reflecting | Run `generate-native-env.js`     |
 | Build fails        | Check Java + SDK setup           |
