@@ -613,14 +613,17 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   async startMeasurement(notes: string = 'manual') {
-    const provider = (await this.settingsService.getCountryConfig()).measurementProvider;
-    console.log('Measurement provider selected:', provider);
+    const cfg = await this.settingsService.getProtocolConfig();
+    const provider = cfg.measurementProvider;
+    console.log('Measurement provider selected:', provider, cfg);
     switch (provider) {
       case 'cloudflare':
           this.startCloudflare(notes);
           console.log('Cloudflare measurement started');
         break;
       case 'mlab':
+      case 'both':
+        // Dual-protocol orchestration may run additional providers in a later task
         this.startNDT(notes);
         console.log('NDT7 measurement started');
         break;

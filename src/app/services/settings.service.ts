@@ -5,11 +5,37 @@ import { environment } from 'src/environments/environment';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { map } from 'rxjs/operators';
 
-const TEN_MINUTES = 1000 * 60 * 10;
-const MINUTE = 60 * 1000;
 const SIX_HOURS = 1000 * 60 * 60 * 6;
 
-const DAY = 1000 * 60 * 60 * 24;
+/** LocalStorage key for resolved protocol configuration cache */
+export const PROTOCOL_CONFIG_STORAGE_KEY = 'protocolConfig';
+
+export interface ResolvedProtocolConfig {
+  measurementProvider: string;
+  betweenTestsDelaySec: number;
+  configSource: 'school' | 'country' | 'default';
+}
+
+interface ProtocolConfigCacheEntry {
+  cacheIdentityKey: string;
+  savedAt: number;
+  payload: ResolvedProtocolConfig;
+}
+
+const DEFAULT_PROTOCOL_CONFIG: ResolvedProtocolConfig = {
+  measurementProvider: 'mlab',
+  betweenTestsDelaySec: 0,
+  configSource: 'default',
+};
+
+interface ProtocolConfigApiBody {
+  success?: boolean;
+  data?: {
+    measurementProvider?: string;
+    betweenTestsDelaySec?: number;
+    configSource?: ResolvedProtocolConfig['configSource'];
+  };
+}
 @Injectable({
   providedIn: 'root',
 })
@@ -17,6 +43,9 @@ export class SettingsService {
   defaultCountryConfig = {
     measurementProvider: 'mlab',
   };
+
+  /** In-flight background refresh to avoid duplicate resolve requests */
+  private protocolConfigRefreshPromise: Promise<void> | null = null;
   currentSettings = {
     onlyWifi: {
       default: false,
@@ -220,44 +249,167 @@ export class SettingsService {
     return (window as any).shell;
   }
 
-  async getCountryConfig():
-  Promise<{ measurementProvider: string;} > {  
-    const countryCode = this.storageSerivce.get('country_code');
-    console.log('Checking for country config', { country_code: countryCode });
-    if (!countryCode) {
-      console.log('No country code found');
-      return this.defaultCountryConfig;
-    }
-    let countryConfig = this.storageSerivce.get('countryConfig');
-    if (countryConfig && countryConfig?.savedAt < Date.now() - DAY ) {
-      countryConfig = JSON.parse(countryConfig);
-      return countryConfig;
-    }
-    if(!countryConfig || countryConfig?.code !== countryCode) {
-      try {
-        // localhost:3000/api/v1/country-config/code/ES
-        const newConfig = await this.http
-          .get(environment.restAPI + `country-config/code/${countryCode}`, {
-            observe: 'response',
-            headers: new HttpHeaders({
-              'Content-type': 'application/json',
-            }),
-          }).pipe(map((response: any) => response.body))
-          .toPromise();
-        if (!newConfig || newConfig.data.length === 0) {
-          return this.defaultCountryConfig;
-        }
-        newConfig.data.savedAt = Date.now();
-        this.storageSerivce.set(
-          'countryConfig',
-          JSON.stringify(newConfig.data)
-        );
-        return newConfig?.data || this.defaultCountryConfig;
-      } catch (e) {
-        console.log(e);
-        return this.defaultCountryConfig;
+  private getProtocolConfigIdentityKey(): string {
+    const gigaId = this.storageSerivce.get('gigaId') ?? '';
+    const countryCode = this.storageSerivce.get('country_code') ?? '';
+    return `${gigaId}|${countryCode}`;
+  }
+
+  private parseProtocolConfigCache(raw: string): ProtocolConfigCacheEntry | null {
+    try {
+      const parsed = JSON.parse(raw) as ProtocolConfigCacheEntry;
+      if (
+        parsed &&
+        typeof parsed.savedAt === 'number' &&
+        parsed.payload &&
+        typeof parsed.cacheIdentityKey === 'string'
+      ) {
+        return parsed;
       }
+    } catch {
+      /* ignore */
     }
+    return null;
+  }
+
+  /**
+   * Drop cached protocol config (call when school or country changes).
+   */
+  async invalidateProtocolConfigCache(): Promise<void> {
+    await this.storageSerivce.remove(PROTOCOL_CONFIG_STORAGE_KEY);
+  }
+
+  /**
+   * Fire-and-forget network refresh; updates cache on success.
+   */
+  triggerProtocolConfigBackgroundRefresh(): void {
+    void this.refreshProtocolConfigCache();
+  }
+
+  private async fetchProtocolConfigFromNetwork(): Promise<ResolvedProtocolConfig | null> {
+    try {
+      const gigaId = this.storageSerivce.get('gigaId');
+      const countryCode = this.storageSerivce.get('country_code');
+      const params = new URLSearchParams();
+      if (gigaId) {
+        params.set('gigaIdSchool', gigaId);
+      }
+      if (countryCode) {
+        params.set('countryCode', countryCode);
+      }
+      const qs = params.toString();
+      const url =
+        environment.restAPI +
+        `protocol-config/resolve` +
+        (qs.length ? `?${qs}` : '');
+      const body = (await this.http
+        .get<ProtocolConfigApiBody>(url, {
+          observe: 'response',
+          headers: new HttpHeaders({
+            'Content-type': 'application/json',
+          }),
+        })
+        .pipe(map((response) => response.body))
+        .toPromise()) as ProtocolConfigApiBody | null | undefined;
+
+      if (
+        body &&
+        body.success &&
+        body.data &&
+        typeof body.data.measurementProvider === 'string'
+      ) {
+        return {
+          measurementProvider: body.data.measurementProvider,
+          betweenTestsDelaySec:
+            typeof body.data.betweenTestsDelaySec === 'number'
+              ? body.data.betweenTestsDelaySec
+              : 0,
+          configSource:
+            body.data.configSource === 'school' ||
+            body.data.configSource === 'country' ||
+            body.data.configSource === 'default'
+              ? body.data.configSource
+              : 'default',
+        };
+      }
+      return null;
+    } catch (e) {
+      console.log('protocol-config resolve failed', e);
+      return null;
+    }
+  }
+
+  private persistProtocolConfigCache(
+    payload: ResolvedProtocolConfig,
+    identityKey: string
+  ): void {
+    const entry: ProtocolConfigCacheEntry = {
+      cacheIdentityKey: identityKey,
+      savedAt: Date.now(),
+      payload,
+    };
+    void this.storageSerivce.set(
+      PROTOCOL_CONFIG_STORAGE_KEY,
+      JSON.stringify(entry)
+    );
+  }
+
+  /**
+   * Refresh protocol config from API and store when successful (single-flight).
+   */
+  async refreshProtocolConfigCache(): Promise<void> {
+    if (this.protocolConfigRefreshPromise) {
+      return this.protocolConfigRefreshPromise;
+    }
+    this.protocolConfigRefreshPromise = (async () => {
+      try {
+        const data = await this.fetchProtocolConfigFromNetwork();
+        if (data) {
+          this.persistProtocolConfigCache(
+            data,
+            this.getProtocolConfigIdentityKey()
+          );
+        }
+      } finally {
+        this.protocolConfigRefreshPromise = null;
+      }
+    })();
+    return this.protocolConfigRefreshPromise;
+  }
+
+  /**
+   * Resolved protocol settings with precedence school → country → default.
+   * TTL 6h; stale entries are returned immediately and refreshed in the background (SWR).
+   */
+  async getProtocolConfig(): Promise<ResolvedProtocolConfig> {
+    const identityKey = this.getProtocolConfigIdentityKey();
+    const raw = this.storageSerivce.get(PROTOCOL_CONFIG_STORAGE_KEY);
+    const cached = raw ? this.parseProtocolConfigCache(raw) : null;
+
+    if (cached && cached.cacheIdentityKey === identityKey) {
+      const age = Date.now() - cached.savedAt;
+      if (age < SIX_HOURS) {
+        return cached.payload;
+      }
+      void this.refreshProtocolConfigCache();
+      return cached.payload;
+    }
+
+    const fresh = await this.fetchProtocolConfigFromNetwork();
+    if (fresh) {
+      this.persistProtocolConfigCache(fresh, identityKey);
+      return fresh;
+    }
+
+    return { ...DEFAULT_PROTOCOL_CONFIG };
+  }
+
+  /**
+   * @deprecated Prefer {@link getProtocolConfig}; kept for backward compatibility.
+   */
+  async getCountryConfig(): Promise<{ measurementProvider: string }> {
+    const pc = await this.getProtocolConfig();
+    return { measurementProvider: pc.measurementProvider };
   }
 
   async getFeatureFlags() {

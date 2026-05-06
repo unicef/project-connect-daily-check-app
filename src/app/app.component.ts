@@ -151,6 +151,9 @@ export class AppComponent {
     // Load release notes for help sidebar
     this.loadWhatsNewReleases();
 
+    // Background revalidation of protocol config (non-blocking)
+    this.settingsService.triggerProtocolConfigBackgroundRefresh();
+
     // Expose service for testing (development only)
     if (!environment.production) {
       (window as any).whatsNewService = this.whatsNewService;

@@ -343,12 +343,14 @@ export class ScheduleService {
     }
   }
   async startMeasurementNow(notes: string) {
-    const provider = await (await this.settingsService.getCountryConfig()).measurementProvider;
+    const cfg = await this.settingsService.getProtocolConfig();
+    const provider = cfg.measurementProvider;
     switch (provider) {
       case 'cloudflare':
           this.cloudflareMeasurementService.runTest(notes);
         break;
       case 'mlab':
+      case 'both':
         this.measurementClientService.runTest(notes);
         break;
     }

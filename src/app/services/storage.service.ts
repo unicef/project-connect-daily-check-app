@@ -96,4 +96,14 @@ export class StorageService {
     const oneHourAgo = Date.now() - 60 * 60 * 1000; // 1 hour in milliseconds
     return timestamp > oneHourAgo;
   }
+
+  /**
+   * Remove a key from local storage (used for cache invalidation).
+   */
+  remove(key: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      localStorage.removeItem(key);
+      resolve(true);
+    });
+  }
 }

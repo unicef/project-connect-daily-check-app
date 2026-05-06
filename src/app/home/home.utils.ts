@@ -68,7 +68,8 @@ export const removeUnregisterSchool = async (
 export const checkRightGigaId = async (
   gigaId: number,
   schoolService: SchoolService,
-  storage: StorageService
+  storage: StorageService,
+  settings?: SettingsService
 ) => {
   const checkRight = await schoolService.checkRightGigaId(gigaId).toPromise();
 
@@ -94,6 +95,7 @@ export const checkRightGigaId = async (
       console.log({ rigthGigaId: storage.get('gigaId') });
       storage.set('country_code', schools[0].code);
       storage.set('schoolInfo', JSON.stringify(schools[0]));
+      await settings?.invalidateProtocolConfigCache();
       return true;
     }
   }
