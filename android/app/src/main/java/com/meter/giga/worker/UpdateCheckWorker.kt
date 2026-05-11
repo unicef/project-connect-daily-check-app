@@ -28,7 +28,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-class UpdateCheckWorker(
+open class UpdateCheckWorker(
   appContext: Context,
   params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
@@ -73,7 +73,7 @@ class UpdateCheckWorker(
     }
   }
 
-  private fun showUpdateNotification() {
+  protected fun showUpdateNotification() {
     createNotificationChannel()
 
     val intent = Intent(applicationContext, MainActivity::class.java).apply {
@@ -110,7 +110,7 @@ class UpdateCheckWorker(
     notificationManager.notify(APP_UPGRADE_NOTIFICATION_ID, builder.build())
   }
 
-  private fun createNotificationChannel() {
+  protected fun createNotificationChannel() {
     val channel = NotificationChannel(
       APP_UPDATE_CHANNEL_ID,
       WORKER_TAG,
@@ -130,8 +130,19 @@ class UpdateCheckWorker(
 /**
  * Extension function to await Play Core Task
  */
+// ✅ Fixed — add task result listener on the calling thread's executor
+// using TaskExecutors or a direct executor to avoid main-looper dependency
+
 suspend fun <T> Task<T>.await(): T =
   suspendCancellableCoroutine { cont ->
-    addOnSuccessListener { cont.resume(it) }
-    addOnFailureListener { cont.resumeWithException(it) }
+    val executor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    addOnSuccessListener(executor) { result ->
+      if (cont.isActive) cont.resume(result)
+    }
+    addOnFailureListener(executor) { exception ->
+      if (cont.isActive) cont.resumeWithException(exception)
+    }
+    cont.invokeOnCancellation {
+      // Task cancellation is not supported by Play Core — just guard the cont
+    }
   }

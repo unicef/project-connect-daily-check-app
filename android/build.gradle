@@ -38,7 +38,7 @@ task clean(type: Delete) {
 }
 
 subprojects {
-  configurations.all {
+  configurations.configureEach {
     resolutionStrategy.eachDependency { DependencyResolveDetails details ->
       def requested = details.requested
       if (requested.group == 'org.jetbrains.kotlin') {

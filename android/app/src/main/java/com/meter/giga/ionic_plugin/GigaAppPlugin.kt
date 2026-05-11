@@ -7,12 +7,17 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import androidx.core.content.ContextCompat.startActivity
+import android.widget.Toast
+import androidx.core.net.toUri
 import com.getcapacitor.JSArray
+import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.gson.GsonBuilder
 import com.meter.giga.ararm_scheduler.AlarmHelper
 import com.meter.giga.ararm_scheduler.AlarmHelper.getNextSlotRange
@@ -34,30 +39,18 @@ import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.GigaUtil
-import org.json.JSONArray
-import org.json.JSONException
-import org.json.JSONObject
-import com.getcapacitor.JSObject
-import androidx.core.net.toUri
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.ListenableWorker
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.PeriodicWorkRequest
-import androidx.work.WorkManager
-import com.google.android.play.core.appupdate.AppUpdateManagerFactory
-import com.google.android.play.core.install.model.AppUpdateType
-import com.google.android.play.core.install.model.UpdateAvailability
-import com.meter.giga.worker.UpdateCheckWorker
 import com.meter.giga.worker.await
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.concurrent.TimeUnit
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
 
 @CapacitorPlugin(name = "GigaAppPlugin")
-class GigaAppPlugin : Plugin() {
+open class GigaAppPlugin : Plugin() {
 
   // Create singleton instance of Giga App Plugin
   companion object {
@@ -212,7 +205,7 @@ class GigaAppPlugin : Plugin() {
     AppLogger.d("GIGA Android", androidId)
     val ret = JSObject()
     try {
-      val context = bridge.context
+      val context = context
       val alarmPrefs = AlarmSharedPref(context)
       alarmPrefs.deviceHardwareId = androidId
       ret.put("androidId", androidId)
@@ -231,7 +224,7 @@ class GigaAppPlugin : Plugin() {
    */
   @PluginMethod
   fun executeManualSpeedTest(call: PluginCall) {
-    val context = bridge.context
+    val context = context
     val scheduleType = call.getString(SCHEDULE_TYPE)
     AppLogger.d("GIGA GigaAppPlugin", "Manual Speed Test ${scheduleType}")
 
@@ -260,7 +253,7 @@ class GigaAppPlugin : Plugin() {
   @PluginMethod
   fun getHistoricalSpeedTestData(call: PluginCall) {
     try {
-      val context = bridge.context
+      val context = context
       val alarmPrefs = AlarmSharedPref(context)
       val speedTestHistoricalData = alarmPrefs.oldSpeedTestData
       val jsonArray = JSONArray(speedTestHistoricalData)
@@ -293,7 +286,7 @@ class GigaAppPlugin : Plugin() {
   @PluginMethod
   fun storeAndScheduleSpeedTest(call: PluginCall) {
     AppLogger.d("GIGA GigaAppPlugin", "Start Command Via Plugin")
-    val context = bridge.context
+    val context = context
     val browserId = call.getString(REGISTRATION_BROWSER_ID)
     val schoolId = call.getString(REGISTRATION_SCHOOL_ID)
     val gigaSchoolId = call.getString(REGISTRATION_GIGA_SCHOOL_ID)
@@ -329,7 +322,7 @@ class GigaAppPlugin : Plugin() {
   @PluginMethod
   fun storeEnvironment(call: PluginCall) {
     AppLogger.d("GIGA GigaAppPlugin", "Start Command Via Plugin")
-    val context = bridge.context
+    val context = context
     val env = call.getString(ENV_TYPE)
     val alarmPrefs = AlarmSharedPref(context)
     alarmPrefs.environment = env ?: "development"
@@ -347,11 +340,6 @@ class GigaAppPlugin : Plugin() {
 
         // WAIT for Play Store response
         val info = appUpdateManager.appUpdateInfo.await()
-
-        Sentry.captureMessage("Updated Checker executed after play store check")
-        Sentry.captureMessage("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
-        Sentry.captureMessage("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
-
         if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
           info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
         ) {
@@ -360,11 +348,12 @@ class GigaAppPlugin : Plugin() {
         } else {
           Sentry.captureMessage("Update: No update OR not allowed")
           AppLogger.d("Update", "No update OR not allowed")
+          return@withContext "No update available"
         }
         return@withContext "Done"
       } catch (e: Exception) {
         Sentry.captureMessage("Updated Checker Failed due to ${e.message}")
-        return@withContext "Done"
+        return@withContext "App update is not allowed"
       }
     }
   }
@@ -372,11 +361,15 @@ class GigaAppPlugin : Plugin() {
   @PluginMethod
   fun checkAppUpdateAvailable(call: PluginCall) {
     AppLogger.d("GIGA GigaAppPlugin", "Start Command Via Plugin")
-    val context = bridge.context
+    val context = context
     CoroutineScope(Dispatchers.Main).launch {
       try {
         val result = checkAppUpdate()
         val ret = JSObject()
+        AppLogger.d("GIGA GigaAppPlugin", result)
+        if (result !== "Done") {
+          Toast.makeText(context, result, Toast.LENGTH_SHORT).show()
+        }
         ret.put("value", result)
         call.resolve(ret)
       } catch (e: Exception) {
@@ -394,7 +387,7 @@ class GigaAppPlugin : Plugin() {
    */
   @PluginMethod
   fun clearStoredData(call: PluginCall) {
-    val context = bridge.context
+    val context = context
     val alarmPrefs = AlarmSharedPref(context)
     alarmPrefs.resetAllData()
     call.resolve()

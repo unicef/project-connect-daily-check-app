@@ -234,7 +234,7 @@ This commands need to execute when building the final builds to upload.
 
 ## 8. Build Commands via Android Studio/VS Code/Terminal
 
-Navigate to android drectory in project and run below commands to create builds
+Navigate to android directory in project and run below commands to create builds
 
 ### Debug Variants
 
