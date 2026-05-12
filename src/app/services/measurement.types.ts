@@ -1,3 +1,13 @@
+export type MeasurementProviderId = 'mlab' | 'cloudflare';
+
+export type MeasurementRunStatus = 'success' | 'failure';
+
+export interface MeasurementRunOutcome {
+  provider: MeasurementProviderId;
+  status: MeasurementRunStatus;
+  error?: string;
+}
+
 export interface MeasurementRecord {
   timestamp: number;
   results: any;

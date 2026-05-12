@@ -2,11 +2,10 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
-import { MeasurementClientService } from '../services/measurement-client.service';
 import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
 import { NetworkService } from './network.service';
-import { CloudflareMeasurementService } from './measurment-cloudflare-client.service';
+import { MeasurementOrchestrationService } from './measurement-orchestration.service';
 
 @Injectable({
   providedIn: 'root',
@@ -26,11 +25,10 @@ export class ScheduleService {
 
   constructor(
     private storageService: StorageService,
-    private measurementClientService: MeasurementClientService,
     private settingsService: SettingsService,
     private sharedService: SharedService,
     private networkService: NetworkService,
-    private cloudflareMeasurementService: CloudflareMeasurementService,
+    private measurementOrchestrationService: MeasurementOrchestrationService,
   ) {
     console.log('ScheduleService constructor called');
   }
@@ -343,16 +341,9 @@ export class ScheduleService {
     }
   }
   async startMeasurementNow(notes: string) {
-    const cfg = await this.settingsService.getProtocolConfig();
-    const provider = cfg.measurementProvider;
-    switch (provider) {
-      case 'cloudflare':
-          this.cloudflareMeasurementService.runTest(notes);
-        break;
-      case 'mlab':
-      case 'both':
-        this.measurementClientService.runTest(notes);
-        break;
+    const summary = await this.measurementOrchestrationService.runSequence(notes);
+    if (summary.overallStatus === 'failure') {
+      throw new Error('Measurement sequence failed');
     }
   }
 }

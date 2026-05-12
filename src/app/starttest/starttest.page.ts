@@ -16,6 +16,8 @@ import { NetworkService } from '../services/network.service';
 import { SettingsService } from '../services/settings.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { CloudflareMeasurementService } from '../services/measurment-cloudflare-client.service';
+import { MeasurementOrchestrationService } from '../services/measurement-orchestration.service';
+import { MeasurementRunOutcome } from '../services/measurement.types';
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -114,6 +116,24 @@ export class StarttestPage implements OnInit, OnDestroy {
   private cloudflareProgressValue = 0;
   private isCloudflareProgressActive = false;
   private readonly TIME_FOR_CLOUDFLARE_TEST = 30; // seconds
+  private measurementSequenceActive = false;
+  private sequenceAbortController: AbortController | null = null;
+  private readonly handleOrchestrationStage = (
+    _event: string,
+    payload: { stage?: string }
+  ) => {
+    switch (payload?.stage) {
+      case 'mlab:start':
+        this.prepareForMlabRun();
+        break;
+      case 'wait':
+        this.enterWaitingBetweenProtocols();
+        break;
+      case 'cloudflare:start':
+        this.prepareForCloudflareRun();
+        break;
+    }
+  };
 
   downloadTimer: any;
   uploadTimer: any;
@@ -138,6 +158,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     private settingsService: SettingsService,
     private measurementClientService: MeasurementClientService,
     private cloudflareMeasurementService: CloudflareMeasurementService,
+    private measurementOrchestrationService: MeasurementOrchestrationService,
     private sharedService: SharedService,
     private historyService: HistoryService,
     public translate: TranslateService,
@@ -277,6 +298,10 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.refreshHistory.bind(this)
     );
     this.sharedService.on('history:reset', this.refreshHistory.bind(this));
+    this.sharedService.on(
+      'measurement:orchestration',
+      this.handleOrchestrationStage
+    );
   }
 
   /**
@@ -613,21 +638,34 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   async startMeasurement(notes: string = 'manual') {
-    const cfg = await this.settingsService.getProtocolConfig();
-    const provider = cfg.measurementProvider;
-    console.log('Measurement provider selected:', provider, cfg);
-    switch (provider) {
-      case 'cloudflare':
-          this.startCloudflare(notes);
-          console.log('Cloudflare measurement started');
-        break;
-      case 'mlab':
-      case 'both':
-        // Dual-protocol orchestration may run additional providers in a later task
-        this.startNDT(notes);
-        console.log('NDT7 measurement started');
-        break;
+    if (this.measurementSequenceActive) {
+      return;
     }
+
+    this.measurementSequenceActive = true;
+    this.sequenceAbortController = new AbortController();
+
+    try {
+      const summary = await this.measurementOrchestrationService.runSequence(
+        notes,
+        { signal: this.sequenceAbortController.signal }
+      );
+
+      if (summary.overallStatus !== 'failure') {
+        await this.handleSequenceCompletion();
+      }
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.error('Measurement sequence failed:', error);
+      }
+    } finally {
+      this.measurementSequenceActive = false;
+      this.sequenceAbortController = null;
+    }
+  }
+
+  private async handleSequenceCompletion(): Promise<void> {
+    await this.handleFirstTestCompletion();
   }
 
   private beginCloudflareProgressSimulation(): void {
@@ -649,6 +687,97 @@ export class StarttestPage implements OnInit, OnDestroy {
 
       this.updateCloudflareProgress(simulated);
     }, 100);
+  }
+
+  private prepareForCloudflareRun(): void {
+    try {
+      this.uploadProgressStarted = false;
+      this.downloadStarted = false;
+      this.uploadStarted = false;
+      this.measurementnetworkServer = '';
+      this.measurementISP = '';
+      this.progress = 0;
+      this.progressGaugeState.current = this.progressGaugeState.minimum;
+
+      if (this.downloadTimer) {
+        clearInterval(this.downloadTimer);
+        this.downloadTimer = null;
+      }
+      if (this.uploadTimer) {
+        clearInterval(this.uploadTimer);
+        this.uploadTimer = null;
+      }
+
+      this.currentState = 'Starting';
+      this.uploadStatus = undefined;
+      this.latency = undefined;
+      this.connectionStatus = '';
+      this.uploadProgressStarted = false;
+      this.beginCloudflareProgressSimulation();
+      this.ref.markForCheck();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  private prepareForMlabRun(): void {
+    try {
+      this.uploadProgressStarted = false;
+      this.downloadStarted = false;
+      this.uploadStarted = false;
+      this.measurementnetworkServer = '';
+      this.measurementISP = '';
+      this.progress = 0;
+
+      if (this.downloadTimer) {
+        clearInterval(this.downloadTimer);
+        this.downloadTimer = null;
+      }
+      if (this.uploadTimer) {
+        clearInterval(this.uploadTimer);
+        this.uploadTimer = null;
+      }
+
+      this.currentState = 'Starting';
+      this.uploadStatus = undefined;
+      this.latency = undefined;
+      this.connectionStatus = '';
+      this.currentRate = undefined;
+      this.isErrorClosed = false;
+      this.uploadProgressStarted = false;
+      this.stopCloudflareProgressSimulation();
+      this.ref.markForCheck();
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
+  private enterWaitingBetweenProtocols(): void {
+    this.downloadStarted = false;
+    this.uploadStarted = false;
+    this.uploadProgressStarted = false;
+    this.stopCloudflareProgressSimulation();
+
+    if (this.downloadTimer) {
+      clearInterval(this.downloadTimer);
+      this.downloadTimer = null;
+    }
+    if (this.uploadTimer) {
+      clearInterval(this.uploadTimer);
+      this.uploadTimer = null;
+    }
+
+    this.currentState = this.translate.instant(
+      'startTest.waitingBetweenProtocols'
+    );
+    this.currentRate = undefined;
+    this.currentRateUpload = undefined;
+    this.currentRateDownload = undefined;
+    this.connectionStatus = '';
+    this.isErrorClosed = false;
+    this.progress = 0;
+    this.progressGaugeState.current = this.progressGaugeState.minimum;
+    this.ref.markForCheck();
   }
 
   private stopCloudflareProgressSimulation(finalProgress?: number): void {
@@ -675,70 +804,16 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.ref.markForCheck();
   }
 
-  startCloudflare(
+  async startCloudflare(
     notes: string = 'manual'
-  ) {
-    try {
-      this.uploadProgressStarted = false;
-      this.downloadStarted = false;
-      this.uploadStarted = false;
-      this.measurementnetworkServer = '';
-      this.measurementISP = '';
-      this.progress = 0;
-      this.progressGaugeState.current = this.progressGaugeState.minimum;
-
-      if (this.downloadTimer) {
-        clearInterval(this.downloadTimer);
-        this.downloadTimer = null;
-      }
-      if (this.uploadTimer) {
-        clearInterval(this.uploadTimer);
-        this.uploadTimer = null;
-      }
-
-      this.currentState = 'Starting';
-      this.uploadStatus = undefined;
-      this.latency = undefined;
-      this.connectionStatus = '';
-      this.uploadProgressStarted = false;
-      this.beginCloudflareProgressSimulation();
-      this.cloudflareMeasurementService.runTest(notes);
-    } catch (e) {
-      console.error(e);
-    }
+  ): Promise<MeasurementRunOutcome> {
+    this.prepareForCloudflareRun();
+    return this.cloudflareMeasurementService.runToCompletion(notes);
   }
 
-  startNDT(notes: string = 'manual') {
-    try {
-      this.uploadProgressStarted = false;
-      this.downloadStarted = false;
-      this.uploadStarted = false;
-      this.measurementnetworkServer = '';
-      this.measurementISP = '';
-      this.progress = 0;
-
-      // Clear any ongoing timers
-      if (this.downloadTimer) {
-        clearInterval(this.downloadTimer);
-        this.downloadTimer = null;
-      }
-      if (this.uploadTimer) {
-        clearInterval(this.uploadTimer);
-        this.uploadTimer = null;
-      }
-
-      this.currentState = 'Starting';
-      this.uploadStatus = undefined;
-      this.latency = undefined;
-      this.connectionStatus = ''; // Reset connection status
-      this.currentRate = undefined; // Reset current rate
-      this.isErrorClosed = false; // Reset error closed state
-      this.uploadProgressStarted = false;
-      this.stopCloudflareProgressSimulation();
-      this.measurementClientService.runTest(notes);
-    } catch (e) {
-      console.log(e);
-    }
+  async startNDT(notes: string = 'manual'): Promise<MeasurementRunOutcome> {
+    this.prepareForMlabRun();
+    return this.measurementClientService.runToCompletion(notes);
   }
 
   startDownloadProgress() {
@@ -1032,9 +1107,6 @@ export class StarttestPage implements OnInit, OnDestroy {
         }
         this.ref.markForCheck();
         this.refreshHistory();
-
-        // Handle first test completion for new registrations
-        this.handleFirstTestCompletion();
       } else if (data.testStatus === 'onerror') {
         this.gaugeError();
         this.currentState = undefined;
@@ -1298,6 +1370,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.sequenceAbortController?.abort();
     this.downloadSub.unsubscribe();
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();

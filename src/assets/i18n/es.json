@@ -178,6 +178,7 @@
     "ping": "Ping",
     "retrying": "Reintento {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Ejecutando prueba (Descarga)",
+    "waitingBetweenProtocols": "Preparando la siguiente prueba...",
     "runningTestUpload": "Ejecutando prueba (Carga)",
     "schoolRegistered": "Escuela registrada exitosamente",
     "server": "Servidor más cercano",

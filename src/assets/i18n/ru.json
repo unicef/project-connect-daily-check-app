@@ -153,6 +153,7 @@
     "serverSelected": "Сервер найден",
     "retrying": "Попытка {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Выполнение теста (Загрузка)",
+    "waitingBetweenProtocols": "Подготовка следующего теста...",
     "runningTestUpload": "Выполнение теста (Выгрузка)",
     "locateServerError": "Не удалось найти тестовые серверы. Проверьте подключение к интернету и попробуйте снова.",
     "start": "НАЧИНАТЬ",

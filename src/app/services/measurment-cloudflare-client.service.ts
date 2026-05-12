@@ -9,7 +9,7 @@ import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
 import { StorageService } from './storage.service';
 import { environment } from 'src/environments/environment';
-import { MeasurementRecord } from './measurement.types';
+import { MeasurementRecord, MeasurementRunOutcome } from './measurement.types';
 import { serverInformation } from '../models/models';
 
 type ScaleOptions = {
@@ -107,6 +107,28 @@ export class CloudflareMeasurementService  {
   private readonly isDev = !environment.production;
 
   async runTest(notes = 'manual'): Promise<void> {
+    await this.runToCompletion(notes);
+  }
+
+  async runToCompletion(notes = 'manual'): Promise<MeasurementRunOutcome> {
+    return new Promise<MeasurementRunOutcome>((resolve) => {
+      let settled = false;
+      const settle = (outcome: MeasurementRunOutcome) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve(outcome);
+      };
+
+      void this.startSpeedTest(notes, settle);
+    });
+  }
+
+  private async startSpeedTest(
+    notes: string,
+    settle: (outcome: MeasurementRunOutcome) => void
+  ): Promise<void> {
     // 1) Obtener/crear registro base
     this.measurementRecord = await this.createMeasurementRecord(notes);
 
@@ -251,49 +273,57 @@ this.st.onResultsChange = (info: { type?: string }) => {
 
 
     this.st.onFinish = async (_: any) => {
-      const results = this.st?.results;
-      const resultsObject = results
-        ? this.buildResultsObject(results)
-        : undefined;
+      try {
+        const results = this.st?.results;
+        const resultsObject = results
+          ? this.buildResultsObject(results)
+          : undefined;
 
-      if (this.measurementRecord && resultsObject) {
-        this.measurementRecord.results = resultsObject;
+        if (this.measurementRecord && resultsObject) {
+          this.measurementRecord.results = resultsObject;
+        }
+
+        // Completar emisiones por dirección si faltan
+        if (this.startedDownload && !this.finishedDownload) {
+          this.finishedDownload = true;
+          this.downloadComplete$.next(resultsObject?.bandwidth?.download ?? {});
+        }
+        if (this.startedUpload && !this.finishedUpload) {
+          this.finishedUpload = true;
+          this.uploadComplete$.next(resultsObject?.bandwidth?.upload ?? {});
+        }
+
+        this.progress = 1;
+
+        this.broadcastMeasurementStatus('cf_complete', {
+          passedResults: resultsObject ?? {},
+          running: false,
+          progress: 1,
+          secondLabel: null,
+        });
+
+        await this.finalizeMeasurement(resultsObject);
+        settle({ provider: 'cloudflare', status: 'success' });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        settle({
+          provider: 'cloudflare',
+          status: 'failure',
+          error: errorMessage,
+        });
       }
-
-      // Completar emisiones por dirección si faltan
-      if (this.startedDownload && !this.finishedDownload) {
-        this.finishedDownload = true;
-        this.downloadComplete$.next(resultsObject?.bandwidth?.download ?? {});
-      }
-      if (this.startedUpload && !this.finishedUpload) {
-        this.finishedUpload = true;
-        this.uploadComplete$.next(resultsObject?.bandwidth?.upload ?? {});
-      }
-
-      this.progress = 1;
-
-    // ===============================
-      // ADDED FOR DEV SPINNER SUPPORT
-      // Clear spinner label on finish
-      // ===============================
-
-      this.broadcastMeasurementStatus('cf_complete', {
-        passedResults: resultsObject ?? {},
-        running: false,
-        progress: 1,
-        secondLabel: null,
-      });
-
-
-      await this.finalizeMeasurement(resultsObject);
     };
 
     this.st.onError = (error: any) => {
+      const errorMessage =
+        (error && (error.message ?? String(error))) || 'Unknown error';
       this.broadcastMeasurementStatus('cf_error', {
-        error: (error && (error.message ?? String(error))) || 'Unknown error',
+        error: errorMessage,
         running: false,
         secondLabel: null, // ADDED FOR DEV SPINNER SUPPORT
       });
+      settle({ provider: 'cloudflare', status: 'failure', error: errorMessage });
     };
 
     // Start test

@@ -178,6 +178,7 @@
     "ping": "Ping",
     "retrying": "Urinish {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Test bajarilmoqda (Yuklab olish)",
+    "waitingBetweenProtocols": "Keyingi testga tayyorgarlik...",
     "runningTestUpload": "Test bajarilmoqda (Yuklash)",
     "schoolRegistered": "Maktab muvaffaqiyatli ro‘yxatdan o‘tdi",
     "server": "Eng yaqin server",
