@@ -20,8 +20,7 @@ import { MeasurementRecord } from './measurement.types';
 })
 export class UploadService {
   ts: any;
-  apiV2Url: string;
-  cloudflareApiV2Url: string;
+
   constructor(
     private http: HttpClient,
     private settingService: SettingsService,
@@ -29,10 +28,7 @@ export class UploadService {
     private hardwareIdService: HardwareIdService,
     private indexedDB: IndexedDBService,
     private locationService: LocationService
-  ) {
-    this.apiV2Url = environment.restAPI.replace(/\/api\/v1\/$/, '/api/v2/') + 'measurements';
-    this.cloudflareApiV2Url = environment.restAPI.replace(/\/api\/v1\/$/, '/api/v2/') + 'measurements/cloudflare';
-  }
+  ) {}
 
   /**
    * Return all network related information
@@ -215,7 +211,8 @@ export class UploadService {
       return of(null);
     }
 
-    let uploadURL = this.cloudflareApiV2Url;
+    let uploadURL = environment.restAPI + 'measurements/cloudflare';
+    const apiKey = this.settingService.get('uploadAPIKey');
 
     const payload = {
       uuid: record.uuid,
@@ -229,13 +226,18 @@ export class UploadService {
       serverInformation: record.serverInformation,
       results: record.results,
       browserID: this.storage.get('schoolUserId') || '',
-      deviceType: 'windows',
+      deviceType: this.storage.get('deviceType') || '',
       schoolID: this.storage.get('schoolId') || '',
       gigaIDSchool: this.storage.get('gigaId') || '',
       ipAddress: record.accessInformation?.ip || '',
       countryCode: record.accessInformation?.country || '',
     };
     console.log('Uploading Cloudflare measurement', payload);
+
+    if (apiKey != '') {
+      uploadURL = uploadURL + '?key=' + apiKey;
+    }
+
     return this.http.post(uploadURL, payload).pipe(
       map((res: any) => res),
       tap((data) => data),

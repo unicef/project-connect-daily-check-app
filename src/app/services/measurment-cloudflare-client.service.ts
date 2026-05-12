@@ -9,7 +9,11 @@ import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
 import { StorageService } from './storage.service';
 import { environment } from 'src/environments/environment';
-import { MeasurementRecord, MeasurementRunOutcome } from './measurement.types';
+import {
+  CloudflareMeasurementResults,
+  MeasurementRecord,
+  MeasurementRunOutcome,
+} from './measurement.types';
 import { serverInformation } from '../models/models';
 
 type ScaleOptions = {
@@ -28,49 +32,6 @@ type ScaleOptions = {
 
 type CloudflareConfig = Partial<ConstructorParameters<typeof SpeedTest>[0]> & {
   scale?: ScaleOptions;
-};
-
-type BandwidthPoint = {
-  bytes?: number;
-  bps?: number;
-  duration?: number;
-  ping?: number;
-  measTime?: number;
-  serverTime?: number;
-  transferSize?: number;
-};
-
-type ResultsObject = {
-  isFinished: boolean;
-  summary: any;
-  unloadedLatency: {
-    latency: any;
-    jitter: any;
-    latencyPoints: any;
-  };
-  downloadedLatency: {
-    latency: any;
-    jitter: any;
-    latencyPoints: any;
-  };
-  uploadedLatency: {
-    latency: any;
-    jitter: any;
-    latencyPoints: any;
-  };
-  bandwidth: {
-    download: any;
-    upload: any;
-  };
-  bandwidthPoints: {
-    download: BandwidthPoint[];
-    upload: BandwidthPoint[];
-  };
-  packetLoss: {
-    value: any;
-    details: any;
-  };
-  scores: any;
 };
 
 @Injectable({ providedIn: 'root' })
@@ -333,7 +294,7 @@ this.st.onResultsChange = (info: { type?: string }) => {
   // ----------------- Helpers -----------------
 
   /** Construye el objeto results EXACTO al formato solicitado */
-  private buildResultsObject(results: any): ResultsObject {
+  private buildResultsObject(results: any): CloudflareMeasurementResults {
     // Importante: usamos los getters que pediste. Si alguno no existe en la versión,
     // hacemos fallback a undefined para no romper el shape.
     const safe = <T>(fn: () => T) => {
@@ -601,7 +562,9 @@ this.st.onResultsChange = (info: { type?: string }) => {
     this.measurementStatus.next(payload);
   }
 
-  private async finalizeMeasurement(results?: ResultsObject): Promise<void> {
+  private async finalizeMeasurement(
+    results?: CloudflareMeasurementResults,
+  ): Promise<void> {
     if (!this.measurementRecord) {
       this.measurementRecord = await this.createMeasurementRecord('auto');
     }
@@ -645,7 +608,7 @@ this.st.onResultsChange = (info: { type?: string }) => {
     });
   }
 
-  private calculateDataUsage(passedResults?: ResultsObject): {
+  private calculateDataUsage(passedResults?: CloudflareMeasurementResults): {
     download: number;
     upload: number;
     total: number;
