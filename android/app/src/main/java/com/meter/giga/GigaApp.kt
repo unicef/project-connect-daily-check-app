@@ -30,29 +30,8 @@ class GigaApp : Application() {
     super.onCreate()
     initSentry()
     //initAppUpdateCheck()
-//    if (isInstalledFromPlayStore()) {
-//      initAppUpdateCheck()
-//    } else {
-//      AppLogger.d("Giga Meter", "App not installed from playstore")
-//    }
   }
 
-  fun getInstallerPackage(): String? {
-    val pm = applicationContext.packageManager
-
-    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-      val installSourceInfo = pm.getInstallSourceInfo(applicationContext.packageName)
-      installSourceInfo.installingPackageName
-    } else {
-      @Suppress("DEPRECATION")
-      pm.getInstallerPackageName(applicationContext.packageName)
-    }
-  }
-
-  fun isInstalledFromPlayStore(): Boolean {
-    val installer = getInstallerPackage()
-    return installer == "com.android.vending"
-  }
 
   private fun initAppUpdateCheck() {
     AppLogger.d("Giga Meter", "App update check installer")
@@ -88,15 +67,6 @@ class GigaApp : Application() {
     val environment = props.getProperty("ENVIRONMENT", "development")
     alarmPrefs.environment = environment
     AppLogger.d("GIGA App environment : ", environment)
-    // Initialize Sentry with legacy Android factory
-//    Sentry.init(
-//      getString(R.string.sentry_dsn),
-//      AndroidSentryClientFactory(applicationContext)
-//    )
-//    Sentry.getContext().apply {
-//      // 🏷️ Add custom tags (key-value)
-//      addTag("environment", getEnvironment(environment))
-//    }
 
     SentryAndroid.init(this) { options ->
       // Required: set your sentry.io project identifier (DSN)

@@ -28,6 +28,7 @@ import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.service.NetworkTestService
 import com.meter.giga.utils.AppLogger
+import com.meter.giga.utils.AppUpdateCheckEventBus
 import com.meter.giga.utils.Constants.BASE_URL
 import com.meter.giga.utils.Constants.ENV_TYPE
 import com.meter.giga.utils.Constants.IP_INFO_TOKEN
@@ -39,6 +40,7 @@ import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.GigaUtil
+import com.meter.giga.utils.PluginEvent
 import com.meter.giga.worker.await
 import io.sentry.Sentry
 import kotlinx.coroutines.CoroutineScope
@@ -345,14 +347,23 @@ open class GigaAppPlugin : Plugin() {
         ) {
           Sentry.captureMessage("Update: Update available and allowed")
           AppLogger.d("Update", "Update available and allowed")
+          AppUpdateCheckEventBus.post(
+            PluginEvent(PluginEvent.ACTION_APP_CHECK_AVAILABLE, "Update available and allowed")
+          )
         } else {
           Sentry.captureMessage("Update: No update OR not allowed")
           AppLogger.d("Update", "No update OR not allowed")
+          AppUpdateCheckEventBus.post(
+            PluginEvent(PluginEvent.ACTION_APP_CHECK_NOT_AVAILABLE, "No update available")
+          )
           return@withContext "No update available"
         }
         return@withContext "Done"
       } catch (e: Exception) {
         Sentry.captureMessage("Updated Checker Failed due to ${e.message}")
+        AppUpdateCheckEventBus.post(
+          PluginEvent(PluginEvent.ACTION_APP_CHECK_NOT_AVAILABLE, "No update available")
+        )
         return@withContext "App update is not allowed"
       }
     }
@@ -362,14 +373,10 @@ open class GigaAppPlugin : Plugin() {
   fun checkAppUpdateAvailable(call: PluginCall) {
     AppLogger.d("GIGA GigaAppPlugin", "Start Command Via Plugin")
     val context = context
-    CoroutineScope(Dispatchers.Main).launch {
+    CoroutineScope(Dispatchers.IO).launch {
       try {
         val result = checkAppUpdate()
         val ret = JSObject()
-        AppLogger.d("GIGA GigaAppPlugin", result)
-        if (result !== "Done") {
-          Toast.makeText(context, result, Toast.LENGTH_SHORT).show()
-        }
         ret.put("value", result)
         call.resolve(ret)
       } catch (e: Exception) {

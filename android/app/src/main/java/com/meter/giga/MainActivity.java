@@ -38,8 +38,11 @@ import com.google.android.play.core.install.model.InstallStatus;
 import com.google.android.play.core.install.model.UpdateAvailability;
 import com.meter.giga.ionic_plugin.GigaAppPlugin;
 import com.meter.giga.utils.AppLogger;
+import com.meter.giga.utils.AppUpdateCheckEventBus;
+import com.meter.giga.utils.PluginEvent;
 import com.meter.giga.worker.UpdateCheckWorker;
 
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import io.sentry.Sentry;
@@ -48,6 +51,36 @@ public class MainActivity extends BridgeActivity {
   private AppUpdateManager appUpdateManager;
   private static final int REQ_NOTIF_PERMISSION = 101;
   private static final int REQ_LOCATION_PERMISSION = 102;
+
+
+  // Lambda works because EventListener is a @JvmFunctional (fun interface)
+  private final AppUpdateCheckEventBus.EventListener pluginEventListener = event ->
+    runOnUiThread(() -> handlePluginEvent(event));
+
+
+  private void handlePluginEvent(PluginEvent event) {
+    if (event == null) return;
+
+    AppLogger.INSTANCE.d("MAIN Activity", "Received plugin event: " + event.getAction()
+      + ", payload: " + event.getPayload());
+
+    switch (event.getAction()) {
+
+      case PluginEvent.ACTION_APP_CHECK_AVAILABLE:
+        AppLogger.INSTANCE.d("MAIN Activity", Objects.requireNonNull(event.getPayload()));
+        startUpdateFlow();
+        break;
+
+      case PluginEvent.ACTION_APP_CHECK_NOT_AVAILABLE:
+        AppLogger.INSTANCE.d("MAIN Activity", Objects.requireNonNull(event.getPayload()));
+        Toast.makeText(this, event.getPayload(), Toast.LENGTH_SHORT).show();
+        break;
+
+      default:
+        AppLogger.INSTANCE.d("MAIN Activity", "Unknown event action: " + event.getAction());
+        break;
+    }
+  }
 
   private final ActivityResultLauncher<Intent> alarmPermissionLauncher =
     registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -63,7 +96,7 @@ public class MainActivity extends BridgeActivity {
     registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(),
       result -> {
         if (result.getResultCode() != RESULT_OK) {
-          Log.d("Update", "Update flow cancelled");
+          AppLogger.INSTANCE.d("Update", "Update flow cancelled");
         }
       });
 
@@ -90,6 +123,20 @@ public class MainActivity extends BridgeActivity {
     }
 
     checkNotificationPermission();
+  }
+
+  @Override
+  public void onStart() {
+    super.onStart();
+    AppUpdateCheckEventBus.setListener(pluginEventListener);
+    AppLogger.INSTANCE.d("MAIN Activity", "AppEventBus listener registered");
+  }
+
+  @Override
+  public void onStop() {
+    super.onStop();
+    AppUpdateCheckEventBus.removeListener();
+    AppLogger.INSTANCE.d("MAIN Activity", "AppEventBus listener removed");
   }
 
   private boolean isUiTest() {
@@ -162,6 +209,7 @@ public class MainActivity extends BridgeActivity {
         REQ_LOCATION_PERMISSION);
     }
   }
+
 
   @Override
   public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] res) {

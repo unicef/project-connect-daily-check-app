@@ -399,11 +399,6 @@ export class AppComponent {
   async checkAppUpdate() {
     const result = await this.gigaAppPlugin.checkAppUpdateAvailable();
     console.log(`Result : ${JSON.stringify(result)}`);
-    console.log(`Result : ${result.value}`);
-
-    if (result && result.value != 'Done') {
-      this.showToast(result.value, 'success');
-    }
   }
   openHelpMenu(menuid: string) {
     if (menuid === 'newUpdate') {
