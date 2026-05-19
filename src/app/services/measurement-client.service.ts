@@ -186,7 +186,7 @@ export class MeasurementClientService {
     console.log('Server chosen:', server);
     const serverInformation = {
       city: server?.location?.city,
-    url: server.hostname,
+    url: server?.machine,
     ip: [],
     fqdn: '',
     site: '',

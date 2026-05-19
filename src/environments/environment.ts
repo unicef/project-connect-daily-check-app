@@ -60,9 +60,9 @@ export const environment = {
       code: 'fr',
     },
     {
-      name: 'Uz',
-      label: "O'zbekcha",
-      code: 'uz',
+      name: 'Mn',
+      label: 'Монгол',
+      code: 'mn',
     },
   ],
 };
