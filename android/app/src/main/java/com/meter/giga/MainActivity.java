@@ -214,6 +214,8 @@ public class MainActivity extends BridgeActivity {
   @Override
   public void onRequestPermissionsResult(int code, @NonNull String[] perms, @NonNull int[] res) {
     super.onRequestPermissionsResult(code, perms, res);
+    AppLogger.INSTANCE.d("App Update", "App update check installer");
+
     if (code == REQ_NOTIF_PERMISSION) {
       if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) {
         onNotificationStepComplete();
@@ -222,13 +224,16 @@ public class MainActivity extends BridgeActivity {
         checkNotificationPermission();
       }
     } else if (code == REQ_LOCATION_PERMISSION) {
+      AppLogger.INSTANCE.d("App Update", "App update check Location");
+      initAppUpdateCheck();
       AppLogger.INSTANCE.d("GIGA", "Location sequence finished.");
     }
   }
 
   private void initAppUpdateCheck() {
-    AppLogger.INSTANCE.d("Giga Meter", "App update check installer");
+    AppLogger.INSTANCE.d("App Update", "App update check installer");
     Sentry.captureMessage("Updated Checker executed On App Launch");
+
     PeriodicWorkRequest workRequest =
       new PeriodicWorkRequest.Builder(UpdateCheckWorker.class, 24, TimeUnit.HOURS).build();
     WorkManager.getInstance(this).enqueueUniquePeriodicWork(

@@ -29,23 +29,6 @@ class GigaApp : Application() {
   override fun onCreate() {
     super.onCreate()
     initSentry()
-    //initAppUpdateCheck()
-  }
-
-
-  private fun initAppUpdateCheck() {
-    AppLogger.d("Giga Meter", "App update check installer")
-    Sentry.captureMessage("Updated Checker executed On App Launch")
-    val workRequest = PeriodicWorkRequest.Builder(
-      UpdateCheckWorker::class.java,
-      24, TimeUnit.HOURS
-    ).build()
-
-    WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-      "update_check",
-      ExistingPeriodicWorkPolicy.KEEP,
-      workRequest
-    )
   }
 
   /**
