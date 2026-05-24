@@ -1,32 +1,76 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { IonicModule } from '@ionic/angular';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { StarttestPage } from './starttest.page';
-import { RouterTestingModule } from '@angular/router/testing';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { Network } from '@awesome-cordova-plugins/network/ngx';
-import { TranslateModule } from '@ngx-translate/core';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { SettingsService } from '../services/settings.service';
+import { HistoryService } from '../services/history.service';
+import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { StorageService } from '../services/storage.service';
+import { ActivatedRoute, Router } from '@angular/router';
+import { of } from 'rxjs';
+import { NO_ERRORS_SCHEMA } from '@angular/core';
+
 describe('StarttestPage', () => {
   let component: StarttestPage;
   let fixture: ComponentFixture<StarttestPage>;
 
-  beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-    declarations: [StarttestPage],
-    imports: [IonicModule.forRoot(), RouterTestingModule, TranslateModule.forRoot()],
-    providers: [
-        Network,
-        provideHttpClient(withInterceptorsFromDi()),
-        provideHttpClientTesting()
-    ]
-}).compileComponents();
+  const settingsSpy = jasmine.createSpyObj('SettingsService', [
+    'get',
+    'getProtocolConfig',
+    'openExternalUrl',
+  ]);
+  settingsSpy.getProtocolConfig.and.resolveTo({
+    measurementProvider: 'both',
+    betweenTestsDelaySec: 5,
+    configSource: 'default',
+  });
+
+  const historySpy = jasmine.createSpyObj('HistoryService', ['get']);
+  historySpy.get.and.returnValue({ measurements: [] });
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [StarttestPage],
+      imports: [TranslateModule.forRoot()],
+      schemas: [NO_ERRORS_SCHEMA],
+      providers: [
+        { provide: SettingsService, useValue: settingsSpy },
+        { provide: HistoryService, useValue: historySpy },
+        {
+          provide: StorageService,
+          useValue: {
+            get: (key: string) =>
+              key === 'schoolId'
+                ? 'school-1'
+                : key === 'schoolInfo'
+                  ? JSON.stringify({ name: 'Test', country: 'ES' })
+                  : null,
+            getFirstTimeVisit: () => false,
+            isRecentRegistration: () => false,
+          },
+        },
+        { provide: ActivatedRoute, useValue: { params: of({}) } },
+        { provide: Router, useValue: { navigate: () => {} } },
+        TranslateService,
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(StarttestPage);
     component = fixture.componentInstance;
+    await component.loadProtocolConfig();
     fixture.detectChanges();
-  }));
+  });
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should show both-provider segment when mode is both', () => {
+    expect(component.showBothProviders).toBeTrue();
+  });
+
+  it('should hide ping card when M-Lab is selected', () => {
+    component.selectedProvider = 'mlab';
+    expect(component.showPingCard).toBeFalse();
+    component.selectedProvider = 'cloudflare';
+    expect(component.showPingCard).toBeTrue();
   });
 });

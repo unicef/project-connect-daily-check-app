@@ -301,7 +301,7 @@ export class AppComponent {
   }
 
   openExternalUrl(href) {
-    this.settingsService.getShell().shell.openExternal(href);
+    this.settingsService.openExternalUrl(href);
   }
 
   closeHelpenu() {

@@ -13,11 +13,39 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { MenuController } from '@ionic/angular';
 import { NetworkService } from '../services/network.service';
-import { SettingsService } from '../services/settings.service';
+import {
+  ResolvedProtocolConfig,
+  SettingsService,
+} from '../services/settings.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { CloudflareMeasurementService } from '../services/measurment-cloudflare-client.service';
 import { MeasurementOrchestrationService } from '../services/measurement-orchestration.service';
-import { MeasurementRunOutcome } from '../services/measurement.types';
+import {
+  MeasurementProviderId,
+  MeasurementRecord,
+  MeasurementRunOutcome,
+} from '../services/measurement.types';
+
+interface LiveMetrics {
+  download?: string;
+  upload?: string;
+  latency?: string;
+  packetLoss?: string;
+  timestamp?: Date;
+  testServer?: string;
+  networkOperator?: string;
+}
+import {
+  LatestByProvider,
+  extractMeasurementMetadata,
+  extractMeasurementMetrics,
+  latestByProvider,
+} from '../services/measurement.utils';
+import {
+  getConfigProtocolLabel,
+  getProviderDocsKey,
+  getProviderDocsUrl,
+} from '../services/protocol-display.util';
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
@@ -104,6 +132,22 @@ export class StarttestPage implements OnInit, OnDestroy {
   public lastPingResult: any;
   public pingStatus: string = '---';
   public pingTimestamp: Date | undefined;
+  public packetLoss: string | undefined;
+  protocolConfig: ResolvedProtocolConfig = {
+    measurementProvider: 'mlab',
+    betweenTestsDelaySec: 0,
+    configSource: 'default',
+  };
+  selectedProvider: MeasurementProviderId = 'mlab';
+  latestPerProvider: LatestByProvider = {};
+  private liveByProvider: Partial<Record<MeasurementProviderId, LiveMetrics>> =
+    {};
+  /** Hides historical footer values per provider until live data from this run. */
+  private footerProvidersCleared = new Set<MeasurementProviderId>();
+  private runningProvider: MeasurementProviderId | null = null;
+  displayProtocolLabel = 'M-Lab';
+  displayTestServer = '---';
+  displayNetworkOperator = '---';
   private uploadSub!: Subscription;
   private downloadStartedSub!: Subscription;
   private uploadStartedSub!: Subscription;
@@ -124,13 +168,32 @@ export class StarttestPage implements OnInit, OnDestroy {
   ) => {
     switch (payload?.stage) {
       case 'mlab:start':
+        this.resetBothProvidersForNewRun();
+        this.runningProvider = 'mlab';
+        if (this.showBothProviders) {
+          this.selectedProvider = 'mlab';
+        }
         this.prepareForMlabRun();
         break;
       case 'wait':
         this.enterWaitingBetweenProtocols();
         break;
       case 'cloudflare:start':
+        this.runningProvider = 'cloudflare';
+        this.footerProvidersCleared.add('cloudflare');
+        if (this.showBothProviders) {
+          this.selectedProvider = 'cloudflare';
+        }
         this.prepareForCloudflareRun();
+        this.applyDisplayForSelectedProvider();
+        break;
+      case 'cloudflare:done':
+        this.runningProvider = null;
+        this.refreshProviderDisplay();
+        break;
+      case 'mlab:done':
+        this.runningProvider = null;
+        this.refreshProviderDisplay();
         break;
     }
   };
@@ -231,6 +294,18 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.router.navigate(['/']);
     }
   }
+  get showBothProviders(): boolean {
+    return this.protocolConfig?.measurementProvider === 'both';
+  }
+
+  get showPingCard(): boolean {
+    return this.selectedProvider !== 'mlab';
+  }
+
+  get showPacketLossCard(): boolean {
+    return this.selectedProvider !== 'cloudflare';
+  }
+
   ngOnInit() {
     this.schoolId = this.storage.get('schoolId');
 
@@ -241,9 +316,10 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Initialize country information
     this.initializeCountryData();
 
+    void this.loadProtocolConfig();
+
     // Load historical data
     this.refreshHistory();
-    this.loadLatestMeasurement();
     this.loadLatestPingResult();
 
     // IMPORTANT: Check for first-time visit LAST to ensure all event listeners are ready
@@ -257,9 +333,188 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Reset error state when returning to the page to prevent stale error states
     this.resetErrorStateIfNeeded();
 
-    // Refresh the latest measurement data in case it was updated while away
-    this.loadLatestMeasurement();
+    void this.loadProtocolConfig();
+    this.refreshProviderDisplay();
     this.loadLatestPingResult();
+  }
+
+  async loadProtocolConfig(): Promise<void> {
+    try {
+      this.protocolConfig = await this.settingsService.getProtocolConfig();
+      this.syncSelectedProviderFromConfig();
+      this.refreshProviderDisplay();
+      this.ref.markForCheck();
+    } catch (error) {
+      console.error('Failed to load protocol config', error);
+    }
+  }
+
+  private syncSelectedProviderFromConfig(): void {
+    const mode = this.protocolConfig.measurementProvider;
+    if (mode === 'cloudflare') {
+      this.selectedProvider = 'cloudflare';
+    } else if (mode === 'mlab') {
+      this.selectedProvider = 'mlab';
+    }
+  }
+
+  onProviderSegmentChange(event: CustomEvent): void {
+    const value = (event.detail as { value?: MeasurementProviderId })?.value;
+    if (value === 'mlab' || value === 'cloudflare') {
+      this.selectedProvider = value;
+      this.refreshProviderDisplay();
+    }
+  }
+
+  openProviderDocs(): void {
+    this.openExternalUrl(getProviderDocsUrl(this.selectedProvider));
+  }
+
+  openExternalUrl(href: string): void {
+    this.settingsService.openExternalUrl(href);
+  }
+
+  getProviderDocsTranslationKey(): string {
+    return getProviderDocsKey(this.selectedProvider);
+  }
+
+  refreshProviderDisplay(): void {
+    const historical = this.historyService.get();
+    this.latestPerProvider = latestByProvider(
+      historical?.measurements ?? []
+    );
+    this.applyDisplayForSelectedProvider();
+  }
+
+  private applyDisplayForSelectedProvider(): void {
+    const mode = this.protocolConfig.measurementProvider;
+    this.displayProtocolLabel = getConfigProtocolLabel(
+      mode === 'both' || mode === 'mlab' || mode === 'cloudflare'
+        ? mode
+        : 'mlab'
+    );
+
+    const live = this.liveByProvider[this.selectedProvider];
+    const historical = this.latestPerProvider[this.selectedProvider];
+    const useLive =
+      !!live &&
+      (this.runningProvider === this.selectedProvider ||
+        live.download != null ||
+        live.upload != null ||
+        live.latency != null ||
+        live.packetLoss != null);
+
+    if (this.footerProvidersCleared.has(this.selectedProvider) && !useLive) {
+      this.applyClearedFooterMetrics();
+      return;
+    }
+
+    if (useLive && live) {
+      this.currentRateDownload = live.download;
+      this.currentRateUpload = live.upload;
+      this.latency = live.latency;
+      this.packetLoss = live.packetLoss;
+      this.currentDate = live.timestamp;
+      this.displayTestServer = live.testServer ?? '---';
+      this.displayNetworkOperator = live.networkOperator ?? '---';
+    } else {
+      const meta = extractMeasurementMetadata(historical);
+      const metrics = extractMeasurementMetrics(historical);
+      this.displayTestServer = meta.testServer;
+      this.displayNetworkOperator = meta.networkOperator;
+      this.packetLoss = metrics.packetLoss;
+      this.currentRateDownload =
+        metrics.download != null ? metrics.download.toFixed(2) : undefined;
+      this.currentRateUpload =
+        metrics.upload != null ? metrics.upload.toFixed(2) : undefined;
+      this.latency =
+        metrics.latency != null ? metrics.latency.toFixed(0) : undefined;
+      this.currentDate = metrics.timestamp;
+    }
+
+    this.ref.markForCheck();
+  }
+
+  private patchLiveMetrics(
+    provider: MeasurementProviderId,
+    patch: Partial<LiveMetrics>
+  ): void {
+    this.footerProvidersCleared.delete(provider);
+    this.liveByProvider[provider] = {
+      ...this.liveByProvider[provider],
+      ...patch,
+    };
+    this.applyDisplayForSelectedProvider();
+  }
+
+  private updateLiveFromPassedResults(
+    provider: MeasurementProviderId,
+    results: unknown,
+    overrides?: Partial<LiveMetrics>
+  ): void {
+    const completedAt = overrides?.timestamp ?? new Date();
+    const record: MeasurementRecord = {
+      provider,
+      results: results as MeasurementRecord['results'],
+      timestamp: completedAt.getTime(),
+      uploaded: false,
+      uuid: '',
+      version: 0,
+      Notes: '',
+      dataUsage: {},
+      accessInformation: {},
+    };
+    const metrics = extractMeasurementMetrics(record);
+    const meta = extractMeasurementMetadata(record);
+
+    this.footerProvidersCleared.delete(provider);
+    this.liveByProvider[provider] = {
+      download:
+        overrides?.download ??
+        (metrics.download != null ? metrics.download.toFixed(2) : undefined),
+      upload:
+        overrides?.upload ??
+        (metrics.upload != null ? metrics.upload.toFixed(2) : undefined),
+      latency:
+        overrides?.latency ??
+        (metrics.latency != null ? metrics.latency.toFixed(0) : undefined),
+      packetLoss: metrics.packetLoss ?? overrides?.packetLoss,
+      timestamp: overrides?.timestamp ?? metrics.timestamp,
+      testServer:
+        overrides?.testServer ??
+        (meta.testServer !== '---' ? meta.testServer : undefined),
+      networkOperator:
+        overrides?.networkOperator ??
+        (meta.networkOperator !== '---' ? meta.networkOperator : undefined),
+    };
+    this.applyDisplayForSelectedProvider();
+  }
+
+  private clearLiveProvider(provider: MeasurementProviderId): void {
+    delete this.liveByProvider[provider];
+  }
+
+  private applyClearedFooterMetrics(): void {
+    this.currentRateDownload = undefined;
+    this.currentRateUpload = undefined;
+    this.latency = undefined;
+    this.packetLoss = undefined;
+    this.currentDate = undefined;
+    this.displayTestServer = '---';
+    this.displayNetworkOperator = '---';
+    this.ref.markForCheck();
+  }
+
+  private resetBothProvidersForNewRun(): void {
+    this.footerProvidersCleared = new Set<MeasurementProviderId>([
+      'mlab',
+      'cloudflare',
+    ]);
+    this.liveByProvider = {};
+    this.runningProvider = null;
+    this.measurementnetworkServer = undefined;
+    this.measurementISP = undefined;
+    this.applyDisplayForSelectedProvider();
   }
 
   private resetErrorStateIfNeeded() {
@@ -460,101 +715,8 @@ export class StarttestPage implements OnInit, OnDestroy {
     let data = this.historyService.get();
     this.lastMeasurementId = data.measurements.length - 1;
 
-    // Load latest measurement data for dashboard display
-    this.loadLatestMeasurement();
+    this.refreshProviderDisplay();
     this.loadLatestPingResult();
-  }
-
-  /**
-   * Load the latest measurement data to display in the Latest measurements section
-   */
-  loadLatestMeasurement() {
-    try {
-      let historicalData = this.historyService.get();
-
-      // If we have measurement data, load the latest one
-      if (
-        historicalData &&
-        historicalData.measurements &&
-        historicalData.measurements.length > 0
-      ) {
-        const latestMeasurement =
-          historicalData.measurements[historicalData.measurements.length - 1];
-
-        // Populate the dashboard's latest measurement display with historical data
-        if (
-          latestMeasurement.results &&
-          latestMeasurement.results['NDTResult.S2C'] &&
-          latestMeasurement.results['NDTResult.C2S']
-        ) {
-          // Set download and upload rates
-          const downloadMbps =
-            latestMeasurement.results['NDTResult.S2C'].LastClientMeasurement
-              ?.MeanClientMbps;
-          const uploadMbps =
-            latestMeasurement.results['NDTResult.C2S'].LastClientMeasurement
-              ?.MeanClientMbps;
-
-          this.currentRateDownload = downloadMbps
-            ? downloadMbps.toFixed(2)
-            : undefined;
-          this.currentRateUpload = uploadMbps
-            ? uploadMbps.toFixed(2)
-            : undefined;
-
-          // Calculate latency
-          const s2cMinRTT =
-            latestMeasurement.results['NDTResult.S2C'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-          const c2sMinRTT =
-            latestMeasurement.results['NDTResult.C2S'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-
-          if (s2cMinRTT && c2sMinRTT) {
-            this.latency = ((s2cMinRTT + c2sMinRTT) / 2 / 1000).toFixed(0);
-          }
-
-          // Set the date from the stored timestamp
-          if (latestMeasurement.timestamp) {
-            this.currentDate = new Date(latestMeasurement.timestamp);
-          }
-
-          // Update server and ISP information
-          // Use serverInformation for Cloudflare, mlabInformation for NDT
-          if (latestMeasurement.provider === 'cloudflare' && latestMeasurement.serverInformation?.city) {
-            this.measurementnetworkServer =
-              latestMeasurement.serverInformation.city;
-          } else if (latestMeasurement.mlabInformation?.city) {
-            this.measurementnetworkServer =
-              latestMeasurement.mlabInformation.city;
-          }
-          if (latestMeasurement.accessInformation?.org) {
-            this.measurementISP = latestMeasurement.accessInformation.org;
-          }
-
-          // Trigger change detection to update the UI
-          this.ref.markForCheck();
-
-          console.log('Loaded latest measurement data for dashboard display', {
-            download: this.currentRateDownload,
-            upload: this.currentRateUpload,
-            latency: this.latency,
-            date: this.currentDate,
-            server: this.measurementnetworkServer,
-            isp: this.measurementISP,
-          });
-        }
-      } else {
-        // No historical data, reset display values
-        this.clearLatestMeasurementDisplay();
-        console.log(
-          'No historical measurement data found, cleared dashboard display'
-        );
-      }
-    } catch (error) {
-      console.error('Error loading latest measurement data:', error);
-      this.clearLatestMeasurementDisplay();
-    }
   }
 
   /**
@@ -594,13 +756,18 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Clear the latest measurement display values
    */
   private clearLatestMeasurementDisplay() {
+    this.liveByProvider = {};
+    this.runningProvider = null;
     this.currentRateDownload = undefined;
     this.currentRateUpload = undefined;
     this.latency = undefined;
     this.currentDate = undefined;
     this.measurementnetworkServer = undefined;
     this.measurementISP = undefined;
-    // Clear ping data as well
+    this.packetLoss = undefined;
+    this.displayTestServer = '---';
+    this.displayNetworkOperator = '---';
+    this.latestPerProvider = {};
     this.pingStatus = '---';
     this.pingTimestamp = undefined;
     this.lastPingResult = null;
@@ -642,6 +809,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       return;
     }
 
+    this.resetBothProvidersForNewRun();
     this.measurementSequenceActive = true;
     this.sequenceAbortController = new AbortController();
 
@@ -661,6 +829,8 @@ export class StarttestPage implements OnInit, OnDestroy {
     } finally {
       this.measurementSequenceActive = false;
       this.sequenceAbortController = null;
+      this.footerProvidersCleared.clear();
+      this.refreshProviderDisplay();
     }
   }
 
@@ -691,6 +861,7 @@ export class StarttestPage implements OnInit, OnDestroy {
 
   private prepareForCloudflareRun(): void {
     try {
+      this.clearLiveProvider('cloudflare');
       this.uploadProgressStarted = false;
       this.downloadStarted = false;
       this.uploadStarted = false;
@@ -722,6 +893,7 @@ export class StarttestPage implements OnInit, OnDestroy {
 
   private prepareForMlabRun(): void {
     try {
+      this.clearLiveProvider('mlab');
       this.uploadProgressStarted = false;
       this.downloadStarted = false;
       this.uploadStarted = false;
@@ -771,12 +943,11 @@ export class StarttestPage implements OnInit, OnDestroy {
       'startTest.waitingBetweenProtocols'
     );
     this.currentRate = undefined;
-    this.currentRateUpload = undefined;
-    this.currentRateDownload = undefined;
     this.connectionStatus = '';
     this.isErrorClosed = false;
     this.progress = 0;
     this.progressGaugeState.current = this.progressGaugeState.minimum;
+    this.applyDisplayForSelectedProvider();
     this.ref.markForCheck();
   }
 
@@ -932,27 +1103,27 @@ export class StarttestPage implements OnInit, OnDestroy {
         }
         this.currentState = 'Starting';
         this.currentRate = undefined;
-        this.currentRateUpload = undefined;
-        this.currentRateDownload = undefined;
-        this.latency = undefined;
+        this.clearLiveProvider('cloudflare');
         this.updateCloudflareProgress(0, true);
         this.ref.markForCheck();
         return;
 
       case 'cf_interval_download': {
         const downloadMbps = Number(data.downloadCurrentSpeed ?? 0);
+        const downloadRate = convertToMbpsOrDefault(downloadMbps);
         this.currentState = 'Running Test (Download)';
-        this.currentRate = convertToMbpsOrDefault(downloadMbps);
-        this.currentRateDownload = this.currentRate;
+        this.currentRate = downloadRate;
+        this.patchLiveMetrics('cloudflare', { download: downloadRate });
         this.ref.markForCheck();
         return;
       }
 
       case 'cf_interval_upload': {
         const uploadMbps = Number(data.uploadCurrentSpeed ?? 0);
+        const uploadRate = convertToMbpsOrDefault(uploadMbps);
         this.currentState = 'Running Test (Upload)';
-        this.currentRate = convertToMbpsOrDefault(uploadMbps);
-        this.currentRateUpload = this.currentRate;
+        this.currentRate = uploadRate;
+        this.patchLiveMetrics('cloudflare', { upload: uploadRate });
         this.ref.markForCheck();
         return;
       }
@@ -970,16 +1141,10 @@ export class StarttestPage implements OnInit, OnDestroy {
         const latencySummary = Number(
           summary.latency ?? results?.unloadedLatency?.latency ?? 0
         );
+        const completedAt = new Date();
 
         this.currentState = 'Completed';
-        this.currentDate = new Date();
         this.currentRate = convertToMbpsOrDefault(downloadSummary);
-        this.currentRateDownload = convertToMbpsOrDefault(downloadSummary);
-        this.currentRateUpload = convertToMbpsOrDefault(uploadSummary);
-        this.latency = Number.isFinite(latencySummary)
-          ? latencySummary.toFixed(0)
-          : undefined;
-        console.log("On complete data:", data);
         this.progress = 100;
         this.progressGaugeState.current = this.progressGaugeState.maximum;
         this.connectionStatus = 'success';
@@ -994,18 +1159,34 @@ export class StarttestPage implements OnInit, OnDestroy {
           cloudflareMeasurements.length > 0
             ? cloudflareMeasurements[cloudflareMeasurements.length - 1]
             : undefined;
+        let testServer: string | undefined;
+        let networkOperator: string | undefined;
         if (lastMeasurement) {
-          // Use serverInformation for Cloudflare
-          if (lastMeasurement.provider === 'cloudflare' && lastMeasurement.serverInformation?.city) {
-            this.measurementnetworkServer = lastMeasurement.serverInformation.city;
+          if (
+            lastMeasurement.provider === 'cloudflare' &&
+            lastMeasurement.serverInformation?.city
+          ) {
+            testServer = lastMeasurement.serverInformation.city;
+            this.measurementnetworkServer = testServer;
           } else {
-            this.measurementnetworkServer = lastMeasurement?.mlabInformation?.city || '';
+            testServer = lastMeasurement?.mlabInformation?.city || undefined;
+            this.measurementnetworkServer = testServer ?? '';
           }
-          this.measurementISP = lastMeasurement?.accessInformation?.org || '';
+          networkOperator = lastMeasurement?.accessInformation?.org || undefined;
+          this.measurementISP = networkOperator ?? '';
         }
 
+        this.updateLiveFromPassedResults('cloudflare', results, {
+          download: convertToMbpsOrDefault(downloadSummary),
+          upload: convertToMbpsOrDefault(uploadSummary),
+          latency: Number.isFinite(latencySummary)
+            ? latencySummary.toFixed(0)
+            : undefined,
+          timestamp: completedAt,
+          testServer,
+          networkOperator,
+        });
         this.ref.markForCheck();
-        this.refreshHistory();
         return;
       }
 
@@ -1031,8 +1212,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       if (data.testStatus === 'onstart') {
         this.currentState = 'Starting';
         this.currentRate = undefined;
-        this.currentRateUpload = undefined;
-        this.currentRateDownload = undefined;
+        this.clearLiveProvider('mlab');
         this.progress = 0;
       } else if (data.testStatus === 'server_discovery') {
         this.currentState = this.translate.instant(
@@ -1051,41 +1231,36 @@ export class StarttestPage implements OnInit, OnDestroy {
       } else if (data.testStatus === 'interval_c2s') {
         console.log('Running Test (Upload)');
         this.currentState = this.translate.instant('startTest.runningTestUpload');
-        this.currentRate = (
+        const uploadRate = (
           (data.passedResults.Data.TCPInfo.BytesReceived /
             data.passedResults.Data.TCPInfo.ElapsedTime) *
           8
         ).toFixed(2);
-        this.currentRateUpload = this.currentRate;
+        this.currentRate = uploadRate;
+        this.patchLiveMetrics('mlab', { upload: uploadRate });
         if (!this.uploadProgressStarted) {
           this.uploadProgressStarted = true;
           this.startUploadProgress();
         }
       } else if (data.testStatus === 'interval_s2c') {
         this.currentState = this.translate.instant('startTest.runningTestDownload');
-        this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
-        this.currentRateDownload =
-          data.passedResults.Data.MeanClientMbps?.toFixed(2);
+        const downloadRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
+        this.currentRate = downloadRate;
+        this.patchLiveMetrics('mlab', { download: downloadRate });
         if (this.downloadStarted) {
           this.startDownloadProgress();
         }
       } else if (data.testStatus === 'complete') {
-        this.currentState = 'Completed';
-        this.currentDate = new Date();
-        this.currentRate =
+        const completedAt = new Date();
+        const downloadRate =
           data.passedResults[
             'NDTResult.S2C'
           ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
-        this.currentRateUpload =
+        const uploadRate =
           data.passedResults[
             'NDTResult.C2S'
           ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
-        this.currentRateDownload =
-          data.passedResults[
-            'NDTResult.S2C'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
-        this.progressGaugeState.current = this.progressGaugeState.maximum;
-        this.latency = (
+        const latencyValue = (
           (data.passedResults['NDTResult.S2C'].LastServerMeasurement.BBRInfo
             .MinRTT +
             data.passedResults['NDTResult.C2S'].LastServerMeasurement.BBRInfo
@@ -1093,20 +1268,40 @@ export class StarttestPage implements OnInit, OnDestroy {
           2 /
           1000
         ).toFixed(0);
+
+        this.currentState = 'Completed';
+        this.currentRate = downloadRate;
+        this.progressGaugeState.current = this.progressGaugeState.maximum;
+
         const historicalData = this.historyService.get();
         const measurements = historicalData?.measurements;
+        let testServer: string | undefined;
+        let networkOperator: string | undefined;
         if (Array.isArray(measurements) && measurements.length) {
           const lastMeasurement = measurements[measurements.length - 1];
-          // Use serverInformation for Cloudflare, mlabInformation for NDT
-          if (lastMeasurement.provider === 'cloudflare' && lastMeasurement.serverInformation?.city) {
-            this.measurementnetworkServer = lastMeasurement.serverInformation.city;
+          if (
+            lastMeasurement.provider === 'cloudflare' &&
+            lastMeasurement.serverInformation?.city
+          ) {
+            testServer = lastMeasurement.serverInformation.city;
+            this.measurementnetworkServer = testServer;
           } else {
-            this.measurementnetworkServer = lastMeasurement?.mlabInformation?.city || '';
+            testServer = lastMeasurement?.mlabInformation?.city || undefined;
+            this.measurementnetworkServer = testServer ?? '';
           }
-          this.measurementISP = lastMeasurement?.accessInformation?.org || '';
+          networkOperator = lastMeasurement?.accessInformation?.org || undefined;
+          this.measurementISP = networkOperator ?? '';
         }
+
+        this.updateLiveFromPassedResults('mlab', data.passedResults, {
+          download: downloadRate,
+          upload: uploadRate,
+          latency: latencyValue,
+          timestamp: completedAt,
+          testServer,
+          networkOperator,
+        });
         this.ref.markForCheck();
-        this.refreshHistory();
       } else if (data.testStatus === 'onerror') {
         this.gaugeError();
         this.currentState = undefined;

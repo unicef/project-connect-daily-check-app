@@ -249,6 +249,16 @@ export class SettingsService {
     return (window as any).shell;
   }
 
+  /** Open a URL in the default system browser (Electron) or a new tab (web). */
+  openExternalUrl(href: string): void {
+    const shell = this.getShell();
+    if (shell?.shell?.openExternal) {
+      shell.shell.openExternal(href);
+      return;
+    }
+    window.open(href, '_blank', 'noopener,noreferrer');
+  }
+
   private getProtocolConfigIdentityKey(): string {
     const gigaId = this.storageSerivce.get('gigaId') ?? '';
     const countryCode = this.storageSerivce.get('country_code') ?? '';

@@ -80,7 +80,7 @@ export class RegisterSchoolPageComponent implements OnInit {
   }
 
   openExternalUrl(href) {
-    this.settingsService.getShell().shell.openExternal(href);
+    this.settingsService.openExternalUrl(href);
   }
   async checkCurrentSlide() {
     const index = await this.slides.getActiveIndex();

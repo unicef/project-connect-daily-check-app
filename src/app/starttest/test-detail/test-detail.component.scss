@@ -248,3 +248,41 @@ ion-col {
   color: #9e9e9e;
   cursor: pointer;
 }
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-indicator {
+  margin-left: 2px;
+  font-size: 8px;
+  color: #9e9e9e;
+}
+
+.protocol-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  background: #e8e8e8;
+  color: #474747;
+}
+
+.protocol-pill-mlab {
+  background: rgba(39, 122, 255, 0.12);
+  color: #277aff;
+}
+
+.protocol-pill-cloudflare {
+  background: rgba(249, 115, 22, 0.12);
+  color: #f97316;
+}
+
+.truncate-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}

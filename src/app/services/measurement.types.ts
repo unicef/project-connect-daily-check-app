@@ -44,6 +44,7 @@ export interface CloudflareMeasurementSummary {
   downLoadedJitter?: number;
   upLoadedLatency?: number;
   upLoadedJitter?: number;
+  packetLoss?: number;
 }
 
 export interface CloudflareLatencySeries {
@@ -138,7 +139,7 @@ export interface MeasurementRecord {
   version: number | string;
   Notes: string;
   dataUsage: CloudflareDataUsage | Record<string, unknown>;
-  provider?: 'cloudflare' | 'ndt7';
+  provider?: 'cloudflare' | 'mlab' | 'ndt7';
   windowsUsername?: string;
   installedPath?: string;
   wifiConnections?: unknown;
