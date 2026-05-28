@@ -493,3 +493,33 @@ ion-breadcrumb::part(native) {
   max-height: 80vh;
   overflow-y: auto;
 }
+
+/* Compact protocol selector popover on Start Test */
+.protocol-select-popover {
+  --width: 118px;
+  --max-width: 118px;
+  --min-width: 118px;
+}
+
+.protocol-select-popover .popover-content {
+  border: 1px solid #d0d5dd;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+  overflow: hidden;
+}
+
+.protocol-select-popover ion-item {
+  --min-height: 38px;
+  --padding-start: 12px;
+  --inner-padding-end: 10px;
+  --background: #ffffff;
+}
+
+.protocol-select-popover ion-list {
+  padding: 0;
+}
+
+.protocol-select-popover ion-label {
+  font-size: 13px !important;
+  font-weight: 500;
+}

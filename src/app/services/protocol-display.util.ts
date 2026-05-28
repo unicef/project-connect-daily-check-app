@@ -15,7 +15,7 @@ export function getRecordProtocolLabel(
   if (provider === 'cloudflare') {
     return 'Cloudflare';
   }
-  return 'M-Lab';
+  return 'Ndt 7';
 }
 
 /** Display label for resolved protocol config mode (Home metadata when not per-record). */
@@ -31,10 +31,9 @@ export function getConfigProtocolLabel(mode: MeasurementProviderMode): string {
 
 export function getProviderDocsKey(
   provider: MeasurementProviderId
-): 'startTest.aboutMlab' | 'startTest.aboutCloudflare' {
-  return provider === 'cloudflare'
-    ? 'startTest.aboutCloudflare'
-    : 'startTest.aboutMlab';
+): 'startTest.aboutYourMeasurements' {
+  void provider;
+  return 'startTest.aboutYourMeasurements';
 }
 
 export function getProviderDocsUrl(provider: MeasurementProviderId): string {

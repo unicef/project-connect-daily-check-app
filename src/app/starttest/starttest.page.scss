@@ -748,8 +748,24 @@ ion-card {
   margin: 12px auto 8px;
   padding: 0;
 
+  ion-row {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+  }
+
   .metadata-col {
     text-align: center;
+    position: relative;
+
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 1px;
+      background: #e0e0e0;
+    }
 
     h3 {
       font-size: 11px;
@@ -766,14 +782,6 @@ ion-card {
       overflow: hidden;
       text-overflow: ellipsis;
     }
-
-    .protocol-value.protocol-mlab {
-      color: #277aff;
-    }
-
-    .protocol-value.protocol-cloudflare {
-      color: #f97316;
-    }
   }
 }
 
@@ -781,38 +789,37 @@ ion-card {
   padding: 12px 0;
 }
 
-.provider-segment {
-  margin: 8px 16px 12px;
-  --background: #e8e8e8;
-  border-radius: 999px;
-
-  ion-segment-button {
-    --indicator-color: #ffffff;
-    min-height: 36px;
-  }
-
-  ion-label {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    font-size: 13px;
-  }
+.speed-header {
+  margin: 0 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 
-.provider-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
+.speed-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #161616;
 }
 
-.provider-dot-mlab {
-  background: #277aff;
-}
-
-.provider-dot-cloudflare {
-  background: #f97316;
+.protocol-select {
+  min-width: 118px;
+  height: 38px;
+  --background: #ffffff;
+  --border-color: #e0e0e0;
+  --border-radius: 12px;
+  --border-style: solid;
+  --border-width: 1px;
+  --padding-start: 12px;
+  --padding-end: 10px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  --placeholder-color: #171717;
+  --placeholder-opacity: 1;
+  font-size: 13px;
+  font-weight: 500;
+  color: #171717;
 }
 
 .footer-grid {

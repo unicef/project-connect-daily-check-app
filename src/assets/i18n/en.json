@@ -169,6 +169,7 @@
     "download": "DOWNLOAD",
     "downloadLowerCase": "Download",
     "home": "Home",
+    "aboutYourMeasurements": "About your measurements",
     "aboutCloudflare": "About Cloudflare measurement",
     "aboutMlab": "About M-Lab measurement",
     "isp": "Network operator",
@@ -181,7 +182,7 @@
     "ping": "Ping",
     "protocol": "Test Protocol",
     "providerCloudflare": "Cloudflare",
-    "providerMlab": "M-Lab",
+    "providerMlab": "Ndt 7",
     "providerMulti": "Multi-protocol",
     "retrying": "Retry {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Running Test (Download)",
@@ -202,7 +203,8 @@
     "total": "Test history (latest 10 measurements)",
     "tryAgain": "TRY AGAIN",
     "upload": "UPLOAD",
-    "uploadLowerCase": "Upload"
+    "uploadLowerCase": "Upload",
+    "yourInternetSpeed": "Your internet speed"
   },
   "tryAgain": "Try again",
   "welcome": "Welcome to",

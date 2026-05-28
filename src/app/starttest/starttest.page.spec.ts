@@ -67,10 +67,14 @@ describe('StarttestPage', () => {
     expect(component.showBothProviders).toBeTrue();
   });
 
-  it('should hide ping card when M-Lab is selected', () => {
+  it('should return unified docs translation key', () => {
     component.selectedProvider = 'mlab';
-    expect(component.showPingCard).toBeFalse();
+    expect(component.getProviderDocsTranslationKey()).toBe(
+      'startTest.aboutYourMeasurements'
+    );
     component.selectedProvider = 'cloudflare';
-    expect(component.showPingCard).toBeTrue();
+    expect(component.getProviderDocsTranslationKey()).toBe(
+      'startTest.aboutYourMeasurements'
+    );
   });
 });

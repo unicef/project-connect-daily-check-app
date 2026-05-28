@@ -201,15 +201,11 @@
       <!-- ------------------------------------------- -->
       <ion-grid class="metadata-grid">
         <ion-row>
-          <ion-col size="4" class="metadata-col">
-            <h3 [translate]="'startTest.protocol'"></h3>
-            <p class="protocol-value" [class.protocol-mlab]="displayProtocolLabel === 'M-Lab'" [class.protocol-cloudflare]="displayProtocolLabel === 'Cloudflare'">{{ displayProtocolLabel }}</p>
-          </ion-col>
-          <ion-col size="4" class="metadata-col">
+          <ion-col size="6" class="metadata-col">
             <h3 [translate]="'startTest.server'"></h3>
             <p title="{{ displayTestServer }}">{{ displayTestServer }}</p>
           </ion-col>
-          <ion-col size="4" class="metadata-col">
+          <ion-col size="6" class="metadata-col">
             <h3 [translate]="'startTest.isp'"></h3>
             <p title="{{ displayNetworkOperator }}">{{ displayNetworkOperator }}</p>
           </ion-col>
@@ -218,25 +214,21 @@
     </div>
   </ion-card>
   <ion-card class="footer_card_margin latest-measurements-card">
-    <ion-segment
-      *ngIf="showBothProviders"
-      class="provider-segment"
-      [value]="selectedProvider"
-      (ionChange)="onProviderSegmentChange($event)"
-    >
-      <ion-segment-button value="mlab">
-        <ion-label>
-          <span class="provider-dot provider-dot-mlab"></span>
-          <span [translate]="'startTest.providerMlab'"></span>
-        </ion-label>
-      </ion-segment-button>
-      <ion-segment-button value="cloudflare">
-        <ion-label>
-          <span class="provider-dot provider-dot-cloudflare"></span>
-          <span [translate]="'startTest.providerCloudflare'"></span>
-        </ion-label>
-      </ion-segment-button>
-    </ion-segment>
+    <div class="speed-header">
+      <span class="speed-title" [translate]="'startTest.yourInternetSpeed'"></span>
+      <ion-select
+        *ngIf="showBothProviders"
+        class="protocol-select"
+        interface="popover"
+        [interfaceOptions]="protocolSelectInterfaceOptions"
+        [value]="selectedProvider"
+        (ionChange)="onProviderSegmentChange($event)"
+        [attr.aria-label]="'startTest.yourInternetSpeed' | translate"
+      >
+        <ion-select-option value="mlab" [translate]="'startTest.providerMlab'"></ion-select-option>
+        <ion-select-option value="cloudflare" [translate]="'startTest.providerCloudflare'"></ion-select-option>
+      </ion-select>
+    </div>
 
     <div class="footer-grid">
       <div class="footer-row">
@@ -296,7 +288,7 @@
         </ion-card-header>
       </ion-card>
 
-        <ion-card class="footer-card" *ngIf="showPingCard">
+        <ion-card class="footer-card">
         <ion-card-header class="footer_card_header">
           <ion-card-title>
             <span class="footer_text">
@@ -314,18 +306,6 @@
         </ion-card-header>
       </ion-card>
 
-        <ion-card class="footer-card" *ngIf="showPacketLossCard">
-        <ion-card-header class="footer_card_header">
-          <ion-card-title>
-            <span class="footer_text">
-              <img src="assets/images/Arrows--horizontal.svg" alt="" />
-              <span [translate]="'startTest.packetLoss'"></span>
-            </span>
-            <span class="time">{{ currentDate | date:'shortTime' }}</span>
-          </ion-card-title>
-          <ion-card-subtitle>{{ packetLoss ?? '---' }}</ion-card-subtitle>
-        </ion-card-header>
-      </ion-card>
       </div>
     </div>
 
@@ -333,7 +313,7 @@
       class="provider-docs-link"
       (click)="openProviderDocs()"
     >
-      <span>{{ getProviderDocsTranslationKey() | translate }}</span>
+      <span [translate]="'startTest.aboutYourMeasurements'"></span>
       <ion-img
         src="assets/images/Launch.png"
         class="external-link-icon"

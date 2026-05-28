@@ -19,7 +19,10 @@ import {
 } from '../services/settings.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { CloudflareMeasurementService } from '../services/measurment-cloudflare-client.service';
-import { MeasurementOrchestrationService } from '../services/measurement-orchestration.service';
+import {
+  MeasurementOrchestrationService,
+  MeasurementSequenceSummary,
+} from '../services/measurement-orchestration.service';
 import {
   MeasurementProviderId,
   MeasurementRecord,
@@ -43,7 +46,6 @@ import {
 } from '../services/measurement.utils';
 import {
   getConfigProtocolLabel,
-  getProviderDocsKey,
   getProviderDocsUrl,
 } from '../services/protocol-display.util';
 import { SharedService } from '../services/shared-service.service';
@@ -65,6 +67,10 @@ import { PingService } from '../services/ping.service';
   standalone: false,
 })
 export class StarttestPage implements OnInit, OnDestroy {
+  readonly protocolSelectInterfaceOptions = {
+    cssClass: 'protocol-select-popover',
+  };
+
   @ViewChild(IonAccordionGroup, { static: true })
   accordionGroup: IonAccordionGroup;
   @ViewChild('errorMsg') el: ElementRef;
@@ -298,14 +304,6 @@ export class StarttestPage implements OnInit, OnDestroy {
     return this.protocolConfig?.measurementProvider === 'both';
   }
 
-  get showPingCard(): boolean {
-    return this.selectedProvider !== 'mlab';
-  }
-
-  get showPacketLossCard(): boolean {
-    return this.selectedProvider !== 'cloudflare';
-  }
-
   ngOnInit() {
     this.schoolId = this.storage.get('schoolId');
 
@@ -375,7 +373,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   getProviderDocsTranslationKey(): string {
-    return getProviderDocsKey(this.selectedProvider);
+    return 'startTest.aboutYourMeasurements';
   }
 
   refreshProviderDisplay(): void {
@@ -819,9 +817,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         { signal: this.sequenceAbortController.signal }
       );
 
-      if (summary.overallStatus !== 'failure') {
-        await this.handleSequenceCompletion();
-      }
+      await this.handleSequenceCompletion(summary);
     } catch (error) {
       if (!(error instanceof DOMException && error.name === 'AbortError')) {
         console.error('Measurement sequence failed:', error);
@@ -834,8 +830,10 @@ export class StarttestPage implements OnInit, OnDestroy {
     }
   }
 
-  private async handleSequenceCompletion(): Promise<void> {
-    await this.handleFirstTestCompletion();
+  private async handleSequenceCompletion(
+    summary: MeasurementSequenceSummary
+  ): Promise<void> {
+    await this.handleFirstTestCompletion(summary);
   }
 
   private beginCloudflareProgressSimulation(): void {
@@ -1453,8 +1451,27 @@ export class StarttestPage implements OnInit, OnDestroy {
   /**
    * Handle test completion for first-time users
    */
-  async handleFirstTestCompletion() {
-    if (this.isFirstVisit && this.registrationStatus === 'testing') {
+  async handleFirstTestCompletion(summary: MeasurementSequenceSummary) {
+    if (
+      !this.isFirstVisit ||
+      this.registrationStatus !== 'testing' ||
+      summary.overallStatus === 'failure'
+    ) {
+      return;
+    }
+
+    const expectedFinalProvider: MeasurementProviderId =
+      summary.measurementProvider === 'both'
+        ? 'cloudflare'
+        : summary.measurementProvider === 'cloudflare'
+          ? 'cloudflare'
+          : 'mlab';
+
+    const expectedStage = [...summary.stages]
+      .reverse()
+      .find((stage) => stage.provider === expectedFinalProvider);
+
+    if (expectedStage?.status === 'success') {
       this.registrationStatus = 'done';
 
       // Show success modal after a short delay

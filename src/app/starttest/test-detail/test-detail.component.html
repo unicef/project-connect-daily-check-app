@@ -1,15 +1,5 @@
 <app-pcdc-header></app-pcdc-header>
 <ion-content class="scrollable_content">
-  <ion-card class="card_margin">
-    <div class="centerPos">
-      <ion-item class="custom-item" lines="none" color="light">
-        <ion-label>
-          <p class="subtitle">{{ selectedCountry }} - {{ schoolId }}</p>
-          <h2 class="title" title="{{ school?.name }}">{{ school?.name }}</h2>
-        </ion-label>
-      </ion-item>
-    </div>
-  </ion-card>
   <ion-card class="last_location_card" *ngIf="locationDetail?.accuracy">
     <div class="last_location_content">
       <div class="left_section">
@@ -34,62 +24,72 @@
     </div>
   </ion-card>
   <ion-card class="footer_card_margin">
+    <div class="centerPos">
+      <ion-item class="custom-item" lines="none" color="light">
+        <ion-label>
+          <p class="subtitle">{{ selectedCountry }} - {{ schoolId }}</p>
+          <h2 class="title" title="{{ school?.name }}">{{ school?.name }}</h2>
+        </ion-label>
+      </ion-item>
+    </div>
     <ion-card-header>
       <ion-card-title class="test_history" [translate]="'startTest.total'">
       </ion-card-title>
     </ion-card-header>
 
     <ion-card-content>
-      <ion-grid>
-        <ion-row class="table-header">
+      <div class="table-scroll">
+        <ion-grid>
+          <ion-row class="table-header">
           <ion-col size="1.8" class="sortable-header" (click)="onSortColumn('timestamp')">
-            <span [translate]="'startTest.date'"></span>
-            <span class="sort-indicator">{{ getSortIndicator('timestamp') }}</span>
+              <span>Date</span>
+              <span class="sort-indicator">{{ getSortIndicator('timestamp') }}</span>
           </ion-col>
-          <ion-col size="1.5" class="sortable-header" (click)="onSortColumn('download')">
-            <div class="header-with-unit">
-              <span [translate]="'startTest.downloadLowerCase'"></span>
-              <span class="unit-text">(Mbps)</span>
-              <span class="sort-indicator">{{ getSortIndicator('download') }}</span>
-            </div>
+            <ion-col size="1.3" class="sortable-header" (click)="onSortColumn('download')">
+              <div class="header-with-unit">
+                <span>Down (Mbps)</span>
+                <span class="sort-indicator">{{ getSortIndicator('download') }}</span>
+              </div>
           </ion-col>
-          <ion-col size="1.5" class="sortable-header" (click)="onSortColumn('upload')">
-            <div class="header-with-unit">
-              <span [translate]="'startTest.uploadLowerCase'"></span>
-              <span class="unit-text">(Mbps)</span>
-              <span class="sort-indicator">{{ getSortIndicator('upload') }}</span>
-            </div>
+            <ion-col size="1.3" class="sortable-header" (click)="onSortColumn('upload')">
+              <div class="header-with-unit">
+                <span>Up (Mbps)</span>
+                <span class="sort-indicator">{{ getSortIndicator('upload') }}</span>
+              </div>
           </ion-col>
-          <ion-col size="1.3">
-            <div class="header-with-unit">
-              <span [translate]="'startTest.latencyDetail'"></span>
-              <span class="unit-text">(ms)</span>
-            </div>
+            <ion-col size="1.2">
+              <div class="header-with-unit">
+                <span>Lat (ms)</span>
+              </div>
           </ion-col>
-          <ion-col size="1.7" class="sortable-header" (click)="onSortColumn('protocol')">
-            <span [translate]="'startTest.protocol'"></span>
-            <span class="sort-indicator">{{ getSortIndicator('protocol') }}</span>
+            <ion-col size="1.8" class="sortable-header protocol-cell" (click)="onSortColumn('protocol')">
+              <span>Protocol</span>
+              <span class="sort-indicator">{{ getSortIndicator('protocol') }}</span>
           </ion-col>
-          <ion-col size="2.1" [translate]="'startTest.server'">Test Server</ion-col>
-          <ion-col size="2.1" [translate]="'startTest.isp'">Network operator</ion-col>
-        </ion-row>
+            <ion-col size="2.3">Server</ion-col>
+            <ion-col size="2.3">Network</ion-col>
+          </ion-row>
 
-        <ion-row *ngFor="let data of measurementsData">
-          <ion-col size="1.8">{{ data.timestamp | date : "dd-MM-yyyy HH:mm" }}</ion-col>
-          <ion-col size="1.5">{{ data.download | number : "1.2-2" }}</ion-col>
-          <ion-col size="1.5">{{ data.upload | number : "1.2-2" }}</ion-col>
-          <ion-col size="1.3">{{ data.latency | number : "1.2-2" }}</ion-col>
-          <ion-col size="1.7">
-            <span
-              class="protocol-pill"
-              [class.protocol-pill-mlab]="data.protocolLabel === 'M-Lab'"
-              [class.protocol-pill-cloudflare]="data.protocolLabel === 'Cloudflare'"
-            >{{ data.protocolLabel }}</span>
-          </ion-col>
-          <ion-col size="2.1" class="truncate-cell" title="{{ data.testServer }}">{{ data.testServer }}</ion-col>
-          <ion-col size="2.1" class="truncate-cell" title="{{ data.networkOperator }}">{{ data.networkOperator }}</ion-col>
-        </ion-row>
-      </ion-grid>
+          <ion-row *ngFor="let data of measurementsData">
+            <ion-col size="1.8" class="date-cell">
+              <span>{{ data.timestamp | date : "dd MMM" }}</span>
+              <span>{{ data.timestamp | date : "HH:mm" }}</span>
+            </ion-col>
+            <ion-col size="1.3">{{ data.download | number : "1.2-2" }}</ion-col>
+            <ion-col size="1.3">{{ data.upload | number : "1.2-2" }}</ion-col>
+            <ion-col size="1.2">{{ data.latency | number : "1.2-2" }}</ion-col>
+            <ion-col size="1.8" class="protocol-cell">
+              <span
+                class="protocol-pill"
+                [class.protocol-pill-cloudflare]="data.protocolLabel === 'Cloudflare'"
+                [class.protocol-pill-mlab]="data.protocolLabel !== 'Cloudflare'"
+              >{{ data.protocolLabel }}</span>
+            </ion-col>
+            <ion-col size="2.3" class="truncate-cell" title="{{ data.testServer }}">{{ data.testServer }}</ion-col>
+            <ion-col size="2.3" class="truncate-cell" title="{{ data.networkOperator }}">{{ data.networkOperator }}</ion-col>
+          </ion-row>
+        </ion-grid>
+      </div>
     </ion-card-content>
   </ion-card>
 </ion-content>
