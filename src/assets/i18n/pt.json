@@ -161,6 +161,7 @@
   "start": "Começar",
   "startTest": {
     "about": "Dados",
+    "aboutYourMeasurements": "About your measurements",
     "backgroundMessage": "O aplicativo continuará rodando em segundo plano.",
     "closingIn": "Fechando em",
     "congratulations": "Parabéns - você terminou!",
@@ -202,7 +203,8 @@
     "total": "Histórico de testes (10 últimas medições)",
     "tryAgain": "TENTAR NOVAMENTE",
     "upload": "UPLOAD",
-    "uploadLowerCase": "Envio"
+    "uploadLowerCase": "Envio",
+    "yourInternetSpeed": "Your internet speed"
   },
   "tryAgain": "TENTAR NOVAMENTE",
   "welcome": "Bem-vindo ao",

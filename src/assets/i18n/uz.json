@@ -161,6 +161,7 @@
   "start": "Boshlash",
   "startTest": {
     "about": "Ma’lumot",
+    "aboutYourMeasurements": "About your measurements",
     "backgroundMessage": "Ilova fon rejimida ishlashda davom etadi.",
     "closingIn": "Yopilish vaqti:",
     "congratulations": "Tabriklaymiz — hammasi tayyor!",
@@ -202,7 +203,8 @@
     "total": "Test tarixi (so‘nggi 10 o‘lchov)",
     "tryAgain": "QAYTA URINING",
     "upload": "YUKLASH",
-    "uploadLowerCase": "Yuklash"
+    "uploadLowerCase": "Yuklash",
+    "yourInternetSpeed": "Your internet speed"
   },
   "tryAgain": "Qayta urinib ko‘ring",
   "welcome": "Xush kelibsiz",

@@ -175,13 +175,15 @@
     "downloadLowerCase": "Скачивание",
     "home": "Главная",
     "about": "Данные",
+    "aboutYourMeasurements": "About your measurements",
     "total": "История тестов (последние 10 измерений)",
     "congratulations": "Поздравляем  !",
     "schoolRegistered": "Школа успешно зарегистрирована",
     "testWorking": "Первый тест завершен",
     "backgroundMessage": "Приложение продолжит работу в фоновом режиме.",
     "closingIn": "Закрытие через",
-    "testTrigger": "Тип"
+    "testTrigger": "Тип",
+    "yourInternetSpeed": "Your internet speed"
   },
   "registerSchoolPage": {
     "title1": "Вы собираетесь зарегистрировать свою школу",
@@ -207,6 +209,15 @@
     "congratulations": "Поздравляем!",
     "goToDashboard": "Перейти к вашей панели управления",
     "headline": "Заголовок"
+  },
+  "logout": {
+    "title": "Confirm Logout",
+    "warning": "This will log you and other user accounts on this device out of the app, unregister the school, and clear all local data.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm the school ID for unregistration.",
+    "placeholder": "Enter school ID",
+    "errorMessage": "School ID does not match. Please try again.",
+    "logoutButton": "Logout",
+    "cancelButton": "Cancel"
   },
   "releaseNotes": {
     "2.0.3": {
