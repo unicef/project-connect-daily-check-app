@@ -1,0 +1,99 @@
+<app-pcdc-header></app-pcdc-header>
+
+<ion-content class="ion-padding traceroute-content">
+  <div class="traceroute-wrap">
+    <h2 class="traceroute-title">Traceroute</h2>
+    <p class="traceroute-subtitle">
+      Show the network path from this device to a host. Experimental.
+    </p>
+
+    <div *ngIf="!available" class="traceroute-unavailable">
+      Traceroute is only available in the desktop app.
+    </div>
+
+    <form (ngSubmit)="run()" class="traceroute-form" *ngIf="available">
+      <ion-item lines="full">
+        <ion-label position="stacked">Target hostname or IP</ion-label>
+        <ion-input
+          [(ngModel)]="target"
+          name="target"
+          placeholder="example.com or 8.8.8.8"
+          [disabled]="running"
+          autocapitalize="off"
+          autocorrect="off"
+          spellcheck="false"
+          (keyup.enter)="run()"
+        ></ion-input>
+      </ion-item>
+      <div class="traceroute-actions">
+        <ion-button
+          type="submit"
+          expand="block"
+          [disabled]="running || !target.trim()"
+        >
+          Run trace
+        </ion-button>
+        <ion-button
+          fill="outline"
+          color="medium"
+          expand="block"
+          [disabled]="!running"
+          (click)="cancel()"
+        >
+          Cancel
+        </ion-button>
+        <ion-button
+          fill="clear"
+          color="medium"
+          expand="block"
+          [disabled]="running || (hops.length === 0 && !errorMessage)"
+          (click)="clear()"
+        >
+          Clear
+        </ion-button>
+      </div>
+    </form>
+
+    <div class="traceroute-status" *ngIf="statusMessage || elapsedSeconds !== null">
+      <span *ngIf="statusMessage">{{ statusMessage }}</span>
+      <span class="traceroute-elapsed" *ngIf="elapsedSeconds !== null">
+        · {{ elapsedSeconds }}s
+      </span>
+      <span class="traceroute-cmd" *ngIf="resolvedCmd"> · <code>{{ resolvedCmd }}</code></span>
+    </div>
+
+    <div class="traceroute-error" *ngIf="errorMessage">{{ errorMessage }}</div>
+
+    <div class="traceroute-table-wrap" *ngIf="hops.length > 0">
+      <table class="traceroute-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Host</th>
+            <th>IP</th>
+            <th>RTT 1</th>
+            <th>RTT 2</th>
+            <th>RTT 3</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let h of hops" [class.timeout]="h.rtts[0] === null && h.rtts[1] === null && h.rtts[2] === null">
+            <td>{{ h.hop }}</td>
+            <td>{{ h.host || '—' }}</td>
+            <td>{{ h.ip || '—' }}</td>
+            <td>{{ formatRtt(h.rtts[0]) }}</td>
+            <td>{{ formatRtt(h.rtts[1]) }}</td>
+            <td>{{ formatRtt(h.rtts[2]) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <details class="traceroute-raw" *ngIf="infoLines.length > 0">
+      <summary>Raw output ({{ infoLines.length }} lines)</summary>
+      <pre>{{ infoLines.join('\n') }}</pre>
+    </details>
+  </div>
+</ion-content>
+
+<app-footer-navbar></app-footer-navbar>

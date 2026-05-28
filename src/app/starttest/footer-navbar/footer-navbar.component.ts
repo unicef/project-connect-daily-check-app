@@ -28,6 +28,9 @@ export class FooterNavbarComponent implements OnInit, OnDestroy{
 
           console.log('about')
 
+          } else if (this.router.url.includes('/traceroute')) {
+            this.activeSegment = 'traceroute';
+            this.cdr.detectChanges();
           } else {
           this.activeSegment = 'home';
           this.cdr.detectChanges();
@@ -50,6 +53,8 @@ export class FooterNavbarComponent implements OnInit, OnDestroy{
       this.router.navigate(['/starttest']);
     } else if (event.detail.value === 'about') {
       this.router.navigate(['/starttest/detail-page/23']);
+    } else if (event.detail.value === 'traceroute') {
+      this.router.navigate(['/starttest/traceroute']);
     }
   }
   ngOnDestroy() {

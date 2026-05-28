@@ -12,6 +12,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import * as si from 'systeminformation';
+import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
 
 import {
   ElectronCapacitorApp,
@@ -422,4 +423,177 @@ ipcMain.handle('get-hardware-id', async () => {
       timestamp: new Date().toISOString(),
     };
   }
+});
+
+// === Traceroute (experimental) ===
+// Only one trace runs at a time. Streams parsed hops to renderer.
+let activeTraceProcess: ChildProcessWithoutNullStreams | null = null;
+
+const HOSTNAME_OR_IP = /^[A-Za-z0-9.:\-]{1,253}$/;
+
+interface ParsedHop {
+  hop: number;
+  host: string | null;
+  ip: string | null;
+  rtts: (number | null)[];
+  raw: string;
+}
+
+function parseTracertLineWin(line: string): ParsedHop | null {
+  // tracert line e.g. "  1     1 ms     1 ms     1 ms  192.168.1.1"
+  // or                "  3     *        *        *     Request timed out."
+  // or                "  4    20 ms    18 ms    19 ms  router.isp.net [1.2.3.4]"
+  const m = line.match(/^\s*(\d+)\s+(.*)$/);
+  if (!m) return null;
+  const hop = parseInt(m[1], 10);
+  const rest = m[2];
+  const rtts: (number | null)[] = [];
+  let remainder = rest;
+  for (let i = 0; i < 3; i++) {
+    const tm = remainder.match(/^\s*(<?\d+)\s*ms\s+/);
+    const star = remainder.match(/^\s*\*\s+/);
+    if (tm) {
+      const val = tm[1].startsWith('<') ? parseFloat(tm[1].slice(1)) : parseFloat(tm[1]);
+      rtts.push(val);
+      remainder = remainder.slice(tm[0].length);
+    } else if (star) {
+      rtts.push(null);
+      remainder = remainder.slice(star[0].length);
+    } else {
+      return null;
+    }
+  }
+  remainder = remainder.trim();
+  let host: string | null = null;
+  let ip: string | null = null;
+  if (/^Request timed out\.?$/i.test(remainder) || remainder === '') {
+    // all stars
+  } else {
+    const bracketed = remainder.match(/^(.*?)\s*\[([0-9a-fA-F:.]+)\]\s*$/);
+    if (bracketed) {
+      host = bracketed[1].trim() || null;
+      ip = bracketed[2];
+    } else {
+      // Bare IP (tracert -d) or bare hostname
+      if (/^[0-9a-fA-F:.]+$/.test(remainder)) {
+        ip = remainder;
+      } else {
+        host = remainder;
+      }
+    }
+  }
+  return { hop, host, ip, rtts, raw: line };
+}
+
+function parseTracerouteLineUnix(line: string): ParsedHop | null {
+  // traceroute line e.g. " 1  192.168.1.1 (192.168.1.1)  1.234 ms  1.123 ms  1.045 ms"
+  // or                   " 3  * * *"
+  // or with mixed:       " 5  host.example (1.2.3.4)  10.1 ms * 11.2 ms"
+  const m = line.match(/^\s*(\d+)\s+(.*)$/);
+  if (!m) return null;
+  const hop = parseInt(m[1], 10);
+  const rest = m[2].trim();
+  if (/^\*(\s+\*)*\s*$/.test(rest)) {
+    return { hop, host: null, ip: null, rtts: [null, null, null], raw: line };
+  }
+  // First token is host or IP, optionally followed by (ip)
+  const headMatch = rest.match(/^(\S+)\s*(?:\(([^)]+)\))?\s*(.*)$/);
+  if (!headMatch) return null;
+  const firstTok = headMatch[1];
+  const parenIp = headMatch[2] || null;
+  const tail = headMatch[3] || '';
+  let host: string | null = null;
+  let ip: string | null = null;
+  if (parenIp) {
+    ip = parenIp;
+    host = firstTok === parenIp ? null : firstTok;
+  } else if (/^[0-9a-fA-F:.]+$/.test(firstTok)) {
+    ip = firstTok;
+  } else {
+    host = firstTok;
+  }
+  const rtts: (number | null)[] = [];
+  const rttRegex = /(\*|(\d+\.?\d*)\s*ms)/g;
+  let rm: RegExpExecArray | null;
+  while ((rm = rttRegex.exec(tail)) && rtts.length < 3) {
+    if (rm[1] === '*') rtts.push(null);
+    else rtts.push(parseFloat(rm[2]));
+  }
+  while (rtts.length < 3) rtts.push(null);
+  return { hop, host, ip, rtts, raw: line };
+}
+
+function killActiveTrace() {
+  if (activeTraceProcess && !activeTraceProcess.killed) {
+    try {
+      activeTraceProcess.kill('SIGTERM');
+    } catch (e) {
+      console.warn('Failed to kill trace process:', e);
+    }
+  }
+  activeTraceProcess = null;
+}
+
+ipcMain.handle('run-traceroute', async (event, payload: { target?: string }) => {
+  const target = (payload?.target || '').trim();
+  if (!HOSTNAME_OR_IP.test(target)) {
+    return { ok: false, error: 'Invalid target. Use a hostname or IP address.' };
+  }
+  killActiveTrace();
+  const isWin = process.platform === 'win32';
+  const cmd = isWin ? 'tracert' : 'traceroute';
+  const args = isWin ? ['-d', target] : ['-n', target];
+  // -d (Win) / -n (Unix): skip rDNS in the OS tool — we'll show IPs straight from the tool.
+  // Hostnames still appear when the tool can't suppress them on some configs.
+  let child: ChildProcessWithoutNullStreams;
+  try {
+    child = spawn(cmd, args, { shell: false });
+  } catch (err: any) {
+    return { ok: false, error: `Failed to start ${cmd}: ${err?.message || err}` };
+  }
+  activeTraceProcess = child;
+  const sender = event.sender;
+  sender.send('traceroute-started', { target, cmd, args });
+
+  let stdoutBuf = '';
+  const parseLine = isWin ? parseTracertLineWin : parseTracerouteLineUnix;
+
+  const handleChunk = (chunk: Buffer) => {
+    stdoutBuf += chunk.toString();
+    const lines = stdoutBuf.split(/\r?\n/);
+    stdoutBuf = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const hop = parseLine(line);
+      if (hop) {
+        sender.send('traceroute-hop', hop);
+      } else {
+        sender.send('traceroute-info', { line });
+      }
+    }
+  };
+
+  child.stdout.on('data', handleChunk);
+  child.stderr.on('data', (chunk) => {
+    sender.send('traceroute-info', { line: chunk.toString().trim(), stderr: true });
+  });
+  child.on('error', (err) => {
+    sender.send('traceroute-error', { message: err.message });
+    if (activeTraceProcess === child) activeTraceProcess = null;
+  });
+  child.on('close', (code, signal) => {
+    if (stdoutBuf.trim()) {
+      const hop = parseLine(stdoutBuf);
+      if (hop) sender.send('traceroute-hop', hop);
+      stdoutBuf = '';
+    }
+    sender.send('traceroute-done', { code, signal });
+    if (activeTraceProcess === child) activeTraceProcess = null;
+  });
+  return { ok: true };
+});
+
+ipcMain.handle('cancel-traceroute', async () => {
+  killActiveTrace();
+  return { ok: true };
 });

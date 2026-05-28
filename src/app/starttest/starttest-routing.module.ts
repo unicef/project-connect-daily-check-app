@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { StarttestPage } from './starttest.page';
 import { TestDetailComponent } from './test-detail/test-detail.component';
+import { TracerouteComponent } from './traceroute/traceroute.component';
 
 const routes: Routes = [
   {
@@ -10,6 +11,9 @@ const routes: Routes = [
   },{
     path: 'detail-page/:id',
     component: TestDetailComponent
+  },{
+    path: 'traceroute',
+    component: TracerouteComponent
   }
 ];
 

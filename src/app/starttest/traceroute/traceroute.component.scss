@@ -1,0 +1,124 @@
+.traceroute-content {
+  --background: #f7f8fb;
+}
+
+.traceroute-wrap {
+  max-width: 880px;
+  margin: 0 auto;
+  padding-bottom: 96px;
+}
+
+.traceroute-title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.traceroute-subtitle {
+  color: #6a6a6a;
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+}
+
+.traceroute-unavailable {
+  padding: 16px;
+  background: #fff4e5;
+  border: 1px solid #f0c187;
+  border-radius: 8px;
+  color: #7a4a00;
+  margin-bottom: 16px;
+}
+
+.traceroute-form ion-item {
+  --background: #fff;
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.traceroute-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin: 8px 0 16px;
+}
+
+.traceroute-status {
+  font-size: 0.85rem;
+  color: #444;
+  margin: 8px 0;
+  word-break: break-all;
+
+  .traceroute-elapsed {
+    color: #6a6a6a;
+  }
+  .traceroute-cmd code {
+    background: #eef0f4;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+  }
+}
+
+.traceroute-error {
+  background: #fdecea;
+  border: 1px solid #f3a9a3;
+  color: #8a1f17;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin: 8px 0;
+  font-size: 0.9rem;
+}
+
+.traceroute-table-wrap {
+  overflow-x: auto;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #e3e6ed;
+}
+
+.traceroute-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 1px solid #eef0f4;
+    font-variant-numeric: tabular-nums;
+  }
+  th {
+    background: #f3f5f9;
+    font-weight: 600;
+    color: #333;
+  }
+  tr:last-child td {
+    border-bottom: none;
+  }
+  tr.timeout td {
+    color: #b04848;
+    background: #fff5f5;
+  }
+}
+
+.traceroute-raw {
+  margin-top: 16px;
+  background: #fff;
+  border: 1px solid #e3e6ed;
+  border-radius: 8px;
+  padding: 8px 12px;
+
+  summary {
+    cursor: pointer;
+    color: #555;
+    font-size: 0.85rem;
+  }
+  pre {
+    margin: 8px 0 0;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: #444;
+  }
+}

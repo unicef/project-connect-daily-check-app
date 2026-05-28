@@ -38,4 +38,29 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('system-hardware-id');
     ipcRenderer.removeAllListeners('system-hardware-id-error');
   },
+  runTraceroute: (target: string) =>
+    ipcRenderer.invoke('run-traceroute', { target }),
+  cancelTraceroute: () => ipcRenderer.invoke('cancel-traceroute'),
+  onTracerouteStarted: (cb: (data: any) => void) => {
+    ipcRenderer.on('traceroute-started', (_e, data) => cb(data));
+  },
+  onTracerouteHop: (cb: (hop: any) => void) => {
+    ipcRenderer.on('traceroute-hop', (_e, hop) => cb(hop));
+  },
+  onTracerouteInfo: (cb: (info: any) => void) => {
+    ipcRenderer.on('traceroute-info', (_e, info) => cb(info));
+  },
+  onTracerouteDone: (cb: (data: any) => void) => {
+    ipcRenderer.on('traceroute-done', (_e, data) => cb(data));
+  },
+  onTracerouteError: (cb: (data: any) => void) => {
+    ipcRenderer.on('traceroute-error', (_e, data) => cb(data));
+  },
+  removeTracerouteListeners: () => {
+    ipcRenderer.removeAllListeners('traceroute-started');
+    ipcRenderer.removeAllListeners('traceroute-hop');
+    ipcRenderer.removeAllListeners('traceroute-info');
+    ipcRenderer.removeAllListeners('traceroute-done');
+    ipcRenderer.removeAllListeners('traceroute-error');
+  },
 });
