@@ -28,13 +28,47 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+/**
+ * Worker responsible for performing periodic app update checks
+ * using Google Play Core In-App Updates API.
+ *
+ * <p>This worker:
+ * <ul>
+ *   <li>Checks whether a new application update is available.</li>
+ *   <li>Validates whether flexible updates are allowed.</li>
+ *   <li>Shows a notification prompting the user to update the app.</li>
+ *   <li>Logs update flow events into Sentry.</li>
+ * </ul>
+ *
+ * @param appContext application context used by the worker.
+ * @param params worker execution parameters.
+ */
 open class UpdateCheckWorker(
   appContext: Context,
   params: WorkerParameters
 ) : CoroutineWorker(appContext, params) {
 
+
+  /**
+   * Logger implementation used for application logging.
+   */
   var logger: Logger = AppLogger
 
+  /**
+   * Executes the background update check task.
+   *
+   * <p>This method:
+   * <ul>
+   *   <li>Requests update information from Google Play.</li>
+   *   <li>Determines whether an update is available.</li>
+   *   <li>Validates whether flexible updates are supported.</li>
+   *   <li>Shows a notification if an update is available.</li>
+   *   <li>Captures execution logs and failures using Sentry.</li>
+   * </ul>
+   *
+   * @return {@link Result#success()} if the update check completes successfully,
+   * otherwise {@link Result#failure()} when an exception occurs.
+   */
   override suspend fun doWork(): Result {
     logger.d("Daily Schedule Interval", "Worker executed")
 
@@ -73,6 +107,20 @@ open class UpdateCheckWorker(
     }
   }
 
+  /**
+   * Displays a notification informing the user
+   * that a new application update is available.
+   *
+   * <p>The notification:
+   * <ul>
+   *   <li>Launches {@link MainActivity} when tapped.</li>
+   *   <li>Triggers the in-app update flow using an intent extra.</li>
+   *   <li>Uses a high-priority notification channel.</li>
+   * </ul>
+   *
+   * <p>If notification permission is not granted,
+   * the notification will not be displayed.
+   */
   protected fun showUpdateNotification() {
     createNotificationChannel()
 
@@ -110,6 +158,13 @@ open class UpdateCheckWorker(
     notificationManager.notify(APP_UPGRADE_NOTIFICATION_ID, builder.build())
   }
 
+  /**
+   * Creates the notification channel used for
+   * application update notifications.
+   *
+   * <p>This channel is registered with high importance
+   * to ensure update notifications are prominently displayed.
+   */
   protected fun createNotificationChannel() {
     val channel = NotificationChannel(
       APP_UPDATE_CHANNEL_ID,
@@ -128,11 +183,21 @@ open class UpdateCheckWorker(
 
 
 /**
- * Extension function to await Play Core Task
+ * Suspends the current coroutine until the Play Core {@link Task}
+ * completes successfully or fails.
+ *
+ * <p>This extension function converts the callback-based Play Core API
+ * into a coroutine-friendly suspend function.
+ *
+ * <p>Execution listeners are attached using a dedicated background executor
+ * to avoid dependency on the Android main looper.
+ *
+ * @param T type of result returned by the task.
+ *
+ * @return the successful task result.
+ *
+ * @throws Exception if the task fails.
  */
-// ✅ Fixed — add task result listener on the calling thread's executor
-// using TaskExecutors or a direct executor to avoid main-looper dependency
-
 suspend fun <T> Task<T>.await(): T =
   suspendCancellableCoroutine { cont ->
     val executor = java.util.concurrent.Executors.newSingleThreadExecutor()

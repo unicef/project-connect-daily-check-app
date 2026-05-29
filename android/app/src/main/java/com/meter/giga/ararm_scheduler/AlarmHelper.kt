@@ -151,6 +151,24 @@ object AlarmHelper : AlarmHelperType {
     }
   }
 
+  /**
+   * Calculates the delay duration until the next scheduled
+   * app version update check time.
+   *
+   * <p>The update check is scheduled daily at 12:00 PM.
+   * If the current time has already passed today's 12:00 PM,
+   * the next execution is scheduled for the following day.
+   *
+   * <p>This method:
+   * <ul>
+   *   <li>Determines the next target execution time.</li>
+   *   <li>Calculates the delay in milliseconds.</li>
+   *   <li>Logs the computed scheduling interval.</li>
+   * </ul>
+   *
+   * @return delay duration in milliseconds until
+   * the next version update check execution.
+   */
   override fun getNextDayTimeToCheckVersionUpdate(): Long {
     val now = LocalDateTime.now()
     var target = now.withHour(12).withMinute(0).withSecond(0).withNano(0)

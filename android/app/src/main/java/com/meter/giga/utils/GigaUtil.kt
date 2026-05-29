@@ -40,16 +40,35 @@ import java.util.Calendar
 import java.util.Locale
 
 /**
- * This is an utility class and contains reusable functions
- * This is singleton class instance can be accessed via same
- * instance across the app
+ * Utility singleton containing reusable helper methods
+ * used across the application.
+ *
+ * <p>This utility class provides functionalities related to:
+ * <ul>
+ *   <li>Device and OS checks.</li>
+ *   <li>Alarm permission validation.</li>
+ *   <li>Date and time formatting.</li>
+ *   <li>Speed test payload generation.</li>
+ *   <li>Measurement history processing.</li>
+ *   <li>Data usage calculations.</li>
+ *   <li>Alarm scheduling validations.</li>
+ * </ul>
  */
 object GigaUtil {
 
   /**
-   * This function checks if app is running on Chromebook
-   * @param context : App Context
-   * @return Boolean (True/False)
+   * Determines whether the application is running
+   * on a Chromebook device.
+   *
+   * <p>The validation checks:
+   * <ul>
+   *   <li>Device build identifiers.</li>
+   *   <li>ARC (Android Runtime for Chrome) system features.</li>
+   * </ul>
+   *
+   * @param context application context.
+   * @return {@code true} if running on Chromebook,
+   * otherwise {@code false}.
    */
   fun isRunningOnChromebook(context: Context): Boolean {
     val pm = context.packageManager
@@ -58,11 +77,17 @@ object GigaUtil {
       pm.hasSystemFeature("org.chromium.arc.device_management")
   }
 
+
   /**
-   * This function checks if app has schedule alarm permission if
-   * Device is running above Android 31
-   * @param context : App Context
-   * @return Boolean (True/False)
+   * Checks whether exact alarm scheduling permission
+   * is granted for the application.
+   *
+   * <p>For Android S and above, this validates the
+   * {@code SCHEDULE_EXACT_ALARM} capability.
+   *
+   * @param context application context.
+   * @return {@code true} if exact alarms are allowed,
+   * otherwise {@code false}.
    */
   fun isExactAlarmPermissionGranted(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
@@ -74,9 +99,11 @@ object GigaUtil {
   }
 
   /**
-   * This function used to get the app build version
-   * @param context : App Context
-   * @return App Build Version
+   * Retrieves the current application version name.
+   *
+   * @param context application context.
+   * @return app version name or {@code Unknown}
+   * if retrieval fails.
    */
   fun getAppVersionName(context: Context): String {
     return try {
@@ -88,9 +115,14 @@ object GigaUtil {
   }
 
   /**
-   * This function used to convert the time into ISO format
-   * @param input: Time to convert in ISO format
-   * @return ISO formated time
+   * Converts a formatted local timestamp into
+   * ISO 8601 UTC format.
+   *
+   * <p>The input format must match:
+   * {@code M_D_YYYY_H_MM_SS_A}
+   *
+   * @param input formatted timestamp string.
+   * @return ISO formatted UTC timestamp.
    */
   fun convertToIso(input: String): String {
     // 1. Parse your input date string
@@ -103,8 +135,11 @@ object GigaUtil {
   }
 
   /**
-   * This function used to check the current time is less than 8 AM
-   * @return Boolean
+   * Checks whether the current local time
+   * is before 8:00 AM.
+   *
+   * @return {@code true} if current time is before 8 AM,
+   * otherwise {@code false}.
    */
   fun isBefore8AM(): Boolean {
     val now = LocalDateTime.now()
@@ -114,8 +149,10 @@ object GigaUtil {
   }
 
   /**
-   * Used to get the current time in format: M_D_YYYY_H_MM_SS_A
-   * @return current timestamp in M_D_YYYY_H_MM_SS_A format
+   * Returns the current local time formatted using
+   * {@code M_D_YYYY_H_MM_SS_A}.
+   *
+   * @return formatted current timestamp.
    */
   fun getCurrentFormattedTime(): String {
     val now = LocalDateTime.now()
@@ -124,22 +161,37 @@ object GigaUtil {
   }
 
   /**
-   * This function used to create the speed test result payload to
-   * post on backend
-   * @param uploadMeasurement
-   * @param downloadMeasurement
-   * @param clientInfoRequestEntity
-   * @param serverInfoRequestEntity
-   * @param scheduleType
-   * @param schoolId
-   * @param gigaSchoolId
-   * @param appVersion
-   * @param ipAddress
-   * @param deviceType
-   * @param browserId
-   * @param countryCode
-   * @param lastDownloadResponse
-   * @param lastUploadResponse
+   * Creates the complete speed test payload
+   * required for backend API submission.
+   *
+   * <p>The payload includes:
+   * <ul>
+   *   <li>Upload/download measurements.</li>
+   *   <li>Client and server information.</li>
+   *   <li>Latency details.</li>
+   *   <li>Geo location information.</li>
+   *   <li>Measurement timestamps.</li>
+   * </ul>
+   *
+   * @param uploadMeasurement upload measurement details.
+   * @param downloadMeasurement download measurement details.
+   * @param clientInfoRequestEntity client device/network info.
+   * @param serverInfoRequestEntity speed test server details.
+   * @param schoolId school identifier.
+   * @param gigaSchoolId GIGA school identifier.
+   * @param appVersion current application version.
+   * @param scheduleType execution type/schedule source.
+   * @param deviceType device type information.
+   * @param browserId browser/device registration identifier.
+   * @param countryCode device country code.
+   * @param ipAddress client IP address.
+   * @param lastDownloadResponse latest download response.
+   * @param lastUploadResponse latest upload response.
+   * @param deviceHardwareId unique device hardware identifier.
+   * @param geo geo location details.
+   *
+   * @return generated speed test request payload,
+   * or {@code null} if creation fails.
    */
   fun createSpeedTestPayload(
     uploadMeasurement: Measurement?,
@@ -230,6 +282,16 @@ object GigaUtil {
     }
   }
 
+  /**
+   * Adds a new JSON item into an existing JSON array string.
+   *
+   * <p>The method maintains a FIFO queue behavior
+   * with a maximum size of 10 items.
+   *
+   * @param existingArrayStr existing JSON array string.
+   * @param jsonString new JSON item to append.
+   * @return updated JSON array string.
+   */
   fun addJsonItem(existingArrayStr: String, jsonString: String): String {
 
     val gson = Gson()
@@ -254,6 +316,15 @@ object GigaUtil {
     return updatedArray.toString()
   }
 
+  /**
+   * Calculates total upload, download,
+   * and combined data usage values.
+   *
+   * @param c2sLastServerManagement upload-side measurement.
+   * @param s2cLastServerManagement download-side measurement.
+   *
+   * @return calculated data usage information.
+   */
   fun getDataUsage(
     c2sLastServerManagement: Measurement?,
     s2cLastServerManagement: Measurement?,
@@ -279,6 +350,33 @@ object GigaUtil {
     }
   }
 
+  /**
+   * Creates a historical measurement item object
+   * used for local storage and sync operations.
+   *
+   * <p>The measurement item contains:
+   * <ul>
+   *   <li>Access information.</li>
+   *   <li>Data usage statistics.</li>
+   *   <li>Server details.</li>
+   *   <li>Speed test result data.</li>
+   *   <li>Geo location information.</li>
+   *   <li>Measurement timeline metadata.</li>
+   * </ul>
+   *
+   * @param clientInfoResponse client network information.
+   * @param c2sLastServerManagement upload-side measurement.
+   * @param s2cLastServerManagement download-side measurement.
+   * @param serverInfoResponse server information response.
+   * @param scheduleType execution schedule type.
+   * @param results test result payload.
+   * @param c2sRate upload graph/rate data.
+   * @param s2cRate download graph/rate data.
+   * @param historyDataIndex historical data index.
+   * @param currentLocation current device location.
+   *
+   * @return populated measurement item.
+   */
   fun getMeasurementItem(
     clientInfoResponse: ClientInfoResponseEntity?,
     c2sLastServerManagement: Measurement?,
@@ -333,6 +431,16 @@ object GigaUtil {
     )
   }
 
+  /**
+   * Filters locally stored measurement data
+   * and returns only items pending synchronization.
+   *
+   * <p>Pending items are measurements where
+   * {@code uploaded == false}.
+   *
+   * @param measurementItems serialized measurement JSON array.
+   * @return list of unsynchronized measurement items.
+   */
   fun checkDataPendingForSync(measurementItems: String): List<MeasurementsItem> {
     val gson = Gson()
 
@@ -350,6 +458,14 @@ object GigaUtil {
     return notUploadedItems
   }
 
+  /**
+   * Checks whether a future alarm execution
+   * is already scheduled.
+   *
+   * @param alarmPrefs shared preference manager.
+   * @return {@code true} if a future alarm exists,
+   * otherwise {@code false}.
+   */
   fun checkIfFutureAlarmScheduled(alarmPrefs: AlarmSharedPref): Boolean {
     val nextScheduleTime = alarmPrefs.nextExecutionTime
     val currentTime = Calendar.getInstance().timeInMillis

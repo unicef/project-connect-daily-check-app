@@ -51,19 +51,44 @@ import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
 
+/**
+ * Capacitor plugin implementation used as a bridge between
+ * the Ionic UI layer and Android native components.
+ *
+ * <p>This plugin provides functionalities such as:
+ * <ul>
+ *   <li>Starting manual speed tests.</li>
+ *   <li>Scheduling background speed test alarms.</li>
+ *   <li>Managing registration and environment data.</li>
+ *   <li>Returning historical speed test data.</li>
+ *   <li>Checking Google Play app updates.</li>
+ *   <li>Sending real-time speed test updates to the UI.</li>
+ * </ul>
+ */
 @CapacitorPlugin(name = "GigaAppPlugin")
 open class GigaAppPlugin : Plugin() {
 
   // Create singleton instance of Giga App Plugin
   companion object {
+    /**
+     * Singleton instance of the plugin used for
+     * sending events to the Capacitor UI layer.
+     */
     private var pluginInstance: GigaAppPlugin? = null
 
     /**
-     * This function used to pass the last speed test measurements
-     * TO UI
-     * @param downloadSpeed : Download Speed
-     * @param uploadSpeed : Upload Speed
-     * @param testStatus : upload/download
+     * Sends real-time speed test progress updates to the Ionic UI.
+     *
+     * <p>The event includes:
+     * <ul>
+     *   <li>Current download speed.</li>
+     *   <li>Current upload speed.</li>
+     *   <li>Current speed test status.</li>
+     * </ul>
+     *
+     * @param downloadSpeed current download speed value.
+     * @param uploadSpeed current upload speed value.
+     * @param testStatus current speed test state.
      */
     fun sendSpeedUpdate(downloadSpeed: Double, uploadSpeed: Double, testStatus: String) {
       pluginInstance?.let {
@@ -78,11 +103,10 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
-     * This function used to pass the last speed test measurements
-     * TO UI
-     * @param downloadSpeed : Download Speed
-     * @param uploadSpeed : Upload Speed
-     * @param testStatus : upload/download
+     * Sends an offline/no-network state update to the Ionic UI.
+     *
+     * <p>This event is emitted when internet connectivity
+     * is unavailable during speed test execution.
      */
     fun sendNoNetworkError() {
       pluginInstance?.let {
@@ -95,10 +119,17 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
-     * This function used to pass the final speed test measurements
-     * TO UI
-     * @param speedTestData : Speed Test Result Entity contains all
-     * speed test details
+     * Sends completed speed test results to the Ionic UI.
+     *
+     * <p>The result payload contains:
+     * <ul>
+     *   <li>Speed test response data.</li>
+     *   <li>Measurement details.</li>
+     *   <li>Completion status.</li>
+     * </ul>
+     *
+     * @param speedTestData final speed test response data.
+     * @param measurementsItem measurement metadata/details.
      */
     fun sendSpeedTestCompleted(
       speedTestData: SpeedTestResultRequestEntity,
@@ -121,8 +152,13 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
-     * This function used to pass the speed test measurements failed
-     * TO UI
+     * Sends failed speed test details to the Ionic UI.
+     *
+     * <p>This method is invoked when the speed test
+     * execution ends with an error.
+     *
+     * @param speedTestData optional partial speed test result.
+     * @param measurementsItem optional measurement metadata.
      */
     fun sendSpeedTestCompletedWithError(
       speedTestData: SpeedTestResultRequestEntity?,
@@ -145,8 +181,10 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
-     * This function used to pass the speed test measurements started
-     * TO UI
+     * Sends a speed test started event to the Ionic UI.
+     *
+     * <p>This indicates that the network test process
+     * has started execution.
      */
     fun sendSpeedTestStarted() {
       pluginInstance?.let {
@@ -159,8 +197,10 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
-     * This function used to pass the speed test measurements started
-     * TO UI
+     * Sends an event indicating server discovery has started.
+     *
+     * <p>This occurs before selecting the optimal
+     * speed test server.
      */
     fun sendServerDiscoveryStarted() {
       pluginInstance?.let {
@@ -173,8 +213,8 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
-     * This function used to pass the speed test measurements started
-     * TO UI
+     * Sends an event indicating server discovery
+     * and selection is completed.
      */
     fun sendServerDiscoveryCompleted() {
       pluginInstance?.let {
@@ -186,16 +226,23 @@ open class GigaAppPlugin : Plugin() {
       }
     }
   }
-
+  /**
+   * Called when the Capacitor plugin is loaded.
+   *
+   * <p>This stores the plugin instance for later use
+   * in sending events back to the UI layer.
+   */
   override fun load() {
     pluginInstance = this
   }
 
   /**
-   * This function is invoked from ionic app UI
-   * to get the Android ID
-   * @param call : This contains all the passed params
-   * as key value pair
+   * Retrieves the Android device ID and returns it
+   * to the Ionic UI layer.
+   *
+   * <p>The device ID is also persisted in shared preferences.
+   *
+   * @param call Capacitor plugin call instance.
    */
   @SuppressLint("HardwareIds")
   @PluginMethod
@@ -219,10 +266,17 @@ open class GigaAppPlugin : Plugin() {
   }
 
   /**
-   * This function is invoked from ionic app UI
-   * to start the manual speed test on user button click
-   * @param call : This contains all the passed params
-   * as key value pair
+   * Starts a manual speed test execution initiated
+   * by the user from the Ionic UI.
+   *
+   * <p>This method:
+   * <ul>
+   *   <li>Starts the foreground speed test service.</li>
+   *   <li>Checks whether future alarms already exist.</li>
+   *   <li>Schedules a fallback alarm if required.</li>
+   * </ul>
+   *
+   * @param call Capacitor plugin call containing schedule details.
    */
   @PluginMethod
   fun executeManualSpeedTest(call: PluginCall) {
@@ -247,10 +301,13 @@ open class GigaAppPlugin : Plugin() {
   }
 
   /**
-   * This function is getting used to return the historical data persisted in the
-   * shared preferences while performing speed test in background.
-   * @param call: PluginCall instance to pass the data on Capacitor
-   * UI layer
+   * Returns historical speed test measurement data
+   * stored in shared preferences.
+   *
+   * <p>The data is converted into a format compatible
+   * with the Capacitor JavaScript layer.
+   *
+   * @param call Capacitor plugin call instance.
    */
   @PluginMethod
   fun getHistoricalSpeedTestData(call: PluginCall) {
@@ -279,11 +336,17 @@ open class GigaAppPlugin : Plugin() {
   }
 
   /**
-   * This function is invoked from ionic app UI
-   * to pass the data from UI to Android Native
-   * Components
-   * @param call : This contains all the passed params
-   * as key value pair
+   * Stores registration and scheduling data received
+   * from the Ionic UI layer.
+   *
+   * <p>This method:
+   * <ul>
+   *   <li>Resets existing stored data.</li>
+   *   <li>Saves new school/device registration details.</li>
+   *   <li>Schedules background alarms for speed tests.</li>
+   * </ul>
+   *
+   * @param call Capacitor plugin call containing registration data.
    */
   @PluginMethod
   fun storeAndScheduleSpeedTest(call: PluginCall) {
@@ -315,11 +378,17 @@ open class GigaAppPlugin : Plugin() {
   }
 
   /**
-   * This function is invoked from ionic app UI
-   * to pass the data from UI to Android Native
-   * Components
-   * @param call : This contains all the passed params
-   * as key value pair
+   * Stores the selected application environment
+   * in shared preferences.
+   *
+   * <p>Examples:
+   * <ul>
+   *   <li>development</li>
+   *   <li>staging</li>
+   *   <li>production</li>
+   * </ul>
+   *
+   * @param call Capacitor plugin call containing environment details.
    */
   @PluginMethod
   fun storeEnvironment(call: PluginCall) {
@@ -330,7 +399,20 @@ open class GigaAppPlugin : Plugin() {
     alarmPrefs.environment = env ?: "development"
     call.resolve()
   }
-
+  /**
+   * Checks whether a new application update
+   * is available in Google Play Store.
+   *
+   * <p>This method:
+   * <ul>
+   *   <li>Fetches Play Store update information.</li>
+   *   <li>Validates flexible update availability.</li>
+   *   <li>Posts update events to the event bus.</li>
+   *   <li>Logs update details into Sentry.</li>
+   * </ul>
+   *
+   * @return update status message.
+   */
   private suspend fun checkAppUpdate(): String {
     return withContext(Dispatchers.IO) {
       Sentry.captureMessage("Updated Checker executed")
@@ -369,6 +451,15 @@ open class GigaAppPlugin : Plugin() {
     }
   }
 
+  /**
+   * Invokes asynchronous app update validation
+   * from the Ionic UI layer.
+   *
+   * <p>The final update status result is returned
+   * back to the Capacitor UI layer.
+   *
+   * @param call Capacitor plugin call instance.
+   */
   @PluginMethod
   fun checkAppUpdateAvailable(call: PluginCall) {
     AppLogger.d("GIGA GigaAppPlugin", "Start Command Via Plugin")
@@ -387,10 +478,10 @@ open class GigaAppPlugin : Plugin() {
 
 
   /**
-   * This function is invoked from ionic app UI
-   * to clear the stored data from preferences
-   * @param call : This contains all the passed params
-   * as key value pair
+   * Clears all stored registration and scheduling data
+   * from shared preferences.
+   *
+   * @param call Capacitor plugin call instance.
    */
   @PluginMethod
   fun clearStoredData(call: PluginCall) {
@@ -401,12 +492,18 @@ open class GigaAppPlugin : Plugin() {
   }
 
   /**
-   * This function is getting used to schedule the Alarm
-   * to perform the speed test in background, when user updates/register
-   * school in App
-   * @param context: Application context to use native components
-   * @param alarmPrefs: Shared Preference Instance to access and
-   * update the stored values
+   * Schedules background alarms for automatic speed tests.
+   *
+   * <p>The scheduling logic:
+   * <ul>
+   *   <li>Validates exact alarm permission availability.</li>
+   *   <li>Schedules first execution within 15 minutes.</li>
+   *   <li>Schedules future executions within generated time slots.</li>
+   *   <li>Requests exact alarm permission if unavailable.</li>
+   * </ul>
+   *
+   * @param context application context.
+   * @param alarmPrefs shared preference manager containing scheduling data.
    */
   @SuppressLint("ScheduleExactAlarm")
   private fun scheduleAlarm(context: Context, alarmPrefs: AlarmSharedPref) {

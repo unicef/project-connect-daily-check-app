@@ -20,20 +20,42 @@ import java.util.concurrent.TimeUnit
 import kotlin.apply
 
 /**
- * Giga App Application class
- * This class is getting used to instantiate the third party
- * libs like Sentry etc.
+ * Application class for the Giga application.
+ *
+ * <p>This class is responsible for performing application-level
+ * initializations such as:
+ * <ul>
+ *   <li>Initializing third-party SDKs.</li>
+ *   <li>Setting up Sentry crash reporting and performance monitoring.</li>
+ *   <li>Loading environment-specific configurations.</li>
+ * </ul>
  */
 class GigaApp : Application() {
-
+  /**
+   * Called when the application is created.
+   *
+   * <p>This is the entry point for application-level initialization logic.
+   * Currently used to initialize Sentry monitoring.
+   */
   override fun onCreate() {
     super.onCreate()
     initSentry()
   }
 
   /**
-   * This function is used to instantiate the Sentry instance to capture the
-   * logs
+   * Initializes the Sentry SDK for crash reporting,
+   * performance monitoring, and profiling.
+   *
+   * <p>This method performs the following operations:
+   * <ul>
+   *   <li>Loads environment configuration from {@code env.properties}.</li>
+   *   <li>Stores the application environment in shared preferences.</li>
+   *   <li>Configures Sentry DSN and monitoring options.</li>
+   *   <li>Enables tracing, screenshots, view hierarchy, and profiling.</li>
+   * </ul>
+   *
+   * <p>If loading the environment configuration fails,
+   * the application defaults to the {@code development} environment.
    */
   private fun initSentry() {
 
@@ -74,6 +96,19 @@ class GigaApp : Application() {
   }
 }
 
+/**
+ * Maps environment identifiers to readable environment names.
+ *
+ * <p>Supported environment mappings:
+ * <ul>
+ *   <li>{@code stg -> staging}</li>
+ *   <li>{@code prod -> production}</li>
+ *   <li>Any other value -> development</li>
+ * </ul>
+ *
+ * @param env short environment identifier.
+ * @return readable environment name.
+ */
 private fun getEnvironment(env: String): String {
   when (env) {
     "stg" ->

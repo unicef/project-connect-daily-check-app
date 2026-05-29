@@ -32,7 +32,20 @@ import net.measurementlab.ndt7.android.models.Measurement
 import net.measurementlab.ndt7.android.models.TCPInfo
 
 /**
- * Util class to Map the entity classes to model classes or vice versa
+ * Collection of extension mapper functions used to convert:
+ *
+ * - API response models → domain entities
+ * - Domain entities → request models
+ * - NDT measurement models → application entities
+ *
+ * These helpers centralize transformation logic and keep the
+ * application layers decoupled and maintainable.
+ */
+
+/**
+ * Converts [ClientInfoResponseModel] into [ClientInfoResponseEntity].
+ *
+ * @return mapped [ClientInfoResponseEntity]
  */
 fun ClientInfoResponseModel.toEntity(): ClientInfoResponseEntity? {
   return ClientInfoResponseEntity(
@@ -49,6 +62,11 @@ fun ClientInfoResponseModel.toEntity(): ClientInfoResponseEntity? {
   )
 }
 
+/**
+ * Converts [ServerInfoResponseModel] into [ServerInfoResponseEntity].
+ *
+ * @return mapped [ServerInfoResponseEntity]
+ */
 fun ServerInfoResponseModel.toEntity(): ServerInfoResponseEntity? {
   return ServerInfoResponseEntity(
     city = city ?: "",
@@ -67,6 +85,12 @@ fun ServerInfoResponseModel.toEntity(): ServerInfoResponseEntity? {
   )
 }
 
+/**
+ * Converts fallback client information response into
+ * [ClientInfoResponseEntity].
+ *
+ * @return mapped [ClientInfoResponseEntity]
+ */
 fun ClientInfoFallbackResponseModel.toEntity(): ClientInfoResponseEntity? {
   return ClientInfoResponseEntity(
     asn = if (asn != null) "AS$asn" else "",
@@ -82,6 +106,12 @@ fun ClientInfoFallbackResponseModel.toEntity(): ClientInfoResponseEntity? {
   )
 }
 
+/**
+ * Converts [SpeedTestResultRequestEntity] into
+ * [SpeedTestResultRequestModel].
+ *
+ * @return mapped request model
+ */
 fun SpeedTestResultRequestEntity.toModel(): SpeedTestResultRequestModel {
   return SpeedTestResultRequestModel(
     annotation = annotation,
@@ -113,6 +143,10 @@ fun SpeedTestResultRequestEntity.toModel(): SpeedTestResultRequestModel {
   )
 }
 
+/**
+ * Converts [ClientInfoRequestEntity] into
+ * [ClientInfoRequestModel].
+ */
 fun ClientInfoRequestEntity.toModel(): ClientInfoRequestModel {
   return ClientInfoRequestModel(
     aSN = asn ?: "",
@@ -129,6 +163,10 @@ fun ClientInfoRequestEntity.toModel(): ClientInfoRequestModel {
   )
 }
 
+
+/**
+ * Converts [ResultsRequestEntity] into [ResultsRequestModel].
+ */
 fun ResultsRequestEntity.toModel(): ResultsRequestModel {
   return ResultsRequestModel(
     ndtResultS2C = ndtResultS2C?.toModel(),
@@ -136,6 +174,10 @@ fun ResultsRequestEntity.toModel(): ResultsRequestModel {
   )
 }
 
+/**
+ * Converts [SpeedTestMeasurementRequestEntity] into
+ * [SpeedTestMeasurementRequestModel].
+ */
 fun SpeedTestMeasurementRequestEntity.toModel(): SpeedTestMeasurementRequestModel {
   return SpeedTestMeasurementRequestModel(
     lastClientMeasurement = lastClientMeasurement?.toModel(),
@@ -143,6 +185,10 @@ fun SpeedTestMeasurementRequestEntity.toModel(): SpeedTestMeasurementRequestMode
   )
 }
 
+/**
+ * Converts [LastClientMeasurementRequestEntity] into
+ * [LastClientMeasurementRequestModel].
+ */
 fun LastClientMeasurementRequestEntity.toModel(): LastClientMeasurementRequestModel {
   return LastClientMeasurementRequestModel(
     elapsedTime = elapsedTime,
@@ -151,6 +197,10 @@ fun LastClientMeasurementRequestEntity.toModel(): LastClientMeasurementRequestMo
   )
 }
 
+/**
+ * Converts NDT [Measurement] into
+ * [LastServerMeasurementRequestEntity].
+ */
 fun Measurement.toEntity(): LastServerMeasurementRequestEntity {
   return LastServerMeasurementRequestEntity(
     bbrInfo = bbrInfo?.toEntity(),
@@ -159,6 +209,10 @@ fun Measurement.toEntity(): LastServerMeasurementRequestEntity {
   )
 }
 
+
+/**
+ * Converts [BBRInfo] into [BBRInfoRequestEntity].
+ */
 fun BBRInfo.toEntity(): BBRInfoRequestEntity {
   return BBRInfoRequestEntity(
     bw = bw,
@@ -169,6 +223,9 @@ fun BBRInfo.toEntity(): BBRInfoRequestEntity {
   )
 }
 
+/**
+ * Converts [ConnectionInfo] into [ConnectionInfoRequestEntity].
+ */
 fun ConnectionInfo.toEntity(): ConnectionInfoRequestEntity {
   return ConnectionInfoRequestEntity(
     client = client,
@@ -177,6 +234,9 @@ fun ConnectionInfo.toEntity(): ConnectionInfoRequestEntity {
   )
 }
 
+/**
+ * Converts [TCPInfo] into [TCPInfoRequestEntity].
+ */
 fun TCPInfo.toEntity(): TCPInfoRequestEntity {
   return TCPInfoRequestEntity(
     ato = ato,
@@ -237,7 +297,10 @@ fun TCPInfo.toEntity(): TCPInfoRequestEntity {
   )
 }
 
-
+/**
+ * Converts [LastServerMeasurementRequestEntity] into
+ * [LastServerMeasurementRequestModel].
+ */
 fun LastServerMeasurementRequestEntity.toModel(): LastServerMeasurementRequestModel {
   return LastServerMeasurementRequestModel(
     bBRInfo = bbrInfo?.toModel(),
@@ -246,6 +309,9 @@ fun LastServerMeasurementRequestEntity.toModel(): LastServerMeasurementRequestMo
   )
 }
 
+/**
+ * Converts [BBRInfoRequestEntity] into [BBRInfoRequestModel].
+ */
 fun BBRInfoRequestEntity.toModel(): BBRInfoRequestModel {
   return BBRInfoRequestModel(
     bW = bw,
@@ -256,6 +322,10 @@ fun BBRInfoRequestEntity.toModel(): BBRInfoRequestModel {
   )
 }
 
+/**
+ * Converts [ConnectionInfoRequestEntity] into
+ * [ConnectionInfoRequestModel].
+ */
 fun ConnectionInfoRequestEntity.toModel(): ConnectionInfoRequestModel {
   return ConnectionInfoRequestModel(
     client = client,
@@ -264,6 +334,9 @@ fun ConnectionInfoRequestEntity.toModel(): ConnectionInfoRequestModel {
   )
 }
 
+/**
+ * Converts [TCPInfoRequestEntity] into [TCPInfoRequestModel].
+ */
 fun TCPInfoRequestEntity.toModel(): TCPInfoRequestModel {
   return TCPInfoRequestModel(
     aTO = ato,
@@ -324,7 +397,10 @@ fun TCPInfoRequestEntity.toModel(): TCPInfoRequestModel {
   )
 }
 
-
+/**
+ * Converts [ServerInfoRequestEntity] into
+ * [ServerInfoRequestModel].
+ */
 fun ServerInfoRequestEntity.toModel(): ServerInfoRequestModel {
   return ServerInfoRequestModel(
     city = city,

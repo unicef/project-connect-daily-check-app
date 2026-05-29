@@ -63,10 +63,20 @@ import kotlin.text.format
 import kotlin.text.toDouble
 
 /**
- * NetworkTestService is Foreground service used to execute in background
- * when scheduled speed test gets execute.
- * This service shows notification and performs the speed test
- * and publish the speed test result on backend
+ * NetworkTestService is a foreground service responsible for executing
+ * scheduled and manual internet speed tests using the NDT7 library.
+ *
+ * Responsibilities:
+ * - Execute upload/download speed tests
+ * - Maintain foreground execution
+ * - Publish real-time progress updates
+ * - Upload measurements to backend APIs
+ * - Persist offline measurement history
+ * - Send updates to Capacitor/Ionic UI
+ * - Collect client/server metadata
+ *
+ * The service uses Kotlin coroutines, Retrofit, OkHttp,
+ * and Android lifecycle-aware components.
  */
 class NetworkTestService : LifecycleService() {
   /**
@@ -89,6 +99,14 @@ class NetworkTestService : LifecycleService() {
   private lateinit var fusedLocationClient: FusedLocationProviderClient
   private var currentLocation: Location? = null
 
+  /**
+   * Initializes the foreground service.
+   *
+   * Responsibilities:
+   * - Initialize fused location provider
+   * - Retrieve last known location
+   * - Create notification channel
+   */
   override fun onCreate() {
     super.onCreate()
     fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
@@ -96,6 +114,13 @@ class NetworkTestService : LifecycleService() {
     createNotificationChannel()
   }
 
+  /**
+   * Retrieves the device's last known location.
+   *
+   * Uses FusedLocationProviderClient to obtain
+   * latitude and longitude if location permissions
+   * are granted.
+   */
   private fun getLocation() {
 
     if (ActivityCompat.checkSelfPermission(
@@ -119,6 +144,22 @@ class NetworkTestService : LifecycleService() {
       }
   }
 
+  /**
+   * Entry point of the foreground service.
+   *
+   * Starts the NDT7 speed test after validating:
+   * - Internet connectivity
+   * - Existing running state
+   *
+   * Also initializes notifications and registers
+   * speed test callbacks.
+   *
+   * @param intent Intent containing schedule type
+   * @param flags Service flags
+   * @param startId Unique start request id
+   *
+   * @return START_STICKY to allow Android to recreate service
+   */
   override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
     super.onStartCommand(intent, flags, startId)
     startForeground(NOTIFICATION_ID, createNotification("Starting speed test..."))
@@ -180,9 +221,10 @@ class NetworkTestService : LifecycleService() {
   }
 
   /**
-   * This function creates the notification which user can see
-   * while performing the speed test in background, this is mandatory to
-   * show if any task is getting executing in background
+   * Creates foreground service notification.
+   *
+   * @param content Dynamic notification message
+   * @return Configured Notification instance
    */
   private fun createNotification(content: String): Notification {
     val intent = Intent(this, MainActivity::class.java).apply {
@@ -207,8 +249,11 @@ class NetworkTestService : LifecycleService() {
   }
 
   /**
-   * This function update the notification content
-   * during the speed test in background
+   * Updates the foreground notification content.
+   *
+   * Used to display live speed test progress.
+   *
+   * @param content Notification message
    */
   private fun updateNotification(content: String) {
     val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -216,9 +261,8 @@ class NetworkTestService : LifecycleService() {
   }
 
   /**
-   * This function creates the notification channel
-   * defines the unique id and used to update the content
-   * in existing notification
+   * Creates notification channel required for
+   * Android foreground service notifications.
    */
   private fun createNotificationChannel() {
     val channel = NotificationChannel(
@@ -238,8 +282,14 @@ class NetworkTestService : LifecycleService() {
 
 
   /**
-   * This create the http client used for ndt7 library to perform the
-   * speed test
+   * Creates configured OkHttp client instance
+   * used by NDT7 library.
+   *
+   * @param connectTimeout Connection timeout in seconds
+   * @param readTimeout Read timeout in seconds
+   * @param writeTimeout Write timeout in seconds
+   *
+   * @return Configured OkHttpClient
    */
   private fun createHttpClient(
     connectTimeout: Long = 12,
@@ -257,8 +307,14 @@ class NetworkTestService : LifecycleService() {
   }
 
   /**
-   * Inner class implementation of NDTTest class this provides
-   * the callback implementation for the download, upload progress
+   * Custom implementation of NDTTest.
+   *
+   * Handles:
+   * - Download/upload callbacks
+   * - Measurement tracking
+   * - Speed calculations
+   * - Backend synchronization
+   * - UI event communication
    */
   inner class NDTTestImpl(
     okHttpClient: OkHttpClient?,
@@ -314,8 +370,13 @@ class NetworkTestService : LifecycleService() {
     }
 
     /**
-     * Callback function implementation for download progress
-     * @param clientResponse : ClientResponse instance contains data related to download progress
+     * Called continuously during download test.
+     *
+     * Calculates current download speed,
+     * updates foreground notification,
+     * and notifies Ionic UI.
+     *
+     * @param clientResponse Current client response snapshot
      */
     override fun onDownloadProgress(clientResponse: ClientResponse) {
       super.onDownloadProgress(clientResponse)
@@ -348,8 +409,13 @@ class NetworkTestService : LifecycleService() {
     }
 
     /**
-     * Callback function implementation for upload progress
-     * @param clientResponse : ClientResponse instance contains data related to upload progress
+     * Called continuously during upload test.
+     *
+     * Calculates upload speed,
+     * updates foreground notification,
+     * and publishes progress to UI.
+     *
+     * @param clientResponse Current upload response snapshot
      */
     override fun onUploadProgress(clientResponse: ClientResponse) {
       super.onUploadProgress(clientResponse)
@@ -382,10 +448,14 @@ class NetworkTestService : LifecycleService() {
     }
 
     /**
-     * Callback function implementation when speed test completed
-     * @param clientResponse : ClientResponse instance
-     * @param error : Throwable instance
-     * @param testType : Upload/Download type
+     * Called when upload/download test finishes.
+     *
+     * Once both tests complete, triggers
+     * result payload generation and backend upload.
+     *
+     * @param clientResponse Final response
+     * @param error Throwable if failure occurs
+     * @param testType Upload or Download test type
      */
     override fun onFinished(
       clientResponse: ClientResponse?,
@@ -413,16 +483,18 @@ class NetworkTestService : LifecycleService() {
     }
 
     /**
-     * This function is used to create the speed test result payload and
-     * fetch the required data to create the post payload
-     * @param scheduleType
-     * @param schoolId
-     * @param gigaSchoolId
-     * @param appVersion
-     * @param browserId
-     * @param isRunningOnChromebook
-     * @param countryCode
-     * @param ipAddress
+     * Fetches required metadata and prepares
+     * speed test payload for backend upload.
+     *
+     * Retrieves:
+     * - Client information
+     * - Server information
+     * - Device metadata
+     * - Measurement statistics
+     *
+     * @param scheduleType Trigger source type
+     * @param appVersion Current application version
+     * @param isRunningOnChromebook Chromebook state flag
      */
     private fun publishSpeedTestData(
       scheduleType: String,
@@ -557,6 +629,21 @@ class NetworkTestService : LifecycleService() {
       }
     }
 
+    /**
+     * Uploads generated speed test result to backend.
+     *
+     * Handles:
+     * - Payload generation
+     * - Offline persistence
+     * - Success/failure tracking
+     * - Historical data storage
+     * - UI notifications
+     *
+     * @param clientInfoRequest Client metadata
+     * @param serverInfoRequest Server metadata
+     * @param clientInfoResponse Raw client response
+     * @param serverInfoResponse Raw server response
+     */
     private suspend fun uploadSpeedTestData(
       clientInfoRequest: ClientInfoRequestEntity?,
       serverInfoRequest: ServerInfoRequestEntity?,
