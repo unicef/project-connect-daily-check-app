@@ -350,7 +350,11 @@ Fill the details, create the password and signing config file and save. This fil
 
 ---
 
-## 12. Summary
+## 12. UI Changes for Android only
+
+- **Angular code has check isNativeApp(), and if required to have any css change required for android only, using this check applied the specific css**
+
+## 13. Summary
 
 - **Debug Builds**
   - `./gradlew assembleDebug`
