@@ -28,7 +28,7 @@ This guide provides step-by-step setup and build instructions for a **Capacitor-
 - Install [Android Studio](https://developer.android.com/studio).
 - Install SDK, build tools, and emulator images.
 
-4. **Java JDK 11/17/21**
+4. **Java JDK 17/21**
 
    ```bash
    java -version
@@ -43,7 +43,7 @@ This guide provides step-by-step setup and build instructions for a **Capacitor-
    PATH += $ANDROID_HOME/tools/bin
    ```
 
-6. **Add google-service.json**
+6. **Add google-service.json (Optional)**
 
    ```bash
      Add google-service.json file before building the project in android/app directory
@@ -51,7 +51,7 @@ This guide provides step-by-step setup and build instructions for a **Capacitor-
 
 ---
 
-## 2. Add Android Platform
+## 2. Add Android Platform (Configured)
 
 This is already there in unicef giga meter, it will require to create the new android app, for giga meter need to skip.
 Inside your Capacitor project root:
