@@ -6,17 +6,13 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import com.meter.giga.ararm_scheduler.AlarmHelper
 import com.meter.giga.utils.AppLogger
-import com.meter.giga.utils.Logger
 import io.mockk.*
 import junit.framework.TestCase.assertTrue
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
-import org.mockito.Mockito.mockStatic
 import java.time.LocalDateTime
-import java.time.temporal.ChronoUnit
 import java.util.Calendar
 import kotlin.test.assertEquals
 

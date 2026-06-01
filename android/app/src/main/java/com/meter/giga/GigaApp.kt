@@ -1,23 +1,11 @@
 package com.meter.giga
 
 import android.app.Application
-import android.os.Build
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.OneTimeWorkRequest
-import androidx.work.PeriodicWorkRequest
-import androidx.work.WorkManager
-import com.meter.giga.ararm_scheduler.AlarmHelper.getNextDayTimeToCheckVersionUpdate
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
-import com.meter.giga.worker.UpdateCheckWorker
 import io.sentry.ProfileLifecycle
-import io.sentry.Sentry
-import io.sentry.SentryLevel
-import io.sentry.SentryOptions
 import io.sentry.android.core.SentryAndroid
 import java.util.Properties
-import java.util.concurrent.TimeUnit
-import kotlin.apply
 
 /**
  * Application class for the Giga application.

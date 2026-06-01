@@ -3,16 +3,14 @@ package com.meter.giga.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import com.meter.giga.ararm_scheduler.AlarmHelper
-import com.meter.giga.ararm_scheduler.AlarmHelperType
+import com.meter.giga.alarm_scheduler.AlarmHelper
+import com.meter.giga.alarm_scheduler.AlarmHelperType
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.FIRST_15_MIN
 import com.meter.giga.utils.Constants.NEXT_SLOT
 import com.meter.giga.utils.GigaUtil
 import io.sentry.Sentry
-import java.util.Date
 import kotlin.random.Random
 
 /**

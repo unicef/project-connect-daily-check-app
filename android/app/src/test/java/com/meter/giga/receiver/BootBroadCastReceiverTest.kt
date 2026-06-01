@@ -4,7 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import com.meter.giga.ararm_scheduler.AlarmHelperType
+import com.meter.giga.alarm_scheduler.AlarmHelperType
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.Constants.FIRST_15_MIN

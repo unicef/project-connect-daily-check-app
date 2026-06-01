@@ -5,9 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.content.ContextCompat
-import com.meter.giga.ararm_scheduler.AlarmHelper
+import com.meter.giga.alarm_scheduler.AlarmHelper
 import com.meter.giga.prefrences.AlarmSharedPref
-import com.meter.giga.service.NetworkTestService
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.Constants.FIRST_15_MIN
 import com.meter.giga.utils.Constants.NEXT_SLOT

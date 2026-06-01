@@ -1,12 +1,10 @@
-package com.meter.giga.ararm_scheduler
+package com.meter.giga.alarm_scheduler
 
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import com.meter.giga.prefrences.AlarmSharedPref
 
 import com.meter.giga.receiver.ScheduleBroadcastReceiver
 import com.meter.giga.utils.AppLogger
@@ -15,7 +13,6 @@ import com.meter.giga.utils.Logger
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
-import java.util.Date
 import kotlin.jvm.java
 
 /**

@@ -7,7 +7,6 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
-import android.widget.Toast
 import androidx.core.net.toUri
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -19,9 +18,9 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.gson.GsonBuilder
-import com.meter.giga.ararm_scheduler.AlarmHelper
-import com.meter.giga.ararm_scheduler.AlarmHelper.getNextSlotRange
-import com.meter.giga.ararm_scheduler.AlarmHelper.getSlotStartHour
+import com.meter.giga.alarm_scheduler.AlarmHelper
+import com.meter.giga.alarm_scheduler.AlarmHelper.getNextSlotRange
+import com.meter.giga.alarm_scheduler.AlarmHelper.getSlotStartHour
 import com.meter.giga.domain.entity.SpeedTestResultEntity
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity

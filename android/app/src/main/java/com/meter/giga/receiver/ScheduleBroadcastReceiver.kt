@@ -3,10 +3,9 @@ package com.meter.giga.receiver
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
 import androidx.core.content.ContextCompat
-import com.meter.giga.ararm_scheduler.AlarmHelper
-import com.meter.giga.ararm_scheduler.AlarmHelperType
+import com.meter.giga.alarm_scheduler.AlarmHelper
+import com.meter.giga.alarm_scheduler.AlarmHelperType
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.service.NetworkTestService
 import com.meter.giga.utils.AppLogger
@@ -16,7 +15,6 @@ import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
-import io.capawesome.capacitorjs.plugins.firebase.crashlytics.FirebaseCrashlytics
 import io.sentry.Sentry
 import java.util.Calendar
 import kotlin.jvm.java

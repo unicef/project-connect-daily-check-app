@@ -1,4 +1,4 @@
-package com.meter.giga.ararm_scheduler
+package com.meter.giga.alarm_scheduler
 
 /**
  * Contract interface defining alarm scheduling
