@@ -164,8 +164,12 @@ android {
 
   ```bash
   ionic build
-  node scripts/generate-native-env.js ## Need to run this command to generate env propertirs file in android folder to get environment details
-  ionic serve ## Run this command so that latest angular changes always gets effect, sometimes angular changes doesn't get executed due to caching, to reset cache use ionic serve. It reflect the latest changes.
+  node scripts/generate-native-env.js ## Giga Meter app picks environment based on environment 
+  # mode set in angular code. Same need to use in native code as well therefore need to run this  
+  # command to generate env properties file in android folder to get environment details
+  ionic serve ## Run this command so that latest angular changes always gets effect, 
+  # sometimes angular changes doesn't get executed due to caching, to reset cache use ionic serve. 
+  # It reflect the latest changes.
   npx cap sync android
   npx cap run android
   ```
