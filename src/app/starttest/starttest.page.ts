@@ -174,9 +174,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       case 'mlab:start':
         this.resetBothProvidersForNewRun();
         this.runningProvider = 'mlab';
-        if (this.showBothProviders) {
-          this.selectedProvider = 'mlab';
-        }
+        this.selectedProvider = 'mlab';
         this.prepareForMlabRun();
         break;
       case 'wait':
@@ -185,9 +183,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       case 'cloudflare:start':
         this.runningProvider = 'cloudflare';
         this.footerProvidersCleared.add('cloudflare');
-        if (this.showBothProviders) {
-          this.selectedProvider = 'cloudflare';
-        }
+        this.selectedProvider = 'cloudflare';
         this.prepareForCloudflareRun();
         this.applyDisplayForSelectedProvider();
         break;
