@@ -201,11 +201,15 @@
       <!-- ------------------------------------------- -->
       <ion-grid class="metadata-grid">
         <ion-row>
-          <ion-col size="6" class="metadata-col">
+          <ion-col size="4" class="metadata-col">
+            <h3 [translate]="'startTest.protocol'"></h3>
+            <p [translate]="selectedProtocolLabelKey"></p>
+          </ion-col>
+          <ion-col size="4" class="metadata-col">
             <h3 [translate]="'startTest.server'"></h3>
             <p title="{{ displayTestServer }}">{{ displayTestServer }}</p>
           </ion-col>
-          <ion-col size="6" class="metadata-col">
+          <ion-col size="4" class="metadata-col">
             <h3 [translate]="'startTest.isp'"></h3>
             <p title="{{ displayNetworkOperator }}">{{ displayNetworkOperator }}</p>
           </ion-col>
@@ -216,18 +220,7 @@
   <ion-card class="footer_card_margin latest-measurements-card">
     <div class="speed-header">
       <span class="speed-title" [translate]="'startTest.yourInternetSpeed'"></span>
-      <ion-select
-        *ngIf="showBothProviders"
-        class="protocol-select"
-        interface="popover"
-        [interfaceOptions]="protocolSelectInterfaceOptions"
-        [value]="selectedProvider"
-        (ionChange)="onProviderSegmentChange($event)"
-        [attr.aria-label]="'startTest.yourInternetSpeed' | translate"
-      >
-        <ion-select-option value="mlab" [translate]="'startTest.providerMlab'"></ion-select-option>
-        <ion-select-option value="cloudflare" [translate]="'startTest.providerCloudflare'"></ion-select-option>
-      </ion-select>
+      <span class="speed-date" *ngIf="currentDate">{{ currentDate | date:'MMM d, h:mm a' }}</span>
     </div>
 
     <div class="footer-grid">
@@ -239,7 +232,6 @@
               <img src="assets/images/Download.svg" alt="" />
               <span [translate]="'startTest.downloadLowerCase'"></span>
             </span>
-            <span class="time">{{ currentDate | date:'shortTime' }}</span>
           </ion-card-title>
           <ion-card-subtitle
             [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) || (!onlineStatus)}"
@@ -257,7 +249,6 @@
               <img src="assets/images/Upload.svg" alt="" />
               <span [translate]="'startTest.uploadLowerCase'"></span>
             </span>
-            <span class="time">{{ currentDate | date:'shortTime' }}</span>
           </ion-card-title>
           <ion-card-subtitle
             [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) || (!onlineStatus)}"
@@ -277,7 +268,6 @@
               <img src="assets/images/Arrows--horizontal.svg" alt="" />
               <span [translate]="'startTest.latencyDetail'"></span>
             </span>
-            <span class="time">{{ currentDate | date:'shortTime' }}</span>
           </ion-card-title>
           <ion-card-subtitle
             [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) || (!onlineStatus)}"
@@ -295,7 +285,6 @@
               <img src="assets/images/Arrows--horizontal.svg" alt="" />
               <span [translate]="'startTest.ping'"></span>
             </span>
-            <span class="time">{{ pingTimestamp ? (pingTimestamp | date:'shortTime') : '---' }}</span>
           </ion-card-title>
           <ion-card-subtitle
             [ngClass]="{

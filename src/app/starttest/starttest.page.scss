@@ -509,10 +509,6 @@ span.currentState {
   display: flex;
   justify-content: space-between;
   color: #6F6F6F;
-  &.time{
-    font-size: 14px;
-    font-weight: 500;
-  }
 }
 
 .footer-card ion-card-subtitle {
@@ -531,11 +527,6 @@ span.currentState {
   color: #6F6F6F;
   text-transform: none;
 
-}
-
-.time {
-  font-size: 12px;
-  font-weight: 400;
 }
 
 .horizontal-list {
@@ -803,23 +794,10 @@ ion-card {
   color: #161616;
 }
 
-.protocol-select {
-  min-width: 118px;
-  height: 38px;
-  --background: #ffffff;
-  --border-color: #e0e0e0;
-  --border-radius: 12px;
-  --border-style: solid;
-  --border-width: 1px;
-  --padding-start: 12px;
-  --padding-end: 10px;
-  --padding-top: 8px;
-  --padding-bottom: 8px;
-  --placeholder-color: #171717;
-  --placeholder-opacity: 1;
-  font-size: 13px;
-  font-weight: 500;
-  color: #171717;
+.speed-date {
+  font-size: 12px;
+  font-weight: 400;
+  color: #6f6f6f;
 }
 
 .footer-grid {

@@ -67,10 +67,6 @@ import { PingService } from '../services/ping.service';
   standalone: false,
 })
 export class StarttestPage implements OnInit, OnDestroy {
-  readonly protocolSelectInterfaceOptions = {
-    cssClass: 'protocol-select-popover',
-  };
-
   @ViewChild(IonAccordionGroup, { static: true })
   accordionGroup: IonAccordionGroup;
   @ViewChild('errorMsg') el: ElementRef;
@@ -152,8 +148,10 @@ export class StarttestPage implements OnInit, OnDestroy {
   private footerProvidersCleared = new Set<MeasurementProviderId>();
   private runningProvider: MeasurementProviderId | null = null;
   displayProtocolLabel = 'M-Lab';
+  selectedProtocolLabelKey = 'startTest.providerMlab';
   displayTestServer = '---';
   displayNetworkOperator = '---';
+  private initialProviderPicked = false;
   private uploadSub!: Subscription;
   private downloadStartedSub!: Subscription;
   private uploadStartedSub!: Subscription;
@@ -353,15 +351,10 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.selectedProvider = 'cloudflare';
     } else if (mode === 'mlab') {
       this.selectedProvider = 'mlab';
+    } else if (mode === 'both' && !this.initialProviderPicked) {
+      this.selectedProvider = Math.random() < 0.5 ? 'mlab' : 'cloudflare';
     }
-  }
-
-  onProviderSegmentChange(event: CustomEvent): void {
-    const value = (event.detail as { value?: MeasurementProviderId })?.value;
-    if (value === 'mlab' || value === 'cloudflare') {
-      this.selectedProvider = value;
-      this.refreshProviderDisplay();
-    }
+    this.initialProviderPicked = true;
   }
 
   openProviderDocs(): void {
@@ -391,6 +384,10 @@ export class StarttestPage implements OnInit, OnDestroy {
         ? mode
         : 'mlab'
     );
+    this.selectedProtocolLabelKey =
+      this.selectedProvider === 'cloudflare'
+        ? 'startTest.providerCloudflare'
+        : 'startTest.providerMlab';
 
     const live = this.liveByProvider[this.selectedProvider];
     const historical = this.latestPerProvider[this.selectedProvider];
