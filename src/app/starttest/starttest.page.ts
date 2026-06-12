@@ -950,12 +950,27 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Show the first test success modal
    */
   async showFirstTestSuccessModal() {
+    // Ensure school data is available before showing the modal
+    let storedSchoolInfo: any = this.school;
+    if (!this.school || Object.keys(this.school).length === 0) {
+      console.warn('school data is empty, attempting to reload from storage...');
+      storedSchoolInfo = this.storage.get('schoolInfo');
+      if (storedSchoolInfo) {
+        try {
+          storedSchoolInfo = JSON.parse(storedSchoolInfo);
+        } catch (e) {
+          console.error('Failed to parse schoolInfo from storage:', e);
+        }
+      }
+
+    }
+
     const modal = await this.modalController.create({
       component: FirstTestSuccessModalComponent,
       cssClass: 'first-test-success-modal',
       backdropDismiss: true,
       componentProps: {
-        schoolInfo: this.school,
+        schoolInfo: storedSchoolInfo,
         selectedCountry: this.selectedCountry,
         schoolId: this.schoolId,
       },
