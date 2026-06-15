@@ -21,6 +21,7 @@ import {
   getIsQuiting,
 } from './setup';
 import { captureException } from '@sentry/node';
+import { AUTO_UPDATE_ENABLED, BUILD_MODE } from './build-mode';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
@@ -201,6 +202,14 @@ if (!gotTheLock) {
       });
   
       */
+  // Auto-update is only wired up for production builds. In `stg`/`dev` builds
+  // (see electron/scripts/generate-build-mode.js) we skip the updater entirely
+  // so test/staging installs never try to download or install releases.
+  if (!AUTO_UPDATE_ENABLED) {
+    console.log(
+      `[auto-update] disabled for build mode "${BUILD_MODE}" — skipping updater setup`
+    );
+  } else {
   autoUpdater.autoDownload = true;
 
   setInterval(() => {
@@ -270,6 +279,7 @@ if (!gotTheLock) {
     console.error('Update Error:', error);
     captureException(error);
   });
+  }
   /*
     autoUpdater.on('error', (error) => {
       console.error('Update Error:', error);
