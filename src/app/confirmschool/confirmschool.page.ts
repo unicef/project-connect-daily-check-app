@@ -117,6 +117,7 @@ export class ConfirmschoolPage {
                 if (this.isNative) {
                   const position = this.ensureLocationPermission().then(
                     (position) => {
+                      console.log(`Position : ${JSON.stringify(position)}`);
                       const schoolDataWithLocation = {
                         ...schoolData,
                         geolocation: position
