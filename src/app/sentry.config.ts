@@ -7,14 +7,14 @@ export function initSentry() {
   console.log('GIGA Is Native Before Sentry : ', Capacitor.isNativePlatform());
   Sentry.init({
     dsn: Capacitor.isNativePlatform()
-      ? 'https://425388d87bae44d7be09a88dd5548d7e@excubo.unicef.io/77'
+      ? 'https://5c0e907b260d9edc3a215e5fb51ece9c@excubo.unicef.org/9'
       : 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47', // Replace with your actual DSN
     environment:
       environment.mode === 'prod'
         ? 'production'
         : environment.mode === 'stg'
-        ? 'staging'
-        : 'development',
+          ? 'staging'
+          : 'development',
     integrations: [
       new Sentry.Integrations.GlobalHandlers(),
       new Sentry.Integrations.TryCatch(),
