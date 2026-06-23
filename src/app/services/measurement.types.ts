@@ -120,6 +120,10 @@ export interface CloudflareMeasurementUploadPayload {
   gigaIDSchool: string;
   ipAddress: string;
   countryCode: string;
+  device_hardware_id?: string | null;
+  windows_username?: string | null;
+  installed_path?: string | null;
+  wifi_connections?: unknown;
 }
 
 export interface MeasurementRecord {

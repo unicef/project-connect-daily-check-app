@@ -231,6 +231,13 @@ export class UploadService {
       gigaIDSchool: this.storage.get('gigaId') || '',
       ipAddress: record.accessInformation?.ip || '',
       countryCode: record.accessInformation?.country || '',
+      // Device-level metadata. Same values as the mlab measurement so both
+      // providers report identical device information (only serverInformation
+      // legitimately differs between providers).
+      device_hardware_id: this.hardwareIdService.getHardwareId() || null,
+      windows_username: record.windowsUsername || null,
+      installed_path: record.installedPath || null,
+      wifi_connections: record.wifiConnections || null,
     };
     console.log('Uploading Cloudflare measurement', payload);
 

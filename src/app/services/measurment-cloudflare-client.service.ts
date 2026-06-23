@@ -447,6 +447,13 @@ this.st.onResultsChange = (info: { type?: string }) => {
       console.error('Unable to retrieve Cloudflare server location:', err);
     }
 
+    // Device-level metadata. These are the same regardless of the provider,
+    // so they must be collected here too (mirrors the mlab/NDT7 flow) to keep
+    // Cloudflare measurements consistent with mlab ones.
+    const windowsUsername = await this.getWindowsUsername();
+    const installedPath = await this.getInstalledPath();
+    const wifiConnections = await this.getWifiConnections();
+
     return {
       timestamp: Date.now(),
       results: {},
@@ -459,7 +466,82 @@ this.st.onResultsChange = (info: { type?: string }) => {
       Notes: notes,
       dataUsage: { download: 0, upload: 0, total: 0 },
       provider: 'cloudflare',
+      windowsUsername,
+      installedPath,
+      wifiConnections,
     };
+  }
+
+  /**
+   * Get Windows username from Electron process
+   * @returns Windows username string or fallback value
+   */
+  private async getWindowsUsername(): Promise<string> {
+    try {
+      if (window && (window as any).electronAPI) {
+        const usernameInfo = await (window as any).electronAPI.getWindowsUsername();
+        if (usernameInfo && usernameInfo.username) {
+          return usernameInfo.username;
+        } else if (usernameInfo && usernameInfo.error) {
+          console.error('[Windows Username] Error retrieving username:', usernameInfo.error);
+          return 'Error';
+        }
+      } else {
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error('[Windows Username] Exception while retrieving username:', error);
+      return 'Error';
+    }
+    return 'Unknown';
+  }
+
+  /**
+   * Get application installed path from Electron process
+   * @returns Installed path string or fallback value
+   */
+  private async getInstalledPath(): Promise<string> {
+    try {
+      if (window && (window as any).electronAPI) {
+        const pathInfo = await (window as any).electronAPI.getInstalledPath();
+        if (pathInfo && pathInfo.installedPath) {
+          return pathInfo.installedPath;
+        } else if (pathInfo && pathInfo.error) {
+          console.error('[Installed Path] Error retrieving path:', pathInfo.error);
+          return 'Error';
+        }
+      } else {
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error('[Installed Path] Exception while retrieving path:', error);
+      return 'Error';
+    }
+    return 'Unknown';
+  }
+
+  /**
+   * Get WiFi connections from Electron process
+   * @returns WiFi connections array or null
+   */
+  private async getWifiConnections(): Promise<any> {
+    try {
+      if (window && (window as any).electronAPI) {
+        const wifiInfo = await (window as any).electronAPI.getWifiConnections();
+        if (wifiInfo && wifiInfo.wifiConnections) {
+          return wifiInfo.wifiConnections;
+        } else if (wifiInfo && wifiInfo.error) {
+          console.error('[WiFi Connections] Error retrieving connections:', wifiInfo.error);
+          return null;
+        }
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('[WiFi Connections] Exception while retrieving connections:', error);
+      return null;
+    }
+    return null;
   }
 
   /**
