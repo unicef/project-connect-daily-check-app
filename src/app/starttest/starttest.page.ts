@@ -47,6 +47,7 @@ import {
 import {
   getConfigProtocolLabel,
   getProviderDocsUrl,
+  MeasurementProviderMode,
 } from '../services/protocol-display.util';
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
@@ -136,7 +137,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   public pingTimestamp: Date | undefined;
   public packetLoss: string | undefined;
   protocolConfig: ResolvedProtocolConfig = {
-    measurementProvider: 'mlab',
+    measurementProviders: ['mlab'],
     betweenTestsDelaySec: 0,
     configSource: 'default',
   };
@@ -295,7 +296,22 @@ export class StarttestPage implements OnInit, OnDestroy {
     }
   }
   get showBothProviders(): boolean {
-    return this.protocolConfig?.measurementProvider === 'both';
+    const providers = this.protocolConfig?.measurementProviders ?? [];
+    return providers.includes('mlab') && providers.includes('cloudflare');
+  }
+
+  /** Collapse the resolved provider array into a single display/label mode. */
+  private configProviderMode(): MeasurementProviderMode {
+    const providers = this.protocolConfig?.measurementProviders ?? [];
+    const hasMlab = providers.includes('mlab');
+    const hasCloudflare = providers.includes('cloudflare');
+    if (hasMlab && hasCloudflare) {
+      return 'both';
+    }
+    if (hasCloudflare) {
+      return 'cloudflare';
+    }
+    return 'mlab';
   }
 
   ngOnInit() {
@@ -342,12 +358,13 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   private syncSelectedProviderFromConfig(): void {
-    const mode = this.protocolConfig.measurementProvider;
+    const mode = this.configProviderMode();
     if (mode === 'cloudflare') {
       this.selectedProvider = 'cloudflare';
     } else if (mode === 'mlab') {
       this.selectedProvider = 'mlab';
     } else if (mode === 'both' && !this.initialProviderPicked) {
+      // Dual config: pick one at random for the initial display.
       this.selectedProvider = Math.random() < 0.5 ? 'mlab' : 'cloudflare';
     }
     this.initialProviderPicked = true;
@@ -374,11 +391,8 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   private applyDisplayForSelectedProvider(): void {
-    const mode = this.protocolConfig.measurementProvider;
     this.displayProtocolLabel = getConfigProtocolLabel(
-      mode === 'both' || mode === 'mlab' || mode === 'cloudflare'
-        ? mode
-        : 'mlab'
+      this.configProviderMode()
     );
     this.selectedProtocolLabelKey =
       this.selectedProvider === 'cloudflare'
@@ -1454,11 +1468,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     }
 
     const expectedFinalProvider: MeasurementProviderId =
-      summary.measurementProvider === 'both'
-        ? 'cloudflare'
-        : summary.measurementProvider === 'cloudflare'
-          ? 'cloudflare'
-          : 'mlab';
+      summary.measurementProviders.includes('cloudflare') ? 'cloudflare' : 'mlab';
 
     const expectedStage = [...summary.stages]
       .reverse()

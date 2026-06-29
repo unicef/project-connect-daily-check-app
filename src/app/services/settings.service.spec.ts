@@ -68,21 +68,21 @@ describe('SettingsService', () => {
     req.flush({
       success: true,
       data: {
-        measurementProvider: 'cloudflare',
+        measurementProviders: ['cloudflare'],
         betweenTestsDelaySec: 3,
         configSource: 'country',
       },
     });
 
     await expectAsync(p).toBeResolvedTo({
-      measurementProvider: 'cloudflare',
+      measurementProviders: ['cloudflare'],
       betweenTestsDelaySec: 3,
       configSource: 'country',
     });
 
     expect(store[PROTOCOL_CONFIG_STORAGE_KEY]).toBeTruthy();
     const cached = JSON.parse(store[PROTOCOL_CONFIG_STORAGE_KEY]);
-    expect(cached.payload.measurementProvider).toBe('cloudflare');
+    expect(cached.payload.measurementProviders).toEqual(['cloudflare']);
     expect(cached.cacheIdentityKey).toBe('g1|BR');
   });
 
@@ -93,7 +93,7 @@ describe('SettingsService', () => {
       cacheIdentityKey: 'g1|BR',
       savedAt: Date.now() - 7 * 60 * 60 * 1000,
       payload: {
-        measurementProvider: 'mlab',
+        measurementProviders: ['mlab'],
         betweenTestsDelaySec: 0,
         configSource: 'default' as const,
       },
@@ -109,7 +109,7 @@ describe('SettingsService', () => {
     refresh.flush({
       success: true,
       data: {
-        measurementProvider: 'both',
+        measurementProviders: ['mlab', 'cloudflare'],
         betweenTestsDelaySec: 1,
         configSource: 'school',
       },
@@ -118,7 +118,7 @@ describe('SettingsService', () => {
     await new Promise((r) => setTimeout(r, 30));
 
     const updated = JSON.parse(store[PROTOCOL_CONFIG_STORAGE_KEY]);
-    expect(updated.payload.measurementProvider).toBe('both');
+    expect(updated.payload.measurementProviders).toEqual(['mlab', 'cloudflare']);
   });
 
   it('getProtocolConfig returns default when fetch fails and cache missing', async () => {
@@ -132,7 +132,7 @@ describe('SettingsService', () => {
     req.error(new ProgressEvent('error'));
 
     await expectAsync(p).toBeResolvedTo({
-      measurementProvider: 'mlab',
+      measurementProviders: ['mlab'],
       betweenTestsDelaySec: 0,
       configSource: 'default',
     });
@@ -149,14 +149,14 @@ describe('SettingsService', () => {
     req.flush({
       success: true,
       data: {
-        measurementProvider: 'cloudflare',
+        measurementProviders: ['cloudflare'],
         betweenTestsDelaySec: 0,
         configSource: 'country',
       },
     });
 
     await expectAsync(p).toBeResolvedTo({
-      measurementProvider: 'cloudflare',
+      measurementProviders: ['cloudflare'],
     });
   });
 

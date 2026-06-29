@@ -57,7 +57,7 @@ describe('MeasurementOrchestrationService', () => {
 
   it('runs only mlab when provider is mlab', async () => {
     settingsService.getProtocolConfig.and.resolveTo({
-      measurementProvider: 'mlab',
+      measurementProviders: ['mlab'],
       betweenTestsDelaySec: 0,
       configSource: 'default',
     });
@@ -73,7 +73,7 @@ describe('MeasurementOrchestrationService', () => {
 
   it('runs only cloudflare when provider is cloudflare', async () => {
     settingsService.getProtocolConfig.and.resolveTo({
-      measurementProvider: 'cloudflare',
+      measurementProviders: ['cloudflare'],
       betweenTestsDelaySec: 0,
       configSource: 'default',
     });
@@ -89,7 +89,7 @@ describe('MeasurementOrchestrationService', () => {
 
   it('runs mlab then cloudflare in both mode and respects delay', fakeAsync(() => {
     settingsService.getProtocolConfig.and.resolveTo({
-      measurementProvider: 'both',
+      measurementProviders: ['mlab', 'cloudflare'],
       betweenTestsDelaySec: 2,
       configSource: 'school',
     });
@@ -113,7 +113,7 @@ describe('MeasurementOrchestrationService', () => {
 
   it('still runs cloudflare when mlab fails in both mode', async () => {
     settingsService.getProtocolConfig.and.resolveTo({
-      measurementProvider: 'both',
+      measurementProviders: ['mlab', 'cloudflare'],
       betweenTestsDelaySec: 0,
       configSource: 'default',
     });
@@ -130,7 +130,7 @@ describe('MeasurementOrchestrationService', () => {
 
   it('marks both failures as failure overall status', async () => {
     settingsService.getProtocolConfig.and.resolveTo({
-      measurementProvider: 'both',
+      measurementProviders: ['mlab', 'cloudflare'],
       betweenTestsDelaySec: 0,
       configSource: 'default',
     });
@@ -145,7 +145,7 @@ describe('MeasurementOrchestrationService', () => {
 
   it('emits orchestration stage markers', async () => {
     settingsService.getProtocolConfig.and.resolveTo({
-      measurementProvider: 'mlab',
+      measurementProviders: ['mlab'],
       betweenTestsDelaySec: 0,
       configSource: 'default',
     });

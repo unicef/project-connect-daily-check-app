@@ -11,7 +11,7 @@ const SIX_HOURS = 1000 * 60 * 60 * 6;
 export const PROTOCOL_CONFIG_STORAGE_KEY = 'protocolConfig';
 
 export interface ResolvedProtocolConfig {
-  measurementProvider: string;
+  measurementProviders: string[];
   betweenTestsDelaySec: number;
   configSource: 'school' | 'country' | 'default';
 }
@@ -23,7 +23,7 @@ interface ProtocolConfigCacheEntry {
 }
 
 const DEFAULT_PROTOCOL_CONFIG: ResolvedProtocolConfig = {
-  measurementProvider: 'mlab',
+  measurementProviders: ['mlab'],
   betweenTestsDelaySec: 0,
   configSource: 'default',
 };
@@ -31,7 +31,7 @@ const DEFAULT_PROTOCOL_CONFIG: ResolvedProtocolConfig = {
 interface ProtocolConfigApiBody {
   success?: boolean;
   data?: {
-    measurementProvider?: string;
+    measurementProviders?: string[];
     betweenTestsDelaySec?: number;
     configSource?: ResolvedProtocolConfig['configSource'];
   };
@@ -41,7 +41,7 @@ interface ProtocolConfigApiBody {
 })
 export class SettingsService {
   defaultCountryConfig = {
-    measurementProvider: 'mlab',
+    measurementProviders: ['mlab'],
   };
 
   /** In-flight background refresh to avoid duplicate resolve requests */
@@ -326,10 +326,13 @@ export class SettingsService {
         body &&
         body.success &&
         body.data &&
-        typeof body.data.measurementProvider === 'string'
+        Array.isArray(body.data.measurementProviders)
       ) {
+        const providers = body.data.measurementProviders.filter(
+          (p): p is string => typeof p === 'string'
+        );
         return {
-          measurementProvider: body.data.measurementProvider,
+          measurementProviders: providers.length ? providers : ['mlab'],
           betweenTestsDelaySec:
             typeof body.data.betweenTestsDelaySec === 'number'
               ? body.data.betweenTestsDelaySec
@@ -417,9 +420,9 @@ export class SettingsService {
   /**
    * @deprecated Prefer {@link getProtocolConfig}; kept for backward compatibility.
    */
-  async getCountryConfig(): Promise<{ measurementProvider: string }> {
+  async getCountryConfig(): Promise<{ measurementProviders: string[] }> {
     const pc = await this.getProtocolConfig();
-    return { measurementProvider: pc.measurementProvider };
+    return { measurementProviders: pc.measurementProviders };
   }
 
   async getFeatureFlags() {

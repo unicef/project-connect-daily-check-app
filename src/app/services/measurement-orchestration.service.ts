@@ -18,7 +18,7 @@ export type MeasurementSequenceOverallStatus =
   | 'failure';
 
 export interface MeasurementSequenceSummary {
-  measurementProvider: string;
+  measurementProviders: string[];
   betweenTestsDelaySec: number;
   stages: MeasurementRunOutcome[];
   overallStatus: MeasurementSequenceOverallStatus;
@@ -63,15 +63,15 @@ export class MeasurementOrchestrationService {
     options: RunSequenceOptions
   ): Promise<MeasurementSequenceSummary> {
     const cfg = await this.settingsService.getProtocolConfig();
-    const provider = cfg.measurementProvider;
+    const providers = cfg.measurementProviders ?? [];
+    const hasCloudflare = providers.includes('cloudflare');
+    // mlab is the universal default: run it when explicitly requested or when no
+    // provider resolved to something runnable.
+    const hasMlab = providers.includes('mlab') || (!hasCloudflare);
     const betweenTestsDelaySec = Math.max(0, cfg.betweenTestsDelaySec ?? 0);
     const stages: MeasurementRunOutcome[] = [];
 
-    if (provider === 'cloudflare') {
-      this.emitStage('cloudflare:start', notes);
-      stages.push(await this.runCloudflare(notes));
-      this.emitStage('cloudflare:done', notes);
-    } else if (provider === 'both') {
+    if (hasMlab && hasCloudflare) {
       this.emitStage('mlab:start', notes);
       stages.push(await this.runMlab(notes));
       this.emitStage('mlab:done', notes);
@@ -81,13 +81,17 @@ export class MeasurementOrchestrationService {
 
       if (options.signal?.aborted) {
         return {
-          measurementProvider: provider,
+          measurementProviders: providers,
           betweenTestsDelaySec,
           stages,
           overallStatus: this.resolveOverallStatus(stages),
         };
       }
 
+      this.emitStage('cloudflare:start', notes);
+      stages.push(await this.runCloudflare(notes));
+      this.emitStage('cloudflare:done', notes);
+    } else if (hasCloudflare) {
       this.emitStage('cloudflare:start', notes);
       stages.push(await this.runCloudflare(notes));
       this.emitStage('cloudflare:done', notes);
@@ -98,7 +102,7 @@ export class MeasurementOrchestrationService {
     }
 
     return {
-      measurementProvider: provider,
+      measurementProviders: providers,
       betweenTestsDelaySec,
       stages,
       overallStatus: this.resolveOverallStatus(stages),

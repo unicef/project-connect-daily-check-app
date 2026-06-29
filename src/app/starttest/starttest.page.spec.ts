@@ -18,7 +18,7 @@ describe('StarttestPage', () => {
     'openExternalUrl',
   ]);
   settingsSpy.getProtocolConfig.and.resolveTo({
-    measurementProvider: 'both',
+    measurementProviders: ['mlab', 'cloudflare'],
     betweenTestsDelaySec: 5,
     configSource: 'default',
   });
