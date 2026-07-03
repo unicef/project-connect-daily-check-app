@@ -175,7 +175,7 @@ export class SearchschoolPage {
 
     if (response) {
       const data: any = JSON.parse(JSON.stringify(response));
-      this.storage.set('locationInfo', JSON.stringify(data));
+      await this.storage.set('locationInfo', JSON.stringify(data));
     }
     this.loading.dismiss();
     this.router.navigate(navigationParams);

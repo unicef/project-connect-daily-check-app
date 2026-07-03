@@ -102,11 +102,11 @@ export const checkRightGigaId = async (
     );
     if (schools.length > 0) {
       console.log({ schools });
-      storage.set('schoolId', schoolCorrectId);
-      storage.set('gigaId', gigaCorrectId);
+      await storage.set('schoolId', schoolCorrectId);
+      await storage.set('gigaId', gigaCorrectId);
       console.log({ rigthGigaId: storage.get('gigaId') });
-      storage.set('country_code', schools[0].code);
-      storage.set('schoolInfo', JSON.stringify(schools[0]));
+      await storage.set('country_code', schools[0].code);
+      await storage.set('schoolInfo', JSON.stringify(schools[0]));
       return true;
     }
   }

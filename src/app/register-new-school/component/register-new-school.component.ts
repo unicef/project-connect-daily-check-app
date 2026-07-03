@@ -181,9 +181,9 @@ export class RegisterNewSchoolComponent implements OnInit {
               };
 
               this.schoolService.registerSchoolDevice(schoolData).subscribe({
-                next: (deviceResponse: any) => {
+                next: async (deviceResponse: any) => {
                   if (deviceResponse && deviceResponse.success) {
-                    this.storage.set('schoolUserId', deviceResponse.data.user_id);
+                    await this.storage.set('schoolUserId', deviceResponse.data.user_id);
                   }
 
                   // Create a school object mock for storage
@@ -202,21 +202,21 @@ export class RegisterNewSchoolComponent implements OnInit {
                     installed_path: installedPath || null,
                     wifi_connections: wifiConnections || null,
                   };
-                  this.storage.set('schoolInfo', JSON.stringify(schoolMock));
+                  await this.storage.set('schoolInfo', JSON.stringify(schoolMock));
                   // Store data similar to ConfirmschoolPage
-                  this.storage.set('deviceType', deviceInfo.operatingSystem);
-                  this.storage.set('macAddress', deviceId.identifier);
+                  await this.storage.set('deviceType', deviceInfo.operatingSystem);
+                  await this.storage.set('macAddress', deviceId.identifier);
                   // For new schools, schoolUserId might not exist yet, using giga_id
-                  this.storage.set('gigaId', response.data.giga_id_school);
-                  this.storage.set('schoolId', payload.school_id);
-                  this.storage.set('school_id', payload.school_id);
-                  this.storage.set('country_code', this.selectedCountry);
-                  this.storage.set('ip_address', this.ipAddress);
-                  this.storage.set('version', environment.app_version);
+                  await this.storage.set('gigaId', response.data.giga_id_school);
+                  await this.storage.set('schoolId', payload.school_id);
+                  await this.storage.set('school_id', payload.school_id);
+                  await this.storage.set('country_code', this.selectedCountry);
+                  await this.storage.set('ip_address', this.ipAddress);
+                  await this.storage.set('version', environment.app_version);
 
                   // Set first-time visit flags
-                  this.storage.setFirstTimeVisit(true);
-                  this.storage.setRegistrationCompleted(Date.now());
+                  await this.storage.setFirstTimeVisit(true);
+                  await this.storage.setRegistrationCompleted(Date.now());
 
                   this.settingsService.setSetting('scheduledTesting', true);
 

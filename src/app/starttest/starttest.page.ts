@@ -222,7 +222,7 @@ export class StarttestPage implements OnInit, OnDestroy {
           );
           if (response) {
             this.school.is_verified = true;
-            this.storage.set('schoolInfo', JSON.stringify(this.school));
+            await this.storage.set('schoolInfo', JSON.stringify(this.school));
             // Remove the interval
             if (this.checkUnverifiedTimer) {
               clearInterval(this.checkUnverifiedTimer);
@@ -248,10 +248,11 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.loadLatestPingResult();
 
     // IMPORTANT: Check for first-time visit LAST to ensure all event listeners are ready
-    this.checkFirstTimeVisit();
+    this.checkFirstTimeVisit().then(()=>{
+        // Set up listener for registration completion events
+        this.setupRegistrationListener();
+    });
 
-    // Set up listener for registration completion events
-    this.setupRegistrationListener();
   }
 
   ionViewWillEnter() {
@@ -306,8 +307,8 @@ export class StarttestPage implements OnInit, OnDestroy {
         '🎉 DEBUG: Registration completion event received - re-checking first time visit',
       );
       // Re-check first time visit status after registration
-      setTimeout(() => {
-        this.checkFirstTimeVisit();
+      setTimeout(async () => {
+        await this.checkFirstTimeVisit();
       }, 100); // Small delay to ensure storage is updated
     });
   }
@@ -844,7 +845,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   /**
    * Check if this is the first visit after registration
    */
-  checkFirstTimeVisit() {
+  async checkFirstTimeVisit() {
     this.isFirstVisit = this.storage.getFirstTimeVisit();
 
     if (this.isFirstVisit && this.storage.isRecentRegistration()) {
@@ -858,7 +859,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       }, 500); // 2 second delay to show the banner first
     } else if (this.isFirstVisit) {
       // Clear stale first visit flag if registration is old
-      this.storage.clearFirstTimeVisit();
+      await this.storage.clearFirstTimeVisit();
       this.isFirstVisit = false;
     }
   }
