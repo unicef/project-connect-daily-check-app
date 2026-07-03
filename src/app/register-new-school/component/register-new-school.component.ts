@@ -202,22 +202,24 @@ export class RegisterNewSchoolComponent implements OnInit {
                     installed_path: installedPath || null,
                     wifi_connections: wifiConnections || null,
                   };
-                  await this.storage.set('schoolInfo', JSON.stringify(schoolMock));
+                  const storagePromise=[];
+                  storagePromise.push(this.storage.set('schoolInfo', JSON.stringify(schoolMock)));
                   // Store data similar to ConfirmschoolPage
-                  await this.storage.set('deviceType', deviceInfo.operatingSystem);
-                  await this.storage.set('macAddress', deviceId.identifier);
+                  storagePromise.push(this.storage.set('deviceType', deviceInfo.operatingSystem));
+                  storagePromise.push(this.storage.set('macAddress', deviceId.identifier));
                   // For new schools, schoolUserId might not exist yet, using giga_id
-                  await this.storage.set('gigaId', response.data.giga_id_school);
-                  await this.storage.set('schoolId', payload.school_id);
-                  await this.storage.set('school_id', payload.school_id);
-                  await this.storage.set('country_code', this.selectedCountry);
-                  await this.storage.set('ip_address', this.ipAddress);
-                  await this.storage.set('version', environment.app_version);
+                  storagePromise.push(this.storage.set('gigaId', response.data.giga_id_school));
+                  storagePromise.push(this.storage.set('schoolId', payload.school_id));
+                  storagePromise.push(this.storage.set('school_id', payload.school_id));
+                  storagePromise.push(this.storage.set('country_code', this.selectedCountry));
+                  storagePromise.push(this.storage.set('ip_address', this.ipAddress));
+                  storagePromise.push(this.storage.set('version', environment.app_version));
 
                   // Set first-time visit flags
-                  await this.storage.setFirstTimeVisit(true);
-                  await this.storage.setRegistrationCompleted(Date.now());
-
+                  storagePromise.push(this.storage.setFirstTimeVisit(true));
+                  storagePromise.push(this.storage.setRegistrationCompleted(Date.now()));
+                  
+                  await Promise.all(storagePromise);
                   this.settingsService.setSetting('scheduledTesting', true);
 
                   resolve(response);
