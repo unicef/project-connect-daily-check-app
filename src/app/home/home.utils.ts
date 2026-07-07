@@ -58,7 +58,6 @@ export const checkUnverifiedSchool = async (
 
   if (response && Array.isArray(response) && response.length>0) {
     if (response[0].is_verified === false) {
-      storage.clear();
       console.log('Existing school on the device not found on backend');
       captureMessage('Existing school on the device not found on backend');
       return false;
