@@ -1,5 +1,6 @@
 import { Component, Input, Output, EventEmitter, NgZone } from '@angular/core';
 import { ChangeDetectorRef } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-circular-progress-bar',
@@ -33,7 +34,35 @@ export class CircularProgressBarComponent {
   isSpinnerVisible = false;
   private hideTimeout: any = null;
 
-  constructor(private ngZone: NgZone, private cd: ChangeDetectorRef) {}
+  constructor(
+    private ngZone: NgZone,
+    private cd: ChangeDetectorRef,
+    private translate: TranslateService
+  ) {}
+
+  // "Try again" wrapped into lines that fit inside the circle in every language.
+  // Honors explicit \n in the translation, then word-wraps long segments.
+  get tryAgainLines(): string[] {
+    const text: string = this.translate.instant('startTest.tryAgain') || '';
+    const maxCharsPerLine = 11;
+    const lines: string[] = [];
+
+    for (const segment of text.trim().split('\n')) {
+      let currentLine = '';
+      for (const word of segment.trim().split(/\s+/)) {
+        const candidate = (currentLine + ' ' + word).trim();
+        if (candidate.length <= maxCharsPerLine) {
+          currentLine = candidate;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+    }
+
+    return lines.slice(0, 3);
+  }
 
   private _onSecondLabelChange(label: string | null) {
     if (label === 'DOWNLOAD' || label === 'UPLOAD') {
