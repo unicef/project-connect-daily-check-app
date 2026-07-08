@@ -951,6 +951,10 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Show the first test success modal
    */
   async showFirstTestSuccessModal() {
+    if (!this.selectedCountry ||  !this.schoolId) {
+      console.warn('Modal data is incomplete, skipping');
+      return;
+    }
     // Ensure school data is available before showing the modal
     let storedSchoolInfo: any = this.school;
     if (!this.school || Object.keys(this.school).length === 0) {
@@ -1063,12 +1067,18 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
-    if (this.checkUnverifiedTimer) {
-      clearInterval(this.checkUnverifiedTimer);
-    }
     this.downloadSub.unsubscribe();
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();
     this.uploadStartedSub.unsubscribe();
+    if (this.checkUnverifiedTimer) {
+      clearInterval(this.checkUnverifiedTimer);
+    }
+    if(this.uploadTimer) {
+      clearInterval(this.uploadTimer);
+    }
+    if(this.downloadTimer) {
+      clearInterval(this.downloadTimer);
+    }
   }
 }
