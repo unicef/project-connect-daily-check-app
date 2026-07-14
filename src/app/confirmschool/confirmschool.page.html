@@ -24,6 +24,7 @@
             <!-- <span [translate]="'schoolDetails.checkGiga' | translate"></span>
             <ion-img src="assets/images/Launch.png" class="welcome_icon"></ion-img> -->
           </span>
+          <span *ngIf="school?.is_verified == false" class="pending-badge" [translate]="'confirmSchool.pendingVerification'"></span>
         </ion-label>
         <!-- <div class="schoolid">School ID: {{school.school_id | uppercase}}</div> -->
       </ion-item>

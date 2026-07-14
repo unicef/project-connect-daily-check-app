@@ -5,7 +5,7 @@ import { environment } from 'src/environments/environment';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { School } from '../models/models';
-import { WrongGigaIdSchool } from './dto/school.dto';
+import { SchoolRegistration, WrongGigaIdSchool } from './dto/school.dto';
 import { ResponseDto } from './dto/response.dto';
 
 @Injectable({
@@ -261,6 +261,131 @@ export class SchoolService {
         catchError(this.handleError)
       );
   }
+
+
+  
+  registerNewSchool(data: SchoolRegistration): Observable<any> {
+    return this.http
+      .post(environment.restAPI + 'school-registrations', data, this.options)
+      .pipe(
+        tap((response) => console.log('New school registered:', response)),
+        catchError(this.handleError)
+      );
+  }
+
+  async getWindowsUsername(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Windows Username] Requesting Windows username...');
+        const usernameInfo = await (
+          window as any
+        ).electronAPI.getWindowsUsername();
+
+        if (usernameInfo && usernameInfo.username) {
+          console.log(
+            '✅ [Windows Username] Retrieved username:',
+            usernameInfo.username,
+          );
+          return usernameInfo.username;
+        } else if (usernameInfo && usernameInfo.error) {
+          console.error(
+            '❌ [Windows Username] Error retrieving username:',
+            usernameInfo.error,
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [Windows Username] Not running in Electron, username not available',
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Windows Username] Exception while retrieving username:',
+        error,
+      );
+      return null;
+    }
+
+    return null;
+  }
+
+  async getInstalledPath(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Installed Path] Requesting installed path...');
+        const pathInfo = await (window as any).electronAPI.getInstalledPath();
+
+        if (pathInfo && pathInfo.installedPath) {
+          console.log(
+            '✅ [Installed Path] Retrieved path:',
+            pathInfo.installedPath,
+          );
+          return pathInfo.installedPath;
+        } else if (pathInfo && pathInfo.error) {
+          console.error(
+            '❌ [Installed Path] Error retrieving path:',
+            pathInfo.error,
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [Installed Path] Not running in Electron, path not available',
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Installed Path] Exception while retrieving path:',
+        error,
+      );
+      return null;
+    }
+
+    return null;
+  }
+
+  async getWifiConnections(): Promise<any> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [WiFi Connections] Requesting WiFi connections...');
+        const wifiInfo = await (window as any).electronAPI.getWifiConnections();
+
+        if (wifiInfo && wifiInfo.wifiConnections) {
+          console.log(
+            '✅ [WiFi Connections] Retrieved connections:',
+            wifiInfo.wifiConnections,
+          );
+          return wifiInfo.wifiConnections;
+        } else if (wifiInfo && wifiInfo.error) {
+          console.error(
+            '❌ [WiFi Connections] Error retrieving connections:',
+            wifiInfo.error,
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [WiFi Connections] Not running in Electron, connections not available',
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [WiFi Connections] Exception while retrieving connections:',
+        error,
+      );
+      return null;
+    }
+
+    return null;
+  }
+
   /**
    * Private function to handle error
    *

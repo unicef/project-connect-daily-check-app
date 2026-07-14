@@ -6,11 +6,15 @@ import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
+import { LocationService } from '../services/location.service';
+import { StorageService } from '../services/storage.service';
+import { GeocodeResponse } from '../services/dto/response.dto';
+
 @Component({
-    selector: 'app-searchschool',
-    templateUrl: 'searchschool.page.html',
-    styleUrls: ['searchschool.page.scss'],
-    standalone: false
+  selector: 'app-searchschool',
+  templateUrl: 'searchschool.page.html',
+  styleUrls: ['searchschool.page.scss'],
+  standalone: false,
 })
 export class SearchschoolPage {
   @ViewChild(IonAccordionGroup, { static: true })
@@ -35,7 +39,9 @@ export class SearchschoolPage {
     private routeParams: ActivatedRoute,
     private schoolService: SchoolService,
     private settingsService: SettingsService,
-    public loading: LoadingService
+    public loading: LoadingService,
+    private locationService: LocationService,
+    private storage: StorageService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -57,13 +63,13 @@ export class SearchschoolPage {
           this.schoolData = response;
           console.log(this.schoolData);
         },
-        (err) => {
+        async (err) => {
           console.log('ERROR: ' + err);
           this.loading.dismiss();
-          this.router.navigate(['schoolnotfound', this.schoolId]);
+          await this.handleSchoolNotFound(['schoolnotfound', this.schoolId]);
           /* Redirect to no result found page */
         },
-        () => {
+        async () => {
           this.loading.dismiss();
           if (this.schoolData.length > 0) {
             this.router.navigate([
@@ -74,14 +80,14 @@ export class SearchschoolPage {
             ]);
           } else {
             /* Redirect to no result found page */
-            this.router.navigate([
+            await this.handleSchoolNotFound([
               'schoolnotfound',
               this.schoolId,
               this.selectedCountry,
               this.detectedCountry,
             ]);
           }
-        }
+        },
       );
     }
   }
@@ -92,50 +98,48 @@ export class SearchschoolPage {
   searchSchoolBySchooIdAndCountryCode() {
     if (this.schoolId && this.selectedCountry) {
       const loadingMsg =
-      // eslint-disable-next-line max-len
-    //   '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="green_loader">Searching School IDs</p></div>';
-    // this.loading.present(loadingMsg, 40000000, 'pdcaLoaderClass', 'null'); 
-         this.schoolService
-        .getBySchoolIdAndCountryCode(this.schoolId, this.selectedCountry)
-        .subscribe(
-          (response) => {
-            this.schoolData = response;
-            console.log(this.schoolData);
-          },
-          (err) => {
-            console.log('ERROR: ' + err);
-            this.loading.dismiss();
-            this.router.navigate([
-              'schoolnotfound',
-              this.schoolId,
-              this.selectedCountry,
-              this.detectedCountry,
-              this.selectedCountryName
-            ]);
-            /* Redirect to no result found page */
-          },
-          () => {
-            this.loading.dismiss();
-            if (this.schoolData.length > 0) {
-              this.router.navigate([
-                'schooldetails',
-                this.schoolId,
-                this.selectedCountry,
-                this.detectedCountry,
-                this.selectedCountryName
-              ]);
-            } else {
-              /* Redirect to no result found page */
-              this.router.navigate([
+        // eslint-disable-next-line max-len
+        //   '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="green_loader">Searching School IDs</p></div>';
+        // this.loading.present(loadingMsg, 40000000, 'pdcaLoaderClass', 'null');
+        this.schoolService
+          .getBySchoolIdAndCountryCode(this.schoolId, this.selectedCountry)
+          .subscribe(
+            (response) => {
+              this.schoolData = response;
+              console.log(this.schoolData);
+            },
+            async (err) => {
+              console.log('ERROR: ' + err);
+              await this.handleSchoolNotFound([
                 'schoolnotfound',
                 this.schoolId,
                 this.selectedCountry,
                 this.detectedCountry,
-                this.selectedCountryName
+                this.selectedCountryName,
               ]);
-            }
-          }
-        );
+              /* Redirect to no result found page */
+            },
+            async () => {
+              if (this.schoolData.length > 0) {
+                this.router.navigate([
+                  'schooldetails',
+                  this.schoolId,
+                  this.selectedCountry,
+                  this.detectedCountry,
+                  this.selectedCountryName,
+                ]);
+              } else {
+                /* Redirect to no result found page */
+                await this.handleSchoolNotFound([
+                  'schoolnotfound',
+                  this.schoolId,
+                  this.selectedCountry,
+                  this.detectedCountry,
+                  this.selectedCountryName,
+                ]);
+              }
+            },
+          );
     }
   }
 
@@ -151,5 +155,29 @@ export class SearchschoolPage {
     } else {
       this.isDisabled = true;
     }
+  }
+
+  /**
+   * Gets location info and redirects to provided navigation params
+   */
+  async handleSchoolNotFound(navigationParams: any[]) {
+    this.loading.present();
+    const response: GeocodeResponse = await new Promise((resolve) => {
+      this.locationService.getCurrentAddress(false).subscribe({
+        next: (res: GeocodeResponse) => {
+          resolve(res);
+        },
+        error: () => {
+          resolve(null as any);
+        },
+      });
+    });
+
+    if (response) {
+      const data: any = JSON.parse(JSON.stringify(response));
+      await this.storage.set('locationInfo', JSON.stringify(data));
+    }
+    this.loading.dismiss();
+    this.router.navigate(navigationParams);
   }
 }

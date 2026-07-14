@@ -493,3 +493,15 @@ ion-breadcrumb::part(native) {
   max-height: 80vh;
   overflow-y: auto;
 }
+.pending-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  border-radius: 12px;
+  background: #ffc93d; /* light beige like screenshot */
+  color: #000; /* soft brown text */
+  border: 1px solid #e6d7b8;
+  width: fit-content;
+}

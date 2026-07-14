@@ -3,3 +3,17 @@ export interface ResponseDto<TDto> {
   timestamp: string;
   data: TDto[];
 }
+
+export interface GeocodeResponse {
+    address: string;
+    state: string;
+    city: string;
+    postalCode: string;
+    subLocality: string;
+    country: string;
+    latitude: number;
+    longitude: number;
+    ipAddress:string;
+}
+
+

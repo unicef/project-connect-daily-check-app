@@ -8,10 +8,10 @@ import { SettingsService } from '../services/settings.service';
 import { environment } from 'src/environments/environment';
 
 @Component({
-    selector: 'app-schoolnotfound',
-    templateUrl: 'schoolnotfound.page.html',
-    styleUrls: ['schoolnotfound.page.scss'],
-    standalone: false
+  selector: 'app-schoolnotfound',
+  templateUrl: 'schoolnotfound.page.html',
+  styleUrls: ['schoolnotfound.page.scss'],
+  standalone: false,
 })
 export class SchoolnotfoundPage {
   @ViewChild(IonAccordionGroup, { static: true })
@@ -21,7 +21,7 @@ export class SchoolnotfoundPage {
   sub: any;
   selectedCountry: any;
   detectedCountry: any;
-  selectedCountryName: any
+  selectedCountryName: any;
   notFound = true;
   appName = environment.appName;
   constructor(
@@ -29,29 +29,37 @@ export class SchoolnotfoundPage {
     public router: Router,
     public loading: LoadingService,
     private translate: TranslateService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
 
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.notFound = params.notFound === NotFound.notRegister ? false : true;
-    });
-    this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;
-      this.selectedCountryName = params.selectedCountryName
-      console.log(this.selectedCountry);
+      this.selectedCountryName = params.selectedCountryName;
+      if(!this.selectedCountryName?.trim?.()) {
+        this.router.navigate(["/"]);
+      }
     });
   }
   backToSearchDetail() {
-    this.router.navigate(
-      [
-        'searchschool',
-        this.selectedCountry,
-        this.detectedCountry,
-        this.selectedCountryName
-      ]);
+    this.router.navigate([
+      'searchschool',
+      this.selectedCountry,
+      this.detectedCountry,
+      this.selectedCountryName,
+    ]);
+  }
+  redirectToRegistrationForm() {
+    this.router.navigate([
+      '/newschool',
+      this.schoolId,
+      this.selectedCountry,
+      this.detectedCountry,
+      this.selectedCountryName,
+    ]);
   }
 }

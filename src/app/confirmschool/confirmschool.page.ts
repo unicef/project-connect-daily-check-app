@@ -130,22 +130,22 @@ export class ConfirmschoolPage implements OnInit{
 
                 this.schoolService
                   .registerSchoolDevice(schoolData)
-                  .subscribe((response) => {
-                    this.storage.set('deviceType', a.operatingSystem);
-                    this.storage.set('macAddress', b.identifier);
-                    this.storage.set('schoolUserId', response);
-                    this.storage.set('schoolId', this.schoolId);
-                    this.storage.set('gigaId', this.school.giga_id_school);
-                    this.storage.set('ip_address', c?.ip);
-                    this.storage.set('version', environment.app_version);
+                  .subscribe(async(response) => {
+                    await this.storage.set('deviceType', a.operatingSystem);
+                    await this.storage.set('macAddress', b.identifier);
+                    await this.storage.set('schoolUserId', response);
+                    await this.storage.set('schoolId', this.schoolId);
+                    await this.storage.set('gigaId', this.school.giga_id_school);
+                    await this.storage.set('ip_address', c?.ip);
+                    await this.storage.set('version', environment.app_version);
                     //this.storage.set('country_code', c.country);
-                    this.storage.set('country_code', this.selectedCountry);
-                    this.storage.set('school_id', this.school.school_id);
-                    this.storage.set('schoolInfo', JSON.stringify(this.school));
+                    await this.storage.set('country_code', this.selectedCountry);
+                    await this.storage.set('school_id', this.school.school_id);
+                    await this.storage.set('schoolInfo', JSON.stringify(this.school));
 
                     // Set first-time visit flags for new registration flow
-                    this.storage.setFirstTimeVisit(true);
-                    this.storage.setRegistrationCompleted(Date.now());
+                    await this.storage.setFirstTimeVisit(true);
+                    await this.storage.setRegistrationCompleted(Date.now());
 
                     this.loading.dismiss();
 
@@ -181,10 +181,10 @@ export class ConfirmschoolPage implements OnInit{
                   console.log('flagged', flaggedSchoolData);
                   this.schoolService
                     .registerFlaggedSchool(flaggedSchoolData)
-                    .subscribe((response) => {
-                      this.storage.set('detectedCountry', this.detectedCountry);
-                      this.storage.set('selectedCountry', this.selectedCountry);
-                      this.storage.set('schoolId', this.schoolId);
+                    .subscribe(async (response) => {
+                      await this.storage.set('detectedCountry', this.detectedCountry);
+                      await this.storage.set('selectedCountry', this.selectedCountry);
+                      await this.storage.set('schoolId', this.schoolId);
                       //this.loading.dismiss();
                       // this.router.navigate(['/schoolsuccess']);
                     }),

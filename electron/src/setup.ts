@@ -190,7 +190,11 @@ export class ElectronCapacitorApp {
 
   // Helper function to load in the app.
   private async loadMainWindow(thisRef: any) {
-    await thisRef.loadWebApp(thisRef.MainWindow);
+    if (process.argv.includes('--live-reload')) {
+      await thisRef.MainWindow.loadURL('http://localhost:4200');
+    } else {
+      await thisRef.loadWebApp(thisRef.MainWindow);
+    }
   }
 
   // Expose the mainWindow ref for use outside of the class.
@@ -408,13 +412,25 @@ export class ElectronCapacitorApp {
       if (!this.CapacitorFileConfig?.electron?.hideMainWindowOnLaunch) {
         this.MainWindow?.show();
       }
-      globalShortcut.register('Super+Shift+N', () => {
+      const openDevTools =()=>{
         if (this.MainWindow?.webContents?.isDevToolsOpened()) {
           this.MainWindow?.webContents?.closeDevTools();
         } else {
           this.MainWindow?.webContents?.openDevTools();
         }
-      });
+      }
+      const shortcutStatus=globalShortcut.register('Super+Shift+N', openDevTools);
+      if(!shortcutStatus){
+        globalShortcut.register('Ctrl+Shift+N', openDevTools);
+      }
+
+      if (process.argv.includes('--live-reload')) {
+        const reloadApp = () => {
+          this.MainWindow?.webContents.reloadIgnoringCache();
+        };
+        globalShortcut.register('CommandOrControl+R', reloadApp);
+        globalShortcut.register('F5', reloadApp);
+      }
       setTimeout(() => {
         if ((this.CapacitorFileConfig.electron as any)?.electronIsDev) {
           this.MainWindow.webContents.openDevTools();

@@ -35,6 +35,39 @@ export const removeUnregisterSchool = async (
   }
 };
 
+export const checkUnverifiedSchool = async (
+  schoolId: number,
+  schoolService: SchoolService,
+  storage: StorageService,
+  settings: SettingsService
+) => {
+  const gigaId = storage.get('gigaId');
+  const countryCode = storage.get('country_code');
+  let response;
+
+  try {
+    response = await schoolService
+      .getRegisteredSchoolByGigaId(gigaId)
+      .toPromise();
+  } catch (e) {
+    captureMessage('Error getting registered school by gigaId, ' + e);
+    console.log('Error getting registered school by gigaId', e);
+  }
+
+  console.log({ response });
+
+  if (response && Array.isArray(response) && response.length>0) {
+    if (response[0].is_verified === false) {
+      console.log('Existing school on the device not found on backend');
+      captureMessage('Existing school on the device not found on backend');
+      return false;
+    }
+    return true;
+  } else {
+    return false;
+  }
+};
+
 /**
  *  This function takes the gigaId checks if is
  * correct and if is not substitute the localstorage values
@@ -68,11 +101,11 @@ export const checkRightGigaId = async (
     );
     if (schools.length > 0) {
       console.log({ schools });
-      storage.set('schoolId', schoolCorrectId);
-      storage.set('gigaId', gigaCorrectId);
+      await storage.set('schoolId', schoolCorrectId);
+      await storage.set('gigaId', gigaCorrectId);
       console.log({ rigthGigaId: storage.get('gigaId') });
-      storage.set('country_code', schools[0].code);
-      storage.set('schoolInfo', JSON.stringify(schools[0]));
+      await storage.set('country_code', schools[0].code);
+      await storage.set('schoolInfo', JSON.stringify(schools[0]));
       return true;
     }
   }

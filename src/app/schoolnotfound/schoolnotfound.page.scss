@@ -43,7 +43,7 @@
      margin: 25px auto;
     }
     .unabletolocate-txt{
-      color: red;
+      color: #000000;
       text-align: center;
       font-size: 16px;
       font-weight: 400;
@@ -63,7 +63,11 @@
     font-size: 12px;
   }
 .bottom-layout{
-  margin-bottom: 105px;
+  margin-bottom: 38px;
+}
+.new_register {
+  padding-bottom: 16px !important;
+  padding-top: 0 !important;
 }
 .try_again{
   display: flex;
@@ -71,7 +75,7 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 400;
-  padding: 10px;
+  padding: 10px 10px 0 10px;
 
 }
 .wrap_content {
@@ -79,4 +83,8 @@
 }
 .container {
   margin: 24px 0 0 0;
+}
+.register_new {
+  margin-top: 16px;
+  padding: 0 50px;
 }

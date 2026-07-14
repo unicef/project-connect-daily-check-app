@@ -21,11 +21,15 @@
           <div class="noschool-txt" [translate]="'schoolNotFound.notRegister' | translate:{ appName }"></div>
         </ng-template> -->
         <div class="try_again"  [translate]="'schoolNotFound.tryAgainPlaceholder'"></div>
+        <div class="try_again new_register"  [translate]="'registerNewSchool.schoolNotFound'"></div>
+
+        
       </div>
     </div>
     <div class="bottom-layout">
-      <ion-button color="primary" (click)="backToSearchDetail()" block class="dailycheck_btn submit_button_size"
-        [translate]="'tryAgain'"></ion-button>
+   
+      <ion-button fill="outline" shape="round"  (click)="redirectToRegistrationForm()"  class="button-native register_new"
+         [translate]="'registerNewSchool.signupNewSchoolSynopsis'"></ion-button>
     </div>
   </div>
 </ion-content>

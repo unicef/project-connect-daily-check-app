@@ -737,3 +737,9 @@ ion-card {
     margin-top: 0;
     margin-bottom: 0;
 }
+.verify-row {
+  display: flex;
+  justify-content: flex-start; /* pushes span to left */
+  width: 100%;
+  margin-left: 32px;
+}

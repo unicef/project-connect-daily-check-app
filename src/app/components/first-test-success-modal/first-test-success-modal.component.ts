@@ -1,4 +1,4 @@
-import { Component, Input, OnInit, OnDestroy } from '@angular/core';
+import { Component, Input, OnInit, OnDestroy, AfterViewInit} from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 
@@ -8,7 +8,7 @@ import { TranslateService } from '@ngx-translate/core';
   styleUrls: ['./first-test-success-modal.component.scss'],
   standalone: false,
 })
-export class FirstTestSuccessModalComponent implements OnInit, OnDestroy {
+export class FirstTestSuccessModalComponent implements OnInit, OnDestroy, AfterViewInit {
   @Input() schoolInfo: any;
   @Input() selectedCountry: string;
   @Input() schoolId: string;
@@ -21,9 +21,14 @@ export class FirstTestSuccessModalComponent implements OnInit, OnDestroy {
     public translate: TranslateService
   ) {}
 
-  ngOnInit() {
+  ngAfterViewInit(): void {
     this.startCountdown();
   }
+
+  ngOnInit() {
+    console.log("Modal data First Test Success:", this.schoolInfo, this.selectedCountry, this.schoolId);
+  }
+
 
   ngOnDestroy() {
     this.clearTimer();
