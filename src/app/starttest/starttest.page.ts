@@ -14,7 +14,6 @@ import { LoadingService } from '../services/loading.service';
 import { MenuController } from '@ionic/angular';
 import { NetworkService } from '../services/network.service';
 import { SettingsService } from '../services/settings.service';
-import { MlabService } from '../services/mlab.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
@@ -132,7 +131,6 @@ export class StarttestPage implements OnInit, OnDestroy {
     private schoolService: SchoolService,
     private networkService: NetworkService,
     private settingsService: SettingsService,
-    private mlabService: MlabService,
     private measurementClientService: MeasurementClientService,
     private sharedService: SharedService,
     private historyService: HistoryService,

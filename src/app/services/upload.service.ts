@@ -11,6 +11,7 @@ import { Observable, of, throwError } from 'rxjs';
 import { SettingsService } from '../services/settings.service';
 import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
+import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
 
 @Injectable({
@@ -23,9 +24,9 @@ export class UploadService {
     private settingService: SettingsService,
     private storage: StorageService,
     private hardwareIdService: HardwareIdService,
+    private indexedDB: IndexedDBService,
     private locationService: LocationService
-
-  ) { }
+  ) {}
 
   /**
    * Return all network related information
@@ -182,7 +183,6 @@ export class UploadService {
       catchError(err => {
         console.error('Geolocation fetch failed, continuing with POST', err);
         this.locationService.saveGeolocation(null);
-        // fallback: use previously saved geolocation or null
         return of(this.locationService.getSavedGeolocation() || null);
       }),
       map(geo => {
@@ -193,7 +193,12 @@ export class UploadService {
       switchMap(measurementWithGeo =>
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
-          catchError(this.handleError) // handle POST errors separately
+          tap((data) => data),
+          catchError(async (error) => {
+            console.error('Upload failed, saving to IndexedDB...', error);
+            await this.indexedDB.saveMeasurement(measurementWithGeo);
+            return of({ savedLocally: true, error });
+          })
         )
       )
     );

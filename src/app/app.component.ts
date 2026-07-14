@@ -16,6 +16,7 @@ import { WhatsNewModalComponent } from './components/whats-new-modal/whats-new-m
 import { LogoutModalComponent } from './components/logout-modal/logout-modal.component';
 import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
+import { MatomoService } from './services/matomo.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -70,8 +71,14 @@ export class AppComponent {
     private modalController: ModalController,
     private hardwareIdService: HardwareIdService,
     private router: Router,
-    private schoolService: SchoolService
+    private schoolService: SchoolService,
+    private matomoService: MatomoService,
   ) {
+    try {
+      this.matomoService.init();
+    } catch (error) {
+      console.warn('Matomo init failed:', error);
+    }
     this.filteredOptions = [];
     this.selectedLanguage =
       this.settingsService.get('applicationLanguage')?.code ??
@@ -243,31 +250,21 @@ export class AppComponent {
     // Hide the dropdown
   }
   filterOptions(event: any) {
-    console.log('here');
     const term = event.target.value.toLowerCase();
     // Filter based on user input
     this.searchTerm = event.target.value;
-    console.log(this.searchTerm);
     this.filteredOptions = this.testOptions.filter((option) =>
       option.toLowerCase().includes(term)
-    );
-    console.log(
-      'hhhih',
-      this.filteredOptions.length,
-      this.searchTerm.length,
-      term.length
     );
 
     // Show dropdown if there's at least one match and user has typed something
     this.showDropdown =
       this.filteredOptions.length > 0 && this.searchTerm.length > 0;
-    console.log('thi', this.showDropdown);
   }
 
   selectOption(option: string) {
     // Set the input to the selected option
     this.searchTerm = option;
-    console.log(this.searchTerm);
     this.filteredOptions = [];
     // Hide the dropdown
     this.showDropdown = false;
@@ -530,6 +527,7 @@ export class AppComponent {
       // Get hardware ID and giga ID before clearing storage
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
+      await this.localStorageService.deleteAllDatabases();
 
       // Deactivate device on backend if we have the required IDs
       if (hardwareId && gigaId) {

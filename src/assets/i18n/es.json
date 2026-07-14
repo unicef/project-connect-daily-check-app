@@ -212,6 +212,14 @@
     "headline": "Título"
   },
   "releaseNotes": {
+    "2.0.3": {
+      "title": "Seguimiento de geolocalización junto con las mediciones",
+      "date": "Viernes, 24 de abril de 2026",
+      "items": [
+        "Seguimiento de geolocalización junto con las mediciones",
+        "Correcciones de errores y mejoras"
+      ]
+    },
     "2.0.2": {
       "title": "Mida el tiempo de actividad con la utilidad Ping y disfrute de una experiencia de usuario mejorada.",
       "date": "Lunes, 10 de noviembre de 2025",

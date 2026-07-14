@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
 import ndt7 from '../../assets/js/ndt/ndt7.js';
-import { BehaviorSubject, Observable, Subject, forkJoin } from 'rxjs';
-import { MeasurementService } from './measurement.service';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { HistoryService } from './history.service';
 import { SettingsService } from './settings.service';
-import { MlabService } from './mlab.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
@@ -75,7 +73,6 @@ export class MeasurementClientService {
   constructor(
     private historyService: HistoryService,
     private settingsService: SettingsService,
-    private mlabService: MlabService,
     private networkService: NetworkService,
     private uploadService: UploadService,
     private sharedService: SharedService
@@ -100,8 +97,8 @@ export class MeasurementClientService {
     measurementRecord.wifiConnections = wifiConnections;
 
     try {
-      const info = await this.getTestInfo();
-      Object.assign(measurementRecord, info);
+      measurementRecord.accessInformation =
+        await this.networkService.getNetInfo();
 
       const exitCode = await ndt7.test(
         this.testConfig,
@@ -158,19 +155,10 @@ export class MeasurementClientService {
     };
   }
 
-  private async getTestInfo() {
-    return {
-      accessInformation: await this.networkService.getNetInfo(),
-      mlabInformation: await this.mlabService
-        .findServer(this.settingsService.get('metroSelection'))
-        .toPromise(),
-    };
-  }
-
   private getTestCallbacks(measurementRecord: any) {
     return {
       serverDiscovery: this.onServerDiscovery,
-      serverChosen: this.onServerChosen,
+      serverChosen: (server) => this.onServerChosen(server, measurementRecord),
       downloadMeasurement: (data) =>
         this.onDownloadMeasurement(data, measurementRecord),
       downloadComplete: (data) =>
@@ -183,21 +171,31 @@ export class MeasurementClientService {
   }
 
   private onServerDiscovery = (data: { loadbalancer: URL }): void => {
-    console.log('Discovering servers from:', data.loadbalancer.toString());
+    console.log('Server: Discovering servers from:', data.loadbalancer.toString());
+    console.log('Server: Full loadbalancer data:', data);
     this.broadcastMeasurementStatus('server_discovery', {
       loadbalancer: data.loadbalancer.toString(),
       message: 'Discovering test servers...',
     });
   };
 
-  private onServerChosen = (server: {
-    machine: string;
-    location: string;
-  }): void => {
-    console.log('Testing to:', {
-      machine: server.machine,
-      locations: server.location,
-    });
+  private onServerChosen(
+    server: any,
+    measurementRecord: any
+  ): void {
+    console.log('Server chosen:', server);
+    const serverInformation = {
+      city: server?.location?.city,
+    url: server?.machine,
+    ip: [],
+    fqdn: '',
+    site: '',
+    country: server?.location?.country,
+    label: '',
+    metro: '',
+    }
+    measurementRecord.mlabInformation = serverInformation;
+    console.log('Normalized server information:', serverInformation);
     this.broadcastMeasurementStatus('server_chosen', {
       server: server,
       message: 'Server selected, preparing test...',

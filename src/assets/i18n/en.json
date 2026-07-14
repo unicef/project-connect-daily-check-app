@@ -206,6 +206,14 @@
     "headline": "Headline"
   },
   "releaseNotes": {
+    "2.0.3": {
+      "title": "Track geolocation along with measurements",
+      "date": "Friday, 24th April 2026",
+      "items": [
+        "Track geolocation along with measurements",
+        "Bug fixes and improvements"
+      ]
+    },
     "2.0.2": {
       "title": "Track uptime with Ping and enhanced user experience",
       "date": "Monday, 10th November 2025",
