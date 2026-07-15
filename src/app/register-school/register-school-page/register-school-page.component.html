@@ -66,6 +66,13 @@
               (click)="openExternalUrl('https://creativecommons.org/licenses/by/4.0/')">
               M-Lab Privacy Policy
             </b>.
+      <ng-container *ngIf="isNativeApp()">
+        <br>
+        <b data-testid="register-school-android-link" class="underline"
+          (click)="openExternalUrl('https://creativecommons.org/licenses/by/4.0/')">
+          Learn how Giga Meter collects and uses data on Android in our Data Safety Policy
+        </b>.
+      </ng-container>
           </span>
         </div>
       </label>

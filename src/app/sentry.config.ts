@@ -7,7 +7,7 @@ export function initSentry() {
   console.log('GIGA Is Native Before Sentry : ', Capacitor.isNativePlatform());
   Sentry.init({
     dsn: Capacitor.isNativePlatform()
-      ? 'https://5c0e907b260d9edc3a215e5fb51ece9c@excubo.unicef.org/9'
+      ? 'https://5c0e907b260d9edc3a215e5fb51ece9c@excubo.unicef.org/9' // Add Android APP DSN Here
       : 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47', // Replace with your actual DSN
     environment:
       environment.mode === 'prod'
