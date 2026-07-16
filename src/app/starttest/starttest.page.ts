@@ -17,7 +17,6 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { NetworkService } from '../services/network.service';
 import { SettingsService } from '../services/settings.service';
-import { MlabService } from '../services/mlab.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
@@ -133,7 +132,6 @@ export class StarttestPage implements OnInit, OnDestroy {
     private schoolService: SchoolService,
     private networkService: NetworkService,
     private settingsService: SettingsService,
-    private mlabService: MlabService,
     private measurementClientService: MeasurementClientService,
     private sharedService: SharedService,
     private historyService: HistoryService,
@@ -942,7 +940,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.progress = 0.05;
       } else if (data.testStatus === 'interval_c2s') {
         console.log('Running Test (Upload)');
-        this.currentState = 'Running Test (Upload)';
+        this.currentState = this.translate.instant('startTest.runningTestUpload');
         this.currentRate = (
           (data.passedResults.Data.TCPInfo.BytesReceived /
             data.passedResults.Data.TCPInfo.ElapsedTime) *
@@ -954,7 +952,7 @@ export class StarttestPage implements OnInit, OnDestroy {
           this.startUploadProgress();
         }
       } else if (data.testStatus === 'interval_s2c') {
-        this.currentState = 'Running Test (Download)';
+        this.currentState = this.translate.instant('startTest.runningTestDownload');
         this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults.Data.MeanClientMbps?.toFixed(2);

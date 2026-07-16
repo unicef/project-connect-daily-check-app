@@ -141,7 +141,10 @@ export class SchoolService {
       "os": "",
       "app_version": "",
       "created": "",
-      "device_hardware_id": "" (optional)
+      "device_hardware_id": "" (optional),
+      "windows_username": "" (optional),
+      "installed_path": "" (optional),
+      "wifi_connections": [] (optional)
     }
    * @returns
    */

@@ -272,7 +272,7 @@ export class ScheduleService {
   }
 
   // Keeping these methods to maintain compatibility with existing code
-  initializeScheduleInitializers() { }
+  initializeScheduleInitializers() {}
   async scheduleInitializers(type: string) {
     return this.createIntervalSemaphore(Date.now(), 24 * 60 * 60 * 1000);
   }
@@ -311,7 +311,10 @@ export class ScheduleService {
     if (!lastStartupTest || parseInt(lastStartupTest, 10) < today) {
       const startupDelay = Math.floor(Math.random() * this.STARTUP_TEST_DELAY);
       const scheduledTime = new Date(Date.now() + startupDelay);
-      this.storageService.set(this.STARTUP_TEST_SCHEDULED_KEY, scheduledTime.getTime().toString());
+      this.storageService.set(
+        this.STARTUP_TEST_SCHEDULED_KEY,
+        scheduledTime.getTime().toString()
+      );
       console.log(`Scheduling startup test for ${scheduledTime.toISOString()}`);
       setTimeout(() => this.runStartupTest(), startupDelay);
     } else {

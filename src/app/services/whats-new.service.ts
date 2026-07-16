@@ -41,6 +41,9 @@ export class WhatsNewService {
    * 1. App version has changed (not a fresh install)
    * 2. Dialog hasn't been shown for current version yet
    * 3. Feature is enabled
+   * 
+   * Special case for v2.0.2: Always show on fresh installs
+   * Future versions will revert to normal behavior (no dialog on fresh install)
    */
   shouldShowWhatsNewDialog(): boolean {
     const currentVersion = environment.app_version;
@@ -59,7 +62,14 @@ export class WhatsNewService {
 
     // If no last known version, this is a fresh install
     if (!lastKnownVersion) {
-      // Set current version as last known and don't show dialog
+      // Special case for v2.0.2: Always show dialog on fresh install
+      if (currentVersion === '2.0.2') {
+        // Don't set lastKnownVersion yet - let markDialogAsShown handle it
+        if (whatsNewShownFor !== currentVersion) {
+          return true;
+        }
+      }
+      // For future versions: Set current version as last known and don't show dialog
       this.storageService.set(this.STORAGE_KEY_LAST_VERSION, currentVersion);
       return false;
     }

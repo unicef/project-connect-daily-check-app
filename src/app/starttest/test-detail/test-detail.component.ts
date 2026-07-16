@@ -4,6 +4,8 @@ import { HistoryService } from 'src/app/services/history.service';
 import { NetworkService } from 'src/app/services/network.service';
 import { StorageService } from 'src/app/services/storage.service';
 import { Router, NavigationEnd } from '@angular/router';
+import { LocationService } from 'src/app/services/location.service';
+import { SettingsService } from 'src/app/services/settings.service';
 import { GigaAppPlugin } from '../../android/giga-app-android-plugin';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
@@ -19,6 +21,7 @@ export class TestDetailComponent implements OnInit {
   school: any;
   historicalData: any;
   measurementsData: [];
+  locationDetail: any;
   accessInformation = {
     ip: '',
     city: '',
@@ -44,7 +47,9 @@ export class TestDetailComponent implements OnInit {
     private historyService: HistoryService,
     private countryService: CountryService,
     private router: Router,
-    private menu: MenuController
+    private locationService: LocationService,
+    private settingsService: SettingsService,
+    private menu: MenuController,
   ) {
     this.isNative = Capacitor.isNativePlatform();
     this.handleBackButton();
@@ -53,6 +58,7 @@ export class TestDetailComponent implements OnInit {
         this.loadData();
       }
     });
+    this.locationDetail = this.locationService.getSavedGeolocation();
   }
   isNativeApp(): boolean {
     return Capacitor.isNativePlatform();
@@ -90,7 +96,7 @@ export class TestDetailComponent implements OnInit {
           ) {
             this.selectedCountry = this.storage.get('countryName');
           }
-        }
+        },
       );
     }
     this.loadData();
@@ -123,8 +129,9 @@ export class TestDetailComponent implements OnInit {
         .sort(
           (
             a: { timestamp: string | number | Date },
-            b: { timestamp: string | number | Date }
-          ) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            b: { timestamp: string | number | Date },
+          ) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         ) // descending order
         .slice(0, 10); // take last 10
     }
@@ -147,12 +154,15 @@ export class TestDetailComponent implements OnInit {
   }
 
   /**
-   * Get sync status text based on uploaded flag
+   * Get sync status text based on synced attribute
    * @param measurement The measurement data
    * @returns Status text
    */
   getSyncStatusText(measurement: any): string {
-    return measurement.uploaded ? 'Success' : '-';
+    if (measurement.synced === undefined || measurement.synced === null) {
+      return '-';
+    }
+    return measurement.synced ? 'Synced' : 'Not Synced';
   }
 
   /**
@@ -161,6 +171,20 @@ export class TestDetailComponent implements OnInit {
    * @returns CSS class name
    */
   getSyncStatusClass(measurement: any): string {
-    return measurement.uploaded ? 'green_color' : 'orange_color';
+    if (measurement.synced === undefined || measurement.synced === null) {
+      return '';
+    }
+    return measurement.synced ? 'green_color' : 'orange_color';
+  }
+
+  openExternalUrl() {
+    this.settingsService
+      .getShell()
+      .shell.openExternal(
+        'https://www.google.com/maps?q=' +
+          this.locationDetail?.location?.lat +
+          ',' +
+          this.locationDetail?.location?.lng,
+      );
   }
 }

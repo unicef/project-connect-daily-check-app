@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/naming-convention */
-import { Component, ViewChild } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SchoolService } from '../services/school.service';
@@ -19,13 +19,14 @@ import { TranslateService } from '@ngx-translate/core';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { HistoryService } from '../services/history.service';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { LocationService } from '../services/location.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
   styleUrls: ['confirmschool.page.scss'],
   standalone: false,
 })
-export class ConfirmschoolPage {
+export class ConfirmschoolPage implements OnInit {
   @ViewChild(IonAccordionGroup, { static: true })
   accordionGroup: IonAccordionGroup;
   school: any;
@@ -50,6 +51,7 @@ export class ConfirmschoolPage {
     private translate: TranslateService,
     private sharedService: SharedService,
     private hardwareIdService: HardwareIdService,
+    private locationService: LocationService,
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -67,6 +69,28 @@ export class ConfirmschoolPage {
         this.school = this.router.getCurrentNavigation().extras.state as School;
       }
     });
+  }
+
+  async ngOnInit() {
+    try {
+      // 1. Get WiFi list from Electron
+      const wifiList = await this.locationService.getWifiAccessPoints();
+
+      // 2. Send WiFi list to backend → backend returns lat/long
+      this.locationService.resolveGeolocation(wifiList).subscribe({
+        next: (geo: any) => {
+          console.log('Received geolocation from backend:', geo);
+
+          // 3. Save lat/long in localStorage
+          this.locationService.saveGeolocation(geo);
+        },
+        error: (err) => {
+          console.error('Error resolving geolocation', err);
+        },
+      });
+    } catch (err) {
+      console.error('Error fetching WiFi list in ngOnInit', err);
+    }
   }
 
   isNativeApp(): boolean {
@@ -88,7 +112,7 @@ export class ConfirmschoolPage {
     // this.networkService.getAccessInformation().subscribe(c => {
     this.getIPAddress().then((c) => {
       this.getDeviceInfo().then((a) => {
-        this.getDeviceId().then((b) => {
+        this.getDeviceId().then(async (b) => {
           // Get hardware ID for machine-level registration
           const hardwareId = this.hardwareIdService.getHardwareId();
 
@@ -96,7 +120,6 @@ export class ConfirmschoolPage {
           this.getWindowsUsername().then((windowsUsername) => {
             this.getInstalledPath().then((installedPath) => {
               this.getWifiConnections().then((wifiConnections) => {
-                console.log('GIGA METER', installedPath);
                 schoolData = {
                   giga_id_school: this.school.giga_id_school,
                   mac_address: b.identifier,
@@ -110,8 +133,12 @@ export class ConfirmschoolPage {
                   windows_username: windowsUsername || null, // Add Windows username
                   installed_path: installedPath || null, // Add installed path
                   wifi_connections: wifiConnections || null, // Add WiFi connections
+                  geolocation: this.locationService.getSavedGeolocation(),
                   //school_id: this.school.school_id
                 };
+
+                // if(this.school.code === c.country){
+
                 (this.schoolService
                   .registerSchoolDevice(schoolData)
                   .subscribe((response) => {
@@ -130,6 +157,7 @@ export class ConfirmschoolPage {
                     // Set first-time visit flags for new registration flow
                     this.storage.setFirstTimeVisit(true);
                     this.storage.setRegistrationCompleted(Date.now());
+
                     if (this.isNative) {
                       //This we need to pass to native background servie to execute the
                       // api calls to publish speed test data
@@ -195,6 +223,19 @@ export class ConfirmschoolPage {
                       /* Redirect to no result found page */
                     });
                 }
+
+                //}
+                //else{
+
+                //   this.loading.dismiss();
+                //   this.router.navigate(['invalidlocation',
+                //   this.schoolId,
+                //      this.school.country,
+                //      c.country + " (" +c.city + ")"
+
+                //  ]);
+
+                //}
               }); // Close getWifiConnections().then()
             }); // Close getInstalledPath().then()
           }); // Close getWindowsUsername().then()
@@ -300,10 +341,6 @@ export class ConfirmschoolPage {
           return null;
         }
       } else {
-        if (this.isNative) {
-          // Need to confirm
-          return null;
-        }
         console.log(
           '⚠️ [Windows Username] Not running in Electron, username not available',
         );
@@ -341,9 +378,6 @@ export class ConfirmschoolPage {
           return null;
         }
       } else {
-        if (this.isNative) {
-          return '/data/app/';
-        }
         console.log(
           '⚠️ [Installed Path] Not running in Electron, path not available',
         );

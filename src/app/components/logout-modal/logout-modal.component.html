@@ -2,7 +2,7 @@
   <div class="modal-header">
     <div class="header-content">
       <ion-icon name="log-out-outline" class="logout-icon"></ion-icon>
-      <div class="header-title">Confirm Logout</div>
+      <div class="header-title">{{ "logout.title" | translate }}</div>
     </div>
     <button class="close-button" (click)="dismiss()">
       <ion-icon name="close" size="small"></ion-icon>
@@ -13,28 +13,28 @@
     <div class="warning-section">
       <div class="warning-message">
         <p class="main-text">
-          This action <strong>cannot</strong> be undone. This will permanently
-          log you out and clear all local data.
+          {{ "logout.warning" | translate }}
         </p>
-        <p class="sub-text">
-          Please type
-          <strong class="school-id-highlight">{{ schoolId }}</strong> to
-          confirm.
-        </p>
+        <p
+          class="sub-text"
+          [innerHTML]="
+            'logout.confirmText' | translate : { schoolId: schoolId }
+          "
+        ></p>
       </div>
 
       <div class="input-section">
         <ion-item lines="none" class="confirmation-input">
           <ion-input
             [(ngModel)]="enteredSchoolId"
-            placeholder="Enter school ID"
+            [placeholder]="'logout.placeholder' | translate"
             (ionInput)="onInputChange()"
             type="text"
           ></ion-input>
         </ion-item>
         <div class="error-message" *ngIf="errorMessage">
           <ion-icon name="alert-circle-outline"></ion-icon>
-          {{ errorMessage }}
+          {{ "logout.errorMessage" | translate }}
         </div>
       </div>
 
@@ -46,7 +46,7 @@
           (click)="confirmLogout()"
           [disabled]="!enteredSchoolId || enteredSchoolId.trim() === ''"
         >
-          Logout
+          {{ "logout.logoutButton" | translate }}
         </ion-button>
         <ion-button
           expand="block"
@@ -55,7 +55,7 @@
           class="cancel-button"
           (click)="dismiss()"
         >
-          Cancel
+          {{ "logout.cancelButton" | translate }}
         </ion-button>
       </div>
     </div>

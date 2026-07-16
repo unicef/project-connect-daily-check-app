@@ -14,6 +14,12 @@ export const environment = {
   restAPIStg: 'REST_API_URL', //STG
   ipInfoToken:'IPINFO_TOKEN',
   mode: 'dev',// 'prod' | 'dev' | 'stg'
+
+  // Matomo analytics (per-environment site IDs)
+  matomoTrackerUrl: 'MATOMO_TRACKER_URL', // e.g. https://unisitetracker.unicef.io/
+  matomoSiteIdDev: 'MATOMO_SITE_ID_DEV',
+  matomoSiteIdStg: 'MATOMO_SITE_ID_STG',
+  matomoSiteIdProd: 'MATOMO_SITE_ID_PROD',
   languages: [
     {
       name: 'En',
@@ -39,6 +45,11 @@ export const environment = {
       name: 'Fr',
       label: 'French',
       code: 'fr',
+    },
+    {
+      name: 'Uz',
+      label: "O'zbekcha",
+      code: 'uz',
     },
   ],// available languages
 };

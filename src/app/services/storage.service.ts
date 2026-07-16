@@ -36,8 +36,12 @@ export class StorageService {
 
   clear() {
     const settings = this.get('savedSettings');
+    const hardwareId = this.get('system_hardware_id');
     localStorage.clear();
     this.set('savedSettings', settings);
+    if (hardwareId) {
+      this.set('system_hardware_id', hardwareId);
+    }
   }
 
   /**

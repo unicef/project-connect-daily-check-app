@@ -10,19 +10,16 @@
     "allowElevation": true,
     "oneClick": false,
     "deleteAppDataOnUninstall": true,
-    "allowToChangeInstallationDirectory": true //,
-    //"include": "build/uninstaller.nsh"
+    "allowToChangeInstallationDirectory": true
   },
   "win": {
     "target": "nsis",
-    "icon": "assets/appIcon.ico"
-    // "signingHashAlgorithms": ["sha256"],
-    //  "certificateSubjectName": "UNICEF",
-    //  "rfc3161TimeStampServer": "http://timestamp.digicert.com",
-    //  "sign": "./resources/sign.js"
+    "icon": "assets/appIcon.ico",
+    "signingHashAlgorithms": ["sha256"],
+    "certificateSubjectName": "UNICEF",
+    "rfc3161TimeStampServer": "http://timestamp.digicert.com",
+    "sign": "./resources/sign.js"
   },
-  "compression": "store",
-  "removePackageScripts": true,
   "mac": {
     "category": "your.app.category.type",
     "target": "dmg"

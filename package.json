@@ -1,6 +1,6 @@
 {
   "name": "unicef-pdca",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "productName": "Giga Meter",
   "author": "Giga-Unicef",
   "homepage": "https://projectconnect.unicef.org/about",
@@ -11,6 +11,8 @@
     "start:electron": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:start-live",
     "build:electron": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-not-publish",
     "build:electron-publish": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make",
+    "build:electron-signed": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-signed",
+    "build:electron-signed-test": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-signed-no-publish",
     "test": "ng test",
     "lint": "ng lint",
     "e2e": "ng e2e"
@@ -56,7 +58,7 @@
     "idb": "^8.0.2",
     "ngx-pipes": "^3.2.2",
     "rxjs": "~7.8.0",
-    "systeminformation": "^5.23.5",
+    "systeminformation": "^5.27.8",
     "tslib": "^2.2.0",
     "update-electron-app": "^2.0.1",
     "uuid": "^8.3.2",

@@ -178,6 +178,8 @@
     "network": "Réseau de l'appareil",
     "ping": "Ping",
     "retrying": "Veuillez réessayer {{attempt}}/{{maxRetries}}",
+    "runningTestDownload": "Test en cours (Téléchargement)",
+    "runningTestUpload": "Test en cours (Téléversement)",
     "schoolRegistered": "École enregistrée avec succès",
     "server": "Serveur le plus proche",
     "serverSelected": "Serveur trouvé",
@@ -188,7 +190,7 @@
     "testAgain": "ESSAYEZ À NOUVEAU",
     "testFailed": "TEST ÉCHOUÉ",
     "testFailedDesc": "La connexion a été interrompue avant la fin du test. Veuillez réessayer.",
-    "testTrigger": "Déclencheur",
+    "testTrigger": "Type",
     "testWorking": "Premier test terminé",
     "total": "Historique des tests (10 dernières mesures)",
     "tryAgain": "ESSAYEZ À NOUVEAU",
@@ -204,15 +206,32 @@
     "headline": "Titre"
   },
   "releaseNotes": {
-    "2.0.2": {
-      "title": "Suivi du temps de fonctionnement avec Ping et expérience utilisateur améliorée",
-      "date": "Lundi, 15 septembre 2025",
+    "2.0.3": {
+      "title": "Suivi de la géolocalisation avec les mesures",
+      "date": "Vendredi, 24 avril 2026",
       "items": [
-        "Suivez le temps de fonctionnement avec la nouvelle fonctionnalité Ping",
+        "Suivi de la géolocalisation avec les mesures",
+        "Corrections de bugs et améliorations"
+      ]
+    },
+    "2.0.2": {
+      "title": "Un suivi du taux de disponibilité avec le test Ping et une expérience utilisateur améliorée:",
+      "date": "Lundi, 10 novembre 2025",
+      "items": [
+        "Suivez le taux de disponibilité grâce à la nouvelle fonctionnalité Ping",
         "Consultez votre historique de tests de vitesse",
-        "Profitez d'une expérience utilisateur améliorée"
+        "Profitez d'une expérience utilisateur optimisée"
       ]
     }
+  },
+  "logout": {
+    "title": "Confirmer la déconnexion",
+    "warning": "Cette opération déconnectera tous les comptes d'utilisateurs de l'application sur cet appareil, désenregistrera l'école et effacera toutes les données locales.",
+    "confirmText": "Veuillez saisir <strong class=\"school-id-highlight\">{{ schoolId }}</strong> pour confirmer l'identifiant de l'école pour le désenregistrement.",
+    "placeholder": "Entrez l'identifiant de l'école",
+    "errorMessage": "L'identifiant de l'école ne correspond pas. Veuillez réessayer.",
+    "logoutButton": "Se déconnecter",
+    "cancelButton": "Annuler"
   },
   "yes": "Oui"
 }

@@ -1,10 +1,8 @@
 import { Injectable } from '@angular/core';
 import ndt7 from '../../assets/js/ndt/ndt7.js';
-import { BehaviorSubject, Observable, Subject, forkJoin } from 'rxjs';
-import { MeasurementService } from './measurement.service';
+import { BehaviorSubject, Subject } from 'rxjs';
 import { HistoryService } from './history.service';
 import { SettingsService } from './settings.service';
-import { MlabService } from './mlab.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
@@ -75,7 +73,6 @@ export class MeasurementClientService {
   constructor(
     private historyService: HistoryService,
     private settingsService: SettingsService,
-    private mlabService: MlabService,
     private networkService: NetworkService,
     private uploadService: UploadService,
     private sharedService: SharedService
@@ -91,9 +88,17 @@ export class MeasurementClientService {
     this.broadcastMeasurementStatus('onstart', {});
     const measurementRecord = this.initializeMeasurementRecord(notes);
 
+    // Get Windows username, installed path, and WiFi connections
+    const windowsUsername = await this.getWindowsUsername();
+    const installedPath = await this.getInstalledPath();
+    const wifiConnections = await this.getWifiConnections();
+    measurementRecord.windowsUsername = windowsUsername;
+    measurementRecord.installedPath = installedPath;
+    measurementRecord.wifiConnections = wifiConnections;
+
     try {
-      const info = await this.getTestInfo();
-      Object.assign(measurementRecord, info);
+      measurementRecord.accessInformation =
+        await this.networkService.getNetInfo();
 
       const exitCode = await ndt7.test(
         this.testConfig,
@@ -144,22 +149,16 @@ export class MeasurementClientService {
       version: 0,
       Notes: notes,
       dataUsage: this.dataUsage,
-    };
-  }
-
-  private async getTestInfo() {
-    return {
-      accessInformation: await this.networkService.getNetInfo(),
-      mlabInformation: await this.mlabService
-        .findServer(this.settingsService.get('metroSelection'))
-        .toPromise(),
+      windowsUsername: '',
+      installedPath: '',
+      wifiConnections: null,
     };
   }
 
   private getTestCallbacks(measurementRecord: any) {
     return {
       serverDiscovery: this.onServerDiscovery,
-      serverChosen: this.onServerChosen,
+      serverChosen: (server) => this.onServerChosen(server, measurementRecord),
       downloadMeasurement: (data) =>
         this.onDownloadMeasurement(data, measurementRecord),
       downloadComplete: (data) =>
@@ -172,21 +171,31 @@ export class MeasurementClientService {
   }
 
   private onServerDiscovery = (data: { loadbalancer: URL }): void => {
-    console.log('Discovering servers from:', data.loadbalancer.toString());
+    console.log('Server: Discovering servers from:', data.loadbalancer.toString());
+    console.log('Server: Full loadbalancer data:', data);
     this.broadcastMeasurementStatus('server_discovery', {
       loadbalancer: data.loadbalancer.toString(),
       message: 'Discovering test servers...',
     });
   };
 
-  private onServerChosen = (server: {
-    machine: string;
-    location: string;
-  }): void => {
-    console.log('Testing to:', {
-      machine: server.machine,
-      locations: server.location,
-    });
+  private onServerChosen(
+    server: any,
+    measurementRecord: any
+  ): void {
+    console.log('Server chosen:', server);
+    const serverInformation = {
+      city: server?.location?.city,
+    url: server?.machine,
+    ip: [],
+    fqdn: '',
+    site: '',
+    country: server?.location?.country,
+    label: '',
+    metro: '',
+    }
+    measurementRecord.mlabInformation = serverInformation;
+    console.log('Normalized server information:', serverInformation);
     this.broadcastMeasurementStatus('server_chosen', {
       server: server,
       message: 'Server selected, preparing test...',
@@ -297,13 +306,16 @@ export class MeasurementClientService {
           .uploadMeasurement(measurementRecord)
           .toPromise();
         measurementRecord.uploaded = true;
+        measurementRecord.synced = true;
       } catch (error) {
         console.error('Upload failed:', error);
         measurementRecord.uploaded = false;
+        measurementRecord.synced = false;
       }
     } else {
       // If upload is disabled, mark as not uploaded
       measurementRecord.uploaded = false;
+      measurementRecord.synced = false;
     }
 
     // Now save to localStorage with the correct uploaded status
@@ -369,5 +381,130 @@ export class MeasurementClientService {
       testStatus,
       ...additionalData,
     });
+  }
+
+  /**
+   * Get Windows username from Electron process
+   * @returns Windows username string or fallback value
+   */
+  private async getWindowsUsername(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Windows Username] Requesting Windows username...');
+        const usernameInfo = await (
+          window as any
+        ).electronAPI.getWindowsUsername();
+
+        if (usernameInfo && usernameInfo.username) {
+          console.log(
+            '✅ [Windows Username] Retrieved username:',
+            usernameInfo.username
+          );
+          return usernameInfo.username;
+        } else if (usernameInfo && usernameInfo.error) {
+          console.error(
+            '❌ [Windows Username] Error retrieving username:',
+            usernameInfo.error
+          );
+          return 'Error';
+        }
+      } else {
+        console.log(
+          '⚠️ [Windows Username] Not running in Electron, username not available'
+        );
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Windows Username] Exception while retrieving username:',
+        error
+      );
+      return 'Error';
+    }
+
+    return 'Unknown';
+  }
+
+  /**
+   * Get application installed path from Electron process
+   * @returns Installed path string or fallback value
+   */
+  private async getInstalledPath(): Promise<string> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [Installed Path] Requesting installed path...');
+        const pathInfo = await (window as any).electronAPI.getInstalledPath();
+
+        if (pathInfo && pathInfo.installedPath) {
+          console.log(
+            '✅ [Installed Path] Retrieved path:',
+            pathInfo.installedPath
+          );
+          return pathInfo.installedPath;
+        } else if (pathInfo && pathInfo.error) {
+          console.error(
+            '❌ [Installed Path] Error retrieving path:',
+            pathInfo.error
+          );
+          return 'Error';
+        }
+      } else {
+        console.log(
+          '⚠️ [Installed Path] Not running in Electron, path not available'
+        );
+        return 'N/A';
+      }
+    } catch (error) {
+      console.error(
+        '❌ [Installed Path] Exception while retrieving path:',
+        error
+      );
+      return 'Error';
+    }
+
+    return 'Unknown';
+  }
+
+  /**
+   * Get WiFi connections from Electron process
+   * @returns WiFi connections array or null
+   */
+  private async getWifiConnections(): Promise<any> {
+    try {
+      // Check if running in Electron
+      if (window && (window as any).electronAPI) {
+        console.log('📡 [WiFi Connections] Requesting WiFi connections...');
+        const wifiInfo = await (window as any).electronAPI.getWifiConnections();
+
+        if (wifiInfo && wifiInfo.wifiConnections) {
+          console.log(
+            '✅ [WiFi Connections] Retrieved connections:',
+            wifiInfo.wifiConnections
+          );
+          return wifiInfo.wifiConnections;
+        } else if (wifiInfo && wifiInfo.error) {
+          console.error(
+            '❌ [WiFi Connections] Error retrieving connections:',
+            wifiInfo.error
+          );
+          return null;
+        }
+      } else {
+        console.log(
+          '⚠️ [WiFi Connections] Not running in Electron, connections not available'
+        );
+        return null;
+      }
+    } catch (error) {
+      console.error(
+        '❌ [WiFi Connections] Exception while retrieving connections:',
+        error
+      );
+      return null;
+    }
+
+    return null;
   }
 }

@@ -1,0 +1,236 @@
+{
+  "andText": "va M-Lab tomonidan",
+  "app": {
+    "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>{{appName}} haqida",
+    "about-help": "Haqida",
+    "about-project-connect": "{{appName}} HAQIDA",
+    "device-id": "QURILMA ID {{ device_id }} (Nusxalash uchun bosing)",
+    "device-id-copied": "Qurilma ID muvaffaqiyatli nusxalandi!",
+    "device-id-copy-failed": "Qurilma ID nusxalanmadi. Iltimos, qayta urinib ko‘ring.",
+    "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Tez-tez so'raladigan savollar",
+    "faq-help": "Savollar",
+    "language-pref": "Til sozlamalari",
+    "my-school-id": "<span class=\"hash\">#</span>Mening maktab ID raqamim",
+    "project-connect-desc": "{{appName}} kun davomida avtomatik ravishda internet tezligi va sifatini o‘lchab boradi, bu esa maktablarning vaqt o‘tishi bilan ulanish holatini aniq tasvirlaydi. Natijalar real vaqt rejimida maktablarning ulanish holatini ko‘rsatadigan global ochiq xarita — Giga Maps bilan avtomatik sinxronlanadi. Maktablarda kuchli internet ulanishi Gigaʼning barcha yoshlarni axborot, imkoniyat va tanlovga ulan tirish missiyasini qo‘llab-quvvatlaydi.",
+    "school-id": "MAKTAB ID RAQAMINGIZ",
+    "test-type-setting": "Test turi sozlamalari",
+    "thank-you": "{{appName}} loyihasiga hissa qo‘shganingiz uchun rahmat. Maktabinggizni toping va ko‘proq ma’lumotni veb-saytimizdan bilib oling. Biz har kuni yangi maktablar qo‘shamiz!",
+    "version": "VERSIYA {{ app_version }}",
+    "view-project-connect": "{{appName}} NI KO‘RISH",
+    "whats-new": "Yangi nima?",
+    "wifi-network": "WiFi tarmoq sozlamalari"
+  },
+  "checkboxText": "GigaMeter’dan ro‘yxatdan o‘tib foydalanish orqali men Giga tomonidan o‘lchov va boshqa yordamchi ma’lumotlarimni yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
+  "confirmSchool": {
+    "confirm1": "Maktabingizni ro‘yxatdan o‘tkazish uchun ma’lumotlarni tasdiqlang",
+    "confirm2": "YUQORIDAGI MA’LUMOT TO‘G‘RIMI?",
+    "title": "Quyidagi ma’lumotlar to‘g‘rimi?"
+  },
+  "faq": {
+    "FAQ": "TEZ-TEZ SO‘RALADIGAN SAVOLLAR",
+    "can-change-id": "Maktab ID raqamimni o‘zgartira olamanmi?",
+    "can-change-id-desc": "Hozirda maktab ID raqamini o‘zgartirish imkoni yo‘q. Agar xato kiritsangiz, ilovani o‘chirib, qaytadan o‘rnating.",
+    "can-close-app": "Ilovani yopishim mumkinmi?",
+    "can-close-app-desc": "Ha, yuqori o‘ng burchakdagi yopish tugmasi orqali ilovani yopishingiz mumkin. Ilova fon rejimida ishlashda davom etadi va ulanish holatini yuboradi.",
+    "connectivity-checks-occur": "Maktabimning <br />internet tekshiruvlari qachon o‘tkaziladi?",
+    "connectivity-checks-occur-desc": "Giga Meter kuniga 4 tagacha tezlik testi, har 15 daqiqada esa ping testi o‘tkazadi. Testlar mahalliy vaqt bilan 8:00 dan 20:00 gacha davom etadi. Agar qurilma o‘chirilgan yoki oflayn bo‘lsa, testlar o‘tmaydi. Istalgan vaqtda qo‘lda test o‘tkazishingiz mumkin.",
+    "how-find-school-id": "Maktab ID raqamini qayerdan topsam bo‘ladi?",
+    "how-find-school-id-desc": "Maktab ma’muriyati yoki IT bo‘limidan so‘rang. Maktab ID raqami milliy ro‘yxatdan o‘tish tizimida foydalaniladigan raqamdir.",
+    "how-improve-access": "Giga Meter internetga kirishni qanday yaxshilaydi?",
+    "how-improve-access-desc": "Giga Meter internetni to‘g‘rilamaydi, lekin muammolarni aniq ko‘rsatadi. Ushbu ma’lumot hukumat va provayderlarga qaysi joylarda yaxshilash zarurligini belgilashga yordam beradi.",
+    "multiple-installs": "Ilovani bir nechta kompyuterga <br />o‘rnatsam bo‘ladimi?",
+    "multiple-installs-desc": "Ha, mumkin. Hatto tavsiya qilinadi. Ko‘proq qurilma ma’lumot yuborsa, o‘lchov aniqligi oshadi.",
+    "school-id-not-found": "Maktabim hali {{appName}} tizimiga qo‘shilmagan. Nima qilishim mumkin?",
+    "school-id-not-found-desc": "Veb-saytimizga tashrif buyurib, bizga tashabbusga qo‘shilishni xohlayotganingiz haqida xabar qoldirishingiz mumkin.",
+    "search-id": "ID qidirish",
+    "what-data-access": "Giga Meter qaysi ma’lumotlarga kirish oladi?",
+    "what-data-access-desc": "Giga Meter faqat internet sifatini o‘lchash uchun zarur bo‘lgan tizim va tarmoq ma’lumotlariga kiradi — tezlik, mavjudlik, tarmoq tafsilotlari, qurilma turi va hokazo. U shaxsiy fayllaringizga, tarixingizga yoki kontentingizga kira olmaydi.",
+    "what-is-school-id": "Maktab ID raqami nima?",
+    "what-is-school-id-desc": "Maktab ID — hukumat tomonidan berilgan noyob identifikator. Turli formatlar mavjud, odatda \"BR12345\" yoki \"12345678\" ko‘rinishda bo‘ladi.",
+    "where-see-results": "O‘tgan test natijalarini qayerdan ko‘ra olaman?",
+    "where-see-results-desc-part1": "\"Data\" sahifasida so‘nggi 10 muvaffaqiyatli testni ko‘rishingiz mumkin. Har bir kunning natijalari o‘rtacha qilib Giga Maps’ga joylanadi. Tashrif buyuring ",
+    "where-see-results-desc-part2": " maktabingizni toping va uning global natijalarini solishtiring.",
+    "where-see-results-link": "maps.giga.global",
+    "who-has-access": "O‘lchov ma’lumotlariga kimlar kira oladi?",
+    "who-has-access-desc-part1": "Giga Meter tomonidan yig‘ilgan ayrim ma’lumotlar — yuklab olish tezligi, yuklash tezligi, kechikish, ishlash vaqti va noyob maktab identifikatori — Giga’ning ochiq maktab ulanishlar bazasida eʼlon qilinadi. Bu maʼlumotlar quyidagi litsenziya asosida beriladi:",
+    "who-has-access-desc-part2": ", bu esa istalgan odamga foydalanish va ulashishga imkon beradi. Shaxsiy maʼlumotlar hech qachon oshkor qilinmaydi.",
+    "who-has-access-link": "CC BY 4.0"
+  },
+  "home": {
+    "andText": "va M-Lab tomonidan",
+    "checkboxText": "GigaMeter’dan ro‘yxatdan o‘tib foydalanish orqali men Giga tomonidan o‘lchov va boshqa yordamchi ma’lumotlarimni yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
+    "learn-more": "{{appName}} HAQIDA KO‘PROQ BILISH",
+    "learnMore": "Giga Meter haqida ko‘proq ma’lumot",
+    "licenseLink": "Open Database License (ODBL)",
+    "next": "Keyingi",
+    "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
+    "privacyPolicy": "Maxfiylik siyosati",
+    "start": "Boshlash",
+    "title1": "{{appName}} ga xush kelibsiz <span class='daily-chk-blue'>{{appNameSuffix}}</span>",
+    "title2": "Maktabinggizning internet sifatini kuzating. Kunlik o‘lchovlar ulanishni yaxshilashga yordam beradi.",
+    "welcome": "Xush kelibsiz"
+  },
+  "invalidLocation": {
+    "resultLocation": "- Sizning joylashuvingiz: {{country}}.<br />- Tanlangan maktab: {{selectedCountry}}. <br />",
+    "unableToLocate": "Iltimos, to‘g‘ri maktabni tanlang."
+  },
+  "language": "Til",
+  "learn-more": "{{appName}} HAQIDA KO‘PROQ BILISH",
+  "learnMore": "Giga Meter haqida ko‘proq bilish",
+  "licenseLink": "Open Database License (ODBL)",
+  "next": "Keyingi",
+  "no": "Yo‘q",
+  "notifications": {
+    "registrationCompleted": "Ro‘yxatdan o‘tish yakunlandi",
+    "runningFirstTest": "Ulanish testi ishga tushmoqda"
+  },
+  "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
+  "privacyPolicy": "Maxfiylik siyosati",
+  "registerSchool": {
+    "register-part-2": "Har bir maktab ko‘pi bilan ikki qurilma o‘rnatishi mumkin, agar boshqacha ko‘rsatma berilmagan bo‘lsa.",
+    "register-step-1": "Maktabingizni ro‘yxatdan o‘tkazish arafasidasiz.",
+    "register-step-2": "Giga Meter’ni faqat maktab internetiga ulanadigan va tez-tez ishlatiladigan kompyuterlarga o‘rnating.",
+    "register-step-3": "Imkon bo‘lsa, kamida bitta kompyuter simli (Ethernet) ulanish orqali internetga ulangan bo‘lsin.",
+    "start-registeration": "Ro‘yxatdan o‘tishni boshlash"
+  },
+  "registerSchoolPage": {
+    "privacy": "Giga Meter’dan foydalanib, men o‘lchov ma’lumotlarimni Giga tomonidan yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
+    "readMore": "Yaxshi ro‘yxatdan o‘tish uchun ko‘rsatmalar",
+    "tip1": "Afsuski, simli ulanish afzalroq",
+    "tip2": "Ko‘proq ishlatiladigan ikki qurilmaga o‘rnating",
+    "tip3": "Faqat maktab internetiga ulangan bo‘lishi kerak",
+    "title1": "Maktabingizni ro‘yxatdan o‘tkazmoqchisiz",
+    "title2": "Yaxshi ro‘yxatdan o‘tish uchun kompyuterlar quyidagilarga mos bo‘lishi kerak:"
+  },
+  "resultSchool": "MAKTAB ID UCHUN NATIJALAR",
+  "saveEmail": {
+    "emailFormat": "Iltimos, to‘g‘ri formatdagi emailni kiriting (masalan, info@school.com).",
+    "emailRequired": "Email talab qilinadi.",
+    "instruction": "Iltimos, ta’lim muassasangizga tegishli emaildan foydalaning",
+    "optional": "(Ixtiyoriy)",
+    "validEmail": "Iltimos, to‘g‘ri email kiriting."
+  },
+  "schoolDetails": {
+    "add": "Qo‘shish",
+    "checkGiga": "Giga Maps’da tekshirish",
+    "confirmText": "<b>&quot;Ha&quot;</b> tugmasini bosganingizdan so‘ng, maktabni o‘zgartirish uchun ilovani o‘chirib qayta o‘rnatishingiz kerak bo‘ladi.",
+    "enterEmail": "Matn kiriting",
+    "noSchoolList": "MAKTABIM RO‘YXATDA YO‘Q",
+    "saveEmail": "Maktab email manzilini qo‘shing",
+    "search": "Maktabingiz qidirilmoqda...",
+    "searchSchool": "Maktab ID raqamlarini qidirish",
+    "select": "Tanlash",
+    "selectAndConfirm": "Maktabingizni tanlang",
+    "skip": "O‘tkazib yuborish",
+    "totalSchools": "{{schoolCount}} ta natija {{schoolId}} bilan mos keldi"
+  },
+  "schoolNotFound": {
+    "notFound": "Afsuski, biz maktabingizni topa olmadik",
+    "notRegister": "Afsuski, maktabingiz hali {{appName}} tizimiga ro‘yxatdan o‘tmagan.\nIltimos, maktab administratoriga murojaat qiling va PCDC orqali yana ro‘yxatdan o‘tkazing.",
+    "tryAgainPlaceholder": "Iltimos, to‘g‘ri ID kiritganingizga ishonch hosil qiling yoki boshqa ID bilan urinib ko‘ring",
+    "unableToLocate": "Biz sizning maktabingizni topa olmadik: <br /><b>{{schoolId}}</b>"
+  },
+  "schoolSuccess": {
+    "app-run": "Ilova <br /> fon rejimida ishlaydi",
+    "app-run-desc": "Maktab ma’lumotlari qurilma yoqilganida yig‘iladi.",
+    "congratulations": "Tabriklaymiz — hammasi tayyor!",
+    "get-started": "Boshlash",
+    "go-dashboard": "Dashboard’ga o‘tish",
+    "internet-checks": "Ilova kuniga 4 marta <br />internet holatini tekshiradi.",
+    "school-registered": "Maktabinggiz {{appName}} ga <br />ro‘yxatdan o‘tkazildi",
+    "success-txt": "Kunlik internet <br />tekshiruvi yo‘lga qo‘yildi!",
+    "you-can-close": "Ilovani yopishingiz mumkin."
+  },
+  "searchCountry": {
+    "change-country": "Agar tanlov noto‘g‘ri bo‘lsa, ro‘yxatdan mamlakatingizni tanlang",
+    "check": "Mamlakatingiz aniqlanmoqda",
+    "confirm": "Tasdiqlash",
+    "country": "Mamlakat",
+    "country-not-accurate": "Tanlangan mamlakat joylashuvingizga mos kelmayotgandek.",
+    "detected-auto": "Mamlakatingiz avtomatik aniqlangan",
+    "loading": "Yuklanmoqda",
+    "not-available": "{{appName}} {{appNameSuffix}} ushbu mamlakatda mavjud emas. Iltimos, boshqa mamlakat tanlang.",
+    "please-double-check": "Davom etishga ishonchingiz komilmi?"
+  },
+  "searchSchool": {
+    "placeholder-school-id": "masalan: 00000000",
+    "provide-school-id": "Maktab ID raqamini kiriting",
+    "search": "Maktabingiz qidirilmoqda...",
+    "user-has-not-id": "ID kiritganingizdan so‘ng, mos ID raqamlar qidiriladi."
+  },
+  "start": "Boshlash",
+  "startTest": {
+    "about": "Ma’lumot",
+    "backgroundMessage": "Ilova fon rejimida ishlashda davom etadi.",
+    "closingIn": "Yopilish vaqti:",
+    "congratulations": "Tabriklaymiz — hammasi tayyor!",
+    "date": "Sana",
+    "discoveringServers": "Serverlar topilmoqda...",
+    "download": "YUKLAB OLISH",
+    "downloadLowerCase": "Yuklab olish",
+    "home": "Bosh sahifa",
+    "isp": "ISP",
+    "latency": "Kechikish: {{latency}}",
+    "latencyDetail": "Kechikish",
+    "locateServerError": "Test serverlarini topib bo‘lmadi. Iltimos, internet ulanishini tekshiring.",
+    "measurement": "So‘nggi o‘lchovlar",
+    "network": "Qurilma tarmog‘i",
+    "ping": "Ping",
+    "retrying": "Urinish {{attempt}}/{{maxRetries}}",
+    "runningTestDownload": "Test bajarilmoqda (Yuklab olish)",
+    "runningTestUpload": "Test bajarilmoqda (Yuklash)",
+    "schoolRegistered": "Maktab muvaffaqiyatli ro‘yxatdan o‘tdi",
+    "server": "Eng yaqin server",
+    "serverSelected": "Server topildi",
+    "start": "BOSHLASH",
+    "startTest": "TESTNI BOSHLASH",
+    "status": "Holat",
+    "test": "TEST",
+    "testAgain": "YANA TEST QILISH",
+    "testFailed": "Test muvaffaqiyatsiz tugadi",
+    "testFailedDesc": "Internet uzilib qoldi. Qayta urinib ko‘ring.",
+    "testTrigger": "Turi",
+    "testWorking": "Birinchi test yakunlandi",
+    "total": "Test tarixi (so‘nggi 10 o‘lchov)",
+    "tryAgain": "QAYTA URINING",
+    "upload": "YUKLASH",
+    "uploadLowerCase": "Yuklash"
+  },
+  "tryAgain": "Qayta urinib ko‘ring",
+  "welcome": "Xush kelibsiz",
+  "whatsNew": {
+    "checkReleaseNotes": "Reliz yozuvlarini ko‘rish",
+    "congratulations": "Tabriklaymiz!",
+    "goToDashboard": "Dashboard’ga o‘tish",
+    "headline": "Sarlavha"
+  },
+  "releaseNotes": {
+    "2.0.3": {
+      "title": "O'lchovlar bilan birga geolokatsiyani kuzatish",
+      "date": "Juma, 2026-yil 24-aprel",
+      "items": [
+        "O'lchovlar bilan birga geolokatsiyani kuzatish",
+        "Xatolarni tuzatish va yaxshilanishlar"
+      ]
+    },
+    "2.0.2": {
+      "title": "Ping bilan uptime kuzatuvi va yaxshilangan foydalanuvchi tajribasi",
+      "date": "Dushanba, 2025-yil 10-noyabr",
+      "items": [
+        "Yangi Ping funksiyasi orqali uptime kuzatish",
+        "Tezlik testlari tarixini ko‘rish",
+        "Yaxshilangan foydalanuvchi tajribasi"
+      ]
+    }
+  },
+  "logout": {
+    "title": "Chiqishni tasdiqlang",
+    "warning": "Bu amal sizni va ushbu qurilmadagi boshqa foydalanuvchilarni ilovadan chiqaradi, maktabni ro‘yxatdan o‘chirishni amalga oshiradi va barcha mahalliy ma’lumotlarni tozalaydi.",
+    "confirmText": "Maktabni ro‘yxatdan o‘chirishni tasdiqlash uchun quyidagi ID’ni kiriting: <strong class=\"school-id-highlight\">{{ schoolId }}</strong>.",
+    "placeholder": "Maktab ID’ni kiriting",
+    "errorMessage": "Maktab ID mos kelmadi. Qayta urinib ko‘ring.",
+    "logoutButton": "Chiqish",
+    "cancelButton": "Bekor qilish"
+  },
+  "yes": "Ha"
+}
