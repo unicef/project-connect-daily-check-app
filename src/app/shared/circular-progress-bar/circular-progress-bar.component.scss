@@ -13,44 +13,48 @@
   margin-top: -13px;
 }
 
-.circle-background {
-  // stroke: #46C66D;
-  stroke-width: 4;
 
-  &.error {
-    stroke: #F94B4B;
-    --color: #F94B4B !important;
-    color: #F94B4B !important;
-  }
+.spinner-background {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  animation: rotate 1s infinite ease-in-out;
 
-  &.green {
-    stroke: #46C66D;
-  }
 
-  &.gray {
-    stroke: #fff;
+  background: conic-gradient(
+    #00D661 0%,
+    #F5F5F5 30%,
+    #F5F5F5 60%,
+    #00D661 100%
+  );
+
+  -webkit-mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 4px),
+      black calc(100% - 4px)
+  );
+  mask: radial-gradient(
+      farthest-side,
+      transparent calc(100% - 4px),
+      black calc(100% - 4px)
+  );
+
+   opacity: 0;
+  transition: opacity .25s;
+
+}
+
+.spinner-background.visible {
+  opacity: 1;
+}
+
+
+@keyframes spinnerRotate {
+  to {
+    transform: rotate(360deg);
   }
 }
 
-.circle-progress {
-  stroke: #46C66D;
-  stroke-width: 4;
-  transition: stroke-dashoffset 350ms;
-  transform: rotate(90deg);
-  transform-origin: 50% 50%;
-
-  &.error {
-    stroke: red;
-  }
-
-  &.green {
-    stroke: #46C66D;
-  }
-
-  &.gray {
-    stroke: #fff;
-  }
-}
 
 .second-label {
   position: relative;
@@ -76,8 +80,7 @@
     opacity: 1;
   }
 
-  75%,
-  100% {
+  75%, 100% {
     transform: scale(1.2);
     opacity: 0;
   }
@@ -85,14 +88,13 @@
 
 .ping-animation {
   position: absolute;
-  width: 40px; // Adjust as needed
-  height: 40px;
-  background-color: rgba(70, 198, 109, 0.1);
-  border-radius: 50%;
-  height: 130px;
+  top: 50%;
+  left: 50%;
   width: 130px;
-  margin-left: -5px;
-    margin-top: -5px;
+  height: 130px;
+  background-color: rgba(0, 214, 97, 0.1);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
 
   &::after {
     content: "";
@@ -102,8 +104,9 @@
     width: 100%;
     height: 100%;
     border-radius: 50%;
-    background-color: rgb(81, 225, 43, 0.2); // Semi-transparent blue
+    background-color: rgba(0, 214, 97, 0.2);
     animation: ping 1s infinite;
+
   }
 }
 
@@ -120,24 +123,18 @@
 }
 
 .fill-color-tertiary {
-  fill: #222222
+  fill: #222222;
 }
 
 .fill-green {
-  fill: #46C66D;
+  fill: #00D661;
 }
 
-.circular-progress-container {
-  width: 120px;
-  height: 120px;
-}
 
-.ping-animation {
-  width: 130px;
-  height: 130px;
-
-  &::after {
-    width: 100%;
-    height: 100%;
+@keyframes rotate {
+  100% {
+    transform: rotate(1turn);
   }
 }
+
+

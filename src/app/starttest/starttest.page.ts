@@ -13,15 +13,49 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { MenuController } from '@ionic/angular';
 import { NetworkService } from '../services/network.service';
-import { SettingsService } from '../services/settings.service';
+import {
+  ResolvedProtocolConfig,
+  SettingsService,
+} from '../services/settings.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
+import { CloudflareMeasurementService } from '../services/measurment-cloudflare-client.service';
+import {
+  MeasurementOrchestrationService,
+  MeasurementSequenceSummary,
+} from '../services/measurement-orchestration.service';
+import {
+  MeasurementProviderId,
+  MeasurementRecord,
+  MeasurementRunOutcome,
+} from '../services/measurement.types';
+
+interface LiveMetrics {
+  download?: string;
+  upload?: string;
+  latency?: string;
+  packetLoss?: string;
+  timestamp?: Date;
+  testServer?: string;
+  networkOperator?: string;
+}
+import {
+  LatestByProvider,
+  extractMeasurementMetadata,
+  extractMeasurementMetrics,
+  latestByProvider,
+} from '../services/measurement.utils';
+import {
+  getConfigProtocolLabel,
+  getProviderDocsUrl,
+  MeasurementProviderMode,
+} from '../services/protocol-display.util';
 import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../services/storage.service';
 import { Subscription } from 'rxjs';
 import { CountryService } from '../services/country.service';
-import { mlabInformation, accessInformation } from '../models/models';
+import { mlabInformation, accessInformation, serverInformation } from '../models/models';
 import { FirstTestSuccessModalComponent } from '../components/first-test-success-modal/first-test-success-modal.component';
 import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
@@ -101,9 +135,69 @@ export class StarttestPage implements OnInit, OnDestroy {
   public lastPingResult: any;
   public pingStatus: string = '---';
   public pingTimestamp: Date | undefined;
+  public packetLoss: string | undefined;
+  protocolConfig: ResolvedProtocolConfig = {
+    measurementProviders: ['mlab'],
+    betweenTestsDelaySec: 0,
+    configSource: 'default',
+  };
+  selectedProvider: MeasurementProviderId = 'mlab';
+  latestPerProvider: LatestByProvider = {};
+  private liveByProvider: Partial<Record<MeasurementProviderId, LiveMetrics>> =
+    {};
+  /** Hides historical footer values per provider until live data from this run. */
+  private footerProvidersCleared = new Set<MeasurementProviderId>();
+  private runningProvider: MeasurementProviderId | null = null;
+  displayProtocolLabel = 'M-Lab';
+  selectedProtocolLabelKey = 'startTest.providerMlab';
+  displayTestServer = '---';
+  displayNetworkOperator = '---';
+  private initialProviderPicked = false;
   private uploadSub!: Subscription;
   private downloadStartedSub!: Subscription;
   private uploadStartedSub!: Subscription;
+  private cloudflareDownloadSub?: Subscription;
+  private cloudflareUploadSub?: Subscription;
+  private cloudflareDownloadStartedSub?: Subscription;
+  private cloudflareUploadStartedSub?: Subscription;
+  private cloudflareProgressInterval: any;
+  private cloudflareProgressStart = 0;
+  private cloudflareProgressValue = 0;
+  private isCloudflareProgressActive = false;
+  private readonly TIME_FOR_CLOUDFLARE_TEST = 30; // seconds
+  private measurementSequenceActive = false;
+  private sequenceAbortController: AbortController | null = null;
+  private readonly handleOrchestrationStage = (
+    _event: string,
+    payload: { stage?: string }
+  ) => {
+    switch (payload?.stage) {
+      case 'mlab:start':
+        this.resetBothProvidersForNewRun();
+        this.runningProvider = 'mlab';
+        this.selectedProvider = 'mlab';
+        this.prepareForMlabRun();
+        break;
+      case 'wait':
+        this.enterWaitingBetweenProtocols();
+        break;
+      case 'cloudflare:start':
+        this.runningProvider = 'cloudflare';
+        this.footerProvidersCleared.add('cloudflare');
+        this.selectedProvider = 'cloudflare';
+        this.prepareForCloudflareRun();
+        this.applyDisplayForSelectedProvider();
+        break;
+      case 'cloudflare:done':
+        this.runningProvider = null;
+        this.refreshProviderDisplay();
+        break;
+      case 'mlab:done':
+        this.runningProvider = null;
+        this.refreshProviderDisplay();
+        break;
+    }
+  };
 
   downloadTimer: any;
   uploadTimer: any;
@@ -127,6 +221,8 @@ export class StarttestPage implements OnInit, OnDestroy {
     private networkService: NetworkService,
     private settingsService: SettingsService,
     private measurementClientService: MeasurementClientService,
+    private cloudflareMeasurementService: CloudflareMeasurementService,
+    private measurementOrchestrationService: MeasurementOrchestrationService,
     private sharedService: SharedService,
     private historyService: HistoryService,
     public translate: TranslateService,
@@ -139,7 +235,6 @@ export class StarttestPage implements OnInit, OnDestroy {
   ) {
     if (this.storage.get('schoolId')) {
       this.school = JSON.parse(this.storage.get('schoolInfo'));
-      console.log(this.school, 'heheh');
     }
     this.onlineStatus = navigator.onLine;
     this.route.params.subscribe((params) => {
@@ -200,6 +295,25 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.router.navigate(['/']);
     }
   }
+  get showBothProviders(): boolean {
+    const providers = this.protocolConfig?.measurementProviders ?? [];
+    return providers.includes('mlab') && providers.includes('cloudflare');
+  }
+
+  /** Collapse the resolved provider array into a single display/label mode. */
+  private configProviderMode(): MeasurementProviderMode {
+    const providers = this.protocolConfig?.measurementProviders ?? [];
+    const hasMlab = providers.includes('mlab');
+    const hasCloudflare = providers.includes('cloudflare');
+    if (hasMlab && hasCloudflare) {
+      return 'both';
+    }
+    if (hasCloudflare) {
+      return 'cloudflare';
+    }
+    return 'mlab';
+  }
+
   ngOnInit() {
     this.schoolId = this.storage.get('schoolId');
 
@@ -210,9 +324,10 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Initialize country information
     this.initializeCountryData();
 
+    void this.loadProtocolConfig();
+
     // Load historical data
     this.refreshHistory();
-    this.loadLatestMeasurement();
     this.loadLatestPingResult();
 
     // IMPORTANT: Check for first-time visit LAST to ensure all event listeners are ready
@@ -226,9 +341,185 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Reset error state when returning to the page to prevent stale error states
     this.resetErrorStateIfNeeded();
 
-    // Refresh the latest measurement data in case it was updated while away
-    this.loadLatestMeasurement();
+    void this.loadProtocolConfig();
+    this.refreshProviderDisplay();
     this.loadLatestPingResult();
+  }
+
+  async loadProtocolConfig(): Promise<void> {
+    try {
+      this.protocolConfig = await this.settingsService.getProtocolConfig();
+      this.syncSelectedProviderFromConfig();
+      this.refreshProviderDisplay();
+      this.ref.markForCheck();
+    } catch (error) {
+      console.error('Failed to load protocol config', error);
+    }
+  }
+
+  private syncSelectedProviderFromConfig(): void {
+    const mode = this.configProviderMode();
+    if (mode === 'cloudflare') {
+      this.selectedProvider = 'cloudflare';
+    } else if (mode === 'mlab') {
+      this.selectedProvider = 'mlab';
+    } else if (mode === 'both' && !this.initialProviderPicked) {
+      // Dual config: pick one at random for the initial display.
+      this.selectedProvider = Math.random() < 0.5 ? 'mlab' : 'cloudflare';
+    }
+    this.initialProviderPicked = true;
+  }
+
+  openProviderDocs(): void {
+    this.openExternalUrl(getProviderDocsUrl(this.selectedProvider));
+  }
+
+  openExternalUrl(href: string): void {
+    this.settingsService.openExternalUrl(href);
+  }
+
+  getProviderDocsTranslationKey(): string {
+    return 'startTest.aboutYourMeasurements';
+  }
+
+  refreshProviderDisplay(): void {
+    const historical = this.historyService.get();
+    this.latestPerProvider = latestByProvider(
+      historical?.measurements ?? []
+    );
+    this.applyDisplayForSelectedProvider();
+  }
+
+  private applyDisplayForSelectedProvider(): void {
+    this.displayProtocolLabel = getConfigProtocolLabel(
+      this.configProviderMode()
+    );
+    this.selectedProtocolLabelKey =
+      this.selectedProvider === 'cloudflare'
+        ? 'startTest.providerCloudflare'
+        : 'startTest.providerMlab';
+
+    const live = this.liveByProvider[this.selectedProvider];
+    const historical = this.latestPerProvider[this.selectedProvider];
+    const useLive =
+      !!live &&
+      (this.runningProvider === this.selectedProvider ||
+        live.download != null ||
+        live.upload != null ||
+        live.latency != null ||
+        live.packetLoss != null);
+
+    if (this.footerProvidersCleared.has(this.selectedProvider) && !useLive) {
+      this.applyClearedFooterMetrics();
+      return;
+    }
+
+    if (useLive && live) {
+      this.currentRateDownload = live.download;
+      this.currentRateUpload = live.upload;
+      this.latency = live.latency;
+      this.packetLoss = live.packetLoss;
+      this.currentDate = live.timestamp;
+      this.displayTestServer = live.testServer ?? '---';
+      this.displayNetworkOperator = live.networkOperator ?? '---';
+    } else {
+      const meta = extractMeasurementMetadata(historical);
+      const metrics = extractMeasurementMetrics(historical);
+      this.displayTestServer = meta.testServer;
+      this.displayNetworkOperator = meta.networkOperator;
+      this.packetLoss = metrics.packetLoss;
+      this.currentRateDownload =
+        metrics.download != null ? metrics.download.toFixed(2) : undefined;
+      this.currentRateUpload =
+        metrics.upload != null ? metrics.upload.toFixed(2) : undefined;
+      this.latency =
+        metrics.latency != null ? metrics.latency.toFixed(0) : undefined;
+      this.currentDate = metrics.timestamp;
+    }
+
+    this.ref.markForCheck();
+  }
+
+  private patchLiveMetrics(
+    provider: MeasurementProviderId,
+    patch: Partial<LiveMetrics>
+  ): void {
+    this.footerProvidersCleared.delete(provider);
+    this.liveByProvider[provider] = {
+      ...this.liveByProvider[provider],
+      ...patch,
+    };
+    this.applyDisplayForSelectedProvider();
+  }
+
+  private updateLiveFromPassedResults(
+    provider: MeasurementProviderId,
+    results: unknown,
+    overrides?: Partial<LiveMetrics>
+  ): void {
+    const completedAt = overrides?.timestamp ?? new Date();
+    const record: MeasurementRecord = {
+      provider,
+      results: results as MeasurementRecord['results'],
+      timestamp: completedAt.getTime(),
+      uploaded: false,
+      uuid: '',
+      version: 0,
+      Notes: '',
+      dataUsage: {},
+      accessInformation: {},
+    };
+    const metrics = extractMeasurementMetrics(record);
+    const meta = extractMeasurementMetadata(record);
+
+    this.footerProvidersCleared.delete(provider);
+    this.liveByProvider[provider] = {
+      download:
+        overrides?.download ??
+        (metrics.download != null ? metrics.download.toFixed(2) : undefined),
+      upload:
+        overrides?.upload ??
+        (metrics.upload != null ? metrics.upload.toFixed(2) : undefined),
+      latency:
+        overrides?.latency ??
+        (metrics.latency != null ? metrics.latency.toFixed(0) : undefined),
+      packetLoss: metrics.packetLoss ?? overrides?.packetLoss,
+      timestamp: overrides?.timestamp ?? metrics.timestamp,
+      testServer:
+        overrides?.testServer ??
+        (meta.testServer !== '---' ? meta.testServer : undefined),
+      networkOperator:
+        overrides?.networkOperator ??
+        (meta.networkOperator !== '---' ? meta.networkOperator : undefined),
+    };
+    this.applyDisplayForSelectedProvider();
+  }
+
+  private clearLiveProvider(provider: MeasurementProviderId): void {
+    delete this.liveByProvider[provider];
+  }
+
+  private applyClearedFooterMetrics(): void {
+    this.currentRateDownload = undefined;
+    this.currentRateUpload = undefined;
+    this.latency = undefined;
+    this.packetLoss = undefined;
+    this.currentDate = undefined;
+    this.displayTestServer = '---';
+    this.displayNetworkOperator = '---';
+    this.ref.markForCheck();
+  }
+
+  private resetBothProvidersForNewRun(): void {
+    this.footerProvidersCleared = new Set<MeasurementProviderId>([
+      'mlab',
+      'cloudflare',
+    ]);
+    this.liveByProvider = {};
+    this.runningProvider = null;
+    this.measurementnetworkServer = undefined;
+    this.measurementISP = undefined;
+    this.applyDisplayForSelectedProvider();
   }
 
   private resetErrorStateIfNeeded() {
@@ -257,11 +548,20 @@ export class StarttestPage implements OnInit, OnDestroy {
 
     // Critical: measurement:status listener must be registered before any auto-trigger
     this.sharedService.on('measurement:status', this.driveGauge.bind(this));
+    this.sharedService.on('measurement:status', this.driveGaugeNdt7.bind(this));
+    this.sharedService.on(
+      'measurement:status',
+      this.driveGaugeCloadflare.bind(this)
+    );
     this.sharedService.on(
       'history:measurement:change',
       this.refreshHistory.bind(this)
     );
     this.sharedService.on('history:reset', this.refreshHistory.bind(this));
+    this.sharedService.on(
+      'measurement:orchestration',
+      this.handleOrchestrationStage
+    );
   }
 
   /**
@@ -319,7 +619,36 @@ export class StarttestPage implements OnInit, OnDestroy {
       }
     );
 
-    // Set up window event listeners
+    this.cloudflareDownloadSub =
+      this.cloudflareMeasurementService.downloadComplete$.subscribe(() => {
+        this.downloadStarted = false;
+        if (this.downloadTimer) {
+          clearInterval(this.downloadTimer);
+        }
+        this.ref.markForCheck();
+      });
+
+    this.cloudflareUploadSub =
+      this.cloudflareMeasurementService.uploadComplete$.subscribe(() => {
+        this.uploadStarted = false;
+        if (this.uploadTimer) {
+          clearInterval(this.uploadTimer);
+        }
+        this.ref.markForCheck();
+      });
+
+    this.cloudflareDownloadStartedSub =
+      this.cloudflareMeasurementService.downloadStarted$.subscribe(() => {
+        this.downloadStarted = true;
+        this.uploadStarted = false;
+      });
+
+    this.cloudflareUploadStartedSub =
+      this.cloudflareMeasurementService.uploadStarted$.subscribe(() => {
+        this.uploadStarted = true;
+        this.downloadStarted = false;
+      });
+
     window.addEventListener(
       'online',
       () => {
@@ -391,97 +720,8 @@ export class StarttestPage implements OnInit, OnDestroy {
     let data = this.historyService.get();
     this.lastMeasurementId = data.measurements.length - 1;
 
-    // Load latest measurement data for dashboard display
-    this.loadLatestMeasurement();
+    this.refreshProviderDisplay();
     this.loadLatestPingResult();
-  }
-
-  /**
-   * Load the latest measurement data to display in the Latest measurements section
-   */
-  loadLatestMeasurement() {
-    try {
-      let historicalData = this.historyService.get();
-
-      // If we have measurement data, load the latest one
-      if (
-        historicalData &&
-        historicalData.measurements &&
-        historicalData.measurements.length > 0
-      ) {
-        const latestMeasurement =
-          historicalData.measurements[historicalData.measurements.length - 1];
-
-        // Populate the dashboard's latest measurement display with historical data
-        if (
-          latestMeasurement.results &&
-          latestMeasurement.results['NDTResult.S2C'] &&
-          latestMeasurement.results['NDTResult.C2S']
-        ) {
-          // Set download and upload rates
-          const downloadMbps =
-            latestMeasurement.results['NDTResult.S2C'].LastClientMeasurement
-              ?.MeanClientMbps;
-          const uploadMbps =
-            latestMeasurement.results['NDTResult.C2S'].LastClientMeasurement
-              ?.MeanClientMbps;
-
-          this.currentRateDownload = downloadMbps
-            ? downloadMbps.toFixed(2)
-            : undefined;
-          this.currentRateUpload = uploadMbps
-            ? uploadMbps.toFixed(2)
-            : undefined;
-
-          // Calculate latency
-          const s2cMinRTT =
-            latestMeasurement.results['NDTResult.S2C'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-          const c2sMinRTT =
-            latestMeasurement.results['NDTResult.C2S'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-
-          if (s2cMinRTT && c2sMinRTT) {
-            this.latency = ((s2cMinRTT + c2sMinRTT) / 2 / 1000).toFixed(0);
-          }
-
-          // Set the date from the stored timestamp
-          if (latestMeasurement.timestamp) {
-            this.currentDate = new Date(latestMeasurement.timestamp);
-          }
-
-          // Update server and ISP information
-          if (latestMeasurement.mlabInformation?.city) {
-            this.measurementnetworkServer =
-              latestMeasurement.mlabInformation.city;
-          }
-          if (latestMeasurement.accessInformation?.org) {
-            this.measurementISP = latestMeasurement.accessInformation.org;
-          }
-
-          // Trigger change detection to update the UI
-          this.ref.markForCheck();
-
-          console.log('Loaded latest measurement data for dashboard display', {
-            download: this.currentRateDownload,
-            upload: this.currentRateUpload,
-            latency: this.latency,
-            date: this.currentDate,
-            server: this.measurementnetworkServer,
-            isp: this.measurementISP,
-          });
-        }
-      } else {
-        // No historical data, reset display values
-        this.clearLatestMeasurementDisplay();
-        console.log(
-          'No historical measurement data found, cleared dashboard display'
-        );
-      }
-    } catch (error) {
-      console.error('Error loading latest measurement data:', error);
-      this.clearLatestMeasurementDisplay();
-    }
   }
 
   /**
@@ -521,13 +761,18 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Clear the latest measurement display values
    */
   private clearLatestMeasurementDisplay() {
+    this.liveByProvider = {};
+    this.runningProvider = null;
     this.currentRateDownload = undefined;
     this.currentRateUpload = undefined;
     this.latency = undefined;
     this.currentDate = undefined;
     this.measurementnetworkServer = undefined;
     this.measurementISP = undefined;
-    // Clear ping data as well
+    this.packetLoss = undefined;
+    this.displayTestServer = '---';
+    this.displayNetworkOperator = '---';
+    this.latestPerProvider = {};
     this.pingStatus = '---';
     this.pingTimestamp = undefined;
     this.lastPingResult = null;
@@ -564,15 +809,72 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.router.navigate(['connectivitytest']);
   }
 
-  startNDT(notes: string = 'manual') {
+  async startMeasurement(notes: string = 'manual') {
+    if (this.measurementSequenceActive) {
+      return;
+    }
+
+    this.resetBothProvidersForNewRun();
+    this.measurementSequenceActive = true;
+    this.sequenceAbortController = new AbortController();
+
     try {
+      const summary = await this.measurementOrchestrationService.runSequence(
+        notes,
+        { signal: this.sequenceAbortController.signal }
+      );
+
+      await this.handleSequenceCompletion(summary);
+    } catch (error) {
+      if (!(error instanceof DOMException && error.name === 'AbortError')) {
+        console.error('Measurement sequence failed:', error);
+      }
+    } finally {
+      this.measurementSequenceActive = false;
+      this.sequenceAbortController = null;
+      this.footerProvidersCleared.clear();
+      this.refreshProviderDisplay();
+    }
+  }
+
+  private async handleSequenceCompletion(
+    summary: MeasurementSequenceSummary
+  ): Promise<void> {
+    await this.handleFirstTestCompletion(summary);
+  }
+
+  private beginCloudflareProgressSimulation(): void {
+    this.stopCloudflareProgressSimulation();
+    this.isCloudflareProgressActive = true;
+    this.cloudflareProgressStart = Date.now();
+    this.cloudflareProgressValue = 0;
+    this.updateCloudflareProgress(0, true);
+
+    this.cloudflareProgressInterval = setInterval(() => {
+      if (!this.isCloudflareProgressActive) {
+        this.stopCloudflareProgressSimulation();
+        return;
+      }
+
+      const elapsed = Date.now() - this.cloudflareProgressStart;
+      const elapsedSeconds = elapsed / 1000;
+      const simulated = Math.min(0.95, elapsedSeconds / this.TIME_FOR_CLOUDFLARE_TEST);
+
+      this.updateCloudflareProgress(simulated);
+    }, 100);
+  }
+
+  private prepareForCloudflareRun(): void {
+    try {
+      this.clearLiveProvider('cloudflare');
       this.uploadProgressStarted = false;
       this.downloadStarted = false;
       this.uploadStarted = false;
       this.measurementnetworkServer = '';
       this.measurementISP = '';
       this.progress = 0;
-      // Clear any ongoing timers
+      this.progressGaugeState.current = this.progressGaugeState.minimum;
+
       if (this.downloadTimer) {
         clearInterval(this.downloadTimer);
         this.downloadTimer = null;
@@ -581,17 +883,113 @@ export class StarttestPage implements OnInit, OnDestroy {
         clearInterval(this.uploadTimer);
         this.uploadTimer = null;
       }
+
       this.currentState = 'Starting';
       this.uploadStatus = undefined;
       this.latency = undefined;
-      this.connectionStatus = ''; // Reset connection status
-      this.currentRate = undefined; // Reset current rate
-      this.isErrorClosed = false; // Reset error closed state
+      this.connectionStatus = '';
       this.uploadProgressStarted = false;
-      this.measurementClientService.runTest(notes);
+      this.beginCloudflareProgressSimulation();
+      this.ref.markForCheck();
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  private prepareForMlabRun(): void {
+    try {
+      this.clearLiveProvider('mlab');
+      this.uploadProgressStarted = false;
+      this.downloadStarted = false;
+      this.uploadStarted = false;
+      this.measurementnetworkServer = '';
+      this.measurementISP = '';
+      this.progress = 0;
+
+      if (this.downloadTimer) {
+        clearInterval(this.downloadTimer);
+        this.downloadTimer = null;
+      }
+      if (this.uploadTimer) {
+        clearInterval(this.uploadTimer);
+        this.uploadTimer = null;
+      }
+
+      this.currentState = 'Starting';
+      this.uploadStatus = undefined;
+      this.latency = undefined;
+      this.connectionStatus = '';
+      this.currentRate = undefined;
+      this.isErrorClosed = false;
+      this.uploadProgressStarted = false;
+      this.stopCloudflareProgressSimulation();
+      this.ref.markForCheck();
     } catch (e) {
       console.log(e);
     }
+  }
+
+  private enterWaitingBetweenProtocols(): void {
+    this.downloadStarted = false;
+    this.uploadStarted = false;
+    this.uploadProgressStarted = false;
+    this.stopCloudflareProgressSimulation();
+
+    if (this.downloadTimer) {
+      clearInterval(this.downloadTimer);
+      this.downloadTimer = null;
+    }
+    if (this.uploadTimer) {
+      clearInterval(this.uploadTimer);
+      this.uploadTimer = null;
+    }
+
+    this.currentState = this.translate.instant(
+      'startTest.waitingBetweenProtocols'
+    );
+    this.currentRate = undefined;
+    this.connectionStatus = '';
+    this.isErrorClosed = false;
+    this.progress = 0;
+    this.progressGaugeState.current = this.progressGaugeState.minimum;
+    this.applyDisplayForSelectedProvider();
+    this.ref.markForCheck();
+  }
+
+  private stopCloudflareProgressSimulation(finalProgress?: number): void {
+    if (this.cloudflareProgressInterval) {
+      clearInterval(this.cloudflareProgressInterval);
+      this.cloudflareProgressInterval = null;
+    }
+    this.isCloudflareProgressActive = false;
+
+    if (typeof finalProgress === 'number') {
+      this.updateCloudflareProgress(finalProgress, true);
+    }
+  }
+
+  private updateCloudflareProgress(value: number, force = false): void {
+    const bounded = Math.min(1, value);
+    if (!force && bounded <= this.cloudflareProgressValue) {
+      return;
+    }
+
+    this.cloudflareProgressValue = bounded;
+    this.progressGaugeState.current = bounded;
+    this.progress = Math.floor(bounded * 100);
+    this.ref.markForCheck();
+  }
+
+  async startCloudflare(
+    notes: string = 'manual'
+  ): Promise<MeasurementRunOutcome> {
+    this.prepareForCloudflareRun();
+    return this.cloudflareMeasurementService.runToCompletion(notes);
+  }
+
+  async startNDT(notes: string = 'manual'): Promise<MeasurementRunOutcome> {
+    this.prepareForMlabRun();
+    return this.measurementClientService.runToCompletion(notes);
   }
 
   startDownloadProgress() {
@@ -600,11 +998,13 @@ export class StarttestPage implements OnInit, OnDestroy {
     const interval = 200; // update every 200ms
     const steps = duration / interval;
     const stepSize = (target - this.progress) / steps;
+
     // Clear existing timer
     if (this.downloadTimer) {
       clearInterval(this.downloadTimer);
       this.downloadTimer = null;
     }
+
     // Reset progress if needed
     if (this.progress > target) {
       this.progress = 0;
@@ -616,11 +1016,13 @@ export class StarttestPage implements OnInit, OnDestroy {
       if (this.downloadStarted && this.progress < target) {
         this.progress += stepSize;
         elapsedSteps++;
+
         if (this.progress >= target || elapsedSteps >= steps) {
           this.progress = target;
           clearInterval(this.downloadTimer);
           this.downloadTimer = null;
         }
+
         this.ref.detectChanges(); // trigger UI update
       } else {
         clearInterval(this.downloadTimer);
@@ -628,6 +1030,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       }
     }, interval);
   }
+
   // Animate progress from 50 to 100
   startUploadProgress() {
     const target = 100;
@@ -655,6 +1058,154 @@ export class StarttestPage implements OnInit, OnDestroy {
         'registrationStatus:',
         this.registrationStatus
       );
+      // Delegate to specific handlers
+      this.driveGaugeNdt7(event, data);
+      this.driveGaugeCloadflare(event, data);
+    }
+  }
+
+  driveGaugeCloadflare(event, data) {
+    if (event !== 'measurement:status') {
+      return;
+    }
+
+    if (!data || data.provider !== 'cloudflare') {
+      return;
+    }
+
+    const testStatus = data.testStatus;
+    const convertToMbpsOrDefault = (value: number | undefined, digits = 2) => {
+      if (value === undefined || !Number.isFinite(value)) {
+        return '0.00';
+      }
+      return (value/ 1048576).toFixed(digits);
+    };
+
+    switch (testStatus) {
+      case 'cf_error':
+        // this.stopCloudflareProgressSimulation();
+        this.connectionStatus = 'error';
+        this.currentRate = 'error';
+        this.downloadStarted = false;
+        this.uploadStarted = false;
+        this.gaugeError();
+        console.log('Cloudflare test error');
+        // this.progress = 100;
+        // if (this.downloadTimer) {
+        //   clearInterval(this.downloadTimer);
+        //   this.downloadTimer = null;
+        // }
+        // if (this.uploadTimer) {
+        //   clearInterval(this.uploadTimer);
+        //   this.uploadTimer = null;
+        // }
+        this.ref.markForCheck();
+        return;
+
+      case 'cf_onstart':
+        if (!this.isCloudflareProgressActive) {
+          this.beginCloudflareProgressSimulation();
+        }
+        this.currentState = 'Starting';
+        this.currentRate = undefined;
+        this.clearLiveProvider('cloudflare');
+        this.updateCloudflareProgress(0, true);
+        this.ref.markForCheck();
+        return;
+
+      case 'cf_interval_download': {
+        const downloadMbps = Number(data.downloadCurrentSpeed ?? 0);
+        const downloadRate = convertToMbpsOrDefault(downloadMbps);
+        this.currentState = 'Running Test (Download)';
+        this.currentRate = downloadRate;
+        this.patchLiveMetrics('cloudflare', { download: downloadRate });
+        this.ref.markForCheck();
+        return;
+      }
+
+      case 'cf_interval_upload': {
+        const uploadMbps = Number(data.uploadCurrentSpeed ?? 0);
+        const uploadRate = convertToMbpsOrDefault(uploadMbps);
+        this.currentState = 'Running Test (Upload)';
+        this.currentRate = uploadRate;
+        this.patchLiveMetrics('cloudflare', { upload: uploadRate });
+        this.ref.markForCheck();
+        return;
+      }
+
+      case 'cf_complete': {
+        this.stopCloudflareProgressSimulation(1);
+        const results = data.passedResults || {};
+        const summary = results?.summary ?? {};
+        const downloadSummary = Number(
+          summary.download ?? data.downloadCurrentSpeed ?? 0
+        );
+        const uploadSummary = Number(
+          summary.upload ?? data.uploadCurrentSpeed ?? 0
+        );
+        const latencySummary = Number(
+          summary.latency ?? results?.unloadedLatency?.latency ?? 0
+        );
+        const completedAt = new Date();
+
+        this.currentState = 'Completed';
+        this.currentRate = convertToMbpsOrDefault(downloadSummary);
+        this.progress = 100;
+        this.progressGaugeState.current = this.progressGaugeState.maximum;
+        this.connectionStatus = 'success';
+        this.downloadStarted = false;
+        this.uploadStarted = false;
+        this.uploadProgressStarted = false;
+
+        const historicalData = this.historyService.get();
+        const cloudflareMeasurements = historicalData?.measurements;
+        const lastMeasurement =
+          Array.isArray(cloudflareMeasurements) &&
+          cloudflareMeasurements.length > 0
+            ? cloudflareMeasurements[cloudflareMeasurements.length - 1]
+            : undefined;
+        let testServer: string | undefined;
+        let networkOperator: string | undefined;
+        if (lastMeasurement) {
+          if (
+            lastMeasurement.provider === 'cloudflare' &&
+            lastMeasurement.serverInformation?.city
+          ) {
+            testServer = lastMeasurement.serverInformation.city;
+            this.measurementnetworkServer = testServer;
+          } else {
+            testServer = lastMeasurement?.mlabInformation?.city || undefined;
+            this.measurementnetworkServer = testServer ?? '';
+          }
+          networkOperator = lastMeasurement?.accessInformation?.org || undefined;
+          this.measurementISP = networkOperator ?? '';
+        }
+
+        this.updateLiveFromPassedResults('cloudflare', results, {
+          download: convertToMbpsOrDefault(downloadSummary),
+          upload: convertToMbpsOrDefault(uploadSummary),
+          latency: Number.isFinite(latencySummary)
+            ? latencySummary.toFixed(0)
+            : undefined,
+          timestamp: completedAt,
+          testServer,
+          networkOperator,
+        });
+        this.ref.markForCheck();
+        return;
+      }
+
+      default:
+        this.ref.markForCheck();
+    }
+  }
+
+  driveGaugeNdt7(event, data) {
+    if (event === 'measurement:status') {
+      if (!data || data.provider === 'cloudflare') {
+        return;
+      }
+      console.log({ data });
       if (data.testStatus === 'error') {
         this.connectionStatus = 'error';
         this.currentRate = 'error';
@@ -666,8 +1217,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       if (data.testStatus === 'onstart') {
         this.currentState = 'Starting';
         this.currentRate = undefined;
-        this.currentRateUpload = undefined;
-        this.currentRateDownload = undefined;
+        this.clearLiveProvider('mlab');
         this.progress = 0;
       } else if (data.testStatus === 'server_discovery') {
         this.currentState = this.translate.instant(
@@ -686,41 +1236,36 @@ export class StarttestPage implements OnInit, OnDestroy {
       } else if (data.testStatus === 'interval_c2s') {
         console.log('Running Test (Upload)');
         this.currentState = this.translate.instant('startTest.runningTestUpload');
-        this.currentRate = (
+        const uploadRate = (
           (data.passedResults.Data.TCPInfo.BytesReceived /
             data.passedResults.Data.TCPInfo.ElapsedTime) *
           8
         ).toFixed(2);
-        this.currentRateUpload = this.currentRate;
+        this.currentRate = uploadRate;
+        this.patchLiveMetrics('mlab', { upload: uploadRate });
         if (!this.uploadProgressStarted) {
           this.uploadProgressStarted = true;
           this.startUploadProgress();
         }
       } else if (data.testStatus === 'interval_s2c') {
         this.currentState = this.translate.instant('startTest.runningTestDownload');
-        this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
-        this.currentRateDownload =
-          data.passedResults.Data.MeanClientMbps?.toFixed(2);
+        const downloadRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
+        this.currentRate = downloadRate;
+        this.patchLiveMetrics('mlab', { download: downloadRate });
         if (this.downloadStarted) {
           this.startDownloadProgress();
         }
       } else if (data.testStatus === 'complete') {
-        this.currentState = 'Completed';
-        this.currentDate = new Date();
-        this.currentRate =
+        const completedAt = new Date();
+        const downloadRate =
           data.passedResults[
             'NDTResult.S2C'
           ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
-        this.currentRateUpload =
+        const uploadRate =
           data.passedResults[
             'NDTResult.C2S'
           ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
-        this.currentRateDownload =
-          data.passedResults[
-            'NDTResult.S2C'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
-        this.progressGaugeState.current = this.progressGaugeState.maximum;
-        this.latency = (
+        const latencyValue = (
           (data.passedResults['NDTResult.S2C'].LastServerMeasurement.BBRInfo
             .MinRTT +
             data.passedResults['NDTResult.C2S'].LastServerMeasurement.BBRInfo
@@ -728,26 +1273,40 @@ export class StarttestPage implements OnInit, OnDestroy {
           2 /
           1000
         ).toFixed(0);
-        let historicalData = this.historyService.get();
-        if (
-          historicalData !== null &&
-          historicalData !== undefined &&
-          historicalData.measurements.length
-        ) {
-          this.measurementnetworkServer =
-            historicalData.measurements[
-              historicalData.measurements.length - 1
-            ].mlabInformation.city;
-          this.measurementISP =
-            historicalData.measurements[
-              historicalData.measurements.length - 1
-            ].accessInformation.org;
-        }
-        this.ref.markForCheck();
-        this.refreshHistory();
 
-        // Handle first test completion for new registrations
-        this.handleFirstTestCompletion();
+        this.currentState = 'Completed';
+        this.currentRate = downloadRate;
+        this.progressGaugeState.current = this.progressGaugeState.maximum;
+
+        const historicalData = this.historyService.get();
+        const measurements = historicalData?.measurements;
+        let testServer: string | undefined;
+        let networkOperator: string | undefined;
+        if (Array.isArray(measurements) && measurements.length) {
+          const lastMeasurement = measurements[measurements.length - 1];
+          if (
+            lastMeasurement.provider === 'cloudflare' &&
+            lastMeasurement.serverInformation?.city
+          ) {
+            testServer = lastMeasurement.serverInformation.city;
+            this.measurementnetworkServer = testServer;
+          } else {
+            testServer = lastMeasurement?.mlabInformation?.city || undefined;
+            this.measurementnetworkServer = testServer ?? '';
+          }
+          networkOperator = lastMeasurement?.accessInformation?.org || undefined;
+          this.measurementISP = networkOperator ?? '';
+        }
+
+        this.updateLiveFromPassedResults('mlab', data.passedResults, {
+          download: downloadRate,
+          upload: uploadRate,
+          latency: latencyValue,
+          timestamp: completedAt,
+          testServer,
+          networkOperator,
+        });
+        this.ref.markForCheck();
       } else if (data.testStatus === 'onerror') {
         this.gaugeError();
         this.currentState = undefined;
@@ -756,7 +1315,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // Hide registration banners if an error is shown during first test
         this.showRegistrationBanner = false;
       }
-      if (data.testStatus !== 'complete') {
+      if (data.testStatus !== 'complete' && typeof data.progress === 'number') {
         this.progressGaugeState.current = data.progress;
       }
     }
@@ -875,7 +1434,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       }
 
       // Start the NDT test
-      this.startNDT('first');
+      this.startMeasurement('first');
     } else {
       console.log('Auto-trigger conditions not met:', {
         firstTestTriggered: this.firstTestTriggered,
@@ -899,8 +1458,23 @@ export class StarttestPage implements OnInit, OnDestroy {
   /**
    * Handle test completion for first-time users
    */
-  async handleFirstTestCompletion() {
-    if (this.isFirstVisit && this.registrationStatus === 'testing') {
+  async handleFirstTestCompletion(summary: MeasurementSequenceSummary) {
+    if (
+      !this.isFirstVisit ||
+      this.registrationStatus !== 'testing' ||
+      summary.overallStatus === 'failure'
+    ) {
+      return;
+    }
+
+    const expectedFinalProvider: MeasurementProviderId =
+      summary.measurementProviders.includes('cloudflare') ? 'cloudflare' : 'mlab';
+
+    const expectedStage = [...summary.stages]
+      .reverse()
+      .find((stage) => stage.provider === expectedFinalProvider);
+
+    if (expectedStage?.status === 'success') {
       this.registrationStatus = 'done';
 
       // Show success modal after a short delay
@@ -1011,9 +1585,15 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   ngOnDestroy() {
+    this.sequenceAbortController?.abort();
     this.downloadSub.unsubscribe();
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();
     this.uploadStartedSub.unsubscribe();
+    this.cloudflareDownloadSub?.unsubscribe();
+    this.cloudflareUploadSub?.unsubscribe();
+    this.cloudflareDownloadStartedSub?.unsubscribe();
+    this.cloudflareUploadStartedSub?.unsubscribe();
+    this.stopCloudflareProgressSimulation();
   }
 }

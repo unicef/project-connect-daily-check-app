@@ -1,67 +1,5 @@
 <app-pcdc-header></app-pcdc-header>
 <ion-content class="scrollable_content">
-  <ion-card class="card_margin">
-    <div class="centerPos">
-      <ion-item class="custom-item" lines="none" color="light">
-        <ion-label>
-          <p class="subtitle">{{ selectedCountry }} - {{ schoolId }}</p>
-          <h2 class="title" title="{{ schoolId }}">{{ school.name }}</h2>
-        </ion-label>
-      </ion-item>
-      <ion-list lines="none" class="horizontal-list">
-        <!-- <ion-item lines="none">
-          <ion-label>
-            <h3 [translate]="'startTest.network'"></h3>
-            <p title="--">--</p>
-          </ion-label>
-        </ion-item> -->
-
-        <ion-item lines="none" class="center-pos">
-          <ion-label class="position">
-            <h3 [translate]="'startTest.isp'"></h3>
-            <p title="{{ measurementISP }}">
-              {{ measurementISP?.length ? measurementISP : "---" }}
-            </p>
-          </ion-label>
-        </ion-item>
-
-        <ion-item lines="none">
-          <ion-label class="position">
-            <h3 [translate]="'startTest.server'"></h3>
-            <p title="{{ measurementnetworkServer }}">
-              {{
-              measurementnetworkServer?.length
-              ? measurementnetworkServer
-              : "---"
-              }}
-            </p>
-          </ion-label>
-        </ion-item>
-      </ion-list>
-      <!-- <ion-list lines="none" class="horizontal-list">
-        <ion-item lines="none">
-          <ion-label>
-            <h3>Nb of students</h3>
-            <p>230</p>
-          </ion-label>
-        </ion-item>
-
-        <ion-item lines="none">
-          <ion-label>
-            <h3>Nb of teachers</h3>
-            <p>18</p>
-          </ion-label>
-        </ion-item>
-
-        <ion-item lines="none">
-          <ion-label>
-            <h3>Education level</h3>
-            <p>Primary</p>
-          </ion-label>
-        </ion-item>
-      </ion-list> -->
-    </div>
-  </ion-card>
   <ion-card class="last_location_card" *ngIf="locationDetail?.accuracy">
     <div class="last_location_content">
       <div class="left_section">
@@ -74,7 +12,6 @@
               ? (locationDetail.accuracy | number:'1.2-2') + 'm'
               : '-' }}
             </span>
-
           </div>
         </div>
         <a class="location_link" (click)="openExternalUrl()">
@@ -87,68 +24,72 @@
     </div>
   </ion-card>
   <ion-card class="footer_card_margin">
+    <div class="centerPos">
+      <ion-item class="custom-item" lines="none" color="light">
+        <ion-label>
+          <p class="subtitle">{{ selectedCountry }} - {{ schoolId }}</p>
+          <h2 class="title" title="{{ school?.name }}">{{ school?.name }}</h2>
+        </ion-label>
+      </ion-item>
+    </div>
     <ion-card-header>
       <ion-card-title class="test_history" [translate]="'startTest.total'">
       </ion-card-title>
     </ion-card-header>
 
     <ion-card-content>
-      <ion-grid>
-        <!-- Header Row -->
-        <ion-row class="table-header">
-          <ion-col size="2.2" [translate]="'startTest.date'">Date</ion-col>
-          <ion-col size="2.2">
-            <div class="header-with-unit">
-              <span [translate]="'startTest.downloadLowerCase'"></span>
-              <span class="unit-text">(Mbps)</span>
-            </div>
+      <div class="table-scroll">
+        <ion-grid>
+          <ion-row class="table-header">
+          <ion-col size="1.8" class="sortable-header" (click)="onSortColumn('timestamp')">
+              <span>Date</span>
+              <span class="sort-indicator">{{ getSortIndicator('timestamp') }}</span>
           </ion-col>
-          <ion-col size="2.2">
-            <div class="header-with-unit">
-              <span [translate]="'startTest.uploadLowerCase'"></span>
-              <span class="unit-text">(Mbps)</span>
-            </div>
+            <ion-col size="1.3" class="sortable-header" (click)="onSortColumn('download')">
+              <div class="header-with-unit">
+                <span>Down (Mbps)</span>
+                <span class="sort-indicator">{{ getSortIndicator('download') }}</span>
+              </div>
           </ion-col>
-          <ion-col size="1.5">
-            <div class="header-with-unit">
-              <span [translate]="'startTest.latencyDetail'"></span>
-              <span class="unit-text">(ms)</span>
-            </div>
+            <ion-col size="1.3" class="sortable-header" (click)="onSortColumn('upload')">
+              <div class="header-with-unit">
+                <span>Up (Mbps)</span>
+                <span class="sort-indicator">{{ getSortIndicator('upload') }}</span>
+              </div>
           </ion-col>
-          <ion-col size="2.1" [translate]="'startTest.testTrigger'">Test Trigger</ion-col>
-          <ion-col size="1.8" [translate]="'startTest.status'">Status</ion-col>
-        </ion-row>
-
-        <!-- Data Rows -->
-        <span *ngIf="measurementsData?.length <= 10">
-          <ion-row *ngFor="let data of measurementsData">
-            <ion-col size="2.2">{{ data.timestamp | date : "dd-MM-yyyy HH:mm" }}
-            </ion-col>
-            <ion-col size="2.2">{{
-              data.results["NDTResult.S2C"].LastClientMeasurement.MeanClientMbps
-              | number : "1.2-2"
-              }}</ion-col>
-            <ion-col size="2.2">{{
-              data.results["NDTResult.C2S"].LastClientMeasurement.MeanClientMbps
-              | number : "1.2-2"
-              }}</ion-col>
-            <ion-col size="1.5">{{
-              (data.results["NDTResult.S2C"].LastServerMeasurement.BBRInfo
-              .MinRTT +
-              data.results["NDTResult.C2S"].LastServerMeasurement.BBRInfo
-              .MinRTT) /
-              2 /
-              1000 | number : "1.2-2"
-              }}</ion-col>
-            <ion-col size="2.1">{{
-              getTestTriggerDisplayText(data.Notes)
-              }}</ion-col>
-            <ion-col [ngClass]="getSyncStatusClass(data)" size="1.8">{{
-              getSyncStatusText(data)
-              }}</ion-col>
+            <ion-col size="1.2">
+              <div class="header-with-unit">
+                <span>Lat (ms)</span>
+              </div>
+          </ion-col>
+            <ion-col size="1.8" class="sortable-header protocol-cell" (click)="onSortColumn('protocol')">
+              <span>Protocol</span>
+              <span class="sort-indicator">{{ getSortIndicator('protocol') }}</span>
+          </ion-col>
+            <ion-col size="2.3">Server</ion-col>
+            <ion-col size="2.3">Network</ion-col>
           </ion-row>
-        </span>
-      </ion-grid>
+
+          <ion-row *ngFor="let data of measurementsData">
+            <ion-col size="1.8" class="date-cell">
+              <span>{{ data.timestamp | date : "dd MMM" }}</span>
+              <span>{{ data.timestamp | date : "HH:mm" }}</span>
+            </ion-col>
+            <ion-col size="1.3">{{ data.download | number : "1.2-2" }}</ion-col>
+            <ion-col size="1.3">{{ data.upload | number : "1.2-2" }}</ion-col>
+            <ion-col size="1.2">{{ data.latency | number : "1.2-2" }}</ion-col>
+            <ion-col size="1.8" class="protocol-cell">
+              <span
+                class="protocol-pill"
+                [class.protocol-pill-cloudflare]="data.protocolLabel === 'Cloudflare'"
+                [class.protocol-pill-mlab]="data.protocolLabel !== 'Cloudflare'"
+              >{{ data.protocolLabel }}</span>
+            </ion-col>
+            <ion-col size="2.3" class="truncate-cell" title="{{ data.testServer }}">{{ data.testServer }}</ion-col>
+            <ion-col size="2.3" class="truncate-cell" title="{{ data.networkOperator }}">{{ data.networkOperator }}</ion-col>
+          </ion-row>
+        </ion-grid>
+      </div>
     </ion-card-content>
   </ion-card>
 </ion-content>

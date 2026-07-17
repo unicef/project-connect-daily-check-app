@@ -6,7 +6,7 @@ import { NotFound } from '../schoolnotfound/types';
 import { LoadingService } from '../services/loading.service';
 import { SchoolService } from '../services/school.service';
 import { StorageService } from '../services/storage.service';
-import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
+import { removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
 
@@ -313,9 +313,10 @@ export class HomePage {
     console.log(
       '✅ [HomePage] Registration data successfully loaded from hardware ID'
     );
+    void this.settingsService.invalidateProtocolConfigCache();
   }
 
   openExternalUrl(href) {
-    this.settingsService.getShell().shell.openExternal(href);
+    this.settingsService.openExternalUrl(href);
   }
 }

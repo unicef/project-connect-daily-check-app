@@ -33,6 +33,8 @@ export const environment = {
   appNameSuffix: '',
   showAboutMenu: true,
   ipInfoToken: env.ipInfoToken,
+  mlabDocsUrl: 'https://www.measurementlab.net/tests/ndt/',
+  cloudflareDocsUrl: 'https://speed.cloudflare.com/',
   languages: [
     {
       name: 'En',

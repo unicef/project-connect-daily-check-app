@@ -1,4 +1,6 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, NgZone } from '@angular/core';
+import { ChangeDetectorRef } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-circular-progress-bar',
@@ -7,8 +9,18 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 })
 export class CircularProgressBarComponent {
   @Input() firstLabel!: string;
-  @Input() secondLabel: string | null = null;
   @Input() statusMessage: string | null = null; // New input for status messages
+
+  private _secondLabel: string | null = null;
+
+  @Input()
+  set secondLabel(value: string | null) {
+    this._secondLabel = value;
+    this._onSecondLabelChange(value);
+  }
+  get secondLabel(): string | null {
+    return this._secondLabel;
+  }
   @Input() icon: string | null = null;
   @Input() progressValue!: number;
   @Input() currentRateUpload!: number;
@@ -18,6 +30,64 @@ export class CircularProgressBarComponent {
 
   @Output() startTest = new EventEmitter<void>();
   @Output() showError = new EventEmitter<boolean>();
+
+  isSpinnerVisible = false;
+  private hideTimeout: any = null;
+
+  constructor(
+    private ngZone: NgZone,
+    private cd: ChangeDetectorRef,
+    private translate: TranslateService
+  ) {}
+
+  // "Try again" wrapped into lines that fit inside the circle in every language.
+  // Honors explicit \n in the translation, then word-wraps long segments.
+  get tryAgainLines(): string[] {
+    const text: string = this.translate.instant('startTest.tryAgain') || '';
+    const maxCharsPerLine = 11;
+    const lines: string[] = [];
+
+    for (const segment of text.trim().split('\n')) {
+      let currentLine = '';
+      for (const word of segment.trim().split(/\s+/)) {
+        const candidate = (currentLine + ' ' + word).trim();
+        if (candidate.length <= maxCharsPerLine) {
+          currentLine = candidate;
+        } else {
+          if (currentLine) lines.push(currentLine);
+          currentLine = word;
+        }
+      }
+      if (currentLine) lines.push(currentLine);
+    }
+
+    return lines.slice(0, 3);
+  }
+
+  private _onSecondLabelChange(label: string | null) {
+    if (label === 'DOWNLOAD' || label === 'UPLOAD') {
+      if (this.hideTimeout) {
+        clearTimeout(this.hideTimeout);
+        this.hideTimeout = null;
+      }
+      this.ngZone.run(() => {
+        this.isSpinnerVisible = true;
+        this.cd.markForCheck(); // fuerza Angular a actualizar el template
+      });
+      return;
+    }
+
+    if (label === 'TEST AGAIN' || label === null) {
+      if (this.hideTimeout) clearTimeout(this.hideTimeout);
+      this.hideTimeout = setTimeout(() => {
+        this.ngZone.run(() => {
+          this.isSpinnerVisible = false;
+          this.hideTimeout = null;
+          this.cd.markForCheck();
+        });
+      }, 200);
+    }
+  }
 
   handleClick() {
     if (
@@ -46,7 +116,7 @@ export class CircularProgressBarComponent {
   }
 
   getTextClass(): string {
-    if (this.secondLabel) return 'fill-color-tertiary';
+    if (this._secondLabel) return 'fill-color-tertiary';
     if (this.error) return 'fill-color-text-error';
     return 'fill-white';
   }

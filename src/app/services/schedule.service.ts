@@ -2,10 +2,10 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
-import { MeasurementClientService } from '../services/measurement-client.service';
 import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
 import { NetworkService } from './network.service';
+import { MeasurementOrchestrationService } from './measurement-orchestration.service';
 
 @Injectable({
   providedIn: 'root',
@@ -25,10 +25,10 @@ export class ScheduleService {
 
   constructor(
     private storageService: StorageService,
-    private measurementClientService: MeasurementClientService,
     private settingsService: SettingsService,
     private sharedService: SharedService,
-    private networkService: NetworkService
+    private networkService: NetworkService,
+    private measurementOrchestrationService: MeasurementOrchestrationService,
   ) {
     console.log('ScheduleService constructor called');
   }
@@ -160,7 +160,7 @@ export class ScheduleService {
 
       try {
         console.log('Running test...');
-        await this.measurementClientService.runTest(
+        await this.startMeasurementNow(
           scheduleSemaphore.intervalType
         );
         console.log('Measurement completed successfully');
@@ -332,12 +332,18 @@ export class ScheduleService {
     }
 
     try {
-      await this.measurementClientService.runTest('startup');
+      await this.startMeasurementNow('startup');
       console.log('Startup test completed successfully');
       this.storageService.set('lastMeasurement', Date.now().toString());
       this.storageService.set(this.STARTUP_TEST_KEY, Date.now().toString());
     } catch (error) {
       console.error('Startup test failed:', error);
+    }
+  }
+  async startMeasurementNow(notes: string) {
+    const summary = await this.measurementOrchestrationService.runSequence(notes);
+    if (summary.overallStatus === 'failure') {
+      throw new Error('Measurement sequence failed');
     }
   }
 }

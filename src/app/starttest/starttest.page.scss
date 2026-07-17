@@ -509,10 +509,6 @@ span.currentState {
   display: flex;
   justify-content: space-between;
   color: #6F6F6F;
-  &.time{
-    font-size: 14px;
-    font-weight: 500;
-  }
 }
 
 .footer-card ion-card-subtitle {
@@ -531,11 +527,6 @@ span.currentState {
   color: #6F6F6F;
   text-transform: none;
 
-}
-
-.time {
-  font-size: 12px;
-  font-weight: 400;
 }
 
 .horizontal-list {
@@ -729,6 +720,10 @@ ion-card {
 .success_status{
   color: #28a745 !important;
 }
+
+.footer-card ion-card-subtitle.success_status {
+  font-size: 22px;
+}
 .position {
   display: flex;
     justify-content: space-between;
@@ -736,4 +731,116 @@ ion-card {
     gap: 7px;
     margin-top: 0;
     margin-bottom: 0;
+}
+
+.metadata-grid {
+  width: 91%;
+  max-width: 340px;
+  margin: 12px auto 8px;
+  padding: 0;
+
+  ion-row {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 10px;
+  }
+
+  .metadata-col {
+    text-align: center;
+    position: relative;
+
+    &:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      right: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 1px;
+      background: #e0e0e0;
+    }
+
+    h3 {
+      font-size: 11px;
+      color: #8d8d8d;
+      margin: 0 0 4px;
+      font-weight: 400;
+    }
+
+    p {
+      font-size: 13px;
+      margin: 0;
+      color: #161616;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+  }
+}
+
+.latest-measurements-card {
+  padding: 12px 0;
+}
+
+.speed-header {
+  margin: 0 16px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.speed-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #161616;
+}
+
+.speed-date {
+  font-size: 12px;
+  font-weight: 400;
+  color: #6f6f6f;
+}
+
+.footer-grid {
+  padding: 0 16px 8px;
+}
+
+.footer-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-bottom: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  .footer-card {
+    flex: 1;
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+.provider-docs-link {
+  margin: 8px 16px 0;
+  font-size: 14px;
+  width: auto;
+  cursor: pointer;
+  color: #277aff;
+  text-decoration: underline;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-weight: 400;
+
+  ion-img,
+  .external-link-icon {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    min-height: 16px;
+    flex-shrink: 0;
+    object-fit: contain;
+  }
 }

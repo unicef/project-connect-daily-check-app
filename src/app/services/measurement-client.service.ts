@@ -6,6 +6,10 @@ import { SettingsService } from './settings.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
+import {
+  MeasurementRecord,
+  MeasurementRunOutcome,
+} from './measurement.types.js';
 
 @Injectable({
   providedIn: 'root',
@@ -79,12 +83,18 @@ export class MeasurementClientService {
   ) {}
 
   async runTest(notes = 'manual'): Promise<void> {
-    console.log('Starting ndt7 test', ndt7);
-    this.retryAttempts = 0;
-    await this.runTestWithRetry(notes);
+    await this.runToCompletion(notes);
   }
 
-  private async runTestWithRetry(notes = 'manual'): Promise<void> {
+  async runToCompletion(notes = 'manual'): Promise<MeasurementRunOutcome> {
+    console.log('Starting ndt7 test', ndt7);
+    this.retryAttempts = 0;
+    return this.runTestWithRetry(notes);
+  }
+
+  private async runTestWithRetry(
+    notes = 'manual'
+  ): Promise<MeasurementRunOutcome> {
     this.broadcastMeasurementStatus('onstart', {});
     const measurementRecord = this.initializeMeasurementRecord(notes);
 
@@ -107,14 +117,17 @@ export class MeasurementClientService {
       console.log('ndt7 test completed with exit code:', exitCode);
 
       await this.finalizeMeasurement(measurementRecord);
+      return { provider: 'mlab', status: 'success' };
     } catch (error) {
       console.error('Error running ndt7 test:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // Check if this is a locate server error and we can retry
       const isLocateServerError =
-        error.message.includes('locate.measurementlab.net') ||
-        error.message.includes('Could not understand response') ||
-        error.message.includes('fetch');
+        errorMessage.includes('locate.measurementlab.net') ||
+        errorMessage.includes('Could not understand response') ||
+        errorMessage.includes('fetch');
 
       if (isLocateServerError && this.retryAttempts < this.maxRetries) {
         this.retryAttempts++;
@@ -131,13 +144,14 @@ export class MeasurementClientService {
         // Wait a bit before retrying
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return this.runTestWithRetry(notes);
-      } else {
-        this.broadcastMeasurementStatus('onError', { error: error.message });
       }
+
+      this.broadcastMeasurementStatus('onError', { error: errorMessage });
+      return { provider: 'mlab', status: 'failure', error: errorMessage };
     }
   }
 
-  private initializeMeasurementRecord(notes: string) {
+  private initializeMeasurementRecord(notes: string):MeasurementRecord {
     return {
       timestamp: Date.now(),
       results: {},
@@ -298,7 +312,8 @@ export class MeasurementClientService {
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
     measurementRecord.dataUsage = dataUsage;
-
+    measurementRecord.provider = 'mlab';
+    
     if (this.settingsService.get('uploadEnabled')) {
       try {
         // Try to upload first before saving to localStorage

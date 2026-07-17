@@ -72,28 +72,35 @@
   color: #474747 !important;
 }
 
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+
+  ion-grid {
+    min-width: 580px;
+    padding: 0;
+  }
+}
+
 .table-header {
   ion-col {
     font-weight: 400;
     font-size: 9px;
     align-items: flex-start;
-    word-wrap: break-word;
-    white-space: normal;
+    white-space: nowrap;
     line-height: 1.2;
     padding: 0 2px;
   }
   
   .header-with-unit {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    display: inline-flex;
+    flex-direction: row;
+    gap: 4px;
     align-items: flex-start;
-    word-wrap: break-word;
-    white-space: normal;
+    white-space: nowrap;
     
     span {
-      word-wrap: break-word;
-      white-space: normal;
+      white-space: nowrap;
     }
   }
   
@@ -130,6 +137,13 @@ ion-col {
 
   /* Optional text alignment: */
   /* justify-content: center; */
+}
+
+ion-col.protocol-cell {
+  white-space: nowrap;
+  overflow: visible;
+  word-break: normal;
+  overflow-wrap: normal;
 }
 
 .card_margin {
@@ -247,4 +261,59 @@ ion-col {
   font-size: 16px;
   color: #9e9e9e;
   cursor: pointer;
+}
+
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sort-indicator {
+  margin-left: 2px;
+  font-size: 8px;
+  color: #9e9e9e;
+}
+
+.protocol-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 9px;
+  font-weight: 500;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.protocol-pill-mlab {
+  background: #eaf2ff;
+  color: #1f6feb;
+  border-color: #bfd7ff;
+}
+
+.protocol-pill-cloudflare {
+  background: #ffedd5;
+  color: #c2410c;
+  border-color: #fed7aa;
+}
+
+.truncate-cell {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.date-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+
+  span:first-child {
+    font-size: 10px;
+    color: #525252;
+  }
 }

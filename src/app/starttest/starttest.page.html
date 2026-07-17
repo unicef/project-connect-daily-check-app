@@ -80,7 +80,7 @@
       <!-- <div *ngIf="currentState == undefined && currentRate != 'error' && onlineStatus"> -->
       <!-- <div class="start-container centerAlign">
         <div class="center-layout text-center">
-          <button class="test-btn" (click)="startNDT()" [translate]="'startTest.startTest'"></button>
+          <button class="test-btn" (click)="startMeasurement()" [translate]="'startTest.startTest'"></button>
         </div>
       </div> -->
       <app-circular-progress-bar
@@ -89,15 +89,13 @@
         [statusMessage]="getStatusMessage()"
         [icon]="''"
         [error]="(connectionStatus=='error' && currentState == undefined) || (!onlineStatus)"
-        (startTest)="startNDT()"
+        (startTest)="startMeasurement()"
         [firstLabel]="(currentState == undefined && currentRate != 'error' && onlineStatus) ? ('startTest.startTest' | translate) : ''"
         [currentRateDownload]="currentRateDownload"
         [currentRateUpload]="currentRateUpload"
         [completed]="currentState =='Completed'"
       ></app-circular-progress-bar>
 
-      <div class="location">{{mlabInformation.label}}</div>
-      <!-- </div> -->
       <!---------   Start test Section END ------------------>
       <!----------   Start test progress Section --------------->
       <!-- <div *ngIf="currentState == 'Starting' && currentState !== undefined && onlineStatus">
@@ -136,10 +134,10 @@
         <!-- <div class="centerGauge"> -->
         <!-- <div class="start-container">
           <div class="center-layout text-center"> -->
-        <!-- <button class="test-btn" (click)="startNDT()" *ngIf="currentState !== 'Completed' && currentState !== undefined">START TEST</button> -->
+        <!-- <button class="test-btn" (click)="startMeasurement()" *ngIf="currentState !== 'Completed' && currentState !== undefined">START TEST</button> -->
         <!-- <ion-img src="assets/loader/loader.gif" class="bigloaderGif marT12"
               *ngIf="currentState !== 'Completed' && currentState !== undefined"></ion-img> -->
-        <!-- <button class="test-btn" (click)="startNDT()" *ngIf="currentState == 'Completed'"
+        <!-- <button class="test-btn" (click)="startMeasurement()" *ngIf="currentState == 'Completed'"
               [translate]="'startTest.testAgain'"></button>
             <div *ngIf="connectionStatus=='error'">
               <ion-img src="assets/images/Test_Failed_Icon.png" class="testFailed"></ion-img>
@@ -195,141 +193,121 @@
         <div class="location">{{mlabInformation.label}}</div>
         <div class="bottom-layout">
           <div *ngIf="currentState == undefined || !onlineStatus" class="tryAgain">
-            <ion-button class="dailycheck_btn" (click)="startNDT()" [translate]="'startTest.tryAgain'"></ion-button>
+            <ion-button class="dailycheck_btn" (click)="startMeasurement()" [translate]="'startTest.tryAgain'"></ion-button>
             <div class="h-line"></div>
           </div>
         </div>
       </div> -->
       <!-- ------------------------------------------- -->
-      <ion-list lines="none" class="horizontal-list">
-        <!-- <ion-item lines="none" class="left-item"> -->
-        <!-- <ion-label>
-            <h3  [translate]="'startTest.network'"></h3>
-            <p title="--">--</p>
-          </ion-label> -->
-        <!-- </ion-item> -->
-
-        <ion-item lines="none" class="center-item">
-          <ion-label class="position">
-            <h3 [translate]="'startTest.isp'"></h3>
-            <p title="{{measurementISP}}">
-              {{measurementISP?.length ? measurementISP : '---'}}
-            </p>
-          </ion-label>
-        </ion-item>
-
-        <ion-item lines="none" class="right-item">
-          <ion-label class="position">
+      <ion-grid class="metadata-grid">
+        <ion-row>
+          <ion-col size="4" class="metadata-col">
+            <h3 [translate]="'startTest.protocol'"></h3>
+            <p [translate]="selectedProtocolLabelKey"></p>
+          </ion-col>
+          <ion-col size="4" class="metadata-col">
             <h3 [translate]="'startTest.server'"></h3>
-            <p title="{{measurementnetworkServer}}">
-              {{measurementnetworkServer?.length ? measurementnetworkServer :
-              '---' }}
-            </p>
-          </ion-label>
-        </ion-item>
-      </ion-list>
+            <p title="{{ displayTestServer }}">{{ displayTestServer }}</p>
+          </ion-col>
+          <ion-col size="4" class="metadata-col">
+            <h3 [translate]="'startTest.isp'"></h3>
+            <p title="{{ displayNetworkOperator }}">{{ displayNetworkOperator }}</p>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
     </div>
   </ion-card>
-  <ion-card class="footer_card_margin">
-    <ion-label
-      class="latest_measurement"
-      [translate]="'startTest.measurement'"
-    ></ion-label>
+  <ion-card class="footer_card_margin latest-measurements-card">
+    <div class="speed-header">
+      <span class="speed-title" [translate]="'startTest.yourInternetSpeed'"></span>
+      <span class="speed-date" *ngIf="currentDate">{{ currentDate | date:'MMM d, h:mm a' }}</span>
+    </div>
+
     <div class="footer-grid">
       <div class="footer-row">
         <ion-card class="footer-card">
-          <ion-card-header class="footer_card_header">
-            <ion-card-title>
-              <span class="footer_text">
-                <img src="assets/images/Download.svg" />
-                <span [translate]="'startTest.downloadLowerCase'"></span>
-              </span>
-              <span class="time">{{ currentDate | date:'shortTime' }}</span>
-            </ion-card-title>
-            <ion-card-subtitle
-              [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) ||
-            (!onlineStatus)}"
-              >{{currentRateDownload && !((connectionStatus=='error' &&
-              currentState == undefined) || (!onlineStatus)) ?
-              currentRateDownload : '---'}}
-              <span class="footer_card_font_size"
-                >{{((connectionStatus=='error' && currentState == undefined) ||
-                (!onlineStatus)) ? '' : 'Mbps'}}</span
-              >
-            </ion-card-subtitle>
-          </ion-card-header>
-        </ion-card>
+        <ion-card-header class="footer_card_header">
+          <ion-card-title>
+            <span class="footer_text">
+              <img src="assets/images/Download.svg" alt="" />
+              <span [translate]="'startTest.downloadLowerCase'"></span>
+            </span>
+          </ion-card-title>
+          <ion-card-subtitle
+            [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) || (!onlineStatus)}"
+          >
+            {{ currentRateDownload && !((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) ? currentRateDownload : '---' }}
+            <span class="footer_card_font_size">{{ ((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) ? '' : 'Mbps' }}</span>
+          </ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
 
-        <ion-card class="footer-card" color="medium">
-          <ion-card-header class="footer_card_header">
-            <ion-card-title
-              ><span class="footer_text">
-                <img src="assets/images/Upload.svg" />
-                <span [translate]="'startTest.uploadLowerCase'"> </span>
-              </span>
-              <span class="time">{{ currentDate | date:'shortTime' }}</span>
-            </ion-card-title>
-            <ion-card-subtitle
-              [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) ||
-            (!onlineStatus)}"
-              >{{currentRateUpload && !((connectionStatus=='error' &&
-              currentState == undefined) || (!onlineStatus)) ? currentRateUpload
-              : '---'}}
-              <span class="footer_card_font_size"
-                >{{((connectionStatus=='error' && currentState == undefined) ||
-                (!onlineStatus)) ? '' : 'Mbps'}}</span
-              >
-            </ion-card-subtitle>
-          </ion-card-header>
-        </ion-card>
+        <ion-card class="footer-card">
+        <ion-card-header class="footer_card_header">
+          <ion-card-title>
+            <span class="footer_text">
+              <img src="assets/images/Upload.svg" alt="" />
+              <span [translate]="'startTest.uploadLowerCase'"></span>
+            </span>
+          </ion-card-title>
+          <ion-card-subtitle
+            [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) || (!onlineStatus)}"
+          >
+            {{ currentRateUpload && !((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) ? currentRateUpload : '---' }}
+            <span class="footer_card_font_size">{{ ((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) ? '' : 'Mbps' }}</span>
+          </ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
       </div>
 
       <div class="footer-row">
-        <ion-card class="footer-card" color="medium">
-          <ion-card-header class="footer_card_header">
-            <ion-card-title>
-              <span class="footer_text">
-                <img src="assets/images/Arrows--horizontal.svg" />
-                <span [translate]="'startTest.latencyDetail'"></span>
-              </span>
-              <span class="time">{{ currentDate | date:'shortTime' }}</span>
-            </ion-card-title>
-            <ion-card-subtitle
-              [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) ||
-            (!onlineStatus)}"
-              >{{currentRateDownload && !((connectionStatus=='error' &&
-              currentState == undefined) || (!onlineStatus)) ? latency ? latency
-              : '---' : '---'}}
-              <span class="footer_card_font_size"
-                >{{((connectionStatus=='error' && currentState == undefined) ||
-                (!onlineStatus)) ? '---' : 'ms'}}</span
-              >
-            </ion-card-subtitle>
-          </ion-card-header>
-        </ion-card>
+        <ion-card class="footer-card">
+        <ion-card-header class="footer_card_header">
+          <ion-card-title>
+            <span class="footer_text">
+              <img src="assets/images/Arrows--horizontal.svg" alt="" />
+              <span [translate]="'startTest.latencyDetail'"></span>
+            </span>
+          </ion-card-title>
+          <ion-card-subtitle
+            [ngClass]="{'error_status': (connectionStatus=='error' && currentState == undefined) || (!onlineStatus)}"
+          >
+            {{ latency && !((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) ? latency : '---' }}
+            <span class="footer_card_font_size">{{ ((connectionStatus=='error' && currentState == undefined) || (!onlineStatus)) ? '' : 'ms' }}</span>
+          </ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
 
-        <ion-card class="footer-card" color="medium">
-          <ion-card-header class="footer_card_header">
-            <ion-card-title>
-              <span class="footer_text">
-                <img src="assets/images/Arrows--horizontal.svg" />
-                <span [translate]="'startTest.ping'"></span>
-              </span>
-              <span class="time"
-                >{{ pingTimestamp ? (pingTimestamp | date:'shortTime') : '---'
-                }}</span
-              >
-            </ion-card-title>
-            <ion-card-subtitle
-              [ngClass]="{
-                'error_status': pingStatus === 'Failed' || pingStatus === '---',
-                'success_status': pingStatus === 'Success'
-              }"
-              >{{ pingStatus }}
-            </ion-card-subtitle>
-          </ion-card-header>
-        </ion-card>
+        <ion-card class="footer-card">
+        <ion-card-header class="footer_card_header">
+          <ion-card-title>
+            <span class="footer_text">
+              <img src="assets/images/Arrows--horizontal.svg" alt="" />
+              <span [translate]="'startTest.ping'"></span>
+            </span>
+          </ion-card-title>
+          <ion-card-subtitle
+            [ngClass]="{
+              'error_status': pingStatus === 'Failed' || pingStatus === '---',
+              'success_status': pingStatus === 'Success'
+            }"
+          >{{ pingStatus }}</ion-card-subtitle>
+        </ion-card-header>
+      </ion-card>
+
       </div>
+    </div>
+
+    <div
+      class="provider-docs-link"
+      (click)="openProviderDocs()"
+    >
+      <span [translate]="'startTest.aboutYourMeasurements'"></span>
+      <ion-img
+        src="assets/images/Launch.png"
+        class="external-link-icon"
+        alt=""
+      ></ion-img>
     </div>
   </ion-card>
 </ion-content>

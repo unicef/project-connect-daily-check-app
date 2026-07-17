@@ -1,7 +1,11 @@
 <div role="button" class="circular-progress-container" (click)="handleClick()">
   <div
     class="ping-animation"
-    *ngIf="(progressValue === 0 || secondLabel === 'TEST AGAIN') && !error"
+    *ngIf="
+      (progressValue === 0 || secondLabel === 'TEST AGAIN') &&
+      !error &&
+      !isSpinnerVisible
+    "
   ></div>
   <svg class="circular-progress-svg" viewBox="0 0 100 100">
     <circle
@@ -18,6 +22,15 @@
       }"
     ></circle>
 
+    <!-- ⭐ SPINNER ANIMADO COMO FONDO (SE VE EN LA PARTE NO COMPLETADA) -->
+    <foreignObject x="4" y="4" width="92" height="92">
+      <div
+        class="spinner-background"
+        [class.visible]="isSpinnerVisible && !error">
+      </div>
+    </foreignObject>
+
+    <!-- ⭐ BARRA VERDE QUE TAPA EL SPINNER (PROGRESO REAL) -->
     <circle
       class="circle-progress"
       stroke-width="4"
@@ -115,26 +128,38 @@
     <text
       *ngIf="error"
       x="51"
-      y="46"
-      [attr.font-size]="12"
+      [attr.y]="tryAgainLines.length === 1 ? 46 : 41"
+      [attr.font-size]="tryAgainLines.length === 1 ? 12 : 10"
       text-anchor="middle"
       alignment-baseline="top"
       [attr.font-weight]="400"
       [ngClass]="getTextClass()"
     >
-      {{ "startTest.tryAgain" | translate }}
+      <tspan
+        *ngFor="let line of tryAgainLines; let i = index"
+        x="51"
+        [attr.dy]="i === 0 ? 0 : 11"
+      >
+        {{ line }}
+      </tspan>
     </text>
     <text
       *ngIf="completed"
       x="50"
-      y="50"
-      [attr.font-size]="12"
+      [attr.y]="tryAgainLines.length === 1 ? 50 : 45"
+      [attr.font-size]="tryAgainLines.length === 1 ? 12 : 10"
       text-anchor="middle"
       alignment-baseline="middle"
       [attr.font-weight]="400"
       [ngClass]="getTextClass()"
     >
-      {{ "startTest.tryAgain" | translate }}
+      <tspan
+        *ngFor="let line of tryAgainLines; let i = index"
+        x="50"
+        [attr.dy]="i === 0 ? 0 : 11"
+      >
+        {{ line }}
+      </tspan>
     </text>
 
     <!-- <text x="57" y="50" [attr.font-size]="10" text-anchor="middle" alignment-baseline="top"

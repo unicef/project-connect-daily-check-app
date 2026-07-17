@@ -143,6 +143,8 @@ export class ConfirmschoolPage implements OnInit{
                     this.storage.set('school_id', this.school.school_id);
                     this.storage.set('schoolInfo', JSON.stringify(this.school));
 
+                    void this.settings.invalidateProtocolConfigCache();
+
                     // Set first-time visit flags for new registration flow
                     this.storage.setFirstTimeVisit(true);
                     this.storage.setRegistrationCompleted(Date.now());
