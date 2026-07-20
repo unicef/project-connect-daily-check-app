@@ -150,13 +150,16 @@
     "detected-auto": "Mamlakatingiz avtomatik aniqlangan",
     "loading": "Yuklanmoqda",
     "not-available": "{{appName}} {{appNameSuffix}} ushbu mamlakatda mavjud emas. Iltimos, boshqa mamlakat tanlang.",
-    "please-double-check": "Davom etishga ishonchingiz komilmi?"
+    "please-double-check": "Davom etishga ishonchingiz komilmi?",
+    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
     "placeholder-school-id": "masalan: 00000000",
     "provide-school-id": "Maktab ID raqamini kiriting",
     "search": "Maktabingiz qidirilmoqda...",
-    "user-has-not-id": "ID kiritganingizdan so‘ng, mos ID raqamlar qidiriladi."
+    "user-has-not-id": "ID kiritganingizdan so‘ng, mos ID raqamlar qidiriladi.",
+    "provide-govt-id": "Please type and enter the facility Government ID",
+    "placeholder-govt-id": "eg. GOV-00000000"
   },
   "start": "Boshlash",
   "startTest": {
@@ -226,11 +229,23 @@
   "logout": {
     "title": "Chiqishni tasdiqlang",
     "warning": "Bu amal sizni va ushbu qurilmadagi boshqa foydalanuvchilarni ilovadan chiqaradi, maktabni ro‘yxatdan o‘chirishni amalga oshiradi va barcha mahalliy ma’lumotlarni tozalaydi.",
-    "confirmText": "Maktabni ro‘yxatdan o‘chirishni tasdiqlash uchun quyidagi ID’ni kiriting: <strong class=\"school-id-highlight\">{{ schoolId }}</strong>.",
-    "placeholder": "Maktab ID’ni kiriting",
-    "errorMessage": "Maktab ID mos kelmadi. Qayta urinib ko‘ring.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
+    "placeholder": "Enter your {{facility}} ID",
+    "errorMessage": "The ID does not match. Please try again.",
     "logoutButton": "Chiqish",
     "cancelButton": "Bekor qilish"
   },
-  "yes": "Ha"
+  "yes": "Ha",
+  "facilityType": {
+    "school": "School",
+    "health": "Health facility"
+  },
+  "idLabel": {
+    "school": "School ID",
+    "health": "Government ID"
+  },
+  "selectFacility": {
+    "title": "What would you like to connect?",
+    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+  }
 }

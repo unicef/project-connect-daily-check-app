@@ -80,13 +80,16 @@
     "country-not-accurate": "Похоже, выбранная вами страна не соответствует вашему местоположению",
     "please-double-check": "Пожалуйста, еще раз проверьте свой выбор.",
     "not-available": "приложение {{appName}} {{appNameSuffix}} недоступно в этой стране. Пожалуйста, выберите другую страну.",
-    "change-country": "Если страна указана неверно, выберите вашу страну из выпадающего списка."
+    "change-country": "Если страна указана неверно, выберите вашу страну из выпадающего списка.",
+    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
     "search": "ваш школ...",
     "placeholder-school-id": "например, 00000000",
     "provide-school-id": "Пожалуйста, введите идентификатор вашей школы",
-    "user-has-not-id": "После того, как вы введете идентификатор своей школы, мы идентификатор, соответствующи введенным вами данным."
+    "user-has-not-id": "После того, как вы введете идентификатор своей школы, мы идентификатор, соответствующи введенным вами данным.",
+    "provide-govt-id": "Please type and enter the facility Government ID",
+    "placeholder-govt-id": "eg. GOV-00000000"
   },
   "faq": {
     "FAQ": "ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ",
@@ -227,5 +230,26 @@
   "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
   "privacyPolicy": "Политика конфиденциальности",
   "welcome": "Добро пожаловать в",
-  "start": "Начать"
+  "start": "Начать",
+  "facilityType": {
+    "school": "School",
+    "health": "Health facility"
+  },
+  "idLabel": {
+    "school": "School ID",
+    "health": "Government ID"
+  },
+  "selectFacility": {
+    "title": "What would you like to connect?",
+    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+  },
+  "logout": {
+    "cancelButton": "Cancel",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
+    "errorMessage": "The ID does not match. Please try again.",
+    "logoutButton": "Logout",
+    "placeholder": "Enter your {{facility}} ID",
+    "title": "Confirm Logout",
+    "warning": "This will log you and other user accounts on this device out of the app, unregister the school, and clear all local data."
+  }
 }

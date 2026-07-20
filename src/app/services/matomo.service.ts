@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { IdentityService } from './identity.service';
 
 declare global {
   interface Window {
@@ -25,7 +26,7 @@ export class MatomoService {
   // (e.g. https://app.gigameter.local/home) instead of file:// paths.
   private readonly electronVirtualOrigin = 'https://app.gigameter.local';
 
-  constructor(private router: Router) {}
+  constructor(private router: Router, private identityService: IdentityService) {}
 
   /**
    * Initialize Matomo tracking. Safe to call multiple times.
@@ -58,6 +59,12 @@ export class MatomoService {
         this.getTrackingOrigin() + (window.location.pathname || '/'),
       ]);
       window._paq.push(['setDocumentTitle', document.title]);
+      // Custom dimension 1 = facility_type (register it in Matomo admin)
+      window._paq.push([
+        'setCustomDimension',
+        1,
+        this.identityService.getFacilityType(),
+      ]);
 
       window._paq.push(['trackPageView']);
       window._paq.push(['enableLinkTracking']);
@@ -86,6 +93,11 @@ export class MatomoService {
       if (!window._paq) {
         return;
       }
+      window._paq.push([
+        'setCustomDimension',
+        1,
+        this.identityService.getFacilityType(),
+      ]);
       const payload: any[] = ['trackEvent', category, action];
       if (name !== undefined) {
         payload.push(name);

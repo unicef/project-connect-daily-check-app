@@ -1,6 +1,7 @@
 import { Component, Input, OnInit, OnDestroy } from '@angular/core';
 import { ModalController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
+import { IdentityService } from '../../services/identity.service';
 
 @Component({
   selector: 'app-first-test-success-modal',
@@ -14,12 +15,16 @@ export class FirstTestSuccessModalComponent implements OnInit, OnDestroy {
   @Input() schoolId: string;
 
   countdown: number = 10;
+  facilityLabelKey = 'facilityType.school';
   private countdownTimer: any;
 
   constructor(
     private modalController: ModalController,
-    public translate: TranslateService
-  ) {}
+    public translate: TranslateService,
+    private identityService: IdentityService
+  ) {
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
+  }
 
   ngOnInit() {
     this.startCountdown();

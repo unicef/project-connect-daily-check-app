@@ -8,10 +8,10 @@
     <app-selected-detail></app-selected-detail>
 
     <div>
-      <div class="provide_id" [translate]="'searchSchool.provide-school-id'"></div>
+      <div class="provide_id" [translate]="provideIdKey"></div>
       <div class="wrap">
         <div class="search">
-          <input type="text" class="searchTerm" placeholder="{{ 'searchSchool.placeholder-school-id' | translate }}"
+          <input type="text" class="searchTerm" placeholder="{{ placeholderIdKey | translate }}"
             [(ngModel)]="schoolId" (ngModelChange)="validateSchoolId($event)" required minlength="2" />
           <!-- <button type="submit" class="searchButton" (click)="searchSchoolBySchooIdAndCountryCode()"
             [disabled]="isDisabled">

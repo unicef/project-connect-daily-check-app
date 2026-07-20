@@ -2,6 +2,9 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { SelectedDetailComponent } from './selected-detail.component';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 
 describe('SelectedDetailComponent', () => {
   let component: SelectedDetailComponent;
@@ -9,8 +12,9 @@ describe('SelectedDetailComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
+      providers: [provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()],
       declarations: [ SelectedDetailComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [IonicModule.forRoot(), RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(SelectedDetailComponent);

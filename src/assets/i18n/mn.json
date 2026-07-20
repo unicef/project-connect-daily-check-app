@@ -150,13 +150,16 @@
     "detected-auto": "Таны улсыг автоматаар тодорхойллоо. ",
     "loading": "Ачааллаж байна",
     "not-available": "{{appName}} {{appNameSuffix}} нь тухайн улсад боломжгүй байна. Өөр улс сонгоно уу.",
-    "please-double-check": "Та үргэлжлүүлэхэд итгэлтэй байна уу?"
+    "please-double-check": "Та үргэлжлүүлэхэд итгэлтэй байна уу?",
+    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
     "placeholder-school-id": "жишээ нь: 00000000",
     "provide-school-id": "Та сургуулийн ID-гаа оруулна уу",
     "search": "Таны сургуулийг хайж байна...",
-    "user-has-not-id": "Та сургуулийн ID-г оруулсны дараа тухайн ID-тай холбоотой үзүүлтүүдийг хайна."
+    "user-has-not-id": "Та сургуулийн ID-г оруулсны дараа тухайн ID-тай холбоотой үзүүлтүүдийг хайна.",
+    "provide-govt-id": "Please type and enter the facility Government ID",
+    "placeholder-govt-id": "eg. GOV-00000000"
   },
   "start": "Эхлэх",
   "startTest": {
@@ -226,11 +229,23 @@
   "logout": {
     "title": "Гарахыг баталгаажуулах",
     "warning": "Үүнийг сонгосноор энэ төхөөрөмж дээрх бүх хэрэглэгчийг аппаас гаргах ба сургуулийн бүртгэл, холбогдох мэдээлэл, өгөгдлийг устгана.",
-    "confirmText": "Сургуулийн ID-г бүртгэлээс хасахыг хүсвэл <strong class=\"school-id-highlight\">{{ schoolId }}</strong> гэж бичиж баталгаажуулна уу.",
-    "placeholder": "Сургуулийн ID-аа оруулна уу",
-    "errorMessage": "Таны сонгосон сургуулийн ID бүртгэлд байхгүй байна. Та ID-аа дахин шалгаж хийнэ үү.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
+    "placeholder": "Enter your {{facility}} ID",
+    "errorMessage": "The ID does not match. Please try again.",
     "logoutButton": "Гарах",
     "cancelButton": "Цуцлах"
   },
-  "yes": "Тийм"
+  "yes": "Тийм",
+  "facilityType": {
+    "school": "School",
+    "health": "Health facility"
+  },
+  "idLabel": {
+    "school": "School ID",
+    "health": "Government ID"
+  },
+  "selectFacility": {
+    "title": "What would you like to connect?",
+    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+  }
 }

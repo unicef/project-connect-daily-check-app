@@ -5,6 +5,7 @@ import { RouterTestingModule } from "@angular/router/testing";
 import { TranslateModule } from '@ngx-translate/core';
 import { SchooldetailsPage } from './schooldetails.page';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { SettingsService } from '../services/settings.service';
 
 describe('SchooldetailsPage', () => {
   let component: SchooldetailsPage;
@@ -16,7 +17,8 @@ describe('SchooldetailsPage', () => {
     imports: [IonicModule.forRoot(),
         RouterTestingModule,
         TranslateModule.forRoot()],
-    providers: [provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
+    providers: [
+        { provide: SettingsService, useValue: { get: () => ({ code: 'en' }), setSetting: () => {}, getFeatureFlags: async () => ({}), currentSettings: { scheduledTesting: false, scheduleInterval: 'daily' }, availableSettings: {} } },provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(SchooldetailsPage);

@@ -18,7 +18,9 @@
         <p
           class="sub-text"
           [innerHTML]="
-            'logout.confirmText' | translate : { schoolId: schoolId }
+            'logout.confirmText'
+              | translate
+                : { schoolId: schoolId, facility: facilityLabelKey | translate }
           "
         ></p>
       </div>
@@ -27,7 +29,10 @@
         <ion-item lines="none" class="confirmation-input">
           <ion-input
             [(ngModel)]="enteredSchoolId"
-            [placeholder]="'logout.placeholder' | translate"
+            [placeholder]="
+              'logout.placeholder'
+                | translate : { facility: facilityLabelKey | translate }
+            "
             (ionInput)="onInputChange()"
             type="text"
           ></ion-input>

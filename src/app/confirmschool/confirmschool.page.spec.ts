@@ -6,6 +6,8 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core';
 import { ConfirmschoolPage } from './confirmschool.page';
 import { DatePipe } from '@angular/common';
+import { Network } from '@awesome-cordova-plugins/network/ngx';
+import { SettingsService } from '../services/settings.service';
 
 describe('ConfirmschoolPage', () => {
   let component: ConfirmschoolPage;
@@ -18,6 +20,8 @@ describe('ConfirmschoolPage', () => {
         RouterTestingModule,
         TranslateModule.forRoot()],
     providers: [
+        { provide: SettingsService, useValue: { get: () => ({ code: 'en' }), setSetting: () => {}, getFeatureFlags: async () => ({}), currentSettings: { scheduledTesting: false, scheduleInterval: 'daily' }, availableSettings: {} } },
+        Network,
         DatePipe,
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()

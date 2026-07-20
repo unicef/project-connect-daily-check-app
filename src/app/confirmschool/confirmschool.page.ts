@@ -4,9 +4,12 @@ import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SchoolService } from '../services/school.service';
+import { RegistrationService } from '../services/registration.service';
+import { IdentityService } from '../services/identity.service';
 import { LoadingService } from '../services/loading.service';
 import { StorageService } from '../services/storage.service';
 import { NetworkService } from '../services/network.service';
+import { getFacilityConfig } from '../models/facility';
 
 import { School } from '../models/models';
 import { Device } from '@capacitor/device';
@@ -38,6 +41,8 @@ export class ConfirmschoolPage implements OnInit{
     private activatedroute: ActivatedRoute,
     public router: Router,
     private schoolService: SchoolService,
+    private registrationService: RegistrationService,
+    private identityService: IdentityService,
     private storage: StorageService,
     private networkService: NetworkService,
     private settings: SettingsService,
@@ -109,39 +114,45 @@ export class ConfirmschoolPage implements OnInit{
           this.getWindowsUsername().then((windowsUsername) => {
             this.getInstalledPath().then((installedPath) => {
               this.getWifiConnections().then((wifiConnections) => {
+                const facilityType =
+                  this.school?.facilityType ??
+                  this.identityService.getFacilityType();
+                const gigaId =
+                  facilityType === 'health'
+                    ? this.school.giga_id_health
+                    : this.school.giga_id_school;
+
                 schoolData = {
-                  giga_id_school: this.school.giga_id_school,
+                  [facilityType === 'health'
+                    ? 'giga_id_health'
+                    : 'giga_id_school']: gigaId,
                   mac_address: b.identifier,
                   os: a.operatingSystem,
                   app_version: environment.app_version,
-                  created: today,
                   ip_address: c, // c.ip,
-                  //country_code: c.country,
                   country_code: this.selectedCountry,
-                  device_hardware_id: hardwareId || null, // Add hardware ID
-                  windows_username: windowsUsername || null, // Add Windows username
-                  installed_path: installedPath || null, // Add installed path
-                  wifi_connections: wifiConnections || null, // Add WiFi connections
-                  geolocation: this.locationService.getSavedGeolocation()
-                  //school_id: this.school.school_id
+                  installation_id: this.identityService.getInstallationId(),
+                  device_hardware_id: hardwareId || null,
+                  windows_username: windowsUsername || null,
+                  installed_path: installedPath || null,
+                  wifi_connections: wifiConnections || null,
                 };
 
-                // if(this.school.code === c.country){
-
-                this.schoolService
-                  .registerSchoolDevice(schoolData)
-                  .subscribe((response) => {
+                this.registrationService
+                  .register(schoolData as any)
+                  .subscribe(async (response) => {
+                    // New keys only — legacy keys stay untouched (plan 0003 §5)
+                    await this.registrationService.persistRegistration(
+                      response,
+                      this.school,
+                      this.schoolId
+                    );
+                    // Shared device-metadata keys (same on both vintages)
                     this.storage.set('deviceType', a.operatingSystem);
                     this.storage.set('macAddress', b.identifier);
-                    this.storage.set('schoolUserId', response);
-                    this.storage.set('schoolId', this.schoolId);
-                    this.storage.set('gigaId', this.school.giga_id_school);
                     this.storage.set('ip_address', c?.ip);
                     this.storage.set('version', environment.app_version);
-                    //this.storage.set('country_code', c.country);
                     this.storage.set('country_code', this.selectedCountry);
-                    this.storage.set('school_id', this.school.school_id);
-                    this.storage.set('schoolInfo', JSON.stringify(this.school));
 
                     // Set first-time visit flags for new registration flow
                     this.storage.setFirstTimeVisit(true);
@@ -161,7 +172,7 @@ export class ConfirmschoolPage implements OnInit{
                   (err) => {
                     this.loading.dismiss();
                     this.router.navigate([
-                      'schoolnotfound',
+                      getFacilityConfig(facilityType as any).notFoundRoute,
                       this.schoolId,
                       this.selectedCountry,
                       this.detectedCountry,
@@ -170,7 +181,10 @@ export class ConfirmschoolPage implements OnInit{
                     /* Redirect to no result found page */
                   };
 
-                if (this.selectedCountry !== this.detectedCountry) {
+                if (
+                  facilityType === 'school' &&
+                  this.selectedCountry !== this.detectedCountry
+                ) {
                   flaggedSchoolData = {
                     detected_country: this.detectedCountry,
                     selected_country: this.selectedCountry,

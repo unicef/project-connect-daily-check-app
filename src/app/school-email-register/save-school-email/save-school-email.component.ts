@@ -11,6 +11,7 @@ import {
   selector: 'app-save-school-email',
   templateUrl: './save-school-email.component.html',
   styleUrls: ['./save-school-email.component.scss'],
+  standalone: false,
 })
 export class SaveSchoolEmailComponent implements OnInit {
   emailControl = new FormControl('');

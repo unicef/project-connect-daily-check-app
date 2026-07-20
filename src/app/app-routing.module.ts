@@ -19,6 +19,10 @@ const routes: Routes = [
     loadChildren: () => import('./register-school/register-school.module').then( m => m.RegisterSchoolModule)
   },
   {
+    path: 'select-facility',
+    loadChildren: () => import('./select-facility/select-facility.module').then( m => m.SelectFacilityModule)
+  },
+  {
     path: 'schooldetails/:schoolId/:selectedCountry/:detectedCountry/:selectedCountryName',
     loadChildren: () => import('./schooldetails/schooldetails.module').then( m => m.SchooldetailsPageModule)
   },

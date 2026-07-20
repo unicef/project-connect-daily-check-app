@@ -6,6 +6,8 @@ import { TranslateModule } from '@ngx-translate/core';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { IonicModule } from '@ionic/angular';
+import { RouterTestingModule } from '@angular/router/testing';
 describe('AppComponent', () => {
 
   beforeEach(waitForAsync(() => {
@@ -13,7 +15,7 @@ describe('AppComponent', () => {
     TestBed.configureTestingModule({
     declarations: [AppComponent],
     schemas: [CUSTOM_ELEMENTS_SCHEMA],
-    imports: [TranslateModule.forRoot()],
+    imports: [IonicModule.forRoot(), RouterTestingModule, TranslateModule.forRoot()],
     providers: [
         Network,
         provideHttpClient(withInterceptorsFromDi()),

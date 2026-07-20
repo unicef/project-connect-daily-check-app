@@ -4,6 +4,8 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { IonicModule } from '@ionic/angular';
 import { RouterTestingModule } from '@angular/router/testing';
 import { SearchschoolPage } from './searchschool.page';
+import { TranslateModule } from '@ngx-translate/core';
+import { SettingsService } from '../services/settings.service';
 
 describe('SearchschoolPage', () => {
   let component: SearchschoolPage;
@@ -12,9 +14,10 @@ describe('SearchschoolPage', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
     declarations: [SearchschoolPage],
-    imports: [IonicModule.forRoot(),
+    imports: [TranslateModule.forRoot(), IonicModule.forRoot(),
         RouterTestingModule],
-    providers: [provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
+    providers: [
+        { provide: SettingsService, useValue: { get: () => ({ code: 'en' }), setSetting: () => {}, getFeatureFlags: async () => ({}), currentSettings: { scheduledTesting: false, scheduleInterval: 'daily' }, availableSettings: {} } },provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
 }).compileComponents();
 
     fixture = TestBed.createComponent(SearchschoolPage);

@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CountryService } from 'src/app/services/country.service';
 import { HistoryService } from 'src/app/services/history.service';
 import { NetworkService } from 'src/app/services/network.service';
+import { IdentityService } from '../../services/identity.service';
 import { StorageService } from 'src/app/services/storage.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { LocationService } from 'src/app/services/location.service';
@@ -40,6 +41,7 @@ export class TestDetailComponent implements OnInit {
   selectedCountry: any;
   constructor(
     private storage: StorageService,
+    private identityService: IdentityService,
     private historyService: HistoryService,
     private countryService: CountryService,
     private router: Router,
@@ -56,8 +58,8 @@ export class TestDetailComponent implements OnInit {
   }
 
   ngOnInit() {
-    if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+    if (this.identityService.isRegistered()) {
+      this.school = this.identityService.getFacilityInfo();
       this.countryService.getPcdcCountryByCode(this.school.country).subscribe(
         (response) => {
           this.selectedCountry = response[0].name;
@@ -86,7 +88,7 @@ export class TestDetailComponent implements OnInit {
           historicalData.measurements.length - 1
         ].accessInformation.org;
     }
-    this.schoolId = this.storage.get('schoolId');
+    this.schoolId = this.identityService.getFacilityId();
 
     if (this.storage.get('historicalDataAll')) {
       this.historicalData = JSON.parse(this.storage.get('historicalDataAll'));

@@ -150,13 +150,16 @@
     "detected-auto": "Your country is automatically detected",
     "loading": "Loading",
     "not-available": "{{appName}} {{appNameSuffix}}  is not available in this country. Please choose another country.",
-    "please-double-check": "Are you sure you want to continue?"
+    "please-double-check": "Are you sure you want to continue?",
+    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
     "placeholder-school-id": "eg. 00000000",
     "provide-school-id": "Please type and enter your school ID",
     "search": "Searching for your school...",
-    "user-has-not-id": "Once you type your school ID we will search for ids that match with your input."
+    "user-has-not-id": "Once you type your school ID we will search for ids that match with your input.",
+    "provide-govt-id": "Please type and enter the facility Government ID",
+    "placeholder-govt-id": "eg. GOV-00000000"
   },
   "start": "Start",
   "startTest": {
@@ -226,11 +229,23 @@
   "logout": {
     "title": "Confirm Logout",
     "warning": "This will log you and other user accounts on this device out of the app, unregister the school, and clear all local data.",
-    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm the school ID for unregistration.",
-    "placeholder": "Enter school ID",
-    "errorMessage": "School ID does not match. Please try again.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
+    "placeholder": "Enter your {{facility}} ID",
+    "errorMessage": "The ID does not match. Please try again.",
     "logoutButton": "Logout",
     "cancelButton": "Cancel"
   },
-  "yes": "Yes"
+  "yes": "Yes",
+  "facilityType": {
+    "school": "School",
+    "health": "Health facility"
+  },
+  "idLabel": {
+    "school": "School ID",
+    "health": "Government ID"
+  },
+  "selectFacility": {
+    "title": "What would you like to connect?",
+    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+  }
 }

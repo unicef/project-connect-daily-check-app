@@ -150,13 +150,16 @@
     "detected-auto": "Su país ha sido detectado automáticamente.",
     "loading": "Cargando",
     "not-available": "la aplicación {{appName}} {{appNameSuffix}} no está disponible en este país. Por favor elija otro país.",
-    "please-double-check": "Por favor, verifique su selección."
+    "please-double-check": "Por favor, verifique su selección.",
+    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
     "placeholder-school-id": "p.ej. 00000000",
     "provide-school-id": "Por favor, escriba e ingrese el identificador único (ID) de su centro educativo",
     "search": "Buscando su escuela...",
-    "user-has-not-id": "Una vez que escriba su identificación escolar, buscaremos identificaciones que coincidan con su entrada."
+    "user-has-not-id": "Una vez que escriba su identificación escolar, buscaremos identificaciones que coincidan con su entrada.",
+    "provide-govt-id": "Please type and enter the facility Government ID",
+    "placeholder-govt-id": "eg. GOV-00000000"
   },
   "start": "Comenzar",
   "startTest": {
@@ -226,11 +229,23 @@
   "logout": {
     "title": "Confirmar cierre de sesión",
     "warning": "Esta acción cerrará su sesión y la de otras cuentas de usuario en este dispositivo, cancelará el registro de la escuela y borrará todos los datos locales.",
-    "confirmText": "Por favor, escriba <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar el ID de la escuela para la cancelación del registro.",
-    "placeholder": "Ingrese el ID de la escuela",
-    "errorMessage": "El ID de la escuela no coincide. Por favor, inténtelo de nuevo.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
+    "placeholder": "Enter your {{facility}} ID",
+    "errorMessage": "The ID does not match. Please try again.",
     "logoutButton": "Cerrar sesión",
     "cancelButton": "Cancelar"
   },
-  "yes": "Sí"
+  "yes": "Sí",
+  "facilityType": {
+    "school": "School",
+    "health": "Health facility"
+  },
+  "idLabel": {
+    "school": "School ID",
+    "health": "Government ID"
+  },
+  "selectFacility": {
+    "title": "What would you like to connect?",
+    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+  }
 }

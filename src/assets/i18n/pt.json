@@ -150,13 +150,16 @@
     "detected-auto": "O seu país foi detectado automaticamente",
     "loading": "Carregando",
     "not-available": "o aplicativo {{appName}} {{appNameSuffix}} não está disponível neste país. Por favor escolha outro país.",
-    "please-double-check": "Tem certeza de que deseja continuar?"
+    "please-double-check": "Tem certeza de que deseja continuar?",
+    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
     "placeholder-school-id": "por exemplo, 00000000",
     "provide-school-id": "Por favor, digite e insira o ID da sua escola",
     "search": "Procurando por sua escola...",
-    "user-has-not-id": "Depois que você digitar o ID da sua escola, buscaremos IDs que correspondam à sua busca."
+    "user-has-not-id": "Depois que você digitar o ID da sua escola, buscaremos IDs que correspondam à sua busca.",
+    "provide-govt-id": "Please type and enter the facility Government ID",
+    "placeholder-govt-id": "eg. GOV-00000000"
   },
   "start": "Começar",
   "startTest": {
@@ -226,11 +229,23 @@
   "logout": {
     "title": "Confirmar encerramento de sessão",
     "warning": "Esta ação encerrará a sua sessão e a de outras contas de usuário neste dispositivo, cancelará o registo da escola e eliminará todos os dados locais.",
-    "confirmText": "Por favor, introduza <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar o ID da escola para o cancelamento do registo.",
-    "placeholder": "Introduza o ID da escola",
-    "errorMessage": "O ID da escola não corresponde. Por favor, tente novamente.",
+    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
+    "placeholder": "Enter your {{facility}} ID",
+    "errorMessage": "The ID does not match. Please try again.",
     "logoutButton": "Encerrar sessão",
     "cancelButton": "Cancelar"
   },
-  "yes": "Sim"
+  "yes": "Sim",
+  "facilityType": {
+    "school": "School",
+    "health": "Health facility"
+  },
+  "idLabel": {
+    "school": "School ID",
+    "health": "Government ID"
+  },
+  "selectFacility": {
+    "title": "What would you like to connect?",
+    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+  }
 }
