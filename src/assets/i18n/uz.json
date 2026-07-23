@@ -128,7 +128,7 @@
     "notFound": "Afsuski, biz {{facility}}ni topa olmadik",
     "notRegister": "Afsuski, {{facility}} hali {{appName}} tizimiga ro‘yxatdan o‘tmagan.\nIltimos, {{facility}} administratoriga murojaat qiling va PCDC orqali yana ro‘yxatdan o‘tkazing.",
     "tryAgainPlaceholder": "Iltimos, to‘g‘ri ID kiritganingizga ishonch hosil qiling yoki boshqa ID bilan urinib ko‘ring",
-    "unableToLocate": "Biz sizning {{facility}}ni topa olmadik: <br /><b>{{schoolId}}</b>"
+    "unableToLocate": "Biz {{facility}}ni topa olmadik: <br /><b>{{schoolId}}</b>"
   },
   "schoolSuccess": {
     "app-run": "Ilova <br /> fon rejimida ishlaydi",
@@ -151,15 +151,15 @@
     "loading": "Yuklanmoqda",
     "not-available": "{{appName}} {{appNameSuffix}} ushbu mamlakatda mavjud emas. Iltimos, boshqa mamlakat tanlang.",
     "please-double-check": "Davom etishga ishonchingiz komilmi?",
-    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
+    "facility-not-enabled": "{{country}}da {{facility}} uchun ro‘yxatdan o‘tish hali yoqilmagan. Iltimos, {{appName}} administratoriga murojaat qiling yoki boshqa davlatni tanlang."
   },
   "searchSchool": {
     "placeholder-school-id": "masalan: 00000000",
     "provide-school-id": "{{facility}} ID raqamini kiriting",
     "search": "{{facility}} qidirilmoqda...",
-    "user-has-not-id": "ID kiritganingizdan so‘ng, mos ID raqamlar qidiriladi.",
-    "provide-govt-id": "Please type and enter the facility Government ID",
-    "placeholder-govt-id": "eg. GOV-00000000"
+    "user-has-not-id": "{{facility}} ID raqamini kiritganingizdan so‘ng, mos ID raqamlar qidiriladi.",
+    "provide-govt-id": "Muassasaning davlat ID raqamini kiriting",
+    "placeholder-govt-id": "masalan, GOV-00000000"
   },
   "start": "Boshlash",
   "startTest": {
@@ -228,24 +228,24 @@
   },
   "logout": {
     "title": "Chiqishni tasdiqlang",
-    "warning": "Bu amal sizni va ushbu qurilmadagi boshqa foydalanuvchilarni ilovadan chiqaradi, maktabni ro‘yxatdan o‘chirishni amalga oshiradi va barcha mahalliy ma’lumotlarni tozalaydi.",
-    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
-    "placeholder": "Enter your {{facility}} ID",
-    "errorMessage": "The ID does not match. Please try again.",
+    "warning": "Bu amal sizni va ushbu qurilmadagi boshqa foydalanuvchilarni ilovadan chiqaradi, {{facility}} ro‘yxatdan chiqariladi va barcha mahalliy ma’lumotlar o‘chiriladi.",
+    "confirmText": "Ro‘yxatdan chiqarish uchun <strong class=\"school-id-highlight\">{{ schoolId }}</strong> ni kiriting va {{facility}} ID raqamini tasdiqlang.",
+    "placeholder": "{{facility}} ID raqamini kiriting",
+    "errorMessage": "ID raqami mos kelmadi. Iltimos, qayta urinib ko‘ring.",
     "logoutButton": "Chiqish",
     "cancelButton": "Bekor qilish"
   },
   "yes": "Ha",
   "facilityType": {
-    "school": "School",
-    "health": "Health facility"
+    "school": "Maktab",
+    "health": "Tibbiyot muassasasi"
   },
   "idLabel": {
-    "school": "School ID",
-    "health": "Government ID"
+    "school": "Maktab ID raqami",
+    "health": "Davlat ID raqami"
   },
   "selectFacility": {
-    "title": "What would you like to connect?",
-    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+    "title": "Nimani ulashni xohlaysiz?",
+    "subtitle": "{{appName}} o‘rnatilayotgan muassasa turini tanlang."
   }
 }

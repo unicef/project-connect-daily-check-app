@@ -15,7 +15,7 @@
   },
   "confirmSchool": {
     "title": "Верна ли информация ниже?",
-    "confirm1": "Подтвердите информацию о {{facility}}, чтобы зарегистрировать ее",
+    "confirm1": "Подтвердите информацию ниже, чтобы завершить регистрацию ({{facility}})",
     "confirm2": "ЛИ ИНФОРМАЦИЯ ВЫШЕ?"
   },
   "saveEmail": {
@@ -27,31 +27,27 @@
   },
   "invalidLocation": {
     "resultLocation": "– Ваше местоположение: {{country}}.<br />– Выбрано: {{facility}} — {{selectedCountry}}. <br />",
-    "unableToLocate": "Пожалуйста, выберите правильную {{facility}}."
+    "unableToLocate": "Пожалуйста, выберите правильный вариант ({{facility}})."
   },
   "schoolDetails": {
-    "search": "Поиск {{facility}}...",
-    "selectAndConfirm": "Выберите свою {{facility}}",
-    "noSchoolList": "Моей {{facility}} нет в списке",
-    "saveEmail": "Пожалуйста, добавьте адрес электронной почты вашей {{facility}}",
+    "search": "Идет поиск: {{facility}}...",
+    "selectAndConfirm": "Выберите вариант: {{facility}}",
+    "noSchoolList": "Нужного варианта нет в списке ({{facility}})",
+    "saveEmail": "Пожалуйста, добавьте адрес электронной почты ({{facility}})",
     "enterEmail": "Введите текст",
     "totalSchools": "{{schoolCount}} результатов, соответствующих {{schoolId}}",
     "checkGiga": "Giga",
-    "searchSchool": "Поиск идентификаторов {{facility}}",
+    "searchSchool": "Поиск идентификаторов ({{facility}})",
     "select": "Выбирать",
-    "confirmText": "После нажатия <b>&quot;Да&quot;</b> для изменения {{facility}} потребуется удалить и переустановить приложение.",
+    "confirmText": "После нажатия <b>&quot;Да&quot;</b> изменить выбранный объект можно будет только после удаления и повторной установки приложения ({{facility}}).",
     "skip": "Пропускать",
     "add": "Добавлять"
   },
   "schoolNotFound": {
-    "unableToLocate": "Мы не смогли найти вашу {{facility}}: {{schoolId}}",
-    "notFound": "К сожалению, нам не удалось найти вашу {{facility}}",
+    "unableToLocate": "Найти не удалось ({{facility}}): <br /><b>{{schoolId}}</b>",
+    "notFound": "К сожалению, найти нужный объект не удалось ({{facility}})",
     "tryAgainPlaceholder": "Убедитесь, что вы ввели правильный идентификатор, или повторите попытку с другим идентификатором.",
-    "notRegister": "К сожалению, ваша {{facility}} не зарегистрирована в {{appName}}\nПожалуйста, свяжитесь с администратором вашей {{facility}}, чтобы зарегистрировать ее в\nPCDC снова."
-  },
-  "Please contact your school administrator to register your school on": "",
-  "PCDC again": {
-    "": ""
+    "notRegister": "К сожалению, ваша {{facility}} не зарегистрирована в {{appName}}.\nПожалуйста, свяжитесь с администратором, чтобы зарегистрировать ее в PCDC снова."
   },
   "schoolSuccess": {
     "congratulations": "ПОЗДРАВЛЯЕМ!",
@@ -59,15 +55,15 @@
     "success-txt": "ВАШ ЕЖЕДНЕВНЫЙ ИНТЕРНЕТ<br />ПРОВЕРКА УСТАНОВЛЕНА",
     "internet-checks": "Это приложение будет проверять ваш интернет-статус 4 раза в день.",
     "app-run": "ЭТО ПРИЛОЖЕНИЕ РАБОТАЕТ <br />В ФОНОВОМ РЕЖИМЕ",
-    "app-run-desc": "Данные вашей {{facility}} будут собираться, когда устройство включено.",
+    "app-run-desc": "Данные будут собираться, когда устройство включено ({{facility}}).",
     "you-can-close": "Вы можете закрыть приложение.",
     "get-started": "Начать",
     "go-dashboard": "к вашей панели управления"
   },
   "registerSchool": {
-    "register-step-1": "Вы собираетесь зарегистрировать свою {{facility}}.",
+    "register-step-1": "Вы собираетесь начать регистрацию: {{facility}}.",
     "register-part-2": "Каждая {{facility}} может установить и зарегистрировать до двух устройств, если не указано иное.",
-    "register-step-2": "Установите Giga Meter на компьютеры, которые используются , и  только к интернету {{facility}}.",
+    "register-step-2": "Установите Giga Meter на компьютеры, которые часто используются и подключаются только к интернету вашей организации ({{facility}}).",
     "register-step-3": "По возможности убедитесь, что хотя бы один компьютер к  проводносоединени (Ethernet).",
     "start-registeration": "Начать егистрацию"
   },
@@ -81,15 +77,15 @@
     "please-double-check": "Пожалуйста, еще раз проверьте свой выбор.",
     "not-available": "приложение {{appName}} {{appNameSuffix}} недоступно в этой стране. Пожалуйста, выберите другую страну.",
     "change-country": "Если страна указана неверно, выберите вашу страну из выпадающего списка.",
-    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
+    "facility-not-enabled": "Регистрация пока не доступна в стране {{country}} ({{facility}}). Пожалуйста, свяжитесь с администратором {{appName}} или выберите другую страну."
   },
   "searchSchool": {
-    "search": "Поиск {{facility}}...",
+    "search": "Идет поиск: {{facility}}...",
     "placeholder-school-id": "например, 00000000",
-    "provide-school-id": "Пожалуйста, введите идентификатор вашей {{facility}}",
-    "user-has-not-id": "После того, как вы введете идентификатор своей {{facility}}, мы найдем идентификатор, соответствующий введенным вами данным.",
-    "provide-govt-id": "Please type and enter the facility Government ID",
-    "placeholder-govt-id": "eg. GOV-00000000"
+    "provide-school-id": "Пожалуйста, введите идентификатор ({{facility}})",
+    "user-has-not-id": "После того, как вы введете идентификатор, мы найдем совпадения ({{facility}}).",
+    "provide-govt-id": "Пожалуйста, введите государственный идентификатор объекта",
+    "placeholder-govt-id": "напр. GOV-00000000"
   },
   "faq": {
     "FAQ": "ЧАСТО ЗАДАВАЕМЫЕ ВОПРОСЫ",
@@ -124,8 +120,8 @@
   "app": {
     "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Часто задаваемые вопросы",
     "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>О {{appName}}",
-    "school-id": "Ваш идентификатор {{facility}}",
-    "my-school-id": "<span class=\"hash\">#</span>Идентификатор моей {{facility}}",
+    "school-id": "Ваш идентификатор: {{facility}}",
+    "my-school-id": "<span class=\"hash\">#</span>Мой идентификатор: {{facility}}",
     "version": "ВЕРСИЯ {{ app_version }}",
     "about-project-connect": "О {{appName}}",
     "project-connect-desc": "{{appName}} автоматически измеряет  в течение дня, создавая  в школах с течением времени. Результаты синхронизируются с Giga Maps - глобальной картой статус подключения школ в режиме реального времени. Обеспечение надежн интернет-соединени в школах мисси Giga по подключению всех молодых людей к информации, возможностям и выбору.",
@@ -179,19 +175,19 @@
     "testTrigger": "Тип"
   },
   "registerSchoolPage": {
-    "title1": "Вы собираетесь зарегистрировать свою {{facility}}",
+    "title1": "Вы собираетесь начать регистрацию: {{facility}}",
     "title2": "процесса регистрации убедитесь, что компьютеры:",
     "readMore": "Узнайте больше о том, как",
     "tip1": "Предпочтительно, проводн соединени",
     "tip2": "Установлено на 2 устройствах, которые используются чаще всего",
-    "tip3": "Подключен только к интернету {{facility}}",
+    "tip3": "Подключен только к интернету вашей организации ({{facility}})",
     "privacy": "Регистрируясь и используя Giga Meter, я соглашаюсь на сбор, обработку и публикацию моих измерений и других вспомогательных данных Giga в рамках"
   },
   "notifications": {
     "registrationCompleted": "Регистрация завершена",
     "runningFirstTest": "Выполняются тесты подключения"
   },
-  "resultSchool": "Результаты по идентификатору {{facility}}",
+  "resultSchool": "Результаты по идентификатору ({{facility}})",
   "tryAgain": "ПОПРОБУЙТЕ ЕЩЕ РАЗ",
   "yes": "Да",
   "no": "Нет",
@@ -232,24 +228,24 @@
   "welcome": "Добро пожаловать в",
   "start": "Начать",
   "facilityType": {
-    "school": "School",
-    "health": "Health facility"
+    "school": "Школа",
+    "health": "Медицинская организация"
   },
   "idLabel": {
-    "school": "School ID",
-    "health": "Government ID"
+    "school": "Идентификатор школы",
+    "health": "Государственный идентификатор"
   },
   "selectFacility": {
-    "title": "What would you like to connect?",
-    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+    "title": "Что вы хотите подключить?",
+    "subtitle": "Выберите тип объекта, на котором устанавливается {{appName}}."
   },
   "logout": {
-    "cancelButton": "Cancel",
-    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
-    "errorMessage": "The ID does not match. Please try again.",
-    "logoutButton": "Logout",
-    "placeholder": "Enter your {{facility}} ID",
-    "title": "Confirm Logout",
-    "warning": "This will log you and other user accounts on this device out of the app, unregister the school, and clear all local data."
+    "cancelButton": "Отмена",
+    "confirmText": "Введите <strong class=\"school-id-highlight\">{{ schoolId }}</strong>, чтобы подтвердить идентификатор и отменить регистрацию ({{facility}}).",
+    "errorMessage": "Идентификатор не совпадает. Пожалуйста, попробуйте еще раз.",
+    "logoutButton": "Выйти",
+    "placeholder": "Введите идентификатор ({{facility}})",
+    "title": "Подтвердите выход",
+    "warning": "Это приведет к выходу вашей и других учетных записей на этом устройстве, отмене регистрации и удалению всех локальных данных ({{facility}})."
   }
 }

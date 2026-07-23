@@ -13,7 +13,10 @@
     <div class="warning-section">
       <div class="warning-message">
         <p class="main-text">
-          {{ "logout.warning" | translate }}
+          {{
+            "logout.warning"
+              | translate : { facility: facilityLabelKey | translate }
+          }}
         </p>
         <p
           class="sub-text"

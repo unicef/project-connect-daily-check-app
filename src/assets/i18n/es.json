@@ -22,7 +22,7 @@
   },
   "checkboxText": "Al registrarme y utilizar GigaMeter, acepto la recopilación, el procesamiento y la publicación de mi medición y otros datos de apoyo por parte de Giga bajo la",
   "confirmSchool": {
-    "confirm1": "Confirme la información de su {{facility}} para registrarla",
+    "confirm1": "Confirme la información de su {{facility}} para registrarlo",
     "confirm2": "¿ES CORRECTA LA INFORMACIÓN ANTERIOR?",
     "title": "¿Es correcta la información que aparece a continuación?"
   },
@@ -63,7 +63,7 @@
     "learnMore": "Obtenga más información sobre Giga Meter",
     "licenseLink": "Licencia Abierta de Bases de Datos (ODbL)",
     "next": "Siguiente",
-    "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targesurl}}>Para más detalles sobre cómo Giga gestiona sus datos, visite la Política de Privacidad de UNICEF.</a>",
+    "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>Para más detalles sobre cómo Giga gestiona sus datos, visite la Política de Privacidad de UNICEF.</a>",
     "privacyPolicy": "Política de Privacidad",
     "start": "Comenzar",
     "title1": "Bienvenido a {{appName}} <span class=\"daily-chk-blue\">{{appNameSuffix}}</span>",
@@ -151,15 +151,15 @@
     "loading": "Cargando",
     "not-available": "la aplicación {{appName}} {{appNameSuffix}} no está disponible en este país. Por favor elija otro país.",
     "please-double-check": "Por favor, verifique su selección.",
-    "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
+    "facility-not-enabled": "El registro de {{facility}} aún no está habilitado en {{country}}. Por favor, contacte al administrador de {{appName}} o elija otro país."
   },
   "searchSchool": {
     "placeholder-school-id": "p.ej. 00000000",
     "provide-school-id": "Por favor, escriba e ingrese el identificador único (ID) de su {{facility}}",
     "search": "Buscando su {{facility}}...",
     "user-has-not-id": "Una vez que escriba el ID de su {{facility}}, buscaremos identificaciones que coincidan con su entrada.",
-    "provide-govt-id": "Please type and enter the facility Government ID",
-    "placeholder-govt-id": "eg. GOV-00000000"
+    "provide-govt-id": "Por favor, escriba e ingrese el ID gubernamental del establecimiento",
+    "placeholder-govt-id": "ej. GOB-00000000"
   },
   "start": "Comenzar",
   "startTest": {
@@ -228,24 +228,24 @@
   },
   "logout": {
     "title": "Confirmar cierre de sesión",
-    "warning": "Esta acción cerrará su sesión y la de otras cuentas de usuario en este dispositivo, cancelará el registro de la escuela y borrará todos los datos locales.",
-    "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm your {{facility}} ID for unregistration.",
-    "placeholder": "Enter your {{facility}} ID",
-    "errorMessage": "The ID does not match. Please try again.",
+    "warning": "Esto cerrará la sesión de su cuenta y de las demás cuentas de este dispositivo, cancelará el registro de su {{facility}} y borrará todos los datos locales.",
+    "confirmText": "Escriba <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar el ID de su {{facility}} y cancelar el registro.",
+    "placeholder": "Ingrese el ID de su {{facility}}",
+    "errorMessage": "El ID no coincide. Por favor, inténtelo de nuevo.",
     "logoutButton": "Cerrar sesión",
     "cancelButton": "Cancelar"
   },
   "yes": "Sí",
   "facilityType": {
-    "school": "School",
-    "health": "Health facility"
+    "school": "Centro educativo",
+    "health": "Centro de salud"
   },
   "idLabel": {
-    "school": "School ID",
-    "health": "Government ID"
+    "school": "ID del centro educativo",
+    "health": "ID gubernamental"
   },
   "selectFacility": {
-    "title": "What would you like to connect?",
-    "subtitle": "Choose the type of facility where {{appName}} is being installed."
+    "title": "¿Qué desea conectar?",
+    "subtitle": "Elija el tipo de establecimiento donde se está instalando {{appName}}."
   }
 }
