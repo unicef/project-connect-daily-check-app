@@ -32,6 +32,7 @@ export class SearchschoolPage {
     '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="white" [translate]="\'searchSchool.search\'"></p></div>';
 
   facilityType = 'school';
+  facilityLabelKey = 'facilityType.school';
   lookupIdLabelKey = 'idLabel.school';
   provideIdKey = 'searchSchool.provide-school-id';
   placeholderIdKey = 'searchSchool.placeholder-school-id';
@@ -50,6 +51,7 @@ export class SearchschoolPage {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
     this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
     this.lookupIdLabelKey = getFacilityConfig(
       this.facilityType as any
     ).lookupIdLabelKey;
@@ -68,6 +70,7 @@ export class SearchschoolPage {
     // Re-read on every entry — Ionic caches page instances in the nav stack,
     // so a constructor-time read can be stale after switching facility type.
     this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
     this.lookupIdLabelKey = getFacilityConfig(
       this.facilityType as any
     ).lookupIdLabelKey;

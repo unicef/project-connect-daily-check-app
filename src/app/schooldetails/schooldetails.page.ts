@@ -24,12 +24,15 @@ export class SchooldetailsPage {
   selectedCountryName: any;
   detectedCountry: any;
   private sub: any;
-  private translatedText = this.translate.instant('schoolDetails.searchSchool');
+  facilityType = 'school';
+  facilityLabelKey = 'facilityType.school';
+  private translatedText = this.translate.instant('schoolDetails.searchSchool', {
+    facility: this.translate.instant(this.facilityLabelKey),
+  });
 
   private loadingMsg =
     // eslint-disable-next-line max-len
     `<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="green_loader">${this.translatedText}</p></div>`;
-  facilityType = 'school';
 
   constructor(
     private activatedroute: ActivatedRoute,
@@ -42,6 +45,7 @@ export class SchooldetailsPage {
     private translate: TranslateService
   ) {
     this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
     this.sub = this.activatedroute.params.subscribe((params) => {
@@ -58,6 +62,7 @@ export class SchooldetailsPage {
   ionViewWillEnter() {
     // Re-read on every entry — page instances are cached by the nav stack.
     this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
   }
 
   /**
@@ -67,7 +72,11 @@ export class SchooldetailsPage {
    */
   searchSchoolById(id) {
 
-    this.translate.get('schoolDetails.searchSchool').subscribe((translatedText) => {
+    this.translate
+      .get('schoolDetails.searchSchool', {
+        facility: this.translate.instant(this.facilityLabelKey),
+      })
+      .subscribe((translatedText) => {
       const loadingMsg = `
       <div class="loadContent">
         <ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img>
@@ -95,7 +104,11 @@ export class SchooldetailsPage {
    */
   searchSchoolBySchooIdAndCountryCode() {
     if (this.schoolId && this.selectedCountry) {
-      this.translate.get('schoolDetails.searchSchool').subscribe((translatedText) => {
+      this.translate
+      .get('schoolDetails.searchSchool', {
+        facility: this.translate.instant(this.facilityLabelKey),
+      })
+      .subscribe((translatedText) => {
         const loadingMsg = `
           <div class="loadContent">
             <ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img>

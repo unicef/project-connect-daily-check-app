@@ -37,6 +37,7 @@ export class ConfirmschoolPage implements OnInit{
   detectedCountry: any;
   sub: any;
   appName = environment.appName;
+  facilityLabelKey = 'facilityType.school';
   constructor(
     private activatedroute: ActivatedRoute,
     public router: Router,
@@ -69,6 +70,7 @@ export class ConfirmschoolPage implements OnInit{
 
   
   async ngOnInit() {
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
     try {
       // 1. Get WiFi list from Electron
       const wifiList = await this.locationService.getWifiAccessPoints();

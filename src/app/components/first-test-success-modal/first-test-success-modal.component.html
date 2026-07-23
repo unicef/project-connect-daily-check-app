@@ -31,7 +31,8 @@
             <ion-icon name="home-outline" class="success-icon"></ion-icon>
           </div>
           <span class="success-text">{{
-            "startTest.schoolRegistered" | translate
+            "startTest.schoolRegistered"
+              | translate : { facility: facilityLabelKey | translate }
           }}</span>
         </div>
 

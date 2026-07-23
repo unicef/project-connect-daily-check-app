@@ -8,7 +8,7 @@
     <app-selected-detail></app-selected-detail>
 
     <div>
-      <div class="provide_id" [translate]="provideIdKey"></div>
+      <div class="provide_id" [translate]="provideIdKey" [translateParams]="{ facility: (facilityLabelKey | translate) }"></div>
       <div class="wrap">
         <div class="search">
           <input type="text" class="searchTerm" placeholder="{{ placeholderIdKey | translate }}"
@@ -20,7 +20,7 @@
         </div>
       </div>
       <div class="learn-more noschoolid-link"
-        [innerHTML]="'searchSchool.user-has-not-id' | translate"></div>
+        [innerHTML]="'searchSchool.user-has-not-id' | translate:{ facility: (facilityLabelKey | translate) }"></div>
     </div>
     <div class="bottom-layout">
       <div class="accordion-sec">

@@ -7,7 +7,7 @@
           <div class="successInfo">
             <ion-img src="assets/images/Congratulations_Icon.svg" class="icon1"></ion-img>
             <div class="success-txt" [translate]="'schoolSuccess.congratulations'"></div>
-            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.school-registered' | translate:{ appName }"></div>
+            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.school-registered' | translate:{ appName, facility: (facilityLabelKey | translate) }"></div>
           </div>
         </div>
       </ion-slide>
@@ -25,7 +25,7 @@
           <div class="successInfo">
             <ion-img src="assets/images/app_run.svg" class="icon3"></ion-img>
             <div class="success-txt" [innerHtml]="'schoolSuccess.app-run' | translate"></div>
-            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.app-run-desc' | translate"></div>
+            <div class="success-desc-txt" [innerHtml]="'schoolSuccess.app-run-desc' | translate:{ facility: (facilityLabelKey | translate) }"></div>
             <div class="success-desc-txt" [innerHtml]="'schoolSuccess.you-can-close' | translate"></div>
 
           </div>

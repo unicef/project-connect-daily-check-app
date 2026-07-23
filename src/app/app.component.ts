@@ -38,6 +38,7 @@ export class AppComponent {
   toastColor = 'success';
   showCopySuccess = false;
   school: any;
+  facilityLabelKey = 'facilityType.school';
   historyState: any;
   availableSettings: any;
   scheduleSemaphore: any;
@@ -109,6 +110,7 @@ export class AppComponent {
       'unknown-device';
     // Show the full device ID as requested
     this.device_id_short = this.device_id;
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
     if (this.identityService.isRegistered()) {
       this.school = this.identityService.getFacilityInfo();
     }

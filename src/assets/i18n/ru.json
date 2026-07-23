@@ -15,7 +15,7 @@
   },
   "confirmSchool": {
     "title": "Верна ли информация ниже?",
-    "confirm1": "Подтвердите информацию о школе, чтобы зарегистрировать ее",
+    "confirm1": "Подтвердите информацию о {{facility}}, чтобы зарегистрировать ее",
     "confirm2": "ЛИ ИНФОРМАЦИЯ ВЫШЕ?"
   },
   "saveEmail": {
@@ -26,28 +26,28 @@
     "emailFormat": "Введите адрес электронной почты с доменом и точкой (например, info@school.com)."
   },
   "invalidLocation": {
-    "resultLocation": "– Ваше местоположение: {{country}}.<br />– Выбраны школы {{selectedCountry}}. <br />",
-    "unableToLocate": "ПОЖАЛУЙСТА, ВЫБЕРИТЕ ПРАВИЛЬНУЮ ШКОЛУ."
+    "resultLocation": "– Ваше местоположение: {{country}}.<br />– Выбрано: {{facility}} — {{selectedCountry}}. <br />",
+    "unableToLocate": "Пожалуйста, выберите правильную {{facility}}."
   },
   "schoolDetails": {
-    "search": "ва школ...",
-    "selectAndConfirm": "Выберите свою школу",
-    "noSchoolList": "МОЕЙ ШКОЛЫ НЕТ В СПИСКЕ",
-    "saveEmail": "Пожалуйста, добавьте адрес электронной почты вашей школы",
+    "search": "Поиск {{facility}}...",
+    "selectAndConfirm": "Выберите свою {{facility}}",
+    "noSchoolList": "Моей {{facility}} нет в списке",
+    "saveEmail": "Пожалуйста, добавьте адрес электронной почты вашей {{facility}}",
     "enterEmail": "Введите текст",
     "totalSchools": "{{schoolCount}} результатов, соответствующих {{schoolId}}",
     "checkGiga": "Giga",
-    "searchSchool": "идентификаторов школ",
+    "searchSchool": "Поиск идентификаторов {{facility}}",
     "select": "Выбирать",
-    "confirmText": "После нажатия <b>&quot;Да&quot;</b> для изменения школы потребуется удалить и переустановить приложение.",
+    "confirmText": "После нажатия <b>&quot;Да&quot;</b> для изменения {{facility}} потребуется удалить и переустановить приложение.",
     "skip": "Пропускать",
     "add": "Добавлять"
   },
   "schoolNotFound": {
-    "unableToLocate": "Мы не смогли найти вашу школу: {{schoolId}}",
-    "notFound": "К сожалению, нам не удалось найти вашу школу",
+    "unableToLocate": "Мы не смогли найти вашу {{facility}}: {{schoolId}}",
+    "notFound": "К сожалению, нам не удалось найти вашу {{facility}}",
     "tryAgainPlaceholder": "Убедитесь, что вы ввели правильный идентификатор, или повторите попытку с другим идентификатором.",
-    "notRegister": "К сожалению, ваша школа не зарегистрирована в {{appName}}\nПожалуйста, свяжитесь с администратором вашей школы, чтобы зарегистрировать вашу школу в\nPCDC снова."
+    "notRegister": "К сожалению, ваша {{facility}} не зарегистрирована в {{appName}}\nПожалуйста, свяжитесь с администратором вашей {{facility}}, чтобы зарегистрировать ее в\nPCDC снова."
   },
   "Please contact your school administrator to register your school on": "",
   "PCDC again": {
@@ -55,19 +55,19 @@
   },
   "schoolSuccess": {
     "congratulations": "ПОЗДРАВЛЯЕМ!",
-    "school-registered": "Ваша школа зарегистрирована в <br />{{appName}}.",
+    "school-registered": "Ваша {{facility}} зарегистрирована в <br />{{appName}}.",
     "success-txt": "ВАШ ЕЖЕДНЕВНЫЙ ИНТЕРНЕТ<br />ПРОВЕРКА УСТАНОВЛЕНА",
     "internet-checks": "Это приложение будет проверять ваш интернет-статус 4 раза в день.",
     "app-run": "ЭТО ПРИЛОЖЕНИЕ РАБОТАЕТ <br />В ФОНОВОМ РЕЖИМЕ",
-    "app-run-desc": "Ваши школьные данные будут собираться, когда устройство включено.",
+    "app-run-desc": "Данные вашей {{facility}} будут собираться, когда устройство включено.",
     "you-can-close": "Вы можете закрыть приложение.",
     "get-started": "Начать",
     "go-dashboard": "к вашей панели управления"
   },
   "registerSchool": {
-    "register-step-1": "Вы собираетесь зарегистрировать свою школу.",
-    "register-part-2": "Каждая школа может установить и зарегистрировать до двух устройств, если не указано иное.",
-    "register-step-2": "Установите Giga Meter на компьютеры, которые используются , и  только к школьному интернету.",
+    "register-step-1": "Вы собираетесь зарегистрировать свою {{facility}}.",
+    "register-part-2": "Каждая {{facility}} может установить и зарегистрировать до двух устройств, если не указано иное.",
+    "register-step-2": "Установите Giga Meter на компьютеры, которые используются , и  только к интернету {{facility}}.",
     "register-step-3": "По возможности убедитесь, что хотя бы один компьютер к  проводносоединени (Ethernet).",
     "start-registeration": "Начать егистрацию"
   },
@@ -84,10 +84,10 @@
     "facility-not-enabled": "Registration for {{facility}} is not enabled in {{country}} yet. Please contact your {{appName}} administrator or choose another country."
   },
   "searchSchool": {
-    "search": "ваш школ...",
+    "search": "Поиск {{facility}}...",
     "placeholder-school-id": "например, 00000000",
-    "provide-school-id": "Пожалуйста, введите идентификатор вашей школы",
-    "user-has-not-id": "После того, как вы введете идентификатор своей школы, мы идентификатор, соответствующи введенным вами данным.",
+    "provide-school-id": "Пожалуйста, введите идентификатор вашей {{facility}}",
+    "user-has-not-id": "После того, как вы введете идентификатор своей {{facility}}, мы найдем идентификатор, соответствующий введенным вами данным.",
     "provide-govt-id": "Please type and enter the facility Government ID",
     "placeholder-govt-id": "eg. GOV-00000000"
   },
@@ -124,8 +124,8 @@
   "app": {
     "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Часто задаваемые вопросы",
     "about": "<ion-icon name=\"information-circle-outline\"></ion-icon>О {{appName}}",
-    "school-id": "ВАШ ШКОЛЬНЫЙ ID",
-    "my-school-id": "<span class=\"hash\">#</span>Идентификатор моей школы",
+    "school-id": "Ваш идентификатор {{facility}}",
+    "my-school-id": "<span class=\"hash\">#</span>Идентификатор моей {{facility}}",
     "version": "ВЕРСИЯ {{ app_version }}",
     "about-project-connect": "О {{appName}}",
     "project-connect-desc": "{{appName}} автоматически измеряет  в течение дня, создавая  в школах с течением времени. Результаты синхронизируются с Giga Maps - глобальной картой статус подключения школ в режиме реального времени. Обеспечение надежн интернет-соединени в школах мисси Giga по подключению всех молодых людей к информации, возможностям и выбору.",
@@ -172,26 +172,26 @@
     "about": "Данные",
     "total": "История тестов (последние 10 измерений)",
     "congratulations": "Поздравляем  !",
-    "schoolRegistered": "Школа успешно зарегистрирована",
+    "schoolRegistered": "{{facility}}: регистрация выполнена успешно",
     "testWorking": "Первый тест завершен",
     "backgroundMessage": "Приложение продолжит работу в фоновом режиме.",
     "closingIn": "Закрытие через",
     "testTrigger": "Тип"
   },
   "registerSchoolPage": {
-    "title1": "Вы собираетесь зарегистрировать свою школу",
+    "title1": "Вы собираетесь зарегистрировать свою {{facility}}",
     "title2": "процесса регистрации убедитесь, что компьютеры:",
     "readMore": "Узнайте больше о том, как",
     "tip1": "Предпочтительно, проводн соединени",
     "tip2": "Установлено на 2 устройствах, которые используются чаще всего",
-    "tip3": "Подключен только к школьному интернету",
+    "tip3": "Подключен только к интернету {{facility}}",
     "privacy": "Регистрируясь и используя Giga Meter, я соглашаюсь на сбор, обработку и публикацию моих измерений и других вспомогательных данных Giga в рамках"
   },
   "notifications": {
     "registrationCompleted": "Регистрация завершена",
     "runningFirstTest": "Выполняются тесты подключения"
   },
-  "resultSchool": "РЕЗУЛЬТАТЫ ПО ИДЕНТИФИКАТОРУ ШКОЛЫ",
+  "resultSchool": "Результаты по идентификатору {{facility}}",
   "tryAgain": "ПОПРОБУЙТЕ ЕЩЕ РАЗ",
   "yes": "Да",
   "no": "Нет",

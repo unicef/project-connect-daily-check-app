@@ -10,9 +10,9 @@
     "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Frequently asked questions",
     "faq-help": "FAQs",
     "language-pref": "Language preferences",
-    "my-school-id": "<span class=\"hash\">#</span>My School Id",
+    "my-school-id": "<span class=\"hash\">#</span>My {{facility}} Id",
     "project-connect-desc": "{{appName}} automatically measures internet performance throughout the day, building a clear picture of connectivity in schools over time. The results are seamlessly synced with Giga Maps- a global, open map showing schools’ connectivity status in real time. Ensuring strong internet connections in schools supports Giga’s mission to connect all young people to information opportunity and choice. ",
-    "school-id": "YOUR SCHOOL ID",
+    "school-id": "Your {{facility}} ID",
     "test-type-setting": "Test type settings",
     "thank-you": "Thank you for contributing to {{appName}}. Find your school and learn more at our website. We add new schools every day!",
     "version": "VERSION {{ app_version }}",
@@ -22,7 +22,7 @@
   },
   "checkboxText": "By registering and using GigaMeter, I agree to the collection, processing and publication of my measurement and other supporting data by Giga under the",
   "confirmSchool": {
-    "confirm1": "Confirm school information to register your school",
+    "confirm1": "Confirm the information below to register your {{facility}}",
     "confirm2": "IS THE INFORMATION ABOVE CORRECT?",
     "title": "Is the information below correct?"
   },
@@ -71,8 +71,8 @@
     "welcome": "Welcome to"
   },
   "invalidLocation": {
-    "resultLocation": "- Your location is {{country}}.<br />- Selected schools is from {{selectedCountry}}. <br />",
-    "unableToLocate": "PLEASE SELECT A CORRECT SCHOOL."
+    "resultLocation": "- Your location is {{country}}.<br />- {{facility}} selected is from {{selectedCountry}}. <br />",
+    "unableToLocate": "Please select a correct {{facility}}."
   },
   "language": "Language",
   "learn-more": "LEARN MORE ABOUT {{appName}}",
@@ -87,9 +87,9 @@
   "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
   "privacyPolicy": "Privacy Policy",
   "registerSchool": {
-    "register-part-2": "Each school can install and register up to two devices, unless instructed otherwise.",
-    "register-step-1": "You are about to register your school.",
-    "register-step-2": "Install Giga Meter on computers that are used frequently and connect only to the school’s internet.",
+    "register-part-2": "Each {{facility}} can install and register up to two devices, unless instructed otherwise.",
+    "register-step-1": "You are about to register your {{facility}}.",
+    "register-step-2": "Install Giga Meter on computers that are used frequently and connect only to the internet at your {{facility}}.",
     "register-step-3": "If possible, ensure at least one computer connects to the Internet using a wired (Ethernet) connection.",
     "start-registeration": "Start Registration"
   },
@@ -98,11 +98,11 @@
     "readMore": "Read more about how to ensure a good registration",
     "tip1": "Preferably, on a wired connection",
     "tip2": "Installed on 2 devices that are mostly used",
-    "tip3": "Connected only to the school internet",
-    "title1": "You're about to register your school",
+    "tip3": "Connected only to the internet at your {{facility}}",
+    "title1": "You're about to register your {{facility}}",
     "title2": "To ensure a good registration process make sure the computers are:"
   },
-  "resultSchool": "RESULTS FOR SCHOOL ID",
+  "resultSchool": "Results for {{facility}} ID",
   "saveEmail": {
     "emailFormat": "Please enter a valid email with a domain and dot (e.g., info@school.com).",
     "emailRequired": "Email is required.",
@@ -113,31 +113,31 @@
   "schoolDetails": {
     "add": "Add",
     "checkGiga": "Check on Giga Maps",
-    "confirmText": "Once you tap <b>&quot;Yes&quot;</b> changing your school will require uninstalling and reinstalling the app.",
+    "confirmText": "Once you tap <b>&quot;Yes&quot;</b> changing your {{facility}} will require uninstalling and reinstalling the app.",
     "enterEmail": "Input Text",
-    "noSchoolList": "MY SCHOOL IS NOT ON THE LIST",
-    "saveEmail": "Please add your school’s email address",
-    "search": "Searching for your school...",
-    "searchSchool": "Searching School IDs",
+    "noSchoolList": "My {{facility}} is not on the list",
+    "saveEmail": "Please add your {{facility}}’s email address",
+    "search": "Searching for your {{facility}}...",
+    "searchSchool": "Searching {{facility}} IDs",
     "select": "Select",
-    "selectAndConfirm": "Select your school",
+    "selectAndConfirm": "Select your {{facility}}",
     "skip": "Skip",
     "totalSchools": "{{schoolCount}} results matching with {{schoolId}}"
   },
   "schoolNotFound": {
-    "notFound": "Unfortunately we were unable to locate your school",
-    "notRegister": "Unfortunately your school is not registered with {{appName}}\nPlease contact your school administrator to register your school on\nPCDC again.",
+    "notFound": "Unfortunately we were unable to locate your {{facility}}",
+    "notRegister": "Unfortunately your {{facility}} is not registered with {{appName}}\nPlease contact your {{facility}} administrator to register it on\nPCDC again.",
     "tryAgainPlaceholder": "Please make sure you typed the correct ID or try again with a different ID",
-    "unableToLocate": "We couldn’t find your school: <br /><b>{{schoolId}}</b>"
+    "unableToLocate": "We couldn’t find your {{facility}}: <br /><b>{{schoolId}}</b>"
   },
   "schoolSuccess": {
     "app-run": "The app will run in the <br /> background",
-    "app-run-desc": "Your school data will be collected when device is on.",
+    "app-run-desc": "Your {{facility}} data will be collected when device is on.",
     "congratulations": "Congratulations - you are all done!",
     "get-started": "Get started",
     "go-dashboard": "Go to your dashboard",
     "internet-checks": "This App will check your <br />internet status 4 times a day.",
-    "school-registered": "Your School has been registered on <br />{{appName}}",
+    "school-registered": "Your {{facility}} has been registered on <br />{{appName}}",
     "success-txt": "Your daily internet <br />check is set!",
     "you-can-close": "You can close the App."
   },
@@ -155,9 +155,9 @@
   },
   "searchSchool": {
     "placeholder-school-id": "eg. 00000000",
-    "provide-school-id": "Please type and enter your school ID",
-    "search": "Searching for your school...",
-    "user-has-not-id": "Once you type your school ID we will search for ids that match with your input.",
+    "provide-school-id": "Please type and enter your {{facility}} ID",
+    "search": "Searching for your {{facility}}...",
+    "user-has-not-id": "Once you type your {{facility}} ID we will search for ids that match with your input.",
     "provide-govt-id": "Please type and enter the facility Government ID",
     "placeholder-govt-id": "eg. GOV-00000000"
   },
@@ -182,7 +182,7 @@
     "retrying": "Retry {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Running Test (Download)",
     "runningTestUpload": "Running Test (Upload)",
-    "schoolRegistered": "School registered successfully",
+    "schoolRegistered": "{{facility}} registered successfully",
     "server": "Nearest server",
     "serverSelected": "Server found",
     "start": "START",
