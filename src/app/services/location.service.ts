@@ -13,39 +13,71 @@ import {
 } from 'rxjs';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class LocationService {
   private readonly STORAGE_KEY_GEO = 'geolocation';
   private readonly STORAGE_KEY_WIFI = 'wifiAccessPoints';
+  // This key is getting used for Mobile app
+  private readonly STORAGE_KEY_IS_LOCATION_PERMISSION_ASKED =
+    'isLocationPermissionAsked';
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient) {}
 
-  async getWifiAccessPoints(): Promise<{ macAddress: string; signalStrength: number }[]> {
+  async getWifiAccessPoints(): Promise<
+    { macAddress: string; signalStrength: number }[]
+  > {
     const wifiList = await (window as any).electronAPI.getWifiList();
     return wifiList.map((wifi: any) => ({
       macAddress: wifi.macAddress,
-      signalStrength: wifi.signal
+      signalStrength: wifi.signal,
     }));
   }
 
   resolveGeolocation(wifiAccessPoints: any) {
-    return this.http.post(
-      `${environment.restAPI}geolocation/geolocate`,
-      { considerIp: false, wifiAccessPoints }
-    ).pipe(
+    return this.http
+      .post(`${environment.restAPI}geolocation/geolocate`, {
+        considerIp: false,
+        wifiAccessPoints,
+      })
+      .pipe(
+        //  Retry once with 1 second delay
+        retry({
+          count: 1,
+          delay: 1000,
+        }),
 
-      //  Retry once with 1 second delay
-      retry({
-        count: 1,
-        delay: 1000
-      }),
+        map((response: any) => ({
+          ...response,
+          timestamp: Date.now(),
+        })),
+      );
+  }
 
-      map((response: any) => ({
-        ...response,
-        timestamp: Date.now()
-      }))
-    );
+  /** Save geolocation in localStorage */
+  setLocationPermissionAskedStatus(status: boolean) {
+    try {
+      const value = status ? 'YES' : 'NO';
+      localStorage.setItem(
+        this.STORAGE_KEY_IS_LOCATION_PERMISSION_ASKED,
+        value,
+      );
+    } catch (err) {
+      console.warn('[Location] saveGeolocation failed:', err);
+    }
+  }
+
+  /** Get geolocation from localStorage */
+  getLocationPermissionAskedStatus(): boolean {
+    try {
+      const data = localStorage.getItem(
+        this.STORAGE_KEY_IS_LOCATION_PERMISSION_ASKED,
+      );
+      return data === 'YES';
+    } catch (err) {
+      console.warn('[Location] getSavedGeolocation failed:', err);
+      return false;
+    }
   }
 
   /** Save geolocation in localStorage */
@@ -96,12 +128,16 @@ export class LocationService {
    *
    * Never throws. On any failure it emits the last known cached value (or null).
    */
-  fetchAndSaveGeolocation(): Observable<{ latitude: number; longitude: number } | null> {
-    const wifiPromise: Promise<{ macAddress: string; signalStrength: number }[]> =
-      this.getWifiAccessPoints().catch((err) => {
-        console.warn('[Location] getWifiAccessPoints failed:', err);
-        return [];
-      });
+  fetchAndSaveGeolocation(): Observable<{
+    latitude: number;
+    longitude: number;
+  } | null> {
+    const wifiPromise: Promise<
+      { macAddress: string; signalStrength: number }[]
+    > = this.getWifiAccessPoints().catch((err) => {
+      console.warn('[Location] getWifiAccessPoints failed:', err);
+      return [];
+    });
 
     return from(wifiPromise).pipe(
       switchMap((wifiList) => {
@@ -111,7 +147,7 @@ export class LocationService {
         // No WiFi APs available → backend can't help, use cache
         if (currentMacs.length === 0) {
           console.log(
-            '[Location] No WiFi access points available; using cached geolocation.'
+            '[Location] No WiFi access points available; using cached geolocation.',
           );
           return of(savedGeo);
         }
@@ -120,9 +156,7 @@ export class LocationService {
 
         // WiFi environment unchanged and we already have a geolocation → reuse
         if (savedGeo && this.areWifiListsEqual(currentMacs, savedMacs)) {
-          console.log(
-            '[Location] WiFi unchanged; reusing cached geolocation.'
-          );
+          console.log('[Location] WiFi unchanged; reusing cached geolocation.');
           return of(savedGeo);
         }
 
@@ -136,25 +170,25 @@ export class LocationService {
           catchError((err) => {
             console.warn(
               '[Location] Backend resolve failed; falling back to cached geolocation:',
-              err
+              err,
             );
             return of(savedGeo);
-          })
+          }),
         );
       }),
       catchError((err) => {
         console.warn(
           '[Location] fetchAndSaveGeolocation failed entirely; returning cache:',
-          err
+          err,
         );
         return of(this.getSavedGeolocation());
-      })
+      }),
     );
   }
 
   /** Extract a sorted, de-duplicated list of MAC addresses from a WiFi scan. */
   private extractSortedMacs(
-    wifiList: { macAddress: string; signalStrength: number }[]
+    wifiList: { macAddress: string; signalStrength: number }[],
   ): string[] {
     try {
       if (!Array.isArray(wifiList) || wifiList.length === 0) {
@@ -188,5 +222,4 @@ export class LocationService {
     }
     return true;
   }
-
 }

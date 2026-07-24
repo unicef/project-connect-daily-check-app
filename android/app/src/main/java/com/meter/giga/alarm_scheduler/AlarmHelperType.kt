@@ -1,5 +1,7 @@
 package com.meter.giga.alarm_scheduler
 
+import android.content.Context
+
 /**
  * Contract interface defining alarm scheduling
  * and execution time calculation operations.
@@ -68,4 +70,6 @@ interface AlarmHelperType {
    * @return delay duration in milliseconds.
    */
   fun getNextDayTimeToCheckVersionUpdate(): Long
+
+  fun cancelExactAlarm(context: Context, tag: String)
 }

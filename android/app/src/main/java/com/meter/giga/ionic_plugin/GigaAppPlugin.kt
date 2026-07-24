@@ -30,6 +30,7 @@ import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.AppUpdateCheckEventBus
 import com.meter.giga.utils.Constants.BASE_URL
 import com.meter.giga.utils.Constants.ENV_TYPE
+import com.meter.giga.utils.Constants.FIRST_15_MIN
 import com.meter.giga.utils.Constants.IP_INFO_TOKEN
 import com.meter.giga.utils.Constants.MLAB_UPLOAD_KEY
 import com.meter.giga.utils.Constants.REGISTRATION_BROWSER_ID
@@ -38,6 +39,8 @@ import com.meter.giga.utils.Constants.REGISTRATION_GIGA_SCHOOL_ID
 import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.PluginEvent
 import com.meter.giga.worker.await
@@ -225,6 +228,7 @@ open class GigaAppPlugin : Plugin() {
       }
     }
   }
+
   /**
    * Called when the Capacitor plugin is loaded.
    *
@@ -398,6 +402,7 @@ open class GigaAppPlugin : Plugin() {
     alarmPrefs.environment = env ?: "development"
     call.resolve()
   }
+
   /**
    * Checks whether a new application update
    * is available in Google Play Store.
@@ -487,6 +492,14 @@ open class GigaAppPlugin : Plugin() {
     val context = context
     val alarmPrefs = AlarmSharedPref(context)
     alarmPrefs.resetAllData()
+    val tags = listOf(
+      SCHEDULE_TYPE_DAILY,
+      SCHEDULE_TYPE_START,
+      FIRST_15_MIN
+    )
+    tags.forEach { tag ->
+      AlarmHelper.cancelExactAlarm(context, tag)
+    }
     call.resolve()
   }
 

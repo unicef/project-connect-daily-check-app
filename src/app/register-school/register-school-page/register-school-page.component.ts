@@ -7,6 +7,9 @@ import { environment } from 'src/environments/environment';
 import { IonAccordionGroup, IonSlides } from '@ionic/angular';
 import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
+import { Geolocation } from '@capacitor/geolocation';
+import { LocationService } from 'src/app/services/location.service';
+
 @Component({
   selector: 'app-register-school-page',
   templateUrl: './register-school-page.component.html',
@@ -16,14 +19,17 @@ import { Browser } from '@capacitor/browser';
 export class RegisterSchoolPageComponent implements OnInit {
   @ViewChild(IonAccordionGroup, { static: true })
   accordionGroup: IonAccordionGroup;
+
   @ViewChild('mySlider') slides: IonSlides;
+
   schools: any;
   schoolId: any;
+
   slideOpts = {
     initialSlide: 0,
     speed: 400,
     pagination: {
-      el: '.swiper-pagination', // target class for bullets
+      el: '.swiper-pagination',
       clickable: true,
     },
     watchSlidesProgress: true,
@@ -31,21 +37,35 @@ export class RegisterSchoolPageComponent implements OnInit {
     observer: true,
     observeParents: true,
   };
-  isFirst = true;
 
+  isFirst = true;
   isLast = false;
   appName = environment.appName;
   privacyUrl1 = 'https://opendatacommons.org/licenses/odbl/1-0/';
   privacyUrl2 = 'https://www.measurementlab.net/privacy/';
   targetUrl = '_blank';
-  isPrivacyChecked = false;
   isNative: boolean;
+
+  private _isPrivacyChecked = false;
+
+  get isPrivacyChecked(): boolean {
+    return this._isPrivacyChecked;
+  }
+
+  set isPrivacyChecked(value: boolean) {
+    this._isPrivacyChecked = value;
+
+    if (value) {
+      this.handlePrivacyChecked();
+    }
+  }
 
   constructor(
     public loading: LoadingService,
     private readonly router: Router,
     private settingsService: SettingsService,
     private translate: TranslateService,
+    private locationService: LocationService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -54,15 +74,36 @@ export class RegisterSchoolPageComponent implements OnInit {
 
   ngOnInit() {}
 
+  private async handlePrivacyChecked() {
+    if (!Capacitor.isNativePlatform()) return;
+
+    try {
+      const permissionStatus = await Geolocation.checkPermissions();
+      this.locationService.setLocationPermissionAskedStatus(true);
+
+      if (
+        permissionStatus.location === 'prompt' ||
+        permissionStatus.location === 'prompt-with-rationale'
+      ) {
+        await Geolocation.requestPermissions();
+      }
+    } catch (error) {
+      console.error('Location permission check/request failed', error);
+    }
+  }
+
   swipeNext() {
     this.slides.slideNext();
   }
+
   reachedEnd() {
     this.isLast = true;
   }
+
   isNativeApp(): boolean {
     return Capacitor.isNativePlatform();
   }
+
   moveToStartTest() {
     const translatedText = this.translate.instant('searchCountry.check');
 
@@ -94,12 +135,13 @@ export class RegisterSchoolPageComponent implements OnInit {
   async openNativeAppBrowser(href) {
     await Browser.open({
       url: href,
-      windowName: '_system', // ensures it uses external browser where possible
+      windowName: '_system',
     });
   }
+
   async checkCurrentSlide() {
     const index = await this.slides.getActiveIndex();
-    const total = await this.slides.length(); // Total number of slides
+    const total = await this.slides.length();
 
     this.isFirst = index === 0;
     this.isLast = index === total - 1;
@@ -109,24 +151,21 @@ export class RegisterSchoolPageComponent implements OnInit {
   updatePaginationIndexClass(index: number) {
     const paginationEl = document.querySelector('.swiper-pagination');
     if (paginationEl) {
-      // Remove previous index-* classes
       paginationEl.classList.forEach((cls) => {
         if (cls.startsWith('index-')) {
           paginationEl.classList.remove(cls);
         }
       });
 
-      // Add the current index class
       paginationEl.classList.add(`index-${index}`);
     }
   }
+
   handleBackClick() {
     this.slides.getActiveIndex().then((index) => {
       if (index === 0) {
-        // First slide → go to home
         this.router.navigate(['/home']);
       } else {
-        // Slide back to previous
         this.slides.slidePrev();
       }
     });

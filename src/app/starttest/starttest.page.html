@@ -66,6 +66,24 @@
   </div>
 </div>
 
+<ng-container *ngIf="isNativeApp() && !showRegistrationBanner">
+  <ion-item lines="none">
+
+    <ion-label>
+    </ion-label>
+  </ion-item>
+
+  <ion-card *ngIf="showLocationPermissionMessage" color="warning" class="location-permission-card">
+    <ion-card-content>
+      <p>{{ locationPermissionMessage }}</p>
+
+      <ion-button expand="block" (click)="openAppSettings()">
+        Open Settings
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+</ng-container>
+
 <ion-content [ngClass]="isNativeApp() ? 'native_scrollable_content' : 'scrollable_content'">
   <ion-card class="card_margin">
     <div class="container centerPos">

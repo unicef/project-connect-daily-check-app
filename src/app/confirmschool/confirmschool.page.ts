@@ -75,10 +75,13 @@ export class ConfirmschoolPage implements OnInit {
     try {
       // 1. Get WiFi list from Electron
       const wifiList = await this.locationService.getWifiAccessPoints();
+      console.log('GIGA METER WIFI LIST:', wifiList);
 
       // 2. Send WiFi list to backend → backend returns lat/long
       this.locationService.resolveGeolocation(wifiList).subscribe({
         next: (geo: any) => {
+          console.log('GIGA METER GEOLOCATION:', JSON.stringify(geo));
+
           console.log('Received geolocation from backend:', geo);
 
           // 3. Save lat/long in localStorage
@@ -95,6 +98,31 @@ export class ConfirmschoolPage implements OnInit {
 
   isNativeApp(): boolean {
     return Capacitor.isNativePlatform();
+  }
+
+  async getLocation() {
+    if (this.isNativeApp()) {
+      try {
+        const position = await this.ensureLocationPermission();
+
+        console.log(`Position: ${JSON.stringify(position)}`);
+
+        const geolocation = position
+          ? {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            }
+          : null;
+
+        console.log('GIGA METER LOCATION', JSON.stringify(geolocation));
+        return geolocation;
+      } catch (error) {
+        console.error('Failed to get native location', error);
+        return null;
+      }
+    } else {
+      return this.locationService.getSavedGeolocation();
+    }
   }
   confirmSchool() {
     /* Store school id and giga id inside storage */
@@ -115,7 +143,7 @@ export class ConfirmschoolPage implements OnInit {
         this.getDeviceId().then(async (b) => {
           // Get hardware ID for machine-level registration
           const hardwareId = this.hardwareIdService.getHardwareId();
-
+          const location = await this.getLocation();
           // Get Windows username, installed path, and WiFi connections
           this.getWindowsUsername().then((windowsUsername) => {
             this.getInstalledPath().then((installedPath) => {
@@ -133,9 +161,13 @@ export class ConfirmschoolPage implements OnInit {
                   windows_username: windowsUsername || null, // Add Windows username
                   installed_path: installedPath || null, // Add installed path
                   wifi_connections: wifiConnections || null, // Add WiFi connections
-                  geolocation: this.locationService.getSavedGeolocation(),
+                  geolocation: location,
                   //school_id: this.school.school_id
                 };
+                console.log(
+                  'GIGA METER SCHOOLDATA',
+                  JSON.stringify(schoolData),
+                );
 
                 // if(this.school.code === c.country){
 
@@ -281,20 +313,23 @@ export class ConfirmschoolPage implements OnInit {
   }
 
   async ensureLocationPermission() {
-    const status = await Geolocation.checkPermissions();
+    try {
+      const status = await Geolocation.checkPermissions();
 
-    if (status.location !== 'granted') {
-      const request = await Geolocation.requestPermissions();
-      if (request.location !== 'granted') {
-        console.log('Permission denied');
+      if (status.location !== 'granted') {
+        console.log('Location permission not granted');
         return null;
       }
-    }
 
-    const position = await Geolocation.getCurrentPosition({
-      enableHighAccuracy: true,
-    });
-    return position;
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true,
+      });
+
+      return position;
+    } catch (error) {
+      console.error('Error getting location', error);
+      return null;
+    }
   }
   async getDeviceInfo() {
     const info = await Device.getInfo();

@@ -176,4 +176,26 @@ object AlarmHelper : AlarmHelperType {
     logger.d("Daily Schedule Interval", "Scheduled at time ${delayMs}")
     return delayMs
   }
+
+  override fun cancelExactAlarm(context: Context, tag: String) {
+    logger.d("GIGA AlarmHelper", "cancelExactAlarm for tag = $tag")
+
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+    val intent = Intent(context, ScheduleBroadcastReceiver::class.java).apply {
+      putExtra(SCHEDULE_TYPE, tag)
+    }
+
+    val pendingIntent = PendingIntent.getBroadcast(
+      context,
+      tag.hashCode(),
+      intent,
+      PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+    )
+
+    pendingIntent?.let {
+      alarmManager.cancel(it)
+      it.cancel()
+    }
+  }
 }

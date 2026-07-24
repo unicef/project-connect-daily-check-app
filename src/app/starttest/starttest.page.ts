@@ -31,6 +31,14 @@ import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
 import { PingService } from '../services/ping.service';
 import { App } from '@capacitor/app';
+import type { PluginListenerHandle } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
+import {
+  NativeSettings,
+  AndroidSettings,
+  IOSSettings,
+} from 'capacitor-native-settings';
+import { LocationService } from '../services/location.service';
 @Component({
   selector: 'app-starttest',
   templateUrl: 'starttest.page.html',
@@ -98,6 +106,10 @@ export class StarttestPage implements OnInit, OnDestroy {
   onlineStatus: boolean;
   schools: any;
   schoolId: any;
+  showLocationPermissionMessage: boolean = false;
+  locationPermissionMessage: string = '';
+  locationPermissionDenied: boolean = false;
+  locationServicesDisabled: boolean = false;
   public currentDate: any;
   public connectionStatus: any;
   private sub: any;
@@ -108,7 +120,8 @@ export class StarttestPage implements OnInit, OnDestroy {
   private uploadSub!: Subscription;
   private downloadStartedSub!: Subscription;
   private uploadStartedSub!: Subscription;
-
+  private backButtonListener?: PluginListenerHandle;
+  private appStateChangeListener?: PluginListenerHandle;
   downloadTimer: any;
   uploadTimer: any;
   uploadProgressStarted = false; // To ensure we start upload animation only once
@@ -141,7 +154,8 @@ export class StarttestPage implements OnInit, OnDestroy {
     private countryService: CountryService,
     private confettiService: ConfettiService,
     private indexedDBService: IndexedDBService,
-    private pingService: PingService
+    private pingService: PingService,
+    private locationService: LocationService,
   ) {
     if (this.storage.get('schoolId')) {
       this.school = JSON.parse(this.storage.get('schoolInfo'));
@@ -169,7 +183,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.gigaAppPlugin.addListener('speedTestUpdate', (data: any) => {
         console.log(
           'GIGA NetworkTestService Data:',
-          JSON.stringify(data, null, 2)
+          JSON.stringify(data, null, 2),
         );
         try {
           if (data.testStatus === 'onstart') {
@@ -181,13 +195,13 @@ export class StarttestPage implements OnInit, OnDestroy {
             console.log('GIGA', 'Executed onstart');
           } else if (data.testStatus === 'server_discovery') {
             this.currentState = this.translate.instant(
-              'startTest.discoveringServers'
+              'startTest.discoveringServers',
             );
             this.progress = 0.1;
             this.ref.markForCheck();
           } else if (data.testStatus === 'server_chosen') {
             this.currentState = this.translate.instant(
-              'startTest.serverSelected'
+              'startTest.serverSelected',
             );
             this.progress = 0.2;
             this.ref.markForCheck();
@@ -275,14 +289,14 @@ export class StarttestPage implements OnInit, OnDestroy {
             }
             console.log(
               'GIGA',
-              'Executed complete :' + JSON.stringify(data.measurementsItem)
+              'Executed complete :' + JSON.stringify(data.measurementsItem),
             );
             this.handleFirstTestCompletion();
             if (data.measurementsItem) {
               this.historyService.add(data.measurementsItem);
               this.sharedService.broadcast(
                 'history:measurement:change',
-                'history:measurement:change'
+                'history:measurement:change',
               );
             }
             this.ref.markForCheck();
@@ -336,14 +350,14 @@ export class StarttestPage implements OnInit, OnDestroy {
               console.log(
                 'GIGA',
                 'Executed complete on error:' +
-                  JSON.stringify(data.measurementsItem)
+                  JSON.stringify(data.measurementsItem),
               );
             }
             if (data.measurementsItem) {
               this.historyService.add(data.measurementsItem);
               this.sharedService.broadcast(
                 'history:measurement:change',
-                'history:measurement:change'
+                'history:measurement:change',
               );
               this.refreshHistory();
             }
@@ -389,7 +403,7 @@ export class StarttestPage implements OnInit, OnDestroy {
           console.log(e);
         }
       },
-      false
+      false,
     );
 
     window.addEventListener(
@@ -403,7 +417,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // Hide registration banners if an error is shown during first test
         this.showRegistrationBanner = false;
       },
-      false
+      false,
     );
 
     this.sharedService.on('settings:changed', (nameValue) => {
@@ -420,26 +434,147 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.handleBackButton();
   }
 
+  private setPermissionDeniedMessage() {
+    console.log(
+      'GIGA METER getLocationPermissionAskedStatus',
+      `${this.locationService.getLocationPermissionAskedStatus()}`,
+    );
+    console.log(
+      'GIGA METER showRegistrationBanner',
+      `${this.showRegistrationBanner}`,
+    );
+
+    if (
+      !this.showRegistrationBanner &&
+      this.locationService.getLocationPermissionAskedStatus()
+    ) {
+      this.locationPermissionDenied = true;
+      this.locationServicesDisabled = false;
+      this.showLocationPermissionMessage = true;
+      this.locationPermissionMessage =
+        'Location permission is denied. Please enable it from Settings.';
+      this.ref.markForCheck();
+    }
+  }
+
+  private setLocationServiceDisabledMessage() {
+    if (
+      !this.showRegistrationBanner &&
+      this.locationService.getLocationPermissionAskedStatus()
+    ) {
+      this.locationPermissionDenied = false;
+      this.locationServicesDisabled = true;
+      this.showLocationPermissionMessage = true;
+      this.locationPermissionMessage =
+        'Location services are turned off. Please enable them from Settings.';
+      this.ref.markForCheck();
+    }
+  }
+
+  private clearLocationPermissionState() {
+    this.locationPermissionDenied = false;
+    this.locationServicesDisabled = false;
+    this.showLocationPermissionMessage = false;
+    this.locationPermissionMessage = '';
+    this.ref.markForCheck();
+  }
+
+  async checkLocationPermissionOnInit() {
+    console.log(
+      'GIGA METER getLocationPermissionAskedStatus',
+      `${this.locationService.getLocationPermissionAskedStatus()}`,
+    );
+    console.log(
+      'GIGA METER showRegistrationBanner',
+      `${this.showRegistrationBanner}`,
+    );
+    if (!Capacitor.isNativePlatform()) {
+      this.clearLocationPermissionState();
+      return;
+    }
+
+    try {
+      const status = await Geolocation.checkPermissions();
+      console.log(
+        'GIGA METER getLocationPermissionAskedStatus',
+        `${JSON.stringify(status)}`,
+      );
+      if (this.locationService.getLocationPermissionAskedStatus()) {
+        if (
+          status.location === 'denied' ||
+          status.location === 'prompt-with-rationale'
+        ) {
+          this.setPermissionDeniedMessage();
+          return;
+        }
+      } else {
+        if (status.location === 'granted') {
+          this.clearLocationPermissionState();
+          this.locationService.setLocationPermissionAskedStatus(true);
+          return;
+        } else if (
+          status.location === 'prompt' ||
+          status.location === 'prompt-with-rationale'
+        ) {
+          const requestStatus = await Geolocation.requestPermissions();
+          this.locationService.setLocationPermissionAskedStatus(true);
+
+          if (requestStatus.location === 'granted') {
+            this.clearLocationPermissionState();
+          } else {
+            this.setPermissionDeniedMessage();
+          }
+          return;
+        } else if (status.location === 'denied') {
+          this.setPermissionDeniedMessage();
+        }
+      }
+    } catch (error: any) {
+      console.error('Location permission check failed', error);
+      this.setLocationServiceDisabledMessage();
+    }
+  }
+
+  async openAppSettings() {
+    try {
+      await NativeSettings.open({
+        optionAndroid: AndroidSettings.ApplicationDetails,
+        optionIOS: IOSSettings.App,
+      });
+    } catch (error) {
+      console.error('Unable to open app settings', error);
+    }
+  }
+
   isNativeApp(): boolean {
     return Capacitor.isNativePlatform();
   }
-  handleBackButton() {
-    App.addListener('backButton', async () => {
+  async handleBackButton() {
+    this.backButtonListener = await App.addListener('backButton', async () => {
       if (this.isNative) {
-        // Exit app if there's no page to go back to
         const isMenuOpen = await this.menu.isOpen();
         if (isMenuOpen) {
-          // ✅ If side menu is open → close it
           this.menu.close();
           return;
         }
         App.exitApp();
       } else {
-        // Let Ionic handle the navigation
         window.history.back();
       }
     });
   }
+
+  async handleAppStateChange() {
+    this.appStateChangeListener = await App.addListener(
+      'appStateChange',
+      ({ isActive }) => {
+        if (isActive) {
+          this.checkLocationPermissionOnInit();
+        }
+      },
+    );
+  }
+
   ngOnInit() {
     this.schoolId = this.storage.get('schoolId');
 
@@ -460,6 +595,8 @@ export class StarttestPage implements OnInit, OnDestroy {
 
     // Set up listener for registration completion events
     this.setupRegistrationListener();
+    this.checkLocationPermissionOnInit();
+    this.handleAppStateChange();
   }
 
   ionViewWillEnter() {
@@ -499,7 +636,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.sharedService.on('measurement:status', this.driveGauge.bind(this));
     this.sharedService.on(
       'history:measurement:change',
-      this.refreshHistory.bind(this)
+      this.refreshHistory.bind(this),
     );
     this.sharedService.on('history:reset', this.refreshHistory.bind(this));
   }
@@ -511,7 +648,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Listen for registration completion events from other components
     this.sharedService.on('registration:completed', () => {
       console.log(
-        '🎉 DEBUG: Registration completion event received - re-checking first time visit'
+        '🎉 DEBUG: Registration completion event received - re-checking first time visit',
       );
       // Re-check first time visit status after registration
       setTimeout(() => {
@@ -556,7 +693,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         }
         this.progress = 100;
         this.ref.markForCheck();
-      }
+      },
     );
 
     // Set up window event listeners
@@ -566,7 +703,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         console.log('Online 1');
         this.onlineStatus = true;
       },
-      false
+      false,
     );
 
     window.addEventListener(
@@ -574,7 +711,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       () => {
         console.log('Offline 1');
       },
-      false
+      false,
     );
   }
 
@@ -597,7 +734,7 @@ export class StarttestPage implements OnInit, OnDestroy {
             this.selectedCountry = this.storage.get('countryName');
           }
           this.loading.dismiss();
-        }
+        },
       );
     }
   }
@@ -723,7 +860,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // No historical data, reset display values
         this.clearLatestMeasurementDisplay();
         console.log(
-          'No historical measurement data found, cleared dashboard display'
+          'No historical measurement data found, cleared dashboard display',
         );
       }
     } catch (error) {
@@ -743,7 +880,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         // Sort by timestamp to get the latest result
         const sortedResults = pingResults.sort(
           (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
         );
 
         this.lastPingResult = sortedResults[0];
@@ -908,7 +1045,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         'isFirstVisit:',
         this.isFirstVisit,
         'registrationStatus:',
-        this.registrationStatus
+        this.registrationStatus,
       );
       if (data.testStatus === 'error') {
         this.connectionStatus = 'error';
@@ -926,7 +1063,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.progress = 0;
       } else if (data.testStatus === 'server_discovery') {
         this.currentState = this.translate.instant(
-          'startTest.discoveringServers'
+          'startTest.discoveringServers',
         );
         this.progress = 0.1;
       } else if (data.testStatus === 'server_chosen') {
@@ -940,7 +1077,9 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.progress = 0.05;
       } else if (data.testStatus === 'interval_c2s') {
         console.log('Running Test (Upload)');
-        this.currentState = this.translate.instant('startTest.runningTestUpload');
+        this.currentState = this.translate.instant(
+          'startTest.runningTestUpload',
+        );
         this.currentRate = (
           (data.passedResults.Data.TCPInfo.BytesReceived /
             data.passedResults.Data.TCPInfo.ElapsedTime) *
@@ -952,7 +1091,9 @@ export class StarttestPage implements OnInit, OnDestroy {
           this.startUploadProgress();
         }
       } else if (data.testStatus === 'interval_s2c') {
-        this.currentState = this.translate.instant('startTest.runningTestDownload');
+        this.currentState = this.translate.instant(
+          'startTest.runningTestDownload',
+        );
         this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults.Data.MeanClientMbps?.toFixed(2);
@@ -1020,7 +1161,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       message:
         '<strong>' +
         this.translate.instant(
-          'The connection was interupted before testing could be completed.'
+          'The connection was interupted before testing could be completed.',
         ) +
         '</strong>',
       buttons: [
@@ -1040,7 +1181,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       message:
         '<strong>' +
         this.translate.instant(
-          'Measurement server is not responding. Please close the app from system tray and try after sometime'
+          'Measurement server is not responding. Please close the app from system tray and try after sometime',
         ) +
         '</strong>',
       buttons: [
@@ -1092,7 +1233,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.registrationStatus = 'testing';
 
       console.log(
-        'Auto-triggering first test for new registration - event listeners are ready'
+        'Auto-triggering first test for new registration - event listeners are ready',
       );
 
       // Additional safety: ensure driveGauge listener is registered
@@ -1103,7 +1244,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         console.log('Confirmed: measurement:status listener is registered');
       } else {
         console.warn(
-          'Warning: measurement:status listener may not be registered yet'
+          'Warning: measurement:status listener may not be registered yet',
         );
       }
 
@@ -1268,5 +1409,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();
     this.uploadStartedSub.unsubscribe();
+    this.backButtonListener?.remove();
+    this.appStateChangeListener?.remove();
   }
 }
