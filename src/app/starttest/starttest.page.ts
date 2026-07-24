@@ -502,7 +502,8 @@ export class StarttestPage implements OnInit, OnDestroy {
       if (this.locationService.getLocationPermissionAskedStatus()) {
         if (
           status.location === 'denied' ||
-          status.location === 'prompt-with-rationale'
+          status.location === 'prompt-with-rationale' ||
+          status.location === 'prompt'
         ) {
           this.setPermissionDeniedMessage();
           return;
