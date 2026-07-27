@@ -154,7 +154,9 @@ export class FacilityService {
     return {
       facilityType: 'health',
       gigaId: health.health_id_giga,
-      facilityId: health.id,
+      // Surface the government facility id (DHIS2) as the user-facing id
+      // instead of the internal numeric health.id; fall back to id if absent.
+      facilityId: health.dhis2_id ?? health.id,
       name: health.facility_name,
       level: health.facility_level,
       admin1: health.admin1,

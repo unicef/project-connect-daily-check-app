@@ -26,6 +26,8 @@ export interface HealthFacility {
     id?: number;
     health_id_giga: string;
     facility_name: string;
+    /** Government-assigned facility ID (DHIS2). Shown to the user as the facility id. */
+    dhis2_id?: string;
     facility_level?: string;
     admin1?: string;
     admin2?: string;
