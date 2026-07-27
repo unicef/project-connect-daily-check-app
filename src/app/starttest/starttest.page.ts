@@ -472,6 +472,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   private clearLocationPermissionState() {
+    console.log('GIGA METER clearLocationPermissionState');
     this.locationPermissionDenied = false;
     this.locationServicesDisabled = false;
     this.showLocationPermissionMessage = false;
@@ -480,14 +481,6 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   async checkLocationPermissionOnInit() {
-    console.log(
-      'GIGA METER getLocationPermissionAskedStatus',
-      `${this.locationService.getLocationPermissionAskedStatus()}`,
-    );
-    console.log(
-      'GIGA METER showRegistrationBanner',
-      `${this.showRegistrationBanner}`,
-    );
     if (!Capacitor.isNativePlatform()) {
       this.clearLocationPermissionState();
       return;
@@ -495,10 +488,6 @@ export class StarttestPage implements OnInit, OnDestroy {
 
     try {
       const status = await Geolocation.checkPermissions();
-      console.log(
-        'GIGA METER getLocationPermissionAskedStatus',
-        `${JSON.stringify(status)}`,
-      );
       if (this.locationService.getLocationPermissionAskedStatus()) {
         if (
           status.location === 'denied' ||
@@ -506,6 +495,10 @@ export class StarttestPage implements OnInit, OnDestroy {
           status.location === 'prompt'
         ) {
           this.setPermissionDeniedMessage();
+          return;
+        } else if (status.location === 'granted') {
+          this.clearLocationPermissionState();
+          this.locationService.setLocationPermissionAskedStatus(true);
           return;
         }
       } else {
@@ -528,6 +521,8 @@ export class StarttestPage implements OnInit, OnDestroy {
           return;
         } else if (status.location === 'denied') {
           this.setPermissionDeniedMessage();
+        } else {
+          console.log('GIGA METER clearLocationPermissionState 1', `None`);
         }
       }
     } catch (error: any) {
@@ -596,7 +591,6 @@ export class StarttestPage implements OnInit, OnDestroy {
 
     // Set up listener for registration completion events
     this.setupRegistrationListener();
-    this.checkLocationPermissionOnInit();
     this.handleAppStateChange();
   }
 
@@ -780,6 +774,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     // Load latest measurement data for dashboard display
     this.loadLatestMeasurement();
     this.loadLatestPingResult();
+    this.checkLocationPermissionOnInit();
   }
 
   /**
