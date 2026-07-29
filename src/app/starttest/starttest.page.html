@@ -66,8 +66,8 @@
   </div>
 </div>
 
-<ng-container *ngIf="isNativeApp() && !showRegistrationBanner" class = "location-permission-container">
-  <ion-card *ngIf="showLocationPermissionMessage" class="location-permission-card">
+<ng-container *ngIf="isNativeApp() && showLocationPermissionMessage" class = "location-permission-container">
+  <ion-card class="location-permission-card">
     <ion-card-content>
       <p>{{ locationPermissionMessage }}</p>
 

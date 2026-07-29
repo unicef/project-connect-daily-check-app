@@ -1200,6 +1200,14 @@ export class StarttestPage implements OnInit, OnDestroy {
   checkFirstTimeVisit() {
     this.isFirstVisit = this.storage.getFirstTimeVisit();
 
+    console.log(
+      'GIGA METER checkFirstTimeVisit 1',
+      `${this.storage.getFirstTimeVisit()}`,
+    );
+    console.log(
+      'GIGA METER checkFirstTimeVisit 2',
+      `${this.storage.isRecentRegistration()}`,
+    );
     if (this.isFirstVisit && this.storage.isRecentRegistration()) {
       // if (1) {
       this.showRegistrationBanner = true;
@@ -1220,6 +1228,12 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Auto-trigger the first test for new registrations
    */
   async autoTriggerFirstTest() {
+    console.log(
+      'GIGA METER autoTriggerFirstTest 1',
+      `${this.firstTestTriggered}`,
+    );
+    console.log('GIGA METER autoTriggerFirstTest 2', `${this.onlineStatus}`);
+    console.log('GIGA METER autoTriggerFirstTest 3', `${this.currentState}`);
     if (
       !this.firstTestTriggered &&
       this.onlineStatus &&
@@ -1278,10 +1292,16 @@ export class StarttestPage implements OnInit, OnDestroy {
    * Dismiss the registration banner
    */
   dismissBanner() {
+    console.log(`Giga Meter dismissBanner called`);
+
     this.showRegistrationBanner = false;
     if (this.isFirstVisit) {
       this.storage.clearFirstTimeVisit();
       this.isFirstVisit = false;
+    }
+    if (Capacitor.isNativePlatform()) {
+      this.checkLocationPermissionOnInit();
+      this.ref.markForCheck();
     }
   }
 
@@ -1292,7 +1312,6 @@ export class StarttestPage implements OnInit, OnDestroy {
     console.log(`Giga ${this.isFirstVisit} and ${this.registrationStatus}`);
     if (this.isFirstVisit && this.registrationStatus === 'testing') {
       this.registrationStatus = 'done';
-
       // Show success modal after a short delay
       setTimeout(async () => {
         await this.showFirstTestSuccessModal();
