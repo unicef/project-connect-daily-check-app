@@ -444,10 +444,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       `${this.showRegistrationBanner}`,
     );
 
-    if (
-      !this.showRegistrationBanner &&
-      this.locationService.getLocationPermissionAskedStatus()
-    ) {
+    if (this.locationService.getLocationPermissionAskedStatus()) {
       this.locationPermissionDenied = true;
       this.locationServicesDisabled = false;
       this.showLocationPermissionMessage = true;
@@ -458,10 +455,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   private setLocationServiceDisabledMessage() {
-    if (
-      !this.showRegistrationBanner &&
-      this.locationService.getLocationPermissionAskedStatus()
-    ) {
+    if (this.locationService.getLocationPermissionAskedStatus()) {
       this.locationPermissionDenied = false;
       this.locationServicesDisabled = true;
       this.showLocationPermissionMessage = true;
