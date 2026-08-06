@@ -73,24 +73,31 @@ export class ConfirmschoolPage implements OnInit {
 
   async ngOnInit() {
     try {
-      // 1. Get WiFi list from Electron
-      const wifiList = await this.locationService.getWifiAccessPoints();
-      console.log('GIGA METER WIFI LIST:', wifiList);
+      if (this.isNative) {
+        const geo = await this.getLocation();
+        console.log('GeoLocation Save Confirm', `${JSON.stringify(geo)}`);
 
-      // 2. Send WiFi list to backend → backend returns lat/long
-      this.locationService.resolveGeolocation(wifiList).subscribe({
-        next: (geo: any) => {
-          console.log('GIGA METER GEOLOCATION:', JSON.stringify(geo));
+        this.locationService.saveGeolocation(geo);
+      } else {
+        // 1. Get WiFi list from Electron
+        const wifiList = await this.locationService.getWifiAccessPoints();
+        console.log('GIGA METER WIFI LIST:', wifiList);
 
-          console.log('Received geolocation from backend:', geo);
+        // 2. Send WiFi list to backend → backend returns lat/long
+        this.locationService.resolveGeolocation(wifiList).subscribe({
+          next: (geo: any) => {
+            console.log('GIGA METER GEOLOCATION:', JSON.stringify(geo));
 
-          // 3. Save lat/long in localStorage
-          this.locationService.saveGeolocation(geo);
-        },
-        error: (err) => {
-          console.error('Error resolving geolocation', err);
-        },
-      });
+            console.log('Received geolocation from backend:', geo);
+
+            // 3. Save lat/long in localStorage
+            this.locationService.saveGeolocation(geo);
+          },
+          error: (err) => {
+            console.error('Error resolving geolocation', err);
+          },
+        });
+      }
     } catch (err) {
       console.error('Error fetching WiFi list in ngOnInit', err);
     }
@@ -109,8 +116,11 @@ export class ConfirmschoolPage implements OnInit {
 
         const geolocation = position
           ? {
-              latitude: position.coords.latitude,
-              longitude: position.coords.longitude,
+              location: {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+              },
+              accuracy: position.coords.accuracy,
             }
           : null;
 

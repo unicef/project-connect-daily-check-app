@@ -10,6 +10,7 @@ import com.google.gson.reflect.TypeToken
 import com.meter.giga.domain.entity.history.AccessInformation
 import com.meter.giga.domain.entity.history.DataUsage
 import com.meter.giga.domain.entity.history.Geo
+import com.meter.giga.domain.entity.history.GeoLocation
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.history.MlabInformation
 import com.meter.giga.domain.entity.history.SnapLog
@@ -387,7 +388,8 @@ object GigaUtil {
     c2sRate: ArrayList<Double>,
     s2cRate: ArrayList<Double>,
     historyDataIndex: Int,
-    currentLocation: Location?
+    currentLocation: Location?,
+    deviceHardwareId: String?
   ): MeasurementsItem {
     return MeasurementsItem(
       accessInformation = AccessInformation(
@@ -425,9 +427,15 @@ object GigaUtil {
       uuid = c2sLastServerManagement?.connectionInfo?.uuid,
       version = 1,
       geolocation = if (currentLocation !== null) Geo(
-        latitude = currentLocation.latitude,
-        longitude = currentLocation.longitude
-      ) else null
+        geoLocation = GeoLocation(
+          lat = currentLocation.latitude,
+          lng = currentLocation.longitude
+        ),
+        accuracy = currentLocation.accuracy,
+        timestamp = currentLocation.time
+      ) else null,
+      synced = false,
+      deviceHardwareId = deviceHardwareId
     )
   }
 

@@ -5,9 +5,11 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 
 import com.meter.giga.receiver.ScheduleBroadcastReceiver
 import com.meter.giga.utils.AppLogger
+import com.meter.giga.utils.Constants
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Logger
 import java.time.LocalDateTime
@@ -50,6 +52,42 @@ object AlarmHelper : AlarmHelperType {
       AlarmManager.RTC_WAKEUP,
       triggerAtMillis,
       pendingIntent
+    )
+  }
+
+  // Fallback method when exact alarm permission is denied
+  override fun scheduleInexactAlarm(context: Context, triggerTime: Long, type: String) {
+    val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+    val pendingIntent = createPendingIntent(context, type)
+
+    // Uses setAndAllowWhileIdle - fires within a window around the trigger time
+    // System may batch this with other alarms for battery optimization
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+      alarmManager.setAndAllowWhileIdle(
+        AlarmManager.RTC_WAKEUP,
+        triggerTime,
+        pendingIntent
+      )
+    } else {
+      alarmManager.set(
+        AlarmManager.RTC_WAKEUP,
+        triggerTime,
+        pendingIntent
+      )
+    }
+
+    AppLogger.d("AlarmHelper", "Scheduled INEXACT alarm for ${triggerTime} (type: $type)")
+  }
+
+  private fun createPendingIntent(context: Context, type: String): PendingIntent {
+    val intent = Intent(context, ScheduleBroadcastReceiver::class.java).apply {
+      putExtra(Constants.SCHEDULE_TYPE, type)
+    }
+    return PendingIntent.getBroadcast(
+      context,
+      type.hashCode(),
+      intent,
+      PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
   }
 

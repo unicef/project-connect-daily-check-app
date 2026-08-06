@@ -1,12 +1,15 @@
 package com.meter.giga.ionic_plugin
 
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -286,10 +289,17 @@ open class GigaAppPlugin : Plugin() {
     val context = context
     val scheduleType = call.getString(SCHEDULE_TYPE)
     AppLogger.d("GIGA GigaAppPlugin", "Manual Speed Test ${scheduleType}")
-
-    val intent = Intent(context, NetworkTestService::class.java)
-    intent.putExtra(SCHEDULE_TYPE, scheduleType)
-    context.startForegroundService(intent)
+    val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      ContextCompat.checkSelfPermission(
+        context,
+        Manifest.permission.POST_NOTIFICATIONS
+      ) == PackageManager.PERMISSION_GRANTED
+    } else true
+    if (hasNotificationPermission) {
+      val intent = Intent(context, NetworkTestService::class.java)
+      intent.putExtra(SCHEDULE_TYPE, scheduleType)
+      context.startForegroundService(intent)
+    }
     val alarmPrefs = AlarmSharedPref(context)
     if (GigaUtil.checkIfFutureAlarmScheduled(alarmPrefs)) {
       AppLogger.d("GIGA GigaAppPlugin", "Alarm is already scheduled")

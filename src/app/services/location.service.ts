@@ -81,7 +81,7 @@ export class LocationService {
   }
 
   /** Save geolocation in localStorage */
-  saveGeolocation(geo: { latitude: number; longitude: number } | null) {
+  saveGeolocation(geo: any | null) {
     try {
       localStorage.setItem(this.STORAGE_KEY_GEO, JSON.stringify(geo));
     } catch (err) {
@@ -90,9 +90,11 @@ export class LocationService {
   }
 
   /** Get geolocation from localStorage */
-  getSavedGeolocation(): { latitude: number; longitude: number } | null {
+  getSavedGeolocation(): any | null {
     try {
       const data = localStorage.getItem(this.STORAGE_KEY_GEO);
+      console.log('GeoLocation Get Save Location', `${data}`);
+
       return data ? JSON.parse(data) : null;
     } catch (err) {
       console.warn('[Location] getSavedGeolocation failed:', err);

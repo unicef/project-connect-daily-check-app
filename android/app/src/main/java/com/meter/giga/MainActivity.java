@@ -63,6 +63,16 @@ public class MainActivity extends BridgeActivity {
         }
       });
 
+  private final ActivityResultLauncher<Intent> notificationSettingsLauncher =
+    registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+      result -> {
+        if (isNotificationPermissionGranted()) {
+          checkAlarmPermission(true);
+        } else {
+          showNotificationMandatoryDialog();
+        }
+      });
+
   private final ActivityResultLauncher<IntentSenderRequest> updateFlowLauncher =
     registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(),
       result -> {
@@ -120,10 +130,17 @@ public class MainActivity extends BridgeActivity {
     return intent != null && "true".equals(intent.getStringExtra("ui_test"));
   }
 
+  private boolean isNotificationPermissionGranted() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      return ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+        == PackageManager.PERMISSION_GRANTED;
+    }
+    return true;
+  }
+
   private void checkNotificationPermission() {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-        != PackageManager.PERMISSION_GRANTED) {
+      if (!isNotificationPermissionGranted()) {
         ActivityCompat.requestPermissions(
           this,
           new String[]{Manifest.permission.POST_NOTIFICATIONS},
@@ -173,6 +190,22 @@ public class MainActivity extends BridgeActivity {
     }
   }
 
+  private void navigateToNotificationSettings() {
+    Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+    intent.setData(Uri.parse("package:" + getPackageName()));
+    notificationSettingsLauncher.launch(intent);
+  }
+
+  private void showNotificationMandatoryDialog() {
+    new AlertDialog.Builder(this)
+      .setTitle("Notification Permission Required")
+      .setMessage("This app requires Notification permission to function properly. Please enable it in Settings.")
+      .setCancelable(false)
+      .setPositiveButton("Go to Settings", (dialog, which) -> navigateToNotificationSettings())
+      .setNegativeButton("Exit App", (dialog, which) -> finishAffinity())
+      .show();
+  }
+
   private void showAlarmMandatoryDialog() {
     new AlertDialog.Builder(this)
       .setTitle("Exact Alarm Required")
@@ -192,8 +225,7 @@ public class MainActivity extends BridgeActivity {
       if (res.length > 0 && res[0] == PackageManager.PERMISSION_GRANTED) {
         checkAlarmPermission(true);
       } else {
-        Toast.makeText(this, "Notification permission is required.", Toast.LENGTH_SHORT).show();
-        checkNotificationPermission();
+        showNotificationMandatoryDialog();
       }
     }
   }

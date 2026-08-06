@@ -27,6 +27,12 @@ data class MeasurementsItem(
   val uuid: String?,
   @SerializedName("version")
   val version: Int?,
+  @SerializedName("synced")
+  var synced: Boolean?,
   @SerializedName("geolocation")
-  val geolocation: Geo?
+  val geolocation: Geo?,
+  @SerializedName("device_hardware_id")
+  val deviceHardwareId: String?
+
+
 )

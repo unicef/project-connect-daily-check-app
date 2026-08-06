@@ -31,6 +31,8 @@ interface AlarmHelperType {
    */
   fun scheduleExactAlarm(context: android.content.Context, triggerAtMillis: Long, tag: String)
 
+  fun scheduleInexactAlarm(context: Context, triggerTime: Long, type: String)
+
   /**
    * Calculates the next valid execution slot range
    * based on the previous execution time.

@@ -298,6 +298,25 @@ export class StarttestPage implements OnInit, OnDestroy {
                 'history:measurement:change',
                 'history:measurement:change',
               );
+              console.log(
+                'GeoLocation Complete',
+                `${JSON.stringify(data.measurementsItem.geolocation)}`,
+              );
+              if (
+                data.measurementsItem.geolocation === undefined ||
+                data.measurementsItem.geolocation === null
+              ) {
+                console.log('GeoLocation Complete Save', `Null`);
+                this.locationService.saveGeolocation(null);
+              } else {
+                console.log(
+                  'GeoLocation Save Complete',
+                  `${JSON.stringify(data.measurementsItem.geolocation)}`,
+                );
+                this.locationService.saveGeolocation(
+                  data.measurementsItem.geolocation,
+                );
+              }
             }
             this.ref.markForCheck();
             this.refreshHistory();
@@ -346,6 +365,25 @@ export class StarttestPage implements OnInit, OnDestroy {
                 this.measurementnetworkServer =
                   data.speedTestData.ClientInfo.City;
                 this.measurementISP = data.speedTestData.ClientInfo.ISP;
+              }
+              console.log(
+                'GeoLocation Error',
+                `${JSON.stringify(data.measurementsItem.geolocation)}`,
+              );
+              if (
+                data.measurementsItem.geolocation === undefined ||
+                data.measurementsItem.geolocation === null
+              ) {
+                console.log('GeoLocation Error', `Null`);
+                this.locationService.saveGeolocation(null);
+              } else {
+                console.log(
+                  'GeoLocation save Error',
+                  `${JSON.stringify(data.measurementsItem.geolocation)}`,
+                );
+                this.locationService.saveGeolocation(
+                  data.measurementsItem.geolocation,
+                );
               }
               console.log(
                 'GIGA',

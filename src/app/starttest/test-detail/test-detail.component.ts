@@ -10,6 +10,7 @@ import { GigaAppPlugin } from '../../android/giga-app-android-plugin';
 import { App } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { MenuController } from '@ionic/angular';
+import { Browser } from '@capacitor/browser';
 @Component({
   selector: 'app-test-detail',
   templateUrl: './test-detail.component.html',
@@ -58,6 +59,11 @@ export class TestDetailComponent implements OnInit {
         this.loadData();
       }
     });
+    console.log(
+      'GeoLocation Get Test Detail Location',
+      `${JSON.stringify(this.locationService.getSavedGeolocation())}`,
+    );
+
     this.locationDetail = this.locationService.getSavedGeolocation();
   }
   isNativeApp(): boolean {
@@ -177,14 +183,23 @@ export class TestDetailComponent implements OnInit {
     return measurement.synced ? 'green_color' : 'orange_color';
   }
 
+  async openNativeAppBrowser(href: string) {
+    await Browser.open({
+      url: href,
+      windowName: '_system',
+    });
+  }
+
   openExternalUrl() {
-    this.settingsService
-      .getShell()
-      .shell.openExternal(
-        'https://www.google.com/maps?q=' +
-          this.locationDetail?.location?.lat +
-          ',' +
-          this.locationDetail?.location?.lng,
-      );
+    const url =
+      'https://www.google.com/maps?q=' +
+      this.locationDetail?.location?.lat +
+      ',' +
+      this.locationDetail?.location?.lng;
+    if (Capacitor.isNativePlatform()) {
+      this.openNativeAppBrowser(url);
+    } else {
+      this.settingsService.getShell().shell.openExternal(url);
+    }
   }
 }

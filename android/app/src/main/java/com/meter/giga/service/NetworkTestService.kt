@@ -19,6 +19,7 @@ import com.google.gson.Gson
 import com.meter.giga.MainActivity
 import com.meter.giga.R
 import com.meter.giga.domain.entity.history.Geo
+import com.meter.giga.domain.entity.history.GeoLocation
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
 import com.meter.giga.domain.entity.request.ServerInfoRequestEntity
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
@@ -675,13 +676,18 @@ class NetworkTestService : LifecycleService() {
           deviceHardwareId,
           geo = if (currentLocation !== null) {
             Geo(
-              latitude = currentLocation!!.latitude,
-              longitude = currentLocation!!.longitude
+              geoLocation = GeoLocation(
+                lat = currentLocation!!.latitude,
+                lng = currentLocation!!.longitude
+              ),
+              accuracy = currentLocation!!.accuracy,
+              timestamp = currentLocation!!.time
             )
           } else null
         )
         val existingSpeedTestData = prefs.oldSpeedTestData
         val historyDataIndex = prefs.historyDataIndex
+        val deviceId = prefs.deviceHardwareId
         val measurementsItem = GigaUtil.getMeasurementItem(
           clientInfoResponse = clientInfoResponse,
           c2sLastServerManagement = lastUploadMeasurement,
@@ -692,7 +698,8 @@ class NetworkTestService : LifecycleService() {
           c2sRate = c2sRate,
           s2cRate = s2cRate,
           historyDataIndex,
-          currentLocation
+          currentLocation,
+          deviceId
         )
         prefs.historyDataIndex = historyDataIndex + 1
         AppLogger.d(
@@ -711,6 +718,7 @@ class NetworkTestService : LifecycleService() {
                   "Speed Test Not Published Successfully Due to ${postSpeedTestResultState.error}"
                 )
                 measurementsItem.uploaded = false
+                measurementsItem.synced = false
                 val updateSpeedTestData = GigaUtil.addJsonItem(
                   existingSpeedTestData,
                   Gson().toJson(measurementsItem)
@@ -747,6 +755,7 @@ class NetworkTestService : LifecycleService() {
                   "Measurement Instance : ${measurementsItem}"
                 )
                 measurementsItem.uploaded = true
+                measurementsItem.synced = true
 
                 val updateSpeedTestData = GigaUtil.addJsonItem(
                   existingSpeedTestData,
@@ -768,6 +777,7 @@ class NetworkTestService : LifecycleService() {
             }
           } catch (e: Exception) {
             measurementsItem.uploaded = false
+            measurementsItem.synced = false
             val updateSpeedTestData = GigaUtil.addJsonItem(
               existingSpeedTestData,
               Gson().toJson(measurementsItem)
@@ -787,6 +797,7 @@ class NetworkTestService : LifecycleService() {
           }
         } else {
           measurementsItem.uploaded = false
+          measurementsItem.synced = false
           val updateSpeedTestData = GigaUtil.addJsonItem(
             existingSpeedTestData,
             Gson().toJson(measurementsItem)
