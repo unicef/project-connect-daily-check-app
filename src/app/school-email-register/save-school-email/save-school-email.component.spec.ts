@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { SaveSchoolEmailComponent } from './save-school-email.component';
 
@@ -9,8 +10,7 @@ describe('SaveSchoolEmailComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ SaveSchoolEmailComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [SaveSchoolEmailComponent, IonicModule.forRoot(), RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(SaveSchoolEmailComponent);

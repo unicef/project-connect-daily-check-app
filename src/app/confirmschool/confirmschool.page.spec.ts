@@ -6,12 +6,17 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { TranslateModule } from '@ngx-translate/core';
 import { ConfirmschoolPage } from './confirmschool.page';
 import { DatePipe } from '@angular/common';
+import { Network } from '@awesome-cordova-plugins/network/ngx';
 
 describe('ConfirmschoolPage', () => {
   let component: ConfirmschoolPage;
   let fixture: ComponentFixture<ConfirmschoolPage>;
 
   beforeEach(waitForAsync(() => {
+    localStorage.setItem(
+      'savedSettings',
+      JSON.stringify({ applicationLanguage: { code: 'en', name: 'English' } })
+    );
     TestBed.configureTestingModule({
     declarations: [ConfirmschoolPage],
     imports: [IonicModule.forRoot(),
@@ -19,6 +24,7 @@ describe('ConfirmschoolPage', () => {
         TranslateModule.forRoot()],
     providers: [
         DatePipe,
+        Network,
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting()
     ]
@@ -34,6 +40,7 @@ describe('ConfirmschoolPage', () => {
   });
 
   afterEach(() => {
+    localStorage.removeItem('savedSettings');
     TestBed.resetTestingModule();
   });
 });

@@ -4,18 +4,28 @@ import { RouterTestingModule } from "@angular/router/testing";
 import { TranslateModule } from '@ngx-translate/core';
 import { InvalidLocationPage } from './invalidlocation.page';
 import { ActivatedRoute } from "@angular/router";
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 describe('InvalidLocationPage', () => {
   let component: InvalidLocationPage;
   let fixture: ComponentFixture<InvalidLocationPage>;
-  let activatedroute: ActivatedRoute; 
+  let activatedroute: ActivatedRoute;
 
   beforeEach(waitForAsync(() => {
+    localStorage.setItem(
+      'savedSettings',
+      JSON.stringify({ applicationLanguage: { code: 'en', name: 'English' } })
+    );
     TestBed.configureTestingModule({
       declarations: [ InvalidLocationPage ],
       imports: [
-        IonicModule.forRoot(), 
-        RouterTestingModule, 
+        IonicModule.forRoot(),
+        RouterTestingModule,
         TranslateModule.forRoot()
+      ],
+      providers: [
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting()
       ]
     }).compileComponents();
 
@@ -30,6 +40,7 @@ describe('InvalidLocationPage', () => {
   });
 
   afterEach(() => {
+    localStorage.removeItem('savedSettings');
     TestBed.resetTestingModule();
   });
 });

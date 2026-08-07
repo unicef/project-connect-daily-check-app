@@ -9,8 +9,7 @@ describe('CircularProgressBarComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ CircularProgressBarComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [CircularProgressBarComponent, IonicModule.forRoot()]
     }).compileComponents();
 
     fixture = TestBed.createComponent(CircularProgressBarComponent);

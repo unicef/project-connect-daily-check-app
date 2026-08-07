@@ -1,5 +1,7 @@
 import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 import { TestBed, waitForAsync } from '@angular/core/testing';
+import { IonicModule } from '@ionic/angular';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { AppComponent } from './app.component';
 import { TranslateModule } from '@ngx-translate/core';
@@ -13,7 +15,7 @@ describe('AppComponent', () => {
     TestBed.configureTestingModule({
     declarations: [AppComponent],
     schemas: [CUSTOM_ELEMENTS_SCHEMA],
-    imports: [TranslateModule.forRoot()],
+    imports: [IonicModule.forRoot(), RouterTestingModule, TranslateModule.forRoot()],
     providers: [
         Network,
         provideHttpClient(withInterceptorsFromDi()),

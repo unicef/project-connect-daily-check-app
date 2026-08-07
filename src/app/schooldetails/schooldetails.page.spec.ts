@@ -11,6 +11,10 @@ describe('SchooldetailsPage', () => {
   let fixture: ComponentFixture<SchooldetailsPage>;
 
   beforeEach(waitForAsync(() => {
+    localStorage.setItem(
+      'savedSettings',
+      JSON.stringify({ applicationLanguage: { code: 'en', name: 'English' } })
+    );
     TestBed.configureTestingModule({
     declarations: [SchooldetailsPage],
     imports: [IonicModule.forRoot(),
@@ -26,5 +30,9 @@ describe('SchooldetailsPage', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  afterEach(() => {
+    localStorage.removeItem('savedSettings');
   });
 });
