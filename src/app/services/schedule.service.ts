@@ -120,6 +120,10 @@ export class ScheduleService {
       start,
       end,
       choice,
+      // choice moves with every retry; scheduledAt keeps the originally
+      // planned run time for the measurement record
+      scheduledAt: choice,
+      slot: slotName,
       intervalType: 'daily',
       retryAttempts: 0,
       backoffLevel: 0,
@@ -174,7 +178,12 @@ export class ScheduleService {
       try {
         console.log('Running test...');
         await this.measurementClientService.runTest(
-          scheduleSemaphore.intervalType
+          scheduleSemaphore.intervalType,
+          {
+            slot: scheduleSemaphore.slot || null,
+            scheduledAt:
+              scheduleSemaphore.scheduledAt || scheduleSemaphore.choice,
+          }
         );
         console.log('Measurement completed successfully');
         await this.storageService.set(
@@ -364,14 +373,21 @@ export class ScheduleService {
   // Run the startup test
   private async runStartupTest() {
     console.log('Running startup test');
-    const networkInfo = await this.networkService.getNetInfo();
+    const networkInfo = await this.getNetworkInfoSafe();
     if (!networkInfo) {
       console.log('Network not available for startup test, skipping.');
       return;
     }
 
     try {
-      await this.measurementClientService.runTest('startup');
+      const scheduledFor = parseInt(
+        await this.storageService.get(this.STARTUP_TEST_SCHEDULED_KEY),
+        10
+      );
+      await this.measurementClientService.runTest('startup', {
+        slot: 'startup',
+        scheduledAt: isNaN(scheduledFor) ? null : scheduledFor,
+      });
       console.log('Startup test completed successfully');
       this.storageService.set('lastMeasurement', Date.now().toString());
       this.storageService.set(this.STARTUP_TEST_KEY, Date.now().toString());

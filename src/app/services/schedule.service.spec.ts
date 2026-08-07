@@ -16,10 +16,14 @@ describe('ScheduleService', () => {
   const SLOT_A_START = new Date(2026, 7, 7, 8, 0, 0).getTime();
   const SLOT_A_END = new Date(2026, 7, 7, 12, 0, 0).getTime();
 
+  const SLOT_A_CHOICE = new Date(2026, 7, 7, 8, 30, 0).getTime();
+
   const slotASemaphore = (overrides: any = {}) => ({
     start: SLOT_A_START,
     end: SLOT_A_END,
-    choice: new Date(2026, 7, 7, 8, 30, 0).getTime(),
+    choice: SLOT_A_CHOICE,
+    scheduledAt: SLOT_A_CHOICE,
+    slot: 'A',
     intervalType: 'daily',
     retryAttempts: 0,
     backoffLevel: 0,
@@ -154,9 +158,30 @@ describe('ScheduleService', () => {
     it('saves lastMeasurement and clears the semaphore on success', async () => {
       await service.decide(slotASemaphore());
 
-      expect(measurementClientService.runTest).toHaveBeenCalledWith('daily');
+      expect(measurementClientService.runTest).toHaveBeenCalledWith('daily', {
+        slot: 'A',
+        scheduledAt: SLOT_A_CHOICE,
+      });
       expect(store.lastMeasurement).toBe(NOW.getTime().toString());
       expect(savedSemaphore()).toEqual({});
+    });
+
+    it('keeps the originally planned time in scheduledAt across retries', async () => {
+      measurementClientService.runTest.and.rejectWith(new Error('test broke'));
+      await service.decide(slotASemaphore());
+
+      const rescheduled = savedSemaphore();
+      expect(rescheduled.choice).not.toBe(SLOT_A_CHOICE);
+      expect(rescheduled.scheduledAt).toBe(SLOT_A_CHOICE);
+
+      measurementClientService.runTest.and.resolveTo(undefined);
+      jasmine.clock().tick(2 * MINUTE);
+      await service.decide(rescheduled);
+
+      expect(measurementClientService.runTest).toHaveBeenCalledWith('daily', {
+        slot: 'A',
+        scheduledAt: SLOT_A_CHOICE,
+      });
     });
 
     it('clears the semaphore when the window already ended', async () => {
@@ -208,6 +233,8 @@ describe('ScheduleService', () => {
 
       expect(sem.retryAttempts).toBe(0);
       expect(sem.backoffLevel).toBe(0);
+      expect(sem.slot).toBe('A');
+      expect(sem.scheduledAt).toBe(sem.choice);
       expect(sem.choice).toBeGreaterThanOrEqual(sem.start);
       expect(sem.choice).toBeLessThanOrEqual(sem.end);
     });

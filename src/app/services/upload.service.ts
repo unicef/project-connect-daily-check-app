@@ -173,6 +173,15 @@ export class UploadService {
     measurement['installed_path'] = record.installedPath || null;
     measurement['wifi_connections'] = record.wifiConnections || null;
 
+    // Schedule context: which slot/time this measurement was planned for
+    // (null for manual runs). upload_failed flips to true only when the
+    // realtime upload fails and the record is queued for later sync.
+    measurement['scheduled_slot'] = record.scheduledSlot || null;
+    measurement['scheduled_at'] = record.scheduledAt
+      ? new Date(record.scheduledAt).toISOString()
+      : null;
+    measurement['upload_failed'] = false;
+
     // Add API key if configured.
 
     if (apiKey != '') {
@@ -196,7 +205,10 @@ export class UploadService {
           tap((data) => data),
           catchError(async (error) => {
             console.error('Upload failed, saving to IndexedDB...', error);
-            await this.indexedDB.saveMeasurement(measurementWithGeo);
+            await this.indexedDB.saveMeasurement({
+              ...measurementWithGeo,
+              upload_failed: true,
+            });
             return of({ savedLocally: true, error });
           })
         )

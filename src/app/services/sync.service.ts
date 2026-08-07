@@ -59,7 +59,8 @@ export class SyncService {
   }
 
   private async postMeasurementsWithRetry(batch: any[]): Promise<void> {
-    const payload = batch.map(({ isSynced, ...rest }) => rest);
+    // Strip IndexedDB-local bookkeeping fields before posting
+    const payload = batch.map(({ id, status, createdAt, ...rest }) => rest);
 
     try {
       await this.http

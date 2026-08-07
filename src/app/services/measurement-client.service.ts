@@ -78,15 +78,24 @@ export class MeasurementClientService {
     private sharedService: SharedService
   ) {}
 
-  async runTest(notes = 'manual'): Promise<void> {
+  async runTest(
+    notes = 'manual',
+    scheduleContext: { slot: string | null; scheduledAt: number | null } = null
+  ): Promise<void> {
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
-    await this.runTestWithRetry(notes);
+    await this.runTestWithRetry(notes, scheduleContext);
   }
 
-  private async runTestWithRetry(notes = 'manual'): Promise<void> {
+  private async runTestWithRetry(
+    notes = 'manual',
+    scheduleContext: { slot: string | null; scheduledAt: number | null } = null
+  ): Promise<void> {
     this.broadcastMeasurementStatus('onstart', {});
-    const measurementRecord = this.initializeMeasurementRecord(notes);
+    const measurementRecord = this.initializeMeasurementRecord(
+      notes,
+      scheduleContext
+    );
 
     // Get Windows username, installed path, and WiFi connections
     const windowsUsername = await this.getWindowsUsername();
@@ -130,14 +139,17 @@ export class MeasurementClientService {
 
         // Wait a bit before retrying
         await new Promise((resolve) => setTimeout(resolve, 2000));
-        return this.runTestWithRetry(notes);
+        return this.runTestWithRetry(notes, scheduleContext);
       } else {
         this.broadcastMeasurementStatus('onError', { error: error.message });
       }
     }
   }
 
-  private initializeMeasurementRecord(notes: string) {
+  private initializeMeasurementRecord(
+    notes: string,
+    scheduleContext: { slot: string | null; scheduledAt: number | null } = null
+  ) {
     return {
       timestamp: Date.now(),
       results: {},
@@ -152,6 +164,8 @@ export class MeasurementClientService {
       windowsUsername: '',
       installedPath: '',
       wifiConnections: null,
+      scheduledSlot: scheduleContext?.slot ?? null,
+      scheduledAt: scheduleContext?.scheduledAt ?? null,
     };
   }
 
