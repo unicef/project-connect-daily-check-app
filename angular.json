@@ -50,7 +50,8 @@
             "namedChunks": true,
             "allowedCommonJsDependencies": [
               "electron",
-              "@electron/remote"
+              "@electron/remote",
+              "@m-lab/ndt7"
             ]
           },
           "configurations": {
