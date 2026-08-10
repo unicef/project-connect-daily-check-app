@@ -39,7 +39,7 @@
     "@cloudflare/speedtest": "^1.4.1",
     "@electron/remote": "^2.1.2",
     "@ionic/angular": "^6.0.3",
-    "@m-lab/ndt7": "^0.0.6",
+    "@m-lab/ndt7": "^0.1.5",
     "@ngx-translate/core": "^14.0.0",
     "@ngx-translate/http-loader": "^7.0.0",
     "@sentry/browser": "^5.5.0",
