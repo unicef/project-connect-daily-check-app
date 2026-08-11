@@ -468,11 +468,16 @@ function buildCsv(rows) {
 async function main() {
   const hostname = os.hostname();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  const baseName = `probe-${hostname}-${timestamp}`;
+  const runtime = process.versions.electron ? `electron-${process.versions.electron}` : 'node';
+  const baseName = `probe-${hostname}-${runtime}-${timestamp}`;
   const elevated = isProcessElevated();
 
   console.log(`\nProbe de red/sistema — plan 0008 (release v2.0.4)`);
-  console.log(`Equipo: ${hostname} | Node ${process.version} | elevado: ${elevated ? 'sí' : 'no'}`);
+  console.log(
+    `Equipo: ${hostname} | Node ${process.version}` +
+      (process.versions.electron ? ` (Electron ${process.versions.electron}, main process)` : '') +
+      ` | elevado: ${elevated ? 'sí' : 'no'}`
+  );
   console.log(`\nPasada 1/2:`);
   const probes = buildProbes();
   const pass1 = await runPass(probes);
@@ -510,6 +515,7 @@ async function main() {
       hostname,
       timestamp: new Date().toISOString(),
       nodeVersion: process.version,
+      electronVersion: process.versions.electron || null,
       windowsRelease: os.release(),
       elevated,
       passDelayMs: PASS_DELAY_MS,
@@ -518,7 +524,7 @@ async function main() {
     pass2: pass2.map(({ fn, ...rest }) => rest),
   };
 
-  const outDir = process.cwd();
+  const outDir = process.env.PROBE_OUT_DIR || process.cwd();
   const rawPath = path.join(outDir, `${baseName}.json`);
   const redactedPath = path.join(outDir, `${baseName}-redacted.json`);
   const csvPath = path.join(outDir, `${baseName}.csv`);
@@ -546,7 +552,13 @@ async function main() {
   );
 }
 
-main().catch((err) => {
-  console.error('El probe terminó con un error no controlado:', err);
-  process.exit(1);
-});
+// Run directly (`node probe-system-info.js`) or require it from an Electron
+// main process (Artefacto 2 del plan 0008) and await `main()` there.
+if (require.main === module) {
+  main().catch((err) => {
+    console.error('El probe terminó con un error no controlado:', err);
+    process.exit(1);
+  });
+} else {
+  module.exports = { main };
+}
