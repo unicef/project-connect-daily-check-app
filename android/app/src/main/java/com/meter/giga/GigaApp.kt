@@ -8,6 +8,8 @@ import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import io.sentry.ProfileLifecycle
 import io.sentry.android.core.SentryAndroid
+import io.sentry.android.replay.maskAllImages
+import io.sentry.android.replay.maskAllText
 import java.util.Properties
 
 /**
@@ -83,6 +85,12 @@ class GigaApp : Application() {
       options.profileLifecycle = ProfileLifecycle.TRACE
       // enable profiling on app start. The app start profile will be stopped automatically when the app start root span finishes
       options.isStartProfilerOnAppStart = true
+      // Capture 100% of sessions during testing
+      options.sessionReplay.sessionSampleRate = 1.0
+      // Capture the replay when an error occurs
+      options.sessionReplay.onErrorSampleRate = 1.0
+//      options.sessionReplay.maskAllText = true
+//      options.sessionReplay.maskAllImages = true
     }
   }
 }

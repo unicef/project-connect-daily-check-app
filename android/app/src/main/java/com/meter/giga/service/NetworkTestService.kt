@@ -7,6 +7,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.location.Location
 import android.util.Log
 import androidx.core.app.ActivityCompat
@@ -238,10 +239,15 @@ class NetworkTestService : LifecycleService() {
       intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
+    val largeBitmap = BitmapFactory.decodeResource(
+      resources,
+      R.mipmap.ic_launcher_round
+    )
     return NotificationCompat.Builder(this, SPEED_TEST_CHANNEL_ID)
       .setContentTitle(this.applicationContext.getString(R.string.notification_header))
       .setContentText(content)
       .setSmallIcon(R.mipmap.ic_launcher_round)
+      .setLargeIcon(largeBitmap)
       .setOngoing(true)
       .setOnlyAlertOnce(true)
       .setPriority(NotificationCompat.PRIORITY_HIGH)

@@ -12,6 +12,7 @@ import android.content.Intent
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.tasks.Task
 import com.google.android.play.core.install.model.AppUpdateType
@@ -135,11 +136,15 @@ open class UpdateCheckWorker(
       intent,
       PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
     )
-
+    val largeBitmap = BitmapFactory.decodeResource(
+      this.applicationContext.resources,
+      R.mipmap.ic_launcher_round
+    )
     val builder = NotificationCompat.Builder(applicationContext, APP_UPDATE_CHANNEL_ID)
       .setContentTitle("New App Update Available")
       .setContentText("Tap to open app")
       .setSmallIcon(R.mipmap.ic_launcher_round)
+      .setLargeIcon(largeBitmap)
       .setPriority(NotificationCompat.PRIORITY_HIGH)
       .setContentIntent(pendingIntent)
       .setAutoCancel(true)
