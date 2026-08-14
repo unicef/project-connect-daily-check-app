@@ -35,7 +35,7 @@ export class SchooldetailsPage {
     private settingsService: SettingsService,
     private router: Router,
     private schoolService: SchoolService,
-    private translate: TranslateService
+    private translate: TranslateService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -75,7 +75,7 @@ export class SchooldetailsPage {
           },
           () => {
             this.loading.dismiss();
-          }
+          },
         );
       });
   }
@@ -134,13 +134,13 @@ export class SchooldetailsPage {
                     this.selectedCountryName,
                   ]);
                 }
-              }
+              },
             );
         });
     }
   }
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   confirmSchool(schoolObj) {
@@ -153,7 +153,7 @@ export class SchooldetailsPage {
         this.detectedCountry,
         this.selectedCountryName,
       ],
-      { state: this.selectedSchool }
+      { state: this.selectedSchool },
     );
   }
 
@@ -181,7 +181,7 @@ export class SchooldetailsPage {
   }
 
   openExternalUrl(href) {
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.openNativeAppBrowser(href);
     } else {
       this.settingsService.getShell().shell.openExternal(href);

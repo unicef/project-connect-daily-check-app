@@ -6,7 +6,6 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-
 import com.meter.giga.receiver.ScheduleBroadcastReceiver
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants
@@ -15,7 +14,6 @@ import com.meter.giga.utils.Logger
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Calendar
-import kotlin.jvm.java
 
 /**
  * This provides Singleton instance of AlarmHelper
@@ -220,20 +218,24 @@ object AlarmHelper : AlarmHelperType {
 
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    val intent = Intent(context, ScheduleBroadcastReceiver::class.java).apply {
-      putExtra(SCHEDULE_TYPE, tag)
-    }
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+      alarmManager.cancelAll()
+    } else {
+      val intent = Intent(context, ScheduleBroadcastReceiver::class.java).apply {
+        putExtra(SCHEDULE_TYPE, tag)
+      }
 
-    val pendingIntent = PendingIntent.getBroadcast(
-      context,
-      tag.hashCode(),
-      intent,
-      PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
-    )
+      val pendingIntent = PendingIntent.getBroadcast(
+        context,
+        tag.hashCode(),
+        intent,
+        PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+      )
 
-    pendingIntent?.let {
-      alarmManager.cancel(it)
-      it.cancel()
+      pendingIntent?.let {
+        alarmManager.cancel(it)
+        it.cancel()
+      }
     }
   }
 }

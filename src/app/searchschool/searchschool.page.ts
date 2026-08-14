@@ -37,10 +37,10 @@ export class SearchschoolPage {
     private routeParams: ActivatedRoute,
     private schoolService: SchoolService,
     private settingsService: SettingsService,
-    public loading: LoadingService
+    public loading: LoadingService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
     this.translate.use(appLang.code);
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.selectedCountry = params.selectedCountry;
@@ -84,12 +84,12 @@ export class SearchschoolPage {
               this.detectedCountry,
             ]);
           }
-        }
+        },
       );
     }
   }
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
   /**
    * Search school by id and country code
@@ -139,7 +139,7 @@ export class SearchschoolPage {
                   this.selectedCountryName,
                 ]);
               }
-            }
+            },
           );
     }
   }

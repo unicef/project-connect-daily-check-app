@@ -42,8 +42,8 @@ export class HomePage {
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
-    this.isNative = Capacitor.isNativePlatform();
-    if (Capacitor.isNativePlatform()) {
+    this.isNative = Capacitor.getPlatform() === 'android';
+    if (Capacitor.getPlatform() === 'android') {
       this.gigaAppPlugin = registerPlugin<any>('GigaAppPlugin');
     }
     if (!applicationLanguage) {
@@ -74,7 +74,7 @@ export class HomePage {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   /**
@@ -120,7 +120,7 @@ export class HomePage {
         console.log('   Clearing localStorage...');
         await this.storage.clear();
         console.log(
-          '   Checking if registration still exists for this hardware ID...'
+          '   Checking if registration still exists for this hardware ID...',
         );
         // Check if device registration still exists in backend
         // This handles the case where User A logs out, but User B can claim the registration
@@ -350,7 +350,7 @@ export class HomePage {
       console.log('   ✓ Set schoolInfo');
     }
 
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       //This we need to pass to native background servie to execute the
       // api calls to publish speed test data
       console.log('GIGA Registration data:', JSON.stringify(registrationData));
@@ -414,7 +414,7 @@ export class HomePage {
   }
 
   openExternalUrl(href) {
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.openNativeAppBrowser(href);
     } else {
       this.settingsService.getShell().shell.openExternal(href);

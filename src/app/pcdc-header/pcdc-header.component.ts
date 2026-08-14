@@ -22,7 +22,7 @@ export class PcdcHeaderComponent implements OnInit {
   constructor(
     private translate: TranslateService,
     private settingsService: SettingsService,
-    private menuCtrl: MenuController
+    private menuCtrl: MenuController,
   ) {
     // Retrieve the selected language from local storage if it exists
     this.selectedLanguage =
@@ -33,11 +33,11 @@ export class PcdcHeaderComponent implements OnInit {
       '';
     translate.use(this.selectedLanguage);
     this.test = env?.mode === 'dev';
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
   ngOnInit() {}
   onLanguageChange() {

@@ -83,23 +83,14 @@ open class UpdateCheckWorker(
       val info = appUpdateManager.appUpdateInfo.await()
 
       Sentry.captureMessage("Updated Checker executed after play store check")
-      Sentry.captureMessage("Update Available: ${info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE}")
-      Sentry.captureMessage("Update Allowed: ${info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)}")
-
       if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
         info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
       ) {
-        Sentry.captureMessage("Update: Update available and allowed")
-
         logger.d("Update", "Update available and allowed")
         showUpdateNotification()
-
       } else {
-        Sentry.captureMessage("Update: No update OR not allowed")
-
         logger.d("Update", "No update OR not allowed")
       }
-
       Result.success()
 
     } catch (e: Exception) {

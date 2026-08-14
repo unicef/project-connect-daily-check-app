@@ -245,6 +245,11 @@ export class HardwareIdService {
     }
     const isAndroidDevice = Capacitor.getPlatform() === 'android';
     console.log(`GIGA Android ${isAndroidDevice}`);
+
+    if (isAndroidDevice) {
+      const result = await GigaAppPlugin.getAndroidId();
+      return result?.androidId || null;
+    }
     if (!this.isElectron() && !isAndroidDevice) {
       console.warn(
         '⚠️ [HardwareID] Not in Electron environment, cannot retrieve hardware ID',

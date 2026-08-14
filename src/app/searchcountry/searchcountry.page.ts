@@ -1044,10 +1044,10 @@ export class SearchcountryPage {
     private settingsService: SettingsService,
     private countryService: CountryService,
     public loading: LoadingService,
-    private translate: TranslateService
+    private translate: TranslateService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
     this.translate.use(appLang?.code);
   }
   ngOnInit() {
@@ -1060,7 +1060,7 @@ export class SearchcountryPage {
     } else {
       const searchTerm = event.target.value.toLowerCase();
       this.filteredCountries = this.countries.filter((country) =>
-        country.name.toLowerCase().includes(searchTerm)
+        country.name.toLowerCase().includes(searchTerm),
       );
       this.selectedFromList = false;
     }
@@ -1085,7 +1085,7 @@ export class SearchcountryPage {
       .pipe(
         finalize(() => {
           this.isCheckingEligibility = false;
-        })
+        }),
       )
       .subscribe(
         (response) => {
@@ -1102,12 +1102,12 @@ export class SearchcountryPage {
           console.log('Validation error:', err);
           this.isPcdcCountry = false;
           // this.selectedCountry = country.code;
-        }
+        },
       );
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   confirmCountry() {
@@ -1146,13 +1146,13 @@ export class SearchcountryPage {
       },
       (error) => {
         this.automaticSearched = false;
-      }
+      },
     );
   }
 
   filterCountryByCode(countryCode: string): any {
     return this.countries.find(
-      (country) => country.code.toLowerCase() === countryCode.toLowerCase()
+      (country) => country.code.toLowerCase() === countryCode.toLowerCase(),
     );
   }
 
@@ -1179,7 +1179,7 @@ export class SearchcountryPage {
       this.selectedCountry,
       this.selectedCountryName,
       'detected',
-      this.detectedCountry
+      this.detectedCountry,
     );
   }
   // confirmCountry() {

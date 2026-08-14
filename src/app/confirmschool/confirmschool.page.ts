@@ -55,8 +55,8 @@ export class ConfirmschoolPage implements OnInit {
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
-    this.isNative = Capacitor.isNativePlatform();
-    if (Capacitor.isNativePlatform()) {
+    this.isNative = Capacitor.getPlatform() === 'android';
+    if (Capacitor.getPlatform() === 'android') {
       this.gigaAppPlugin = registerPlugin<any>('GigaAppPlugin');
     }
     this.sub = this.activatedroute.params.subscribe((params) => {
@@ -104,7 +104,7 @@ export class ConfirmschoolPage implements OnInit {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   async getLocation() {
@@ -333,6 +333,8 @@ export class ConfirmschoolPage implements OnInit {
 
       const position = await Geolocation.getCurrentPosition({
         enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 30000,
       });
 
       return position;

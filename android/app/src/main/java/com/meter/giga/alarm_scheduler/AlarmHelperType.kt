@@ -74,4 +74,5 @@ interface AlarmHelperType {
   fun getNextDayTimeToCheckVersionUpdate(): Long
 
   fun cancelExactAlarm(context: Context, tag: String)
+
 }

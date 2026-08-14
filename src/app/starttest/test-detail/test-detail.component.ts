@@ -52,7 +52,7 @@ export class TestDetailComponent implements OnInit {
     private settingsService: SettingsService,
     private menu: MenuController,
   ) {
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
     this.handleBackButton();
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
@@ -67,7 +67,7 @@ export class TestDetailComponent implements OnInit {
     this.locationDetail = this.locationService.getSavedGeolocation();
   }
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   handleBackButton() {
@@ -196,7 +196,7 @@ export class TestDetailComponent implements OnInit {
       this.locationDetail?.location?.lat +
       ',' +
       this.locationDetail?.location?.lng;
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.openNativeAppBrowser(url);
     } else {
       this.settingsService.getShell().shell.openExternal(url);

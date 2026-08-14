@@ -28,7 +28,6 @@ import com.meter.giga.domain.entity.SpeedTestResultEntity
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
-import com.meter.giga.service.NetworkTestService
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.AppUpdateCheckEventBus
 import com.meter.giga.utils.Constants.BASE_URL
@@ -296,19 +295,16 @@ open class GigaAppPlugin : Plugin() {
       ) == PackageManager.PERMISSION_GRANTED
     } else true
     if (hasNotificationPermission) {
-      val intent = Intent(context, NetworkTestService::class.java)
-      intent.putExtra(SCHEDULE_TYPE, scheduleType)
-      context.startForegroundService(intent)
-    }
-    val alarmPrefs = AlarmSharedPref(context)
-    if (GigaUtil.checkIfFutureAlarmScheduled(alarmPrefs)) {
-      AppLogger.d("GIGA GigaAppPlugin", "Alarm is already scheduled")
-    } else {
-      AppLogger.d(
-        "GIGA GigaAppPlugin",
-        "Schedule the next alarm as fallback if no future scheduled speed test."
-      )
-      scheduleAlarm(context, alarmPrefs)
+      val alarmPrefs = AlarmSharedPref(context)
+      if (GigaUtil.checkIfFutureAlarmScheduled(alarmPrefs)) {
+        AppLogger.d("GIGA GigaAppPlugin", "Alarm is already scheduled")
+      } else {
+        AppLogger.d(
+          "GIGA GigaAppPlugin",
+          "Schedule the next alarm as fallback if no future scheduled speed test."
+        )
+        scheduleAlarm(context, alarmPrefs)
+      }
     }
     call.resolve()
   }
@@ -429,10 +425,7 @@ open class GigaAppPlugin : Plugin() {
    */
   private suspend fun checkAppUpdate(): String {
     return withContext(Dispatchers.IO) {
-      Sentry.captureMessage("Updated Checker executed")
       try {
-        Sentry.captureMessage("Updated Checker executed before play store check")
-
         val appUpdateManager =
           AppUpdateManagerFactory.create(context)
 
@@ -441,13 +434,11 @@ open class GigaAppPlugin : Plugin() {
         if (info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
           info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
         ) {
-          Sentry.captureMessage("Update: Update available and allowed")
           AppLogger.d("Update", "Update available and allowed")
           AppUpdateCheckEventBus.post(
             PluginEvent(PluginEvent.ACTION_APP_CHECK_AVAILABLE, "Update available and allowed")
           )
         } else {
-          Sentry.captureMessage("Update: No update OR not allowed")
           AppLogger.d("Update", "No update OR not allowed")
           AppUpdateCheckEventBus.post(
             PluginEvent(PluginEvent.ACTION_APP_CHECK_NOT_AVAILABLE, "No update available")

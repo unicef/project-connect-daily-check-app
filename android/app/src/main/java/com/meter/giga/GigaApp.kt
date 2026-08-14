@@ -1,15 +1,16 @@
 package com.meter.giga
 
-import android.app.AlarmManager
+import android.annotation.SuppressLint
 import android.app.Application
-import android.content.IntentFilter
 import android.os.Build
+import android.provider.Settings.Secure
+import android.provider.Settings.Secure.ANDROID_ID
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import io.sentry.ProfileLifecycle
+import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
-import io.sentry.android.replay.maskAllImages
-import io.sentry.android.replay.maskAllText
+import io.sentry.protocol.User
 import java.util.Properties
 
 /**
@@ -50,6 +51,7 @@ class GigaApp : Application() {
    * <p>If loading the environment configuration fails,
    * the application defaults to the {@code development} environment.
    */
+  @SuppressLint("HardwareIds")
   private fun initSentry() {
 
     // Access capacitor config
@@ -65,7 +67,17 @@ class GigaApp : Application() {
     val environment = props.getProperty("ENVIRONMENT", "development")
     alarmPrefs.environment = environment
     AppLogger.d("GIGA App environment : ", environment)
-
+    val androidId = Secure.getString(
+      this.contentResolver,
+      ANDROID_ID
+    )
+    val deviceModel = Build.MODEL
+    val deviceManufacturer = Build.MANUFACTURER
+    val deviceName = Build.DEVICE
+    AppLogger.d("Android Id : ", androidId)
+    AppLogger.d("Android Device Manufacturer : ", deviceManufacturer)
+    AppLogger.d("Android Device Name : ", deviceName)
+    AppLogger.d("Android Device Model : ", deviceModel)
     SentryAndroid.init(this) { options ->
       // Required: set your sentry.io project identifier (DSN)
       options.dsn = getString(R.string.sentry_dsn)
@@ -89,9 +101,20 @@ class GigaApp : Application() {
       options.sessionReplay.sessionSampleRate = 1.0
       // Capture the replay when an error occurs
       options.sessionReplay.onErrorSampleRate = 1.0
+      options.environment = getEnvironment(environment)
+
+      options.setTag("Android Device Id", "$androidId")
+      options.setTag("Android Device Name", "$deviceName")
+      options.setTag("Android Device Manufacturer", "$deviceManufacturer")
+      options.setTag("Android Device Model", "$deviceModel")
+
 //      options.sessionReplay.maskAllText = true
 //      options.sessionReplay.maskAllImages = true
     }
+    val user = User().apply {
+      id = androidId
+    }
+    Sentry.setUser(user)
   }
 }
 

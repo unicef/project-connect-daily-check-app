@@ -20,7 +20,6 @@ import { MatomoService } from './services/matomo.service';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
-import { isAndroid } from './android/android_util';
 import { App } from '@capacitor/app';
 // const shell = require('electron').shell;
 @Component({
@@ -86,8 +85,8 @@ export class AppComponent {
     } catch (error) {
       console.warn('Matomo init failed:', error);
     }
-    this.isNative = Capacitor.isNativePlatform();
-    if (Capacitor.isNativePlatform()) {
+    this.isNative = Capacitor.getPlatform() === 'android';
+    if (Capacitor.getPlatform() === 'android') {
       this.gigaAppPlugin = registerPlugin<any>('GigaAppPlugin');
       this.getBuildInfo();
     } else {
@@ -170,8 +169,6 @@ export class AppComponent {
       setInterval(() => {
         this.scheduleService.initiate();
       }, 60000);
-    } else {
-      this.initCrashlytics();
     }
     this.setPlatformClass();
 
@@ -210,32 +207,9 @@ export class AppComponent {
       document.body.classList.add('is-web');
     }
   }
-  async initCrashlytics() {
-    // Enable crashlytics collection
-    console.log(
-      'GIGA Enable Chrashlytics for Native Android App',
-      this.isNative,
-    );
-    await FirebaseCrashlytics.setEnabled({ enabled: true });
-
-    // Test log
-    await FirebaseCrashlytics.log({ message: 'App started!' });
-    // Force test crash (for testing only!)
-
-    // this.testCrash();
-  }
-
-  async testCrash() {
-    try {
-      // This will crash the app intentionally
-      await FirebaseCrashlytics.crash({ message: 'Force crash test' });
-    } catch (err) {
-      console.error('Crash test failed', err);
-    }
-  }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   startSyncingPeriodicProcess() {
@@ -370,7 +344,7 @@ export class AppComponent {
   }
 
   openExternalUrl(href) {
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.openNativeAppBrowser(href);
     } else {
       this.settingsService.getShell().shell.openExternal(href);
@@ -616,7 +590,7 @@ export class AppComponent {
       this.closeMenu();
 
       // Get hardware ID and giga ID before clearing storage
-      const hardwareId = this.hardwareIdService.getHardwareId();
+      const hardwareId = await this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
       await this.localStorageService.deleteAllDatabases();
 

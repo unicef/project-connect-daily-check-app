@@ -96,8 +96,8 @@ dependencies {
   implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
   implementation "androidx.security:security-crypto:1.1.0"
   implementation "androidx.datastore:datastore-preferences:1.2.1"
-  implementation 'io.sentry:sentry-android:8.43.2'
-  implementation "com.google.android.gms:play-services-location:21.4.0"
+  implementation 'io.sentry:sentry-android:8.52.0'
+  implementation "com.google.android.gms:play-services-location:21.3.0"
   implementation project(':capacitor-android')
   implementation project(':ndt7lib')
   implementation "org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.9.0"
@@ -106,7 +106,7 @@ dependencies {
   androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
   testImplementation "org.robolectric:robolectric:4.12.1"
   testImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3"
-  testImplementation "androidx.work:work-testing:2.11.2"
+  testImplementation "androidx.work:work-testing:2.11.1"
   implementation(platform("org.jetbrains.kotlin:kotlin-bom:1.8.22"))
 
   constraints {

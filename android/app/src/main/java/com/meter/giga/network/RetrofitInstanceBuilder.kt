@@ -57,7 +57,6 @@ object RetrofitInstanceBuilder {
    * post the speed test data
    */
   fun getSpeedTestApi(baseUrl: String): ApiService {
-    Sentry.captureMessage("Base Url is : $baseUrl");
     return Retrofit.Builder()
       .baseUrl(baseUrl)
       .addConverterFactory(GsonConverterFactory.create())

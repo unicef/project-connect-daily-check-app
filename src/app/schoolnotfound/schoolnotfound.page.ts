@@ -30,7 +30,7 @@ export class SchoolnotfoundPage {
     public router: Router,
     public loading: LoadingService,
     private translate: TranslateService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -47,7 +47,7 @@ export class SchoolnotfoundPage {
     });
   }
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
   backToSearchDetail() {
     this.router.navigate([

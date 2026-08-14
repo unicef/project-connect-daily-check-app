@@ -232,8 +232,6 @@ public class MainActivity extends BridgeActivity {
 
   private void initAppUpdateCheck() {
     AppLogger.INSTANCE.d("App Update", "App update check installer");
-    Sentry.captureMessage("Updated Checker executed On App Launch");
-
     PeriodicWorkRequest workRequest =
       new PeriodicWorkRequest.Builder(UpdateCheckWorker.class, 24, TimeUnit.HOURS).build();
 
@@ -301,7 +299,6 @@ public class MainActivity extends BridgeActivity {
 
       case PluginEvent.ACTION_APP_CHECK_NOT_AVAILABLE:
         AppLogger.INSTANCE.d("MAIN Activity", Objects.requireNonNull(event.getPayload()));
-        Sentry.captureMessage("New update not available");
         Toast.makeText(this, event.getPayload(), Toast.LENGTH_SHORT).show();
         break;
 

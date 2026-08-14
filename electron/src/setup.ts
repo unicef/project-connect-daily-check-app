@@ -63,7 +63,7 @@ export function getIsQuiting(): boolean {
 
 // Enhanced Sentry configuration
 Sentry.init({
-  dsn: Capacitor.isNativePlatform()
+  dsn: Capacitor.getPlatform() === 'android'
     ? 'https://425388d87bae44d7be09a88dd5548d7e@excubo.unicef.io/77'
     : 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47',
   environment: 'production',
@@ -230,8 +230,8 @@ export class ElectronCapacitorApp {
       screen.getPrimaryDisplay().workAreaSize;
 
     this.mainWindowState = windowStateKeeper({
-      defaultWidth: Capacitor.isNativePlatform() ? screenWidth : 390,
-      defaultHeight: Capacitor.isNativePlatform() ? screenHeight : 650,
+      defaultWidth: Capacitor.getPlatform() === 'android' ? screenWidth : 390,
+      defaultHeight: Capacitor.getPlatform() === 'android' ? screenHeight : 650,
     });
     // Setup preload script path and construct our main window.
     const preloadPath = join(app?.getAppPath(), 'build', 'src', 'preload.js');
@@ -304,8 +304,8 @@ export class ElectronCapacitorApp {
     );
 
     this.MainWindow?.setSize(
-      Capacitor.isNativePlatform() ? screenWidth : 390,
-      Capacitor.isNativePlatform() ? screenHeight : 650
+      Capacitor.getPlatform() === 'android' ? screenWidth : 390,
+      Capacitor.getPlatform() === 'android' ? screenHeight : 650
     );
     this.mainWindowState?.manage(this.MainWindow);
 
@@ -439,8 +439,8 @@ export class ElectronCapacitorApp {
         if ((this.CapacitorFileConfig.electron as any)?.electronIsDev) {
           this.MainWindow.webContents.openDevTools();
           this.MainWindow?.setSize(
-            Capacitor.isNativePlatform() ? screenWidth : 390,
-            Capacitor.isNativePlatform() ? screenHeight : 700
+            Capacitor.getPlatform() === 'android' ? screenWidth : 390,
+            Capacitor.getPlatform() === 'android' ? screenHeight : 700
           );
         }
         CapElectronEventEmitter.emit(

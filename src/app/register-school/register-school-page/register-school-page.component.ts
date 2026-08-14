@@ -69,13 +69,13 @@ export class RegisterSchoolPageComponent implements OnInit {
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
   }
 
   ngOnInit() {}
 
   private async handlePrivacyChecked() {
-    if (!Capacitor.isNativePlatform()) return;
+    if (!(Capacitor.getPlatform() === 'android')) return;
 
     try {
       const permissionStatus = await Geolocation.checkPermissions();
@@ -101,7 +101,7 @@ export class RegisterSchoolPageComponent implements OnInit {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   moveToStartTest() {
@@ -125,7 +125,7 @@ export class RegisterSchoolPageComponent implements OnInit {
   }
 
   openExternalUrl(href) {
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.openNativeAppBrowser(href);
     } else {
       this.settingsService.getShell().shell.openExternal(href);

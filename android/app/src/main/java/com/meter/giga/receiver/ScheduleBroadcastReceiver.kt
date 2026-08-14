@@ -6,7 +6,6 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.core.content.ContextCompat
 import com.meter.giga.alarm_scheduler.AlarmHelper
@@ -22,7 +21,6 @@ import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
 import io.sentry.Sentry
 import java.util.Calendar
-import kotlin.jvm.java
 import kotlin.random.Random
 
 /**
@@ -41,7 +39,11 @@ class ScheduleBroadcastReceiver(
     when (intent?.action) {
       // Handle permission state change for SCHEDULE_EXACT_ALARM (Android 12+)
       AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED -> {
-        handleAlarmPermissionChange(context, intent)
+        val prefs = prefProvider(context)
+        val schoolId = prefs.schoolId
+        if (schoolId !== "") {
+          handleAlarmPermissionChange(context, intent)
+        }
       }
       // Handle scheduled alarm trigger
       else -> {

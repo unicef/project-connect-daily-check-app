@@ -161,8 +161,8 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.school = JSON.parse(this.storage.get('schoolInfo'));
       console.log(this.school, 'heheh');
     }
-    this.isNative = Capacitor.isNativePlatform();
-    if (Capacitor.isNativePlatform()) {
+    this.isNative = Capacitor.getPlatform() === 'android';
+    if (Capacitor.getPlatform() === 'android') {
       this.gigaAppPlugin = registerPlugin<any>('GigaAppPlugin');
     }
     this.onlineStatus = navigator.onLine;
@@ -179,7 +179,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         translate.setDefaultLang(applicationLanguage.code);
       }
     }
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.gigaAppPlugin.addListener('speedTestUpdate', (data: any) => {
         console.log(
           'GIGA NetworkTestService Data:',
@@ -323,9 +323,12 @@ export class StarttestPage implements OnInit, OnDestroy {
 
             console.log('GIGA', 'Executed complete');
           } else if (data.testStatus === 'onerror') {
+            console.log('GIGA onerror', 'Executed onerror');
             this.gaugeError();
+            this.connectionStatus = 'error';
+            this.currentRate = 'error';
             this.currentState = undefined;
-            this.currentRate = undefined;
+            this.progress = 0;
             if (data.speedTestData) {
               this.uploadStarted = false;
               if (this.uploadTimer) {
@@ -513,7 +516,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   async checkLocationPermissionOnInit() {
-    if (!Capacitor.isNativePlatform()) {
+    if (!(Capacitor.getPlatform() === 'android')) {
       this.clearLocationPermissionState();
       return;
     }
@@ -575,7 +578,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
   async handleBackButton() {
     this.backButtonListener = await App.addListener('backButton', async () => {
@@ -1005,10 +1008,8 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.gigaAppPlugin.executeManualSpeedTest({
           SCHEDULE_TYPE: notes,
         });
-      } else {
-        this.measurementClientService.runTest(notes);
       }
-      // this.measurementClientService.runTest(notes);
+      this.measurementClientService.runTest(notes);
     } catch (e) {
       console.log(e);
     }
@@ -1331,7 +1332,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.storage.clearFirstTimeVisit();
       this.isFirstVisit = false;
     }
-    if (Capacitor.isNativePlatform()) {
+    if (Capacitor.getPlatform() === 'android') {
       this.checkLocationPermissionOnInit();
       this.ref.markForCheck();
     }

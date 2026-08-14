@@ -1,8 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
+import { Capacitor } from '@capacitor/core';
+import { Geolocation } from '@capacitor/geolocation';
 import {
   catchError,
+  defer,
   from,
   map,
   Observable,
@@ -122,6 +125,50 @@ export class LocationService {
     }
   }
 
+  private getNativeCurrentLocation(): Observable<any | null> {
+    return defer(() =>
+      from(Geolocation.checkPermissions()).pipe(
+        switchMap((permission) => {
+          const hasLocationPermission = permission.location === 'granted';
+
+          if (hasLocationPermission) {
+            return of(true);
+          }
+
+          return from(Geolocation.requestPermissions()).pipe(
+            map(
+              (requestedPermission) =>
+                requestedPermission.location === 'granted',
+            ),
+          );
+        }),
+        switchMap((permissionGranted) => {
+          if (!permissionGranted) {
+            throw new Error('Location permission was not granted');
+          }
+
+          return from(
+            Geolocation.getCurrentPosition({
+              enableHighAccuracy: true,
+              timeout: 15000,
+              maximumAge: 30000,
+            }),
+          );
+        }),
+        map((position) =>
+          position
+            ? {
+                location: {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                },
+                accuracy: position.coords.accuracy,
+              }
+            : null,
+        ),
+      ),
+    );
+  }
   /**
    * Fetch geolocation using a WiFi-based cache:
    *  - If no WiFi APs are available → return cached geolocation (or null). No backend call.
@@ -130,10 +177,29 @@ export class LocationService {
    *
    * Never throws. On any failure it emits the last known cached value (or null).
    */
-  fetchAndSaveGeolocation(): Observable<{
-    latitude: number;
-    longitude: number;
-  } | null> {
+  fetchAndSaveGeolocation(): Observable<any | null> {
+    const savedGeo = this.getSavedGeolocation();
+
+    if (Capacitor.getPlatform() === 'android') {
+      return this.getNativeCurrentLocation().pipe(
+        tap((geo) => {
+          if (geo) {
+            this.saveGeolocation(geo);
+
+            console.log('[Location] Native device geolocation refreshed:', geo);
+          }
+        }),
+        catchError((err) => {
+          console.warn(
+            '[Location] Native geolocation failed; using cached geolocation:',
+            err,
+          );
+
+          return of(savedGeo);
+        }),
+      );
+    }
+
     const wifiPromise: Promise<
       { macAddress: string; signalStrength: number }[]
     > = this.getWifiAccessPoints().catch((err) => {

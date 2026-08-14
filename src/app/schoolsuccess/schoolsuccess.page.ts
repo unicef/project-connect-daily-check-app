@@ -38,11 +38,11 @@ export class SchoolsuccessPage {
     private router: Router,
     private translate: TranslateService,
     private settingsService: SettingsService,
-    private measurementClientService: MeasurementClientService
+    private measurementClientService: MeasurementClientService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
   }
   swipeNext() {
     this.slides.slideNext();
@@ -52,7 +52,7 @@ export class SchoolsuccessPage {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   async checkCurrentSlide() {

@@ -27,11 +27,11 @@ export class InvalidLocationPage {
     public router: Router,
     public loading: LoadingService,
     private translate: TranslateService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
-    this.isNative = Capacitor.isNativePlatform();
+    this.isNative = Capacitor.getPlatform() === 'android';
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;
@@ -39,6 +39,6 @@ export class InvalidLocationPage {
     });
   }
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 }

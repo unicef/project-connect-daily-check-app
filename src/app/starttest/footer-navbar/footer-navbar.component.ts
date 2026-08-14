@@ -14,7 +14,10 @@ export class FooterNavbarComponent implements OnInit, OnDestroy {
   activeSegment: string = 'home';
   private routerSubscription!: Subscription;
 
-  constructor(private router: Router, private cdr: ChangeDetectorRef) {}
+  constructor(
+    private router: Router,
+    private cdr: ChangeDetectorRef,
+  ) {}
 
   ngOnInit() {
     // Subscribe to router events
@@ -43,7 +46,7 @@ export class FooterNavbarComponent implements OnInit, OnDestroy {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.isNativePlatform();
+    return Capacitor.getPlatform() === 'android';
   }
 
   onSegmentChange(event: any) {

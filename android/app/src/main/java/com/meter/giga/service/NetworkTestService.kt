@@ -1,5 +1,7 @@
 package com.meter.giga.service
 
+// import com.meter.giga.prefrences.AlarmSharedPref
+//import com.meter.giga.prefrences.SecureDataStore
 import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
@@ -23,7 +25,6 @@ import com.meter.giga.domain.entity.history.Geo
 import com.meter.giga.domain.entity.history.GeoLocation
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
 import com.meter.giga.domain.entity.request.ServerInfoRequestEntity
-import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.domain.entity.response.ClientInfoResponseEntity
 import com.meter.giga.domain.entity.response.ServerInfoResponseEntity
 import com.meter.giga.domain.usecases.GetClientInfoUseCase
@@ -32,8 +33,6 @@ import com.meter.giga.domain.usecases.PostSpeedTestUseCase
 import com.meter.giga.ionic_plugin.GigaAppPlugin
 import com.meter.giga.network.util.NetworkCheckerImpl
 import com.meter.giga.prefrences.AlarmSharedPref
-// import com.meter.giga.prefrences.AlarmSharedPref
-//import com.meter.giga.prefrences.SecureDataStore
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.DEVICE_TYPE_ANDROID
 import com.meter.giga.utils.Constants.DEVICE_TYPE_CHROMEBOOK
@@ -45,6 +44,7 @@ import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.ResultState
 import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -59,10 +59,6 @@ import net.measurementlab.ndt7.android.utils.DataConverter
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import java.util.concurrent.TimeUnit
-import kotlin.jvm.java
-import kotlin.let
-import kotlin.text.format
-import kotlin.text.toDouble
 
 /**
  * NetworkTestService is a foreground service responsible for executing
@@ -171,10 +167,6 @@ class NetworkTestService : LifecycleService() {
       AppLogger.d("GIGA NetworkTestService ", "Device is online")
 
       try {
-        // Example logging
-        Sentry.captureMessage("Foreground Service started")
-
-//        secureDataStore = SecureDataStore(this)
         val scheduleType = intent?.getStringExtra(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_DAILY
         AppLogger.d("GIGA NetworkTestService SCHEDULE_TYPE", scheduleType)
         val appVersion = GigaUtil.getAppVersionName(this)
@@ -212,10 +204,8 @@ class NetworkTestService : LifecycleService() {
         GigaAppPlugin.sendNoNetworkError()
       } else if (prefs.isTestRunning) {
         AppLogger.d("GIGA NetworkTestService ", "Already Speed Test Executing")
-        Sentry.captureMessage("Already Speed Test Executing")
       } else {
         AppLogger.d("GIGA NetworkTestService ", "Device is offline")
-        Sentry.captureMessage("speed test skipped")
         updateNotification("Speed test skipped")
       }
     }
@@ -559,7 +549,7 @@ class NetworkTestService : LifecycleService() {
                   "GIGA NetworkTestService",
                   "Get Client Info API Failed: ${clientInfo.error}"
                 )
-                Sentry.captureMessage("Client Info Fetch Failed")
+                Sentry.captureMessage("Client Info Fetch Failed", SentryLevel.ERROR)
               }
 
               ResultState.Loading -> {
@@ -592,7 +582,7 @@ class NetworkTestService : LifecycleService() {
                   "GIGA NetworkTestService",
                   "Get Client Info API Failed: ${serverInfo.error}"
                 )
-                Sentry.captureMessage("Server Info Fetch Failed")
+                Sentry.captureMessage("Server Info Fetch Failed", SentryLevel.ERROR)
               }
 
               ResultState.Loading -> {
@@ -610,6 +600,7 @@ class NetworkTestService : LifecycleService() {
             serverInfoResponse
           )
         } catch (e: Exception) {
+          Sentry.captureException(e)
           if (lastUploadMeasurement != null
             && lastDownloadMeasurement != null && lastUploadResponse != null && lastDownloadResponse != null
           ) {
@@ -734,7 +725,7 @@ class NetworkTestService : LifecycleService() {
                   "Updated Speed Test Data $updateSpeedTestData"
                 )
                 prefs.oldSpeedTestData = updateSpeedTestData
-                Sentry.captureMessage("Failed to sync speed test data")
+                Sentry.captureMessage("Failed to sync speed test data", SentryLevel.ERROR)
                 updateNotification("Failed to sync speed test data.")
                 GigaAppPlugin.sendSpeedTestCompletedWithError(
                   speedTestResultRequestEntity,
@@ -778,7 +769,6 @@ class NetworkTestService : LifecycleService() {
                 )
                 stopForeground(STOP_FOREGROUND_DETACH)
                 stopSelf()
-                Sentry.captureMessage("Synced speed test data successfully")
               }
             }
           } catch (e: Exception) {
@@ -817,11 +807,18 @@ class NetworkTestService : LifecycleService() {
             speedTestResultRequestEntity,
             measurementsItem
           )
-          Sentry.captureMessage("Failed to generate the speed test upload payload")
+          Sentry.captureMessage(
+            "Failed to generate the speed test upload payload",
+            SentryLevel.ERROR
+          )
           stopForeground(STOP_FOREGROUND_DETACH)
           stopSelf()
         }
       } else {
+        Sentry.captureMessage(
+          "Speed Test Failed with Download Measurements: $lastDownloadMeasurement and Upload Measurements: $lastUploadMeasurement ",
+          SentryLevel.ERROR
+        )
         updateNotification("Speed test measurements not available, please try again.")
         GigaAppPlugin.sendSpeedTestCompletedWithError(
           null,
