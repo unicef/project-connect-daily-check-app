@@ -42,7 +42,7 @@ const queue: QueuedEvent[] = [];
 export function initPosthog(): void {
   try {
     const apiKey = process.env.POSTHOG_API_KEY || DEFAULT_POSTHOG_API_KEY;
-    const host = process.env.POSTHOG_HOST || 'https://us.i.posthog.com';
+    const host = process.env.POSTHOG_HOST || 'https://eu.i.posthog.com';
 
     if (!apiKey) {
       console.warn('[PostHog][main] Skipping init: no API key.');

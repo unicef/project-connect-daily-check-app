@@ -24,7 +24,7 @@ export const environment = {
   // PostHog analytics (Cloud). Same key is shared by the Angular renderer
   // (posthog-js) and the Electron main process (posthog-node).
   posthogApiKey: 'POSTHOG_PROJECT_API_KEY', // "Project API Key" (phc_...)
-  posthogHost: 'https://us.i.posthog.com', // or https://eu.i.posthog.com
+  posthogHost: 'https://eu.i.posthog.com', // EU region (or https://us.i.posthog.com)
   languages: [
     {
       name: 'En',

@@ -30,7 +30,7 @@ export const environment = {
   },
   posthog: {
     apiKey: (env as any).posthogApiKey as string,
-    host: ((env as any).posthogHost as string) || 'https://us.i.posthog.com',
+    host: ((env as any).posthogHost as string) || 'https://eu.i.posthog.com',
   },
   app_version: '2.0.3',
   appName: 'Giga Meter',
