@@ -80,6 +80,7 @@ export class PosthogService {
       this.identifyFromStorage();
       this.trackPageView();
       this.trackRouteChanges();
+      this.bridgeMainProcessEvents();
 
       this.initialized = true;
     } catch (error) {
@@ -144,6 +145,40 @@ export class PosthogService {
       posthog.reset();
     } catch (error) {
       console.warn('[PostHog] reset failed:', error);
+    }
+  }
+
+  /**
+   * Reenvía a PostHog los eventos que emite el main process de Electron.
+   *
+   * El main no habla con PostHog directamente: `posthog-node` no persiste su
+   * cola entre sesiones y este equipo pasa horas sin red, así que sus eventos
+   * serían los menos fiables justo donde más cuesta recuperarlos. El SDK del
+   * renderer sí encola en localStorage y sobrevive a reinicios.
+   *
+   * Hoy solo llega el ciclo de vida del auto-update, que es lo único que ni el
+   * renderer ni el backend ven: un equipo que falla al actualizar deja de
+   * mandar mediciones y desaparece de las queries de adopción de versiones.
+   */
+  private bridgeMainProcessEvents(): void {
+    try {
+      const electronAPI = (window as any).electronAPI;
+      if (!electronAPI?.onTelemetryEvent) {
+        return; // navegador, o build sin el preload nuevo
+      }
+      electronAPI.onTelemetryEvent(
+        (payload: { event: string; properties?: Record<string, any> }) => {
+          if (!payload?.event) {
+            return;
+          }
+          this.capture(payload.event, {
+            ...(payload.properties ?? {}),
+            source: 'electron-main',
+          });
+        }
+      );
+    } catch (error) {
+      console.warn('[PostHog] bridgeMainProcessEvents failed:', error);
     }
   }
 

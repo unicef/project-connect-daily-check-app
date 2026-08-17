@@ -38,4 +38,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('system-hardware-id');
     ipcRenderer.removeAllListeners('system-hardware-id-error');
   },
+  // Eventos del main process (ciclo de vida del auto-update) que el renderer
+  // publica en PostHog: su SDK persiste la cola en localStorage y sobrevive a
+  // reinicios sin red, cosa que el SDK de node no hace.
+  onTelemetryEvent: (
+    callback: (payload: { event: string; properties?: any }) => void
+  ) => {
+    ipcRenderer.on('telemetry-event', (event, payload) => callback(payload));
+  },
 });

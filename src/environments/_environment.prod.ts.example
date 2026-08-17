@@ -30,6 +30,10 @@ export const environment = {
   posthogKeyDev: 'POSTHOG_PROJECT_API_KEY_DEV',
   posthogKeyStg: 'POSTHOG_PROJECT_API_KEY_STG',
   posthogKeyProd: 'POSTHOG_PROJECT_API_KEY_PROD',
+  // The Electron main process has no key of its own: it forwards its two
+  // auto-update events to the renderer over IPC, which publishes them with the
+  // keys above. posthog-node would not survive a restart offline; posthog-js
+  // persists its queue in localStorage, and this app is offline a lot.
   // Session replay records the user's screen. Off unless explicitly enabled —
   // scope is still being defined (plan 0004, item 2).
   posthogEnableSessionRecording: false,

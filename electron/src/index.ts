@@ -45,6 +45,29 @@ unhandled({
 let mainWindow = null;
 let isDownloaded = false;
 
+/**
+ * Manda un evento de telemetría al renderer, que lo publica en PostHog.
+ *
+ * El SDK del renderer (posthog-js) persiste su cola en localStorage y sobrevive
+ * a reinicios; `posthog-node` en el main process no, y este equipo pasa horas
+ * sin red. Por eso el main no habla con PostHog directamente: solo el ciclo de
+ * vida del auto-update, que es lo único que ni el renderer ni el backend ven
+ * (un equipo que falla al actualizar deja de mandar mediciones y desaparece de
+ * las queries de adopción).
+ *
+ * Si la ventana no está viva el evento se pierde, y es aceptable: el fallo de
+ * update ya va a Sentry por separado.
+ */
+function sendTelemetry(event: string, properties: Record<string, any> = {}) {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow.webContents || mainWindow.webContents.isDestroyed()) return;
+    mainWindow.webContents.send('telemetry-event', { event, properties });
+  } catch (error) {
+    console.warn('[telemetry] send failed:', error);
+  }
+}
+
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
   new MenuItem({
@@ -217,6 +240,7 @@ if (!gotTheLock) {
   }, 3600000);
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
+    sendTelemetry('desktop_update_downloaded', { release_name: releaseName });
     const dialogOpts = {
       type: 'info' as const,
       buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
@@ -278,6 +302,9 @@ if (!gotTheLock) {
   autoUpdater.on('error', (error) => {
     console.error('Update Error:', error);
     captureException(error);
+    sendTelemetry('desktop_update_failed', {
+      message: error?.message ?? null,
+    });
   });
   }
   /*
