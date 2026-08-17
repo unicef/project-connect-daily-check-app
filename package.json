@@ -15,7 +15,11 @@
     "build:electron-signed-test": "ng build && npx cap sync @capacitor-community/electron && cd electron && npm run electron:make-signed-no-publish",
     "test": "ng test",
     "lint": "ng lint",
-    "e2e": "ng e2e"
+    "start:e2e": "ng serve --configuration e2e",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:stg": "playwright test -c playwright.stg.config.ts",
+    "e2e:down": "docker compose -f e2e/docker-compose.e2e.yml down -v"
   },
   "private": true,
   "dependencies": {
@@ -73,6 +77,7 @@
     "@babel/runtime": "^7.26.10",
     "@capacitor/cli": "^7.4.1",
     "@ionic/angular-toolkit": "^5.0.0",
+    "@playwright/test": "^1.62.1",
     "@types/canvas-confetti": "^1.9.0",
     "@types/jasmine": "~3.6.0",
     "@types/jasminewd2": "~2.0.3",
