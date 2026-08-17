@@ -17,6 +17,7 @@ import { LogoutModalComponent } from './components/logout-modal/logout-modal.com
 import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
 import { MatomoService } from './services/matomo.service';
+import { PosthogService } from './services/posthog.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -73,11 +74,17 @@ export class AppComponent {
     private router: Router,
     private schoolService: SchoolService,
     private matomoService: MatomoService,
+    private posthogService: PosthogService,
   ) {
     try {
       this.matomoService.init();
     } catch (error) {
       console.warn('Matomo init failed:', error);
+    }
+    try {
+      this.posthogService.init();
+    } catch (error) {
+      console.warn('PostHog init failed:', error);
     }
     this.filteredOptions = [];
     this.selectedLanguage =

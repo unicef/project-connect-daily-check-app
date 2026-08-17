@@ -21,10 +21,19 @@ import {
   getIsQuiting,
 } from './setup';
 import { captureException } from '@sentry/node';
+import {
+  initPosthog,
+  setPosthogIdentity,
+  capturePosthog,
+  shutdownPosthog,
+} from './analytics';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
 app.setPath('userData', userDataPath);
+
+// Initialize main-process product analytics (renderer uses posthog-js).
+initPosthog();
 
 const gotTheLock = app.requestSingleInstanceLock();
 // Graceful handling of unhandled errors.
@@ -135,6 +144,17 @@ if (!gotTheLock) {
         systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
       console.log('\n🔑 PRIMARY HARDWARE ID (use this):', hardwareId);
 
+      // Note: hardwareId is recorded only as diagnostic metadata, NOT as the
+      // analytics identity. The real distinct_id + school group are relayed
+      // from the renderer over the 'posthog-identity' IPC channel; this event
+      // is buffered until that arrives.
+      capturePosthog('app_launched', {
+        manufacturer: systemData.manufacturer,
+        model: systemData.model,
+        os: osData.distro,
+        hardware_id: hardwareId,
+      });
+
       // Send hardware ID to renderer process when ready
       if (mainWindow && mainWindow.webContents) {
         const hardwareData = {
@@ -208,6 +228,7 @@ if (!gotTheLock) {
   }, 3600000);
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
+    capturePosthog('app_update_downloaded', { release: releaseName });
     const dialogOpts = {
       type: 'info' as const,
       buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
@@ -269,6 +290,7 @@ if (!gotTheLock) {
   autoUpdater.on('error', (error) => {
     console.error('Update Error:', error);
     captureException(error);
+    capturePosthog('app_update_error', { message: error?.message });
   });
   /*
     autoUpdater.on('error', (error) => {
@@ -325,12 +347,25 @@ app.on('activate', async function () {
 app.on('before-quit', () => {
   setIsQuiting(true);
   myCapacitorApp.cleanup();
+  capturePosthog('app_quit');
+  // Fire-and-forget flush; events use flushAt:1 so they are already sent.
+  void shutdownPosthog();
 });
 
 // Place all ipc or other electron api calls and custom functionality under this line
 
 ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
+});
+
+// Receive the renderer's PostHog identity (anonymous distinct_id + school
+// GigaID) so main-process analytics share the same person and school group.
+ipcMain.on('posthog-identity', (_ev, payload) => {
+  try {
+    setPosthogIdentity(payload?.distinctId, payload?.gigaId);
+  } catch (error) {
+    console.error('❌ [Electron] Error applying PostHog identity:', error);
+  }
 });
 
 // IPC handler to get Windows username from renderer process

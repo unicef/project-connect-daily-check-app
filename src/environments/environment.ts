@@ -28,6 +28,10 @@ export const environment = {
     trackerUrl: (env as any).matomoTrackerUrl as string,
     siteId: environmentConfig[env.mode].matomoSiteId as string,
   },
+  posthog: {
+    apiKey: (env as any).posthogApiKey as string,
+    host: ((env as any).posthogHost as string) || 'https://us.i.posthog.com',
+  },
   app_version: '2.0.3',
   appName: 'Giga Meter',
   appNameSuffix: '',

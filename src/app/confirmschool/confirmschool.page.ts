@@ -17,6 +17,7 @@ import { SharedService } from '../services/shared-service.service';
 import { TranslateService } from '@ngx-translate/core';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
+import { PosthogService } from '../services/posthog.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -46,7 +47,8 @@ export class ConfirmschoolPage implements OnInit{
     private translate: TranslateService,
     private sharedService: SharedService,
     private hardwareIdService: HardwareIdService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private posthogService: PosthogService
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -136,6 +138,7 @@ export class ConfirmschoolPage implements OnInit{
                     this.storage.set('schoolUserId', response);
                     this.storage.set('schoolId', this.schoolId);
                     this.storage.set('gigaId', this.school.giga_id_school);
+                    this.posthogService.setSchool(this.school.giga_id_school);
                     this.storage.set('ip_address', c?.ip);
                     this.storage.set('version', environment.app_version);
                     //this.storage.set('country_code', c.country);

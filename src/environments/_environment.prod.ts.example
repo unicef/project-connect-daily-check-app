@@ -20,6 +20,11 @@ export const environment = {
   matomoSiteIdDev: 'MATOMO_SITE_ID_DEV',
   matomoSiteIdStg: 'MATOMO_SITE_ID_STG',
   matomoSiteIdProd: 'MATOMO_SITE_ID_PROD',
+
+  // PostHog analytics (Cloud). Same key is shared by the Angular renderer
+  // (posthog-js) and the Electron main process (posthog-node).
+  posthogApiKey: 'POSTHOG_PROJECT_API_KEY', // "Project API Key" (phc_...)
+  posthogHost: 'https://us.i.posthog.com', // or https://eu.i.posthog.com
   languages: [
     {
       name: 'En',
