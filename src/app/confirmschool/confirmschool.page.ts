@@ -17,6 +17,7 @@ import { SharedService } from '../services/shared-service.service';
 import { TranslateService } from '@ngx-translate/core';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
+import { PosthogService } from '../services/posthog.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -46,7 +47,8 @@ export class ConfirmschoolPage implements OnInit{
     private translate: TranslateService,
     private sharedService: SharedService,
     private hardwareIdService: HardwareIdService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private posthog: PosthogService
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -146,6 +148,14 @@ export class ConfirmschoolPage implements OnInit{
                     // Set first-time visit flags for new registration flow
                     this.storage.setFirstTimeVisit(true);
                     this.storage.setRegistrationCompleted(Date.now());
+
+                    // A partir de aquí los eventos pertenecen a esta escuela.
+                    this.posthog.identify(this.school.giga_id_school, {
+                      country_code: this.selectedCountry,
+                    });
+                    this.posthog.capture('registration_completed', {
+                      country_code: this.selectedCountry,
+                    });
 
                     this.loading.dismiss();
 

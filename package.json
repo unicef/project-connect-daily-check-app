@@ -54,6 +54,7 @@
     "fs-extra": "^10.0.1",
     "idb": "^8.0.2",
     "ngx-pipes": "^3.2.2",
+    "posthog-js": "^1.417.4",
     "rxjs": "~7.8.0",
     "systeminformation": "^5.27.8",
     "tslib": "^2.2.0",

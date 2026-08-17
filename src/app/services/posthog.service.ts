@@ -1,0 +1,187 @@
+import { Injectable } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
+import posthog from 'posthog-js';
+import { environment } from 'src/environments/environment';
+
+/**
+ * PostHog product analytics (ítem 2 del plan 0004, release v2.0.4).
+ *
+ * Mismas reglas que MatomoService: todo va envuelto en try/catch para que un
+ * fallo aquí (config ausente, red caída, SDK roto) nunca tumbe el app, y sin
+ * configuración el servicio simplemente no hace nada.
+ *
+ * Notas propias de este app:
+ * - Es un Electron de escritorio que vive con conectividad intermitente — es
+ *   literalmente lo que mide. El SDK se empaqueta (no se carga por CDN como
+ *   Matomo) para que funcione offline y encole los eventos hasta que vuelva la
+ *   red, y para no depender de cargar un script remoto bajo la CSP de Electron.
+ * - En Electron `window.location` es `file://`, inútil para analítica: se usa
+ *   el mismo host virtual que Matomo para que las URLs sean legibles.
+ * - Nada de PII: se identifica por giga id de la escuela, que es lo mismo que
+ *   ya viaja en cada medición. Nunca nombre de escuela, usuario de Windows,
+ *   rutas de instalación ni IP.
+ */
+@Injectable({
+  providedIn: 'root',
+})
+export class PosthogService {
+  private initialized = false;
+
+  // Mismo host virtual que MatomoService, para que ambas herramientas reporten
+  // las mismas URLs y se puedan cruzar.
+  private readonly electronVirtualOrigin = 'https://app.gigameter.local';
+
+  constructor(private router: Router) {}
+
+  /**
+   * Arranca PostHog. Es seguro llamarlo varias veces.
+   * No hace nada si falta la project API key o el host.
+   */
+  init(): void {
+    try {
+      if (this.initialized) {
+        return;
+      }
+
+      const apiKey = environment.posthog?.apiKey;
+      const host = environment.posthog?.host;
+
+      if (!apiKey || !host) {
+        console.warn('[PostHog] Skipping init: missing API key or host.');
+        return;
+      }
+
+      posthog.init(apiKey, {
+        api_host: host,
+        // Las vistas se mandan a mano en trackRouteChanges(): con rutas hash
+        // de Angular el autocapture de pageviews no las ve.
+        capture_pageview: false,
+        capture_pageleave: true,
+        autocapture: false, // solo eventos explícitos: menos ruido y menos PII
+        disable_session_recording: !environment.posthog?.enableSessionRecording,
+        persistence: 'localStorage', // el app ya guarda su estado ahí
+        // La instalación puede pasar horas sin red; que el SDK reintente en vez
+        // de descartar.
+        request_batching: true,
+        loaded: (ph) => {
+          try {
+            ph.register({
+              app_version: environment.app_version,
+              app_mode: environment.mode,
+              is_electron: !!environment.isElectron,
+            });
+          } catch (error) {
+            console.warn('[PostHog] register on load failed:', error);
+          }
+        },
+      });
+
+      this.identifyFromStorage();
+      this.trackPageView();
+      this.trackRouteChanges();
+
+      this.initialized = true;
+    } catch (error) {
+      console.warn('[PostHog] init failed:', error);
+    }
+  }
+
+  /**
+   * Registra un evento. Seguro aunque PostHog no esté inicializado.
+   */
+  capture(event: string, properties?: Record<string, any>): void {
+    try {
+      if (!this.initialized) {
+        return;
+      }
+      posthog.capture(event, properties);
+    } catch (error) {
+      console.warn('[PostHog] capture failed:', error);
+    }
+  }
+
+  /**
+   * Asocia los eventos a una escuela. Se llama al arrancar (si ya hay registro)
+   * y justo después de completar el registro.
+   *
+   * El identificador es el giga id: identifica al centro, no a la persona.
+   */
+  identify(gigaId: string, properties?: Record<string, any>): void {
+    try {
+      if (!this.initialized || !gigaId) {
+        return;
+      }
+      posthog.identify(gigaId, properties);
+    } catch (error) {
+      console.warn('[PostHog] identify failed:', error);
+    }
+  }
+
+  /**
+   * Vista de página manual. Con rutas hash hay que mandarlas a mano.
+   */
+  trackPageView(url?: string): void {
+    try {
+      if (!this.initialized) {
+        return;
+      }
+      const path = url ?? window.location.hash?.replace(/^#/, '') ?? '/';
+      posthog.capture('$pageview', {
+        $current_url: this.getTrackingOrigin() + (path || '/'),
+      });
+    } catch (error) {
+      console.warn('[PostHog] trackPageView failed:', error);
+    }
+  }
+
+  /** Corta la sesión al cerrar sesión en el app, para no mezclar escuelas. */
+  reset(): void {
+    try {
+      if (!this.initialized) {
+        return;
+      }
+      posthog.reset();
+    } catch (error) {
+      console.warn('[PostHog] reset failed:', error);
+    }
+  }
+
+  private identifyFromStorage(): void {
+    try {
+      const gigaId = localStorage.getItem('gigaId');
+      if (gigaId) {
+        this.identify(gigaId);
+      }
+    } catch (error) {
+      console.warn('[PostHog] identifyFromStorage failed:', error);
+    }
+  }
+
+  private trackRouteChanges(): void {
+    try {
+      this.router.events
+        .pipe(filter((event) => event instanceof NavigationEnd))
+        .subscribe((event: NavigationEnd) => {
+          this.trackPageView(event.urlAfterRedirects || event.url);
+        });
+    } catch (error) {
+      console.warn('[PostHog] trackRouteChanges setup failed:', error);
+    }
+  }
+
+  /**
+   * Origen limpio para reportar. En Electron el real es `file://`, que no sirve
+   * para analítica, así que se sustituye por un host virtual fijo.
+   */
+  private getTrackingOrigin(): string {
+    try {
+      if (environment.isElectron) {
+        return this.electronVirtualOrigin;
+      }
+      return window.location.origin;
+    } catch {
+      return this.electronVirtualOrigin;
+    }
+  }
+}

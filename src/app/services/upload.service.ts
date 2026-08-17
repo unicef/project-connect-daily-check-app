@@ -13,6 +13,7 @@ import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
+import { PosthogService } from './posthog.service';
 
 @Injectable({
   providedIn: 'root',
@@ -25,7 +26,8 @@ export class UploadService {
     private storage: StorageService,
     private hardwareIdService: HardwareIdService,
     private indexedDB: IndexedDBService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private posthog: PosthogService
   ) {}
 
   /**
@@ -202,12 +204,29 @@ export class UploadService {
       switchMap(measurementWithGeo =>
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
-          tap((data) => data),
+          tap((data) => {
+            // Medición entregada en tiempo real. Sin cifras de velocidad: para
+            // eso está la propia tabla de mediciones; aquí interesa el embudo.
+            this.posthog.capture('measurement_uploaded', {
+              notes: measurementWithGeo.Notes,
+              scheduled_slot: measurementWithGeo['scheduled_slot'],
+              protocol: measurementWithGeo['protocol'] ?? 'mlab',
+              upload_failed: false,
+            });
+            return data;
+          }),
           catchError(async (error) => {
             console.error('Upload failed, saving to IndexedDB...', error);
             await this.indexedDB.saveMeasurement({
               ...measurementWithGeo,
               upload_failed: true,
+            });
+            // El upload en tiempo real falló y la medición queda en la cola
+            // local: es la señal que el flag del plan 0006 persigue.
+            this.posthog.capture('measurement_queued_offline', {
+              notes: measurementWithGeo.Notes,
+              scheduled_slot: measurementWithGeo['scheduled_slot'],
+              status: error?.status ?? null,
             });
             return of({ savedLocally: true, error });
           })

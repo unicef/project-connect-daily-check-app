@@ -20,6 +20,19 @@ export const environment = {
   matomoSiteIdDev: 'MATOMO_SITE_ID_DEV',
   matomoSiteIdStg: 'MATOMO_SITE_ID_STG',
   matomoSiteIdProd: 'MATOMO_SITE_ID_PROD',
+
+  // PostHog product analytics (per-environment project API keys).
+  // The "project API key" is PostHog's public write key — the equivalent of a
+  // Sentry DSN. It is embedded in the client build, so use a project key, never
+  // a personal API key.
+  // Leaving a key empty disables PostHog for that mode: no key, no tracking.
+  posthogHost: 'POSTHOG_HOST', // e.g. https://eu.i.posthog.com
+  posthogKeyDev: 'POSTHOG_PROJECT_API_KEY_DEV',
+  posthogKeyStg: 'POSTHOG_PROJECT_API_KEY_STG',
+  posthogKeyProd: 'POSTHOG_PROJECT_API_KEY_PROD',
+  // Session replay records the user's screen. Off unless explicitly enabled —
+  // scope is still being defined (plan 0004, item 2).
+  posthogEnableSessionRecording: false,
   languages: [
     {
       name: 'En',

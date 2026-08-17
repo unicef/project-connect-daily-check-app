@@ -18,4 +18,12 @@ export const environment = {
 
   // The Playwright suite intercepts api.ipinfo.io, so this token is never used.
   ipInfoToken: 'e2e-local-token',
+
+  // PostHog stays off in e2e: an empty key makes the service no-op, so the
+  // suite never sends analytics to a real project.
+  posthogHost: '',
+  posthogKeyDev: '',
+  posthogKeyStg: '',
+  posthogKeyProd: '',
+  posthogEnableSessionRecording: false,
 };
