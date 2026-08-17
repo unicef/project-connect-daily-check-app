@@ -383,6 +383,14 @@ open class GigaAppPlugin : Plugin() {
     alarmPrefs.browserId = browserId ?: ""
     alarmPrefs.mlabUploadKey = mlabUploadKey ?: ""
     scheduleAlarm(context, alarmPrefs)
+    Sentry.configureScope { scope ->
+      scope.setTag(
+        "School ID", schoolId
+      )
+      scope.setTag(
+        "School GIGA ID", gigaSchoolId
+      )
+    }
     call.resolve()
   }
 
@@ -501,6 +509,8 @@ open class GigaAppPlugin : Plugin() {
     tags.forEach { tag ->
       AlarmHelper.cancelExactAlarm(context, tag)
     }
+    Sentry.removeTag("School ID")
+    Sentry.removeTag("School GIGA ID")
     call.resolve()
   }
 

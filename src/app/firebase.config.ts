@@ -13,7 +13,7 @@ export async function initCrashlytics() {
   await FirebaseCrashlytics.log({ message: 'App started!' });
   // Force test crash (for testing only!)
 
-  // testCrash();
+  //  testCrash();
 }
 
 async function testCrash() {
