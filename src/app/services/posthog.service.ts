@@ -28,6 +28,12 @@ import { environment } from 'src/environments/environment';
 export class PosthogService {
   private initialized = false;
 
+  // Tipo de grupo de PostHog para agregar por centro. La escuela va como
+  // *group*, no como persona: cada instalación sigue siendo un "person"
+  // propio, así que se pueden contar dispositivos por escuela en vez de
+  // colapsarlos todos en uno.
+  private readonly SCHOOL_GROUP = 'school';
+
   // Mismo host virtual que MatomoService, para que ambas herramientas reporten
   // las mismas URLs y se puedan cruzar.
   private readonly electronVirtualOrigin = 'https://app.gigameter.local';
@@ -47,7 +53,7 @@ export class PosthogService {
       const apiKey = environment.posthog?.apiKey;
       const host = environment.posthog?.host;
 
-      if (!apiKey || !host) {
+      if (!apiKey || apiKey.startsWith('POSTHOG_PROJECT_API_KEY') || !host) {
         console.warn('[PostHog] Skipping init: missing API key or host.');
         return;
       }
@@ -60,7 +66,9 @@ export class PosthogService {
         capture_pageleave: true,
         autocapture: false, // solo eventos explícitos: menos ruido y menos PII
         disable_session_recording: !environment.posthog?.enableSessionRecording,
-        persistence: 'localStorage', // el app ya guarda su estado ahí
+        // localStorage guarda la cola offline; la cookie mantiene estable el
+        // anon id del dispositivo si se limpia el storage del renderer.
+        persistence: 'localStorage+cookie',
         // La instalación puede pasar horas sin red; que el SDK reintente en vez
         // de descartar.
         request_batching: true,
@@ -78,6 +86,7 @@ export class PosthogService {
       });
 
       this.identifyFromStorage();
+      this.applySchoolFromStorage();
       this.trackPageView();
       this.trackRouteChanges();
       this.bridgeMainProcessEvents();
@@ -179,6 +188,33 @@ export class PosthogService {
       );
     } catch (error) {
       console.warn('[PostHog] bridgeMainProcessEvents failed:', error);
+    }
+  }
+
+  /**
+   * Asocia el dispositivo al grupo de su escuela. Se llama al arrancar (si ya
+   * hay registro) y justo después de completar el registro.
+   */
+  setSchool(gigaId: string | number | null | undefined): void {
+    try {
+      if (!this.initialized || gigaId == null || gigaId === '') {
+        return;
+      }
+      const key = String(gigaId);
+      posthog.group(this.SCHOOL_GROUP, key, { giga_id_school: key });
+    } catch (error) {
+      console.warn('[PostHog] setSchool failed:', error);
+    }
+  }
+
+  private applySchoolFromStorage(): void {
+    try {
+      const gigaId = localStorage.getItem('gigaId');
+      if (gigaId) {
+        this.setSchool(gigaId);
+      }
+    } catch (error) {
+      console.warn('[PostHog] applySchoolFromStorage failed:', error);
     }
   }
 

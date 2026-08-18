@@ -138,6 +138,7 @@ export class ConfirmschoolPage implements OnInit{
                     this.storage.set('schoolUserId', response);
                     this.storage.set('schoolId', this.schoolId);
                     this.storage.set('gigaId', this.school.giga_id_school);
+                    this.posthog.setSchool(this.school.giga_id_school);
                     this.storage.set('ip_address', c?.ip);
                     this.storage.set('version', environment.app_version);
                     //this.storage.set('country_code', c.country);

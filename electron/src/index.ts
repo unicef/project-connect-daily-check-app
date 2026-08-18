@@ -159,6 +159,16 @@ if (!gotTheLock) {
         systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
       console.log('\n🔑 PRIMARY HARDWARE ID (use this):', hardwareId);
 
+      // hardwareId viaja solo como metadato de diagnóstico, nunca como
+      // identidad de analítica: el distinct_id y el grupo de escuela los pone
+      // el renderer, que es quien habla con PostHog.
+      sendTelemetry('app_launched', {
+        manufacturer: systemData.manufacturer,
+        model: systemData.model,
+        os: osData.distro,
+        hardware_id: hardwareId,
+      });
+
       // Send hardware ID to renderer process when ready
       if (mainWindow && mainWindow.webContents) {
         const hardwareData = {
@@ -361,6 +371,10 @@ app.on('activate', async function () {
 // Handle app quitting to cleanup resources
 app.on('before-quit', () => {
   setIsQuiting(true);
+  // Antes de cleanup(): sendTelemetry necesita la ventana viva. posthog-js
+  // persiste su cola en localStorage, así que si el proceso muere antes de
+  // mandarlo, el evento sale en el siguiente arranque.
+  sendTelemetry('app_quit');
   myCapacitorApp.cleanup();
 });
 
@@ -370,6 +384,8 @@ ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
 });
 
+// Receive the renderer's PostHog identity (anonymous distinct_id + school
+// GigaID) so main-process analytics share the same person and school group.
 // IPC handler to get Windows username from renderer process
 ipcMain.handle('get-windows-username', async () => {
   try {
