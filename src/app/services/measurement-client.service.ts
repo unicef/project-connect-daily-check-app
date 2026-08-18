@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import ndt7 from '../../assets/js/ndt/ndt7.js';
+import ndt7 from '@m-lab/ndt7';
+import { environment } from '../../environments/environment';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { HistoryService } from './history.service';
 import { SettingsService } from './settings.service';
@@ -25,8 +26,15 @@ export class MeasurementClientService {
   ).asObservable();
   private readonly testConfig = {
     userAcceptedDataPolicy: true,
+    // Served from node_modules/@m-lab/ndt7 via the angular.json assets glob
     downloadworkerfile: 'assets/js/ndt/ndt7-download-worker.js',
     uploadworkerfile: 'assets/js/ndt/ndt7-upload-worker.js',
+    // Identifies our measurements in the M-Lab dataset (was hardcoded in the
+    // vendored copy of ndt7.js before)
+    metadata: {
+      client_name: 'giga-meter',
+      client_version: environment.app_version,
+    },
   };
 
   mlabInformation = {
