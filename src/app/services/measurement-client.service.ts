@@ -166,6 +166,9 @@ export class MeasurementClientService {
       wifiConnections: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
+      // Wall clock reported by M-Lab, filled in by finalizeMeasurement. Null
+      // when the locate service did not return a usable Date header.
+      serverTimestamp: null,
     };
   }
 
@@ -309,6 +312,16 @@ export class MeasurementClientService {
       measurementRecord.results['NDTResult.S2C'].LastServerMeasurement
         .ConnectionInfo.UUID || '';
     measurementRecord.version = 1;
+
+    // `timestamp` above comes from Date.now(), so it is only as good as the
+    // clock of the machine running the test. ndt7 reports the locate service's
+    // own clock alongside each completed leg; keep it so the backend can tell
+    // the two apart. Both legs carry the same value - fall back to the upload
+    // leg only in case the download one is missing.
+    measurementRecord.serverTimestamp =
+      measurementRecord.results['NDTResult.S2C']?.ServerTime ??
+      measurementRecord.results['NDTResult.C2S']?.ServerTime ??
+      null;
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
     measurementRecord.dataUsage = dataUsage;

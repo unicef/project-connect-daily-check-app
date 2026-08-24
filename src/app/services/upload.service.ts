@@ -184,6 +184,12 @@ export class UploadService {
       : null;
     measurement['upload_failed'] = false;
 
+    // M-Lab's own clock at server discovery. Independent of the device clock,
+    // which on these machines is often wrong; null when ndt7 could not read it.
+    measurement['server_timestamp'] = record.serverTimestamp
+      ? new Date(record.serverTimestamp).toISOString()
+      : null;
+
     // Add API key if configured.
 
     if (apiKey != '') {
