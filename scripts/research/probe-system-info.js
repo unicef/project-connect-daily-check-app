@@ -47,8 +47,8 @@ function loadSysteminformation() {
     }
   }
   console.error(
-    'No pude cargar "systeminformation". Corre el script desde el repo o haz\n' +
-      '`npm i systeminformation@^5` en la carpeta donde copiaste este archivo.'
+    'Could not load "systeminformation". Run the script from the repo, or run\n' +
+      '`npm i systeminformation@^5` in the folder where you copied this file.'
   );
   process.exit(1);
 }
@@ -73,7 +73,7 @@ function runPowershellJson(psCommand) {
         try {
           resolve(JSON.parse(text));
         } catch (parseErr) {
-          reject(new Error('PowerShell devolvió algo no-JSON: ' + text.slice(0, 200)));
+          reject(new Error('PowerShell returned something non-JSON: ' + text.slice(0, 200)));
         }
       }
     );
@@ -120,24 +120,24 @@ function inferVpn(interfaces, routes) {
 // ---------------------------------------------------------------------------
 function buildProbes() {
   return [
-    // --- Red: interfaces / gateway / uso / conexiones ---
+    // --- Network: interfaces / gateway / usage / connections ---
     {
-      group: 'red-interfaces',
-      attr: 'interfaces (ip4/ip6, tipo, MAC, velocidad, virtual, dhcp, dns)',
+      group: 'network-interfaces',
+      attr: 'interfaces (ip4/ip6, type, MAC, speed, virtual, dhcp, dns)',
       call: 'si.networkInterfaces()',
       requiresAdmin: 'no',
       fn: () => si.networkInterfaces(),
     },
     {
-      group: 'red-gateway',
-      attr: 'gateway por defecto',
+      group: 'network-gateway',
+      attr: 'default gateway',
       call: 'si.networkGatewayDefault()',
       requiresAdmin: 'no',
       fn: () => si.networkGatewayDefault(),
     },
     {
-      group: 'red-uso',
-      attr: 'bytes rx/tx y tasa (2 muestras)',
+      group: 'network-usage',
+      attr: 'rx/tx bytes and rate (2 samples)',
       call: `si.networkStats() x2 (${NETSTATS_SAMPLE_GAP_MS} ms)`,
       requiresAdmin: 'no',
       fn: async () => {
@@ -160,10 +160,10 @@ function buildProbes() {
       },
     },
     {
-      group: 'red-conexiones',
-      attr: 'conexiones activas (coste alto, evaluar)',
+      group: 'network-connections',
+      attr: 'active connections (expensive, to be evaluated)',
       call: 'si.networkConnections()',
-      requiresAdmin: 'parcial (PID/proceso solo elevado)',
+      requiresAdmin: 'partial (PID/process only when elevated)',
       fn: async () => {
         const connections = await si.networkConnections();
         // Full list is huge and privacy-heavy; keep counts + a small sample.
@@ -177,32 +177,32 @@ function buildProbes() {
         };
       },
     },
-    // --- Red: Wi-Fi ---
+    // --- Network: Wi-Fi ---
     {
-      group: 'red-wifi',
-      attr: 'Wi-Fi conectada (ya en uso por el app)',
+      group: 'network-wifi',
+      attr: 'connected Wi-Fi (already used by the app)',
       call: 'si.wifiConnections()',
       requiresAdmin: 'no',
       fn: () => si.wifiConnections(),
     },
     {
-      group: 'red-wifi',
-      attr: 'redes Wi-Fi visibles (scan real)',
+      group: 'network-wifi',
+      attr: 'visible Wi-Fi networks (real scan)',
       call: 'si.wifiNetworks()',
-      requiresAdmin: 'no (requiere servicio WLAN activo)',
+      requiresAdmin: 'no (requires the WLAN service running)',
       fn: () => si.wifiNetworks(),
     },
     {
-      group: 'red-wifi',
-      attr: 'adaptadores Wi-Fi',
+      group: 'network-wifi',
+      attr: 'Wi-Fi adapters',
       call: 'si.wifiInterfaces()',
       requiresAdmin: 'no',
       fn: () => si.wifiInterfaces(),
     },
-    // --- Red: DNS ---
+    // --- Network: DNS ---
     {
-      group: 'red-dns',
-      attr: 'servidores DNS configurados',
+      group: 'network-dns',
+      attr: 'configured DNS servers',
       call: 'Get-DnsClientServerAddress (PowerShell)',
       requiresAdmin: 'no',
       fn: async () => {
@@ -212,10 +212,10 @@ function buildProbes() {
         return result;
       },
     },
-    // --- Red: VPN ---
+    // --- Network: VPN ---
     {
-      group: 'red-vpn',
-      attr: 'detección de VPN (inferencia)',
+      group: 'network-vpn',
+      attr: 'VPN detection (inference)',
       call: 'si.networkInterfaces() + Get-NetRoute 0.0.0.0/0',
       requiresAdmin: 'no',
       fn: async () => {
@@ -231,24 +231,24 @@ function buildProbes() {
         return inferVpn(Array.isArray(interfaces) ? interfaces : [interfaces], routes);
       },
     },
-    // --- Sistema ---
+    // --- System ---
     {
-      group: 'sistema-os',
-      attr: 'OS (build, edición, arquitectura, hypervisor)',
+      group: 'system-os',
+      attr: 'OS (build, edition, architecture, hypervisor)',
       call: 'si.osInfo()',
       requiresAdmin: 'no',
       fn: () => si.osInfo(),
     },
     {
-      group: 'sistema-cpu',
-      attr: 'CPU modelo/núcleos/velocidad',
+      group: 'system-cpu',
+      attr: 'CPU model/cores/speed',
       call: 'si.cpu()',
       requiresAdmin: 'no',
       fn: () => si.cpu(),
     },
     {
-      group: 'sistema-cpu',
-      attr: 'carga actual de CPU',
+      group: 'system-cpu',
+      attr: 'current CPU load',
       call: 'si.currentLoad()',
       requiresAdmin: 'no',
       fn: async () => {
@@ -264,45 +264,45 @@ function buildProbes() {
       },
     },
     {
-      group: 'sistema-cpu',
-      attr: 'temperatura de CPU',
+      group: 'system-cpu',
+      attr: 'CPU temperature',
       call: 'si.cpuTemperature()',
-      requiresAdmin: 'probable (WMI/ACPI suele requerir elevación)',
+      requiresAdmin: 'likely (WMI/ACPI usually requires elevation)',
       fn: () => si.cpuTemperature(),
     },
-    // --- Disco / memoria ---
+    // --- Disk / memory ---
     {
-      group: 'sistema-disco',
-      attr: 'discos físicos (tipo HDD/SSD, tamaño)',
+      group: 'system-disk',
+      attr: 'physical disks (HDD/SSD type, size)',
       call: 'si.diskLayout()',
       requiresAdmin: 'no',
       fn: () => si.diskLayout(),
     },
     {
-      group: 'sistema-disco',
-      attr: 'filesystems (tamaño/usado/libre)',
+      group: 'system-disk',
+      attr: 'filesystems (size/used/free)',
       call: 'si.fsSize()',
       requiresAdmin: 'no',
       fn: () => si.fsSize(),
     },
     {
-      group: 'sistema-memoria',
-      attr: 'memoria total/libre/usada',
+      group: 'system-memory',
+      attr: 'memory total/free/used',
       call: 'si.mem()',
       requiresAdmin: 'no',
       fn: () => si.mem(),
     },
-    // --- Instalación / entorno de ejecución ---
+    // --- Installation / runtime environment ---
     {
-      group: 'sistema-instalacion',
-      attr: 'proceso corre elevado',
+      group: 'system-installation',
+      attr: 'process runs elevated',
       call: 'fltmc.exe (exit code)',
       requiresAdmin: 'no',
       fn: async () => ({ elevated: isProcessElevated() }),
     },
     {
-      group: 'sistema-instalacion',
-      attr: 'entorno de ejecución (Node, usuario, hostname)',
+      group: 'system-installation',
+      attr: 'runtime environment (Node, user, hostname)',
       call: 'os.userInfo() / process.version',
       requiresAdmin: 'no',
       fn: async () => ({
@@ -310,7 +310,7 @@ function buildProbes() {
         hostname: os.hostname(),
         username: os.userInfo().username,
         windowsRelease: os.release(),
-        note: 'app.getAppPath() y fecha de instalación: verificar en Electron (Artefacto 2)',
+        note: 'app.getAppPath() and install date: verify in Electron (Artifact 2)',
       }),
     },
   ];
@@ -332,7 +332,7 @@ async function runPass(probes) {
     }
     const ms = Number(process.hrtime.bigint() - startedAt) / 1e6;
     results.push({ ...probe, fn: undefined, value, error, ms: Math.round(ms) });
-    const status = error ? 'ERROR' : isEmptyValue(value) ? 'vacío' : 'ok';
+    const status = error ? 'ERROR' : isEmptyValue(value) ? 'empty' : 'ok';
     console.log(`  ${probe.call.padEnd(50)} ${String(Math.round(ms)).padStart(6)} ms  ${status}`);
   }
   return results;
@@ -349,7 +349,7 @@ function isEmptyValue(value) {
   return value === '';
 }
 
-/** 'sí' | 'no' | 'parcial' for the CSV. */
+/** 'yes' | 'no' | 'partial' for the CSV. */
 function availability(entry) {
   if (entry.error) return 'no';
   if (isEmptyValue(entry.value)) return 'no';
@@ -361,9 +361,9 @@ function availability(entry) {
     if (typeof node === 'object') return Object.values(node).forEach(walk);
     flatValues.push(node);
   })(value);
-  if (flatValues.length === 0) return 'parcial'; // structure exists but all values null/empty
+  if (flatValues.length === 0) return 'partial'; // structure exists but all values null/empty
   const emptyish = flatValues.filter((v) => v === '' || v === null || v === -1).length;
-  return emptyish > flatValues.length / 2 ? 'parcial' : 'sí';
+  return emptyish > flatValues.length / 2 ? 'partial' : 'yes';
 }
 
 // ---------------------------------------------------------------------------
@@ -431,15 +431,15 @@ function sampleValue(entry) {
 
 function buildCsv(rows) {
   const header = [
-    'grupo',
-    'atributo',
-    'llamada',
-    'disponible',
-    'valor de ejemplo (redactado)',
+    'group',
+    'attribute',
+    'call',
+    'available',
+    'sample value (redacted)',
     'ms',
-    'requiere admin',
-    'volátil',
-    'notas',
+    'requires admin',
+    'volatile',
+    'notes',
   ];
   const lines = [header.map(csvEscape).join(',')];
   for (const row of rows) {
@@ -448,12 +448,12 @@ function buildCsv(rows) {
         row.group,
         row.attr,
         row.call,
-        row.disponible,
-        row.ejemplo,
+        row.available,
+        row.sample,
         row.ms,
         row.requiresAdmin,
-        row.volatil,
-        row.notas,
+        row.volatile,
+        row.notes,
       ]
         .map(csvEscape)
         .join(',')
@@ -472,20 +472,20 @@ async function main() {
   const baseName = `probe-${hostname}-${runtime}-${timestamp}`;
   const elevated = isProcessElevated();
 
-  console.log(`\nProbe de red/sistema — plan 0008 (release v2.0.4)`);
+  console.log(`\nNetwork/system probe — plan 0008 (release v2.0.4)`);
   console.log(
-    `Equipo: ${hostname} | Node ${process.version}` +
+    `Machine: ${hostname} | Node ${process.version}` +
       (process.versions.electron ? ` (Electron ${process.versions.electron}, main process)` : '') +
-      ` | elevado: ${elevated ? 'sí' : 'no'}`
+      ` | elevated: ${elevated ? 'yes' : 'no'}`
   );
-  console.log(`\nPasada 1/2:`);
+  console.log(`\nPass 1/2:`);
   const probes = buildProbes();
   const pass1 = await runPass(probes);
 
-  console.log(`\nEsperando ${PASS_DELAY_MS / 1000}s para la pasada de volatilidad…`);
+  console.log(`\nWaiting ${PASS_DELAY_MS / 1000}s for the volatility pass…`);
   await sleep(PASS_DELAY_MS);
 
-  console.log(`\nPasada 2/2:`);
+  console.log(`\nPass 2/2:`);
   const pass2 = await runPass(buildProbes());
 
   const rows = pass1.map((entry, i) => {
@@ -493,20 +493,20 @@ async function main() {
     const changed =
       !entry.error && !second.error && JSON.stringify(entry.value) !== JSON.stringify(second.value);
     const notes = [];
-    if (entry.error) notes.push('falló en pasada 1');
-    if (second.error && !entry.error) notes.push('falló solo en pasada 2 (inestable)');
+    if (entry.error) notes.push('failed on pass 1');
+    if (second.error && !entry.error) notes.push('failed only on pass 2 (unstable)');
     if (Math.max(entry.ms, second.ms) > 1000)
-      notes.push(`lento (peor pasada: ${Math.max(entry.ms, second.ms)} ms)`);
+      notes.push(`slow (worst pass: ${Math.max(entry.ms, second.ms)} ms)`);
     return {
       group: entry.group,
       attr: entry.attr,
       call: entry.call,
-      disponible: availability(entry),
-      ejemplo: sampleValue(entry),
+      available: availability(entry),
+      sample: sampleValue(entry),
       ms: Math.round((entry.ms + second.ms) / 2),
       requiresAdmin: entry.requiresAdmin,
-      volatil: changed ? 'sí' : 'no',
-      notas: notes.join('; '),
+      volatile: changed ? 'yes' : 'no',
+      notes: notes.join('; '),
     };
   });
 
@@ -536,27 +536,27 @@ async function main() {
   // Console summary: failures + worst timings.
   const failures = pass1.filter((entry) => entry.error);
   const slowest = [...pass1].sort((a, b) => b.ms - a.ms).slice(0, 5);
-  console.log('\n================ RESUMEN ================');
-  console.log(`Atributos probados: ${pass1.length} | fallos: ${failures.length}`);
-  for (const failure of failures) console.log(`  FALLO ${failure.call}: ${failure.error}`);
-  console.log('Llamadas más lentas (pasada 1):');
+  console.log('\n================ SUMMARY ================');
+  console.log(`Attributes probed: ${pass1.length} | failures: ${failures.length}`);
+  for (const failure of failures) console.log(`  FAILED ${failure.call}: ${failure.error}`);
+  console.log('Slowest calls (pass 1):');
   for (const entry of slowest) console.log(`  ${String(entry.ms).padStart(6)} ms  ${entry.call}`);
-  console.log('\nArchivos generados:');
+  console.log('\nGenerated files:');
   console.log(`  ${rawPath}`);
   console.log(`  ${redactedPath}`);
   console.log(`  ${csvPath}`);
   console.log(
-    '\nAVISO: el JSON crudo contiene SSIDs, MACs, IPs internas y el usuario de\n' +
-      'Windows. NO lo compartas fuera del equipo sin revisarlo; adjunta al\n' +
-      'ticket/spreadsheet la versión -redacted.json y el CSV.'
+    '\nWARNING: the raw JSON contains SSIDs, MACs, internal IPs and the Windows\n' +
+      'username. Do NOT share it outside the team without reviewing it first; attach\n' +
+      'the -redacted.json version and the CSV to the ticket/spreadsheet.'
   );
 }
 
 // Run directly (`node probe-system-info.js`) or require it from an Electron
-// main process (Artefacto 2 del plan 0008) and await `main()` there.
+// main process (Artifact 2 of plan 0008) and await `main()` there.
 if (require.main === module) {
   main().catch((err) => {
-    console.error('El probe terminó con un error no controlado:', err);
+    console.error('The probe finished with an unhandled error:', err);
     process.exit(1);
   });
 } else {

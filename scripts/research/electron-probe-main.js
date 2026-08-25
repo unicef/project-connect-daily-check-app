@@ -1,5 +1,5 @@
 /**
- * electron-probe-main.js — Artefacto 2 del plan 0008.
+ * electron-probe-main.js — Artifact 2 of plan 0008.
  *
  * Runs probe-system-info.js inside an Electron MAIN PROCESS, so the calls run
  * on Electron's embedded Node (not the system Node) — the same runtime the
@@ -24,7 +24,7 @@ app.whenReady().then(async () => {
   try {
     await main();
   } catch (err) {
-    console.error('El probe falló dentro de Electron:', err);
+    console.error('The probe failed inside Electron:', err);
     exitCode = 1;
   }
   app.exit(exitCode);
