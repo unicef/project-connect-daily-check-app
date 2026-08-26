@@ -1,5 +1,5 @@
 /**
- * Network and device context captured next to a measurement (research plan 0008).
+ * Network and device context captured next to a measurement.
  *
  * Two things live here:
  *
@@ -16,7 +16,7 @@
  *    toggle is off), but it can say *why* the data is missing, and it can still
  *    read the SSID through the ungated Network Location Manager profile.
  *
- * Cost discipline. The research measured every call on a real Windows machine:
+ * Cost discipline. A probe measured every call on a real Windows machine:
  * `networkInterfaces` (~1100 ms), `cpu` (~1700 ms) and `diskLayout` (~2100 ms)
  * are far too expensive to run per measurement, so everything derived from them
  * is computed once and cached, keyed on the default gateway so that moving to a
@@ -171,7 +171,7 @@ function inferVpn(interfaces: si.Systeminformation.NetworkInterfacesData[]) {
  * DNS servers of the active interfaces.
  *
  * `si.networkInterfaces()` does not expose them on Windows, so this shells out to
- * PowerShell (~1 s in the research runs) — which is exactly why it sits on the
+ * PowerShell (~1 s when measured) — which is exactly why it sits on the
  * cached side and never in the per-measurement path.
  */
 async function readDnsServers(): Promise<string[] | undefined> {

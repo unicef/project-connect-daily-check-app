@@ -28,7 +28,7 @@ export interface WifiDiagnostics {
 
 /**
  * Reads the network/device context the Windows client can see, via the Electron
- * main process (research plan 0008).
+ * main process.
  *
  * Everything here fails soft. The context is diagnostic metadata attached to a
  * measurement — a school PC with a locked-down PowerShell policy or a stale

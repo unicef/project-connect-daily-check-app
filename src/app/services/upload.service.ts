@@ -184,7 +184,7 @@ export class UploadService {
     measurement['app_build_number'] = identity.app_build_number || null;
     measurement['sdk_version'] = record.sdkVersion || null;
 
-    // Network/device context and the Wi-Fi diagnosis (research plan 0008).
+    // Network/device context and the Wi-Fi diagnosis.
     // On Windows 11 24H2+ an empty wifi_connections does not mean "no Wi-Fi":
     // the WLAN stack is gated behind the Location permission, and these two
     // fields are what let a query tell the two cases apart.

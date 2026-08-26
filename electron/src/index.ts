@@ -437,7 +437,7 @@ ipcMain.handle('get-installed-path', async () => {
 //
 // On Windows 11 24H2+ `netsh wlan` — which systeminformation wraps — returns
 // nothing while the Location services toggle is off, so this comes back EMPTY on a
-// machine that is connected over Wi-Fi (research plan 0008). When that happens the
+// machine that is connected over Wi-Fi. When that happens the
 // handler says why, and recovers the SSID through the ungated NLM profile so the
 // row is not left with no network name at all. Both extra calls only run on the
 // empty path, so a healthy machine pays nothing for them.
@@ -479,7 +479,7 @@ ipcMain.handle('get-wifi-connections', async () => {
 });
 
 // IPC handler for the volatile network/system context stored alongside the
-// measurement (research plan 0008). Never throws: a machine where PowerShell or
+// measurement. Never throws: a machine where PowerShell or
 // the registry is locked down returns whatever fields it could read.
 ipcMain.handle('get-device-network-information', async () => {
   try {

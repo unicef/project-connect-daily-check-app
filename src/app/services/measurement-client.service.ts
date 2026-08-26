@@ -115,7 +115,7 @@ export class MeasurementClientService {
     measurementRecord.installedPath = installedPath;
     measurementRecord.wifiConnections = wifiInfo?.wifiConnections ?? null;
 
-    // Network/device context (research plan 0008). Captured before the test so
+    // Network/device context. Captured before the test so
     // the readings describe the machine as the test found it, and awaited
     // together because they are independent I/O — serialising them is what would
     // push the capture past the 1.5 s budget the plan set.
@@ -520,7 +520,7 @@ export class MeasurementClientService {
    * Returns the whole response rather than just the connections array: when the
    * array comes back empty the main process also says why (`wifiUnavailableReason`)
    * and may have recovered the SSID through the NLM fallback, and that diagnosis
-   * is uploaded with the measurement (research plan 0008).
+   * is uploaded with the measurement.
    *
    * @returns the IPC response, or null when it is unavailable
    */
