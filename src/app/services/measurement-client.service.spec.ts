@@ -48,13 +48,35 @@ describe('MeasurementClientService ndt7 package integration', () => {
       broadcast: jasmine.createSpy('broadcast'),
       on: jasmine.createSpy('on'),
     };
+    // Device/network context is diagnostic metadata read over IPC; outside
+    // Electron it resolves to nulls, which is what these tests exercise.
+    const deviceContext: any = {
+      getDeviceIdentity: jasmine.createSpy('getDeviceIdentity').and.resolveTo({
+        device_name: null,
+        device_model: null,
+        device_manufacturer: null,
+        app_build_number: null,
+      }),
+      getDeviceNetworkInformation: jasmine
+        .createSpy('getDeviceNetworkInformation')
+        .and.resolveTo(null),
+      getSdkVersion: jasmine.createSpy('getSdkVersion').and.resolveTo(null),
+      extractWifiDiagnostics: jasmine
+        .createSpy('extractWifiDiagnostics')
+        .and.returnValue({
+          wifi_unavailable_reason: null,
+          ssid_source: null,
+          fallback_ssid: null,
+        }),
+    };
 
     service = new MeasurementClientService(
       historyService,
       settingsService,
       networkService,
       uploadService,
-      sharedService
+      sharedService,
+      deviceContext
     );
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
   });

@@ -21,7 +21,17 @@ import {
   getIsQuiting,
 } from './setup';
 import { captureException } from '@sentry/node';
-import { AUTO_UPDATE_ENABLED, BUILD_MODE } from './build-mode';
+import {
+  AUTO_UPDATE_ENABLED,
+  BUILD_COMMIT,
+  BUILD_MODE,
+  SDK_VERSIONS,
+} from './build-mode';
+import {
+  classifyWifiUnavailable,
+  getDeviceNetworkInformation,
+  getSsidFromNlm,
+} from './device-context';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
@@ -423,22 +433,112 @@ ipcMain.handle('get-installed-path', async () => {
   }
 });
 
-// IPC handler to get WiFi connections from renderer process
+// IPC handler to get WiFi connections from renderer process.
+//
+// On Windows 11 24H2+ `netsh wlan` — which systeminformation wraps — returns
+// nothing while the Location services toggle is off, so this comes back EMPTY on a
+// machine that is connected over Wi-Fi. When that happens the
+// handler says why, and recovers the SSID through the ungated NLM profile so the
+// row is not left with no network name at all. Both extra calls only run on the
+// empty path, so a healthy machine pays nothing for them.
 ipcMain.handle('get-wifi-connections', async () => {
   try {
     console.log('📤 [Electron] WiFi connections requested via IPC');
     const wifiConnections = await si.wifiConnections();
 
-    console.log(
-      '✅ [Electron] WiFi connections returned via IPC:',
-      wifiConnections
+    if (Array.isArray(wifiConnections) && wifiConnections.length > 0) {
+      console.log(
+        '✅ [Electron] WiFi connections returned via IPC:',
+        wifiConnections
+      );
+      return { wifiConnections, ssidSource: 'wlan' };
+    }
+
+    const wifiUnavailableReason = await classifyWifiUnavailable();
+    const fallbackSsid = await getSsidFromNlm();
+    console.warn(
+      `⚠️ [Electron] WiFi connections empty (${wifiUnavailableReason}); ` +
+        `NLM SSID fallback: ${fallbackSsid ?? 'none'}`
     );
-    return { wifiConnections };
+
+    return {
+      wifiConnections,
+      wifiUnavailableReason,
+      // Only claim the NLM source when it actually produced a name.
+      ssidSource: fallbackSsid ? 'nlm' : undefined,
+      fallbackSsid,
+    };
   } catch (error) {
     console.error(
       '❌ [Electron] Error getting WiFi connections via IPC:',
       error
     );
+    captureException(error);
+    return { error: error.message };
+  }
+});
+
+// IPC handler for the volatile network/system context stored alongside the
+// measurement. Never throws: a machine where PowerShell or
+// the registry is locked down returns whatever fields it could read.
+ipcMain.handle('get-device-network-information', async () => {
+  try {
+    console.log('📤 [Electron] Device network information requested via IPC');
+    const deviceNetworkInformation = await getDeviceNetworkInformation();
+
+    console.log(
+      '✅ [Electron] Device network information returned via IPC:',
+      deviceNetworkInformation
+    );
+    return { deviceNetworkInformation };
+  } catch (error) {
+    console.error(
+      '❌ [Electron] Error getting device network information via IPC:',
+      error
+    );
+    captureException(error);
+    return { error: error.message };
+  }
+});
+
+// IPC handler for the device identity columns the backend already accepts
+// (device_name / device_model / device_manufacturer) plus the build number.
+// These barely move, so systeminformation is only asked once per app run.
+let cachedDeviceIdentity: {
+  deviceName: string;
+  deviceModel: string;
+  deviceManufacturer: string;
+  appBuildNumber: string;
+  sdkVersions: { mlab: string | null; cloudflare: string | null };
+} | null = null;
+
+ipcMain.handle('get-device-identity', async () => {
+  try {
+    if (cachedDeviceIdentity) {
+      return cachedDeviceIdentity;
+    }
+    console.log('📤 [Electron] Device identity requested via IPC');
+    const systemData = await si.system();
+
+    cachedDeviceIdentity = {
+      deviceName: os.hostname(),
+      deviceModel: systemData.model,
+      deviceManufacturer: systemData.manufacturer,
+      // The commit the build came from; falls back to the app version when the
+      // build ran outside a git checkout (see generate-build-mode.js).
+      appBuildNumber: BUILD_COMMIT ?? app.getVersion(),
+      // Both are shipped; the renderer picks the one matching the protocol that
+      // actually ran, which it only knows after the test.
+      sdkVersions: SDK_VERSIONS,
+    };
+
+    console.log(
+      '✅ [Electron] Device identity returned via IPC:',
+      cachedDeviceIdentity
+    );
+    return cachedDeviceIdentity;
+  } catch (error) {
+    console.error('❌ [Electron] Error getting device identity via IPC:', error);
     captureException(error);
     return { error: error.message };
   }
