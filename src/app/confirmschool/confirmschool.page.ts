@@ -10,6 +10,7 @@ import { NetworkService } from '../services/network.service';
 
 import { School } from '../models/models';
 import { Device } from '@capacitor/device';
+import { App } from '@capacitor/app';
 import { DatePipe } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { SettingsService } from '../services/settings.service';
@@ -131,7 +132,26 @@ export class ConfirmschoolPage implements OnInit{
                 this.schoolService
                   .registerSchoolDevice(schoolData)
                   .subscribe((response) => {
-                    this.storage.set('deviceType', a.operatingSystem);
+                    if (a.operatingSystem) {
+                      this.storage.set('deviceType', a.operatingSystem);
+                    }
+                    if (a.name) {
+                      this.storage.set('deviceName', a.name);
+                    }
+                    if (a.model) {
+                      this.storage.set('deviceModel', a.model);
+                    }
+                    if (a.manufacturer) {
+                      this.storage.set('deviceManufacturer', a.manufacturer);
+                    }
+                    if (a.osVersion) {
+                      this.storage.set('osVersion', a.osVersion);
+                    }
+                    this.getAppBuildNumber().then((buildNumber) => {
+                      if (buildNumber) {
+                        this.storage.set('appBuildNumber', buildNumber);
+                      }
+                    });
                     this.storage.set('macAddress', b.identifier);
                     this.storage.set('schoolUserId', response);
                     this.storage.set('schoolId', this.schoolId);
@@ -229,8 +249,25 @@ export class ConfirmschoolPage implements OnInit{
   }
 
   async getDeviceInfo() {
-    const info = await Device.getInfo();
-    return info;
+    try {
+      const info = await Device.getInfo();
+      return info;
+    } catch (error) {
+      console.log('Error getting device info:', error);
+      // Fall back to an empty object so callers can safely read properties
+      // (e.g. a.osVersion) without the whole registration flow breaking.
+      return {} as any;
+    }
+  }
+
+  async getAppBuildNumber() {
+    try {
+      const info = await App.getInfo();
+      return info.build;
+    } catch (error) {
+      // Not available on this platform (e.g. web/Electron).
+      return null;
+    }
   }
 
   async getIPAddress() {
