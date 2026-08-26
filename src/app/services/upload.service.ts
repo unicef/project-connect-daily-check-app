@@ -175,6 +175,26 @@ export class UploadService {
     measurement['installed_path'] = record.installedPath || null;
     measurement['wifi_connections'] = record.wifiConnections || null;
 
+    // Device identity. These columns have existed backend-side since
+    // giga-meter-backend#353 but nothing filled them, so every row landed NULL.
+    const identity = record.deviceIdentity || {};
+    measurement['device_name'] = identity.device_name || null;
+    measurement['device_model'] = identity.device_model || null;
+    measurement['device_manufacturer'] = identity.device_manufacturer || null;
+    measurement['app_build_number'] = identity.app_build_number || null;
+    measurement['sdk_version'] = record.sdkVersion || null;
+
+    // Network/device context and the Wi-Fi diagnosis (research plan 0008).
+    // On Windows 11 24H2+ an empty wifi_connections does not mean "no Wi-Fi":
+    // the WLAN stack is gated behind the Location permission, and these two
+    // fields are what let a query tell the two cases apart.
+    const wifiDiagnostics = record.wifiDiagnostics || {};
+    measurement['wifi_unavailable_reason'] =
+      wifiDiagnostics.wifi_unavailable_reason || null;
+    measurement['ssid_source'] = wifiDiagnostics.ssid_source || null;
+    measurement['device_network_information'] =
+      record.deviceNetworkInformation || null;
+
     // Schedule context: which slot/time this measurement was planned for
     // (null for manual runs). upload_failed flips to true only when the
     // realtime upload fails and the record is queued for later sync.

@@ -7,6 +7,7 @@ import { SettingsService } from './settings.service';
 import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
+import { DeviceContextService } from './device-context.service';
 
 @Injectable({
   providedIn: 'root',
@@ -83,7 +84,8 @@ export class MeasurementClientService {
     private settingsService: SettingsService,
     private networkService: NetworkService,
     private uploadService: UploadService,
-    private sharedService: SharedService
+    private sharedService: SharedService,
+    private deviceContext: DeviceContextService
   ) {}
 
   async runTest(
@@ -108,10 +110,29 @@ export class MeasurementClientService {
     // Get Windows username, installed path, and WiFi connections
     const windowsUsername = await this.getWindowsUsername();
     const installedPath = await this.getInstalledPath();
-    const wifiConnections = await this.getWifiConnections();
+    const wifiInfo = await this.getWifiInfo();
     measurementRecord.windowsUsername = windowsUsername;
     measurementRecord.installedPath = installedPath;
-    measurementRecord.wifiConnections = wifiConnections;
+    measurementRecord.wifiConnections = wifiInfo?.wifiConnections ?? null;
+
+    // Network/device context (research plan 0008). Captured before the test so
+    // the readings describe the machine as the test found it, and awaited
+    // together because they are independent I/O — serialising them is what would
+    // push the capture past the 1.5 s budget the plan set.
+    const [deviceIdentity, deviceNetworkInformation, sdkVersion] =
+      await Promise.all([
+        this.deviceContext.getDeviceIdentity(),
+        this.deviceContext.getDeviceNetworkInformation(),
+        // This client is the ndt7 one, so the SDK that runs is always M-Lab's.
+        this.deviceContext.getSdkVersion('mlab'),
+      ]);
+    measurementRecord.deviceIdentity = deviceIdentity;
+    measurementRecord.deviceNetworkInformation = deviceNetworkInformation;
+    measurementRecord.sdkVersion = sdkVersion;
+    // Derived from the Wi-Fi read that already happened above, so the expensive
+    // wifiConnections() call is not repeated.
+    measurementRecord.wifiDiagnostics =
+      this.deviceContext.extractWifiDiagnostics(wifiInfo);
 
     try {
       measurementRecord.accessInformation =
@@ -172,6 +193,10 @@ export class MeasurementClientService {
       windowsUsername: '',
       installedPath: '',
       wifiConnections: null,
+      deviceIdentity: null,
+      deviceNetworkInformation: null,
+      wifiDiagnostics: null,
+      sdkVersion: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
     };
@@ -490,28 +515,36 @@ export class MeasurementClientService {
   }
 
   /**
-   * Get WiFi connections from Electron process
-   * @returns WiFi connections array or null
+   * Get the full WiFi read from the Electron process.
+   *
+   * Returns the whole response rather than just the connections array: when the
+   * array comes back empty the main process also says why (`wifiUnavailableReason`)
+   * and may have recovered the SSID through the NLM fallback, and that diagnosis
+   * is uploaded with the measurement (research plan 0008).
+   *
+   * @returns the IPC response, or null when it is unavailable
    */
-  private async getWifiConnections(): Promise<any> {
+  private async getWifiInfo(): Promise<any> {
     try {
       // Check if running in Electron
       if (window && (window as any).electronAPI) {
         console.log('📡 [WiFi Connections] Requesting WiFi connections...');
         const wifiInfo = await (window as any).electronAPI.getWifiConnections();
 
-        if (wifiInfo && wifiInfo.wifiConnections) {
-          console.log(
-            '✅ [WiFi Connections] Retrieved connections:',
-            wifiInfo.wifiConnections
-          );
-          return wifiInfo.wifiConnections;
-        } else if (wifiInfo && wifiInfo.error) {
+        if (wifiInfo && wifiInfo.error) {
           console.error(
             '❌ [WiFi Connections] Error retrieving connections:',
             wifiInfo.error
           );
           return null;
+        }
+
+        if (wifiInfo) {
+          console.log(
+            '✅ [WiFi Connections] Retrieved connections:',
+            wifiInfo.wifiConnections
+          );
+          return wifiInfo;
         }
       } else {
         console.log(
