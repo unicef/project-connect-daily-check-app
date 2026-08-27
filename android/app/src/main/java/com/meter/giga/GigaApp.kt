@@ -2,11 +2,14 @@ package com.meter.giga
 
 import android.annotation.SuppressLint
 import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.os.Build
 import android.provider.Settings.Secure
 import android.provider.Settings.Secure.ANDROID_ID
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
+import com.meter.giga.utils.Constants
 import io.sentry.ProfileLifecycle
 import io.sentry.Sentry
 import io.sentry.android.core.SentryAndroid
@@ -34,6 +37,25 @@ class GigaApp : Application() {
   override fun onCreate() {
     super.onCreate()
     initSentry()
+    createSpeedTestNotificationChannel()
+  }
+
+
+  private fun createSpeedTestNotificationChannel() {
+    val channelId = Constants.SPEED_TEST_CHANNEL_ID
+    val channelName = Constants.FOREGROUND_SERVICE_TAG
+
+    val channel = NotificationChannel(
+      channelId,
+      channelName,
+      NotificationManager.IMPORTANCE_LOW
+    ).apply {
+      description = "Channel for speed test foreground notification"
+      setShowBadge(false)
+    }
+
+    val manager = getSystemService(NotificationManager::class.java)
+    manager.createNotificationChannel(channel)
   }
 
   /**

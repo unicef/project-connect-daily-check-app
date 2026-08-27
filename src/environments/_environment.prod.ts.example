@@ -13,6 +13,9 @@ export const environment = {
     'PROD_TOKEN',
   restAPIStg: 'REST_API_URL', //STG
   ipInfoToken:'IPINFO_TOKEN',
+  tncURLDev: 'TnC_API_URL',
+  tncURLStg:'TnC_API_URL',
+  tncURLProd'TnC_API_URL',
   mode: 'dev',// 'prod' | 'dev' | 'stg'
 
   // Matomo analytics (per-environment site IDs)

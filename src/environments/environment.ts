@@ -5,16 +5,19 @@ const environmentConfig = {
     restApi: env.restAPI,
     token: env.token,
     matomoSiteId: (env as any).matomoSiteIdProd,
+    tncURL: env.tncURLProd,
   },
   dev: {
     restApi: env.restAPIDev,
     token: env.tokenDev,
     matomoSiteId: (env as any).matomoSiteIdDev,
+    tncURL: env.tncURLDev,
   },
   stg: {
     restApi: env.restAPIStg,
     token: env.tokenStg,
     matomoSiteId: (env as any).matomoSiteIdStg,
+    tncURL: env.tncURLStg,
   },
 };
 export const environment = {
@@ -33,6 +36,7 @@ export const environment = {
   appNameSuffix: '',
   showAboutMenu: true,
   ipInfoToken: env.ipInfoToken,
+  tncURL: environmentConfig[env.mode].tncURL,
   languages: [
     {
       name: 'En',

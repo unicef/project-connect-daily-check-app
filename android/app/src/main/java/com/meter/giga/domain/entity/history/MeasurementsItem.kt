@@ -32,7 +32,15 @@ data class MeasurementsItem(
   @SerializedName("geolocation")
   val geolocation: Geo?,
   @SerializedName("device_hardware_id")
-  val deviceHardwareId: String?
-
-
+  val deviceHardwareId: String?,
+  @SerializedName("app_build_number")
+  val appBuildNumber: String?,
+  @SerializedName("device_manufacturer")
+  val deviceManufacturer: String?,
+  @SerializedName("device_model")
+  val deviceModel: String?,
+  @SerializedName(" device_name")
+  val deviceName: String?,
+  @SerializedName("sdk_version")
+  val sdkVersion: String?,
 )

@@ -4,7 +4,7 @@ import android.app.AlarmManager
 import android.content.Context
 import android.location.Location
 import android.os.Build
-import android.util.Log
+import androidx.core.content.pm.PackageInfoCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.meter.giga.domain.entity.history.AccessInformation
@@ -26,13 +26,8 @@ import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.Constants.M_D_YYYY_H_MM_SS_A
 import io.sentry.Sentry
 import io.sentry.SentryLevel
-import net.measurementlab.ndt7.android.models.AppInfo
-import net.measurementlab.ndt7.android.models.BBRInfo
 import net.measurementlab.ndt7.android.models.ClientResponse
-import net.measurementlab.ndt7.android.models.ConnectionInfo
 import net.measurementlab.ndt7.android.models.Measurement
-import net.measurementlab.ndt7.android.models.TCPInfo
-import org.json.JSONArray
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -114,6 +109,28 @@ object GigaUtil {
     } catch (e: Exception) {
       "Unknown"
     }
+  }
+
+  /**
+   * Retrieves the current device details.
+   *
+   * @param context application context.
+   * @return app and device info
+   * if retrieval fails.
+   */
+  fun getDeviceInfo(context: Context): DeviceInfo {
+    val packageInfo = context.packageManager.getPackageInfo(
+      context.packageName,
+      0
+    )
+    val versionCode = PackageInfoCompat.getLongVersionCode(packageInfo)
+    return DeviceInfo(
+      deviceName = "${Build.MANUFACTURER} ${Build.MODEL}",
+      manufacturer = Build.MANUFACTURER,
+      model = Build.MODEL,
+      sdkInt = Build.VERSION.SDK_INT,
+      buildId = versionCode
+    )
   }
 
   /**
@@ -211,8 +228,10 @@ object GigaUtil {
     lastDownloadResponse: ClientResponse?,
     lastUploadResponse: ClientResponse?,
     deviceHardwareId: String?,
-    geo: Geo?
+    geo: Geo?,
+    deviceInfo: DeviceInfo
   ): SpeedTestResultRequestEntity? {
+    AppLogger.d("Giga Meter Payload", "$deviceInfo")
     try {
       val currentTime = getCurrentFormattedTime()
       var meanUploadClientMbps: Double? = null
@@ -270,7 +289,12 @@ object GigaUtil {
         timestamp = convertToIso(currentTime),
         uUID = uploadMeasurement?.connectionInfo?.uuid,
         source = "DailyCheckApp",
-        geo = geo
+        geo = geo,
+        appBuildNumber = deviceInfo.buildId,
+        deviceManufacturer = deviceInfo.manufacturer,
+        deviceModel = deviceInfo.model,
+        deviceName = deviceInfo.deviceName,
+        sdkVersion = "", //TODO Need to confirm
 //      createdAt = null,
 //      dataDownloaded = null,
 //      dataUploaded = null,
@@ -390,8 +414,10 @@ object GigaUtil {
     s2cRate: ArrayList<Double>,
     historyDataIndex: Int,
     currentLocation: Location?,
-    deviceHardwareId: String?
+    deviceHardwareId: String?,
+    deviceInfo: DeviceInfo
   ): MeasurementsItem {
+    AppLogger.d("Giga Meter Measurement", "$deviceInfo")
     return MeasurementsItem(
       accessInformation = AccessInformation(
         asn = clientInfoResponse?.asn,
@@ -436,7 +462,12 @@ object GigaUtil {
         timestamp = currentLocation.time
       ) else null,
       synced = false,
-      deviceHardwareId = deviceHardwareId
+      deviceHardwareId = deviceHardwareId,
+      appBuildNumber = "${deviceInfo.buildId}",
+      deviceManufacturer = deviceInfo.manufacturer,
+      deviceModel = deviceInfo.model,
+      deviceName = deviceInfo.deviceName,
+      sdkVersion = "", //TODO Need to confirm
     )
   }
 

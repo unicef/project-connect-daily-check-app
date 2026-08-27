@@ -1004,22 +1004,23 @@ class GigaUtilTest {
     )
 
     val payload = GigaUtil.createSpeedTestPayload(
-      uploadMeasurement = null,
-      downloadMeasurement = null,
-      clientInfoRequestEntity = null,
-      serverInfoRequestEntity = null,
-      schoolId = "123",
-      gigaSchoolId = "GIGA-1",
-      appVersion = "1.0",
-      scheduleType = "DAILY",
-      deviceType = "Android",
-      browserId = "Chrome",
-      countryCode = "IN",
-      ipAddress = "1.1.1.1",
-      lastDownloadResponse = downloadResponse,
-      lastUploadResponse = uploadResponse,
-      deviceHardwareId = "testDeviceID",
-      geo = null
+        uploadMeasurement = null,
+        downloadMeasurement = null,
+        clientInfoRequestEntity = null,
+        serverInfoRequestEntity = null,
+        schoolId = "123",
+        gigaSchoolId = "GIGA-1",
+        appVersion = "1.0",
+        scheduleType = "DAILY",
+        deviceType = "Android",
+        browserId = "Chrome",
+        countryCode = "IN",
+        ipAddress = "1.1.1.1",
+        lastDownloadResponse = downloadResponse,
+        lastUploadResponse = uploadResponse,
+        deviceHardwareId = "testDeviceID",
+        geo = null,
+        deviceInfo = deviceInfo
     )!!
 
     // Mbps = (bytes / seconds) * 0.008 * 1000
@@ -1040,22 +1041,23 @@ class GigaUtilTest {
     )
 
     val payload = GigaUtil.createSpeedTestPayload(
-      uploadMeasurement = upload,
-      downloadMeasurement = null,
-      clientInfoRequestEntity = null,
-      serverInfoRequestEntity = null,
-      schoolId = "1",
-      gigaSchoolId = "GIGA",
-      appVersion = "1",
-      scheduleType = "DAILY",
-      deviceType = "Android",
-      browserId = "Chrome",
-      countryCode = "IN",
-      ipAddress = "",
-      lastDownloadResponse = null,
-      lastUploadResponse = null,
-      deviceHardwareId = "testDeviceID",
-      geo = null
+        uploadMeasurement = upload,
+        downloadMeasurement = null,
+        clientInfoRequestEntity = null,
+        serverInfoRequestEntity = null,
+        schoolId = "1",
+        gigaSchoolId = "GIGA",
+        appVersion = "1",
+        scheduleType = "DAILY",
+        deviceType = "Android",
+        browserId = "Chrome",
+        countryCode = "IN",
+        ipAddress = "",
+        lastDownloadResponse = null,
+        lastUploadResponse = null,
+        deviceHardwareId = "testDeviceID",
+        geo = null,
+        deviceInfo = deviceInfo
     )!!
 
     assertEquals("50", payload.latency) // 50 ms
@@ -1070,22 +1072,23 @@ class GigaUtilTest {
     )
 
     val payload = GigaUtil.createSpeedTestPayload(
-      uploadMeasurement = null,
-      downloadMeasurement = null,
-      clientInfoRequestEntity = null,
-      serverInfoRequestEntity = null,
-      schoolId = "1",
-      gigaSchoolId = "GIGA",
-      appVersion = "1",
-      scheduleType = "DAILY",
-      deviceType = "Android",
-      browserId = "Chrome",
-      countryCode = "IN",
-      ipAddress = "",
-      lastDownloadResponse = null,
-      lastUploadResponse = uploadResponse,
-      deviceHardwareId = "testDeviceID",
-      geo = null
+        uploadMeasurement = null,
+        downloadMeasurement = null,
+        clientInfoRequestEntity = null,
+        serverInfoRequestEntity = null,
+        schoolId = "1",
+        gigaSchoolId = "GIGA",
+        appVersion = "1",
+        scheduleType = "DAILY",
+        deviceType = "Android",
+        browserId = "Chrome",
+        countryCode = "IN",
+        ipAddress = "",
+        lastDownloadResponse = null,
+        lastUploadResponse = uploadResponse,
+        deviceHardwareId = "testDeviceID",
+        geo = null,
+        deviceInfo = deviceInfo
     )!!
 
     assertEquals(0.0, payload.upload!!, 0.1)
@@ -1108,22 +1111,23 @@ class GigaUtilTest {
     )
 
     val payload = GigaUtil.createSpeedTestPayload(
-      uploadMeasurement = null,
-      downloadMeasurement = null,
-      clientInfoRequestEntity = clientInfo,
-      serverInfoRequestEntity = null,
-      schoolId = "1",
-      gigaSchoolId = "GIGA",
-      appVersion = "1",
-      scheduleType = "DAILY",
-      deviceType = "Android",
-      browserId = "Chrome",
-      countryCode = "IN",
-      ipAddress = "",
-      lastDownloadResponse = null,
-      lastUploadResponse = null,
-      deviceHardwareId = "testDeviceID",
-      geo = null
+        uploadMeasurement = null,
+        downloadMeasurement = null,
+        clientInfoRequestEntity = clientInfo,
+        serverInfoRequestEntity = null,
+        schoolId = "1",
+        gigaSchoolId = "GIGA",
+        appVersion = "1",
+        scheduleType = "DAILY",
+        deviceType = "Android",
+        browserId = "Chrome",
+        countryCode = "IN",
+        ipAddress = "",
+        lastDownloadResponse = null,
+        lastUploadResponse = null,
+        deviceHardwareId = "testDeviceID",
+        geo = null,
+        deviceInfo = deviceInfo
 
     )!!
 
@@ -1140,22 +1144,23 @@ class GigaUtilTest {
     )
 
     val payload = GigaUtil.createSpeedTestPayload(
-      uploadMeasurement = upload,
-      downloadMeasurement = null,
-      clientInfoRequestEntity = null,
-      serverInfoRequestEntity = null,
-      schoolId = "1",
-      gigaSchoolId = "GIGA",
-      appVersion = "1",
-      scheduleType = "DAILY",
-      deviceType = "Android",
-      browserId = "Chrome",
-      countryCode = "IN",
-      ipAddress = "",
-      lastDownloadResponse = null,
-      lastUploadResponse = null,
-      deviceHardwareId = "testDeviceID",
-      geo = null
+        uploadMeasurement = upload,
+        downloadMeasurement = null,
+        clientInfoRequestEntity = null,
+        serverInfoRequestEntity = null,
+        schoolId = "1",
+        gigaSchoolId = "GIGA",
+        appVersion = "1",
+        scheduleType = "DAILY",
+        deviceType = "Android",
+        browserId = "Chrome",
+        countryCode = "IN",
+        ipAddress = "",
+        lastDownloadResponse = null,
+        lastUploadResponse = null,
+        deviceHardwareId = "testDeviceID",
+        geo = null,
+        deviceInfo = deviceInfo
     )!!
 
     assertEquals("UUID-ABC", payload.uUID)

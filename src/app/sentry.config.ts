@@ -3,12 +3,14 @@ import * as Sentry from '@sentry/browser';
 import { environment } from '../environments/environment'; // './esrc/environments/environment';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { GigaAppPlugin } from './android/giga-app-android-plugin';
+import { App } from '@capacitor/app';
+import { Device } from '@capacitor/device';
 
 export async function initSentry() {
-  console.log(
-    'GIGA Is Native Before Sentry : ',
-    Capacitor.getPlatform() === 'android',
-  );
+  const appVersion =
+    Capacitor.getPlatform() === 'android'
+      ? await getBuildInfo()
+      : `giga-meter-angular@${environment.app_version}`;
   Sentry.init({
     dsn:
       Capacitor.getPlatform() === 'android'
@@ -30,16 +32,25 @@ export async function initSentry() {
       new Sentry.Integrations.InboundFilters(),
     ],
     tracesSampleRate: 1.0,
-    release: `giga-meter-angular@${environment.app_version}`,
+    release: appVersion,
   });
-  if (Capacitor.getPlatform() === 'android') {
-    const result = await GigaAppPlugin.getAndroidId();
 
-    console.log('Sentry Config Android ID ', JSON.stringify(result));
+  if (Capacitor.getPlatform() === 'android') {
+    const deviceInfo = await Device.getInfo();
+    const result = await GigaAppPlugin.getAndroidId();
+    Sentry.setTag('Android Device Name', deviceInfo.name);
+    Sentry.setTag('Android Device Manufacturer', deviceInfo.manufacturer);
+    Sentry.setTag('Android Device Model', deviceInfo.model);
     if (result && result.androidId) {
+      Sentry.setTag('Android Device Id', result.androidId);
       Sentry.setUser({
         id: result.androidId, // Device Android Id
       });
     }
   }
+}
+
+async function getBuildInfo() {
+  const info = await App.getInfo();
+  return info.version;
 }

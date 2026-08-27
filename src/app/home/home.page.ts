@@ -376,7 +376,7 @@ export class HomePage {
       const result = await GigaAppPlugin.getHistoricalSpeedTestData();
       console.log(
         'Queue from native: home',
-        JSON.parse(JSON.stringify(result.historicalData)),
+        JSON.stringify(result.historicalData),
       );
       console.log('Queue from native: home', result.historicalData);
       let historicalData = result.historicalData;
@@ -385,7 +385,27 @@ export class HomePage {
         historicalData !== undefined &&
         historicalData.measurements.length
       ) {
-        this.historyService.set(historicalData);
+        const historyData = this.historyService.get();
+        console.log(
+          'Queue from native: home all',
+          historyData.measurements.length,
+        );
+        if (historicalData.measurements.length > 0) {
+          const merged = [
+            ...historyData.measurements,
+            ...historicalData.measurements,
+          ].reduce((acc, item) => {
+            if (!acc.some((element) => element.uuid === item.uuid)) {
+              acc.push(item);
+            }
+            return acc;
+          }, []);
+          console.log('Queue from native: home merged', merged.length);
+
+          this.historyService.set({ measurements: merged });
+        } else {
+          this.historyService.set(historyData);
+        }
         const allHistoryData = this.historyService.getAll();
         console.log(
           'Queue from native: home all',
@@ -402,11 +422,11 @@ export class HomePage {
             return acc;
           }, []);
           console.log('Queue from native: home merged', merged.length);
-          this.historyService.setAll(merged);
+
+          this.historyService.setAll({ measurements: merged });
         } else {
           this.historyService.setAll(historicalData);
         }
-        this.historyService.setAll(historicalData);
       }
     } catch (err) {
       console.error('Error fetching queue:', err);

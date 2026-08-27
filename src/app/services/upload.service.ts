@@ -13,6 +13,8 @@ import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
+import { Capacitor } from '@capacitor/core';
+import { Device } from '@capacitor/device';
 
 @Injectable({
   providedIn: 'root',
@@ -25,7 +27,7 @@ export class UploadService {
     private storage: StorageService,
     private hardwareIdService: HardwareIdService,
     private indexedDB: IndexedDBService,
-    private locationService: LocationService
+    private locationService: LocationService,
   ) {}
 
   /**
@@ -143,12 +145,12 @@ export class UploadService {
     let measurement = this.makeMeasurement(record);
 
     this.storage.get('country_code') === '' ||
-      this.storage.get('country_code') === null
+    this.storage.get('country_code') === null
       ? (measurement.country_code = measurement.ClientInfo.Country)
       : (measurement.country_code = this.storage.get('country_code'));
 
     this.storage.get('ip_address') === '' ||
-      this.storage.get('ip_address') === null
+    this.storage.get('ip_address') === null
       ? (measurement.ip_address = measurement.ClientInfo.IP)
       : (measurement.ip_address = this.storage.get('ip_address'));
     measurement.country_code = measurement.ClientInfo.Country;
@@ -180,17 +182,31 @@ export class UploadService {
     }
 
     return this.locationService.fetchAndSaveGeolocation().pipe(
-      catchError(err => {
+      catchError((err) => {
         console.error('Geolocation fetch failed, continuing with POST', err);
         this.locationService.saveGeolocation(null);
         return of(this.locationService.getSavedGeolocation() || null);
       }),
-      map(geo => {
+      map((geo) => {
         measurement['geolocation'] = geo;
         this.locationService.saveGeolocation(geo);
         return measurement;
       }),
-      switchMap(measurementWithGeo =>
+      switchMap(async (measurementWithGeo) => {
+        if (Capacitor.getPlatform() === 'android') {
+          const deviceInfo = await Device.getInfo();
+          measurementWithGeo['device_name'] = deviceInfo.name || null;
+          measurementWithGeo['device_model'] = deviceInfo.model || null;
+          measurementWithGeo['device_manufacturer'] =
+            deviceInfo.manufacturer || null;
+          measurementWithGeo['app_build_number'] =
+            environment.app_version || null;
+          measurementWithGeo['sdk_version'] =
+            deviceInfo.androidSDKVersion || null;
+          console.log(
+            `Giga Meter Measurement Angular : ${JSON.stringify(measurementWithGeo)}`,
+          );
+        }
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
           tap((data) => data),
@@ -198,9 +214,9 @@ export class UploadService {
             console.error('Upload failed, saving to IndexedDB...', error);
             await this.indexedDB.saveMeasurement(measurementWithGeo);
             return of({ savedLocally: true, error });
-          })
-        )
-      )
+          }),
+        );
+      }),
     );
   }
 

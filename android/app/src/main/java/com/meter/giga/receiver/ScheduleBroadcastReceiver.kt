@@ -8,6 +8,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.meter.giga.alarm_scheduler.AlarmHelper
 import com.meter.giga.alarm_scheduler.AlarmHelperType
 import com.meter.giga.prefrences.AlarmSharedPref
@@ -18,7 +21,7 @@ import com.meter.giga.utils.Constants.NEXT_SLOT
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
-import com.meter.giga.utils.GigaUtil
+import com.meter.giga.worker.NetworkTestWorker
 import io.sentry.Sentry
 import java.util.Calendar
 import kotlin.random.Random
@@ -124,20 +127,45 @@ class ScheduleBroadcastReceiver(
     if (hasNotificationPermission) {
       AppLogger.d(
         "GIGA ScheduleBroadcastReceiver",
-        "Notification permission granted - starting service"
+        "Notification permission granted - enqueueing foreground work"
       )
-      val serviceIntent = Intent(context, NetworkTestService::class.java).apply {
-        putExtra(SCHEDULE_TYPE, SCHEDULE_TYPE_START)
-      }
-      ContextCompat.startForegroundService(context, serviceIntent)
-    } else {
-      AppLogger.d(
-        "GIGA ScheduleBroadcastReceiver",
-        "Notification permission still denied after alarm permission granted"
-      )
-      // Optionally: Show notification in settings or prompt user
+
+      val data = Data.Builder()
+        .putString(SCHEDULE_TYPE, SCHEDULE_TYPE_START)
+        .build()
+
+      val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
+        .setInputData(data)
+        .build()
+
+      WorkManager.getInstance(context).enqueue(workRequest)
     }
   }
+//  private fun checkNotificationAndStartService(context: Context) {
+//    val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+//      ContextCompat.checkSelfPermission(
+//        context,
+//        Manifest.permission.POST_NOTIFICATIONS
+//      ) == PackageManager.PERMISSION_GRANTED
+//    } else true
+//
+//    if (hasNotificationPermission) {
+//      AppLogger.d(
+//        "GIGA ScheduleBroadcastReceiver",
+//        "Notification permission granted - starting service"
+//      )
+//      val serviceIntent = Intent(context, NetworkTestService::class.java).apply {
+//        putExtra(SCHEDULE_TYPE, SCHEDULE_TYPE_START)
+//      }
+//      ContextCompat.startForegroundService(context, serviceIntent)
+//    } else {
+//      AppLogger.d(
+//        "GIGA ScheduleBroadcastReceiver",
+//        "Notification permission still denied after alarm permission granted"
+//      )
+//      // Optionally: Show notification in settings or prompt user
+//    }
+//  }
 
   /**
    * Handles the main alarm trigger when scheduled time arrives
@@ -170,17 +198,36 @@ class ScheduleBroadcastReceiver(
       }
 
       // Only start foreground service if notification permission is granted
+//      if (hasNotificationPermission) {
+//        if (intent?.getStringExtra(SCHEDULE_TYPE) == FIRST_15_MIN) {
+//          ContextCompat.startForegroundService(context, serviceIntent)
+//        } else if (today != lastExecutionDate &&
+//          intent?.getStringExtra(SCHEDULE_TYPE) != FIRST_15_MIN &&
+//          GigaUtil.isBefore8AM()
+//        ) {
+//          AppLogger.d("GIGA ScheduleBroadcastReceiver", "Schedule for 8 AM to 12 PM Slot")
+//        } else {
+//          ContextCompat.startForegroundService(context, serviceIntent)
+//        }
+//      }
       if (hasNotificationPermission) {
-        if (intent?.getStringExtra(SCHEDULE_TYPE) == FIRST_15_MIN) {
-          ContextCompat.startForegroundService(context, serviceIntent)
-        } else if (today != lastExecutionDate &&
-          intent?.getStringExtra(SCHEDULE_TYPE) != FIRST_15_MIN &&
-          GigaUtil.isBefore8AM()
-        ) {
-          AppLogger.d("GIGA ScheduleBroadcastReceiver", "Schedule for 8 AM to 12 PM Slot")
+        val scheduleType = if (intent?.getStringExtra(SCHEDULE_TYPE) == FIRST_15_MIN) {
+          SCHEDULE_TYPE_START
+        } else if (today != lastExecutionDate) {
+          SCHEDULE_TYPE_START
         } else {
-          ContextCompat.startForegroundService(context, serviceIntent)
+          SCHEDULE_TYPE_DAILY
         }
+
+        val data = Data.Builder()
+          .putString(SCHEDULE_TYPE, scheduleType)
+          .build()
+
+        val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
+          .setInputData(data)
+          .build()
+
+        WorkManager.getInstance(context).enqueue(workRequest)
       } else {
         // Notification permission denied - don't start foreground service
         AppLogger.d(

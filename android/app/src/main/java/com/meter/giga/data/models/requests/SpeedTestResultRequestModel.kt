@@ -46,6 +46,16 @@ data class SpeedTestResultRequestModel(
   val source: String?,
   @SerializedName("geolocation")
   val geo: Geo?,
+  @SerializedName("app_build_number")
+  val appBuildNumber: String?,
+  @SerializedName("device_manufacturer")
+  val deviceManufacturer: String?,
+  @SerializedName("device_model")
+  val deviceModel: String?,
+  @SerializedName(" device_name")
+  val deviceName: String?,
+  @SerializedName("sdk_version")
+  val sdkVersion: String?,
 //  @SerializedName("created_at")
 //  val createdAt: String?,
 //  @SerializedName("DataDownloaded")

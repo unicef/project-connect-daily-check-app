@@ -41,6 +41,7 @@ export class RegisterSchoolPageComponent implements OnInit {
   isFirst = true;
   isLast = false;
   appName = environment.appName;
+  tncURL = environment.tncURL;
   privacyUrl1 = 'https://opendatacommons.org/licenses/odbl/1-0/';
   privacyUrl2 = 'https://www.measurementlab.net/privacy/';
   targetUrl = '_blank';

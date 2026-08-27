@@ -41,6 +41,7 @@ import com.meter.giga.utils.Constants.NOTIFICATION_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
 import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
+import com.meter.giga.utils.DeviceInfo
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.ResultState
 import io.sentry.Sentry
@@ -170,6 +171,7 @@ class NetworkTestService : LifecycleService() {
         val scheduleType = intent?.getStringExtra(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_DAILY
         AppLogger.d("GIGA NetworkTestService SCHEDULE_TYPE", scheduleType)
         val appVersion = GigaUtil.getAppVersionName(this)
+        val deviceInfo = GigaUtil.getDeviceInfo(this)
         val isRunningOnChromebook = GigaUtil.isRunningOnChromebook(this)
         prefs.isTestRunning = true
         val client = NDTTestImpl(
@@ -177,7 +179,8 @@ class NetworkTestService : LifecycleService() {
           scheduleType,
           appVersion,
           isRunningOnChromebook,
-          prefs
+          prefs,
+          deviceInfo
         )
         GigaAppPlugin.sendSpeedTestStarted()
         client.setServerDiscoveryHelper(object : ServerDiscoveryHelper {
@@ -319,6 +322,7 @@ class NetworkTestService : LifecycleService() {
     private val appVersion: String,
     private val isRunningOnChromebook: Boolean,
     private val prefs: AlarmSharedPref,
+    private val deviceInfo: DeviceInfo,
   ) :
     NDTTest(okHttpClient) {
     var downloadSpeed = 0.0;
@@ -378,7 +382,6 @@ class NetworkTestService : LifecycleService() {
     override fun onDownloadProgress(clientResponse: ClientResponse) {
       super.onDownloadProgress(clientResponse)
       AppLogger.d("GIGA NetworkTestService", "download progress: $clientResponse")
-
       val speed = DataConverter.convertToMbps(clientResponse)
       downloadSpeed = speed.toDouble()
       AppLogger.d("GIGA NetworkTestService", "uploadSpeed speed: $uploadSpeed")
@@ -460,6 +463,11 @@ class NetworkTestService : LifecycleService() {
       testType: TestType
     ) {
       super.onFinished(clientResponse, error, testType)
+      if (error !== null && error.message !== null) {
+        Sentry.captureMessage("$testType Failed", SentryLevel.ERROR)
+        Sentry.captureMessage("${error.message}", SentryLevel.ERROR)
+      }
+
       try {
         val speed = clientResponse?.let { DataConverter.convertToMbps(it) }
         AppLogger.d("GIGA NetworkTestService", "ALL DONE: $speed ")
@@ -680,8 +688,9 @@ class NetworkTestService : LifecycleService() {
               accuracy = currentLocation!!.accuracy,
               timestamp = currentLocation!!.time
             )
-          } else null
-        )
+          } else null,
+          deviceInfo
+          )
         val existingSpeedTestData = prefs.oldSpeedTestData
         val historyDataIndex = prefs.historyDataIndex
         val deviceId = prefs.deviceHardwareId
@@ -696,7 +705,8 @@ class NetworkTestService : LifecycleService() {
           s2cRate = s2cRate,
           historyDataIndex,
           currentLocation,
-          deviceId
+          deviceId,
+          deviceInfo
         )
         prefs.historyDataIndex = historyDataIndex + 1
         AppLogger.d(
