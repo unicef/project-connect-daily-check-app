@@ -76,3 +76,10 @@ export function measurementCount(gigaIdSchool: string): number {
     `SELECT to_json(count(*)) FROM measurements WHERE giga_id_school = '${gigaIdSchool}';`,
   );
 }
+
+/** Cuántos registros de dispositivo hay para la escuela del fixture. */
+export function schoolRegistrationCount(gigaIdSchool: string): number {
+  return queryJson<number>(
+    `SELECT to_json(count(*)) FROM dailycheckapp_school WHERE giga_id_school = '${gigaIdSchool}';`,
+  );
+}

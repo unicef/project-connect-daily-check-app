@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWindowsUsername: () => ipcRenderer.invoke('get-windows-username'),
   getInstalledPath: () => ipcRenderer.invoke('get-installed-path'),
   getWifiConnections: () => ipcRenderer.invoke('get-wifi-connections'),
+  getDeviceNetworkInformation: () =>
+    ipcRenderer.invoke('get-device-network-information'),
+  getDeviceIdentity: () => ipcRenderer.invoke('get-device-identity'),
   onHardwareId: (callback: (data: any) => void) => {
     ipcRenderer.on('system-hardware-id', (event, data) => callback(data));
   },
