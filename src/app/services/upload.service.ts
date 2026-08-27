@@ -155,7 +155,7 @@ export class UploadService {
     measurement.country_code = measurement.ClientInfo.Country;
 
     // Add measure-saver-specific metadata. No BrowserID in v2 — the record
-    // is keyed on registration_id + installation_id (plan 0003 §4).
+    // is keyed on registration_id + installation_id.
     measurement.Timestamp = this.ts.toISOString();
     measurement.timestamplocal = this.ts.toLocaleString();
     measurement.DeviceType = this.storage.get('deviceType');

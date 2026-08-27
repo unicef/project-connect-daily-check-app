@@ -4,7 +4,7 @@ import { DEFAULT_FACILITY_TYPE, FacilityType } from '../models/facility';
 
 /**
  * Single place that resolves device/install identity with `legacy || new`
- * key fallbacks (plan 0003, F0).
+ * key fallbacks.
  *
  * Contract: existing localStorage keys are never renamed or migrated. New
  * registrations write only new keys; legacy installs keep their old keys.
@@ -42,7 +42,7 @@ export class IdentityService {
 
   /**
    * v2 registration id. Legacy installs have none until the launch
-   * reconciliation backfills it from the backend (plan 0003, F1/B2).
+   * reconciliation backfills it from the backend.
    */
   getRegistrationId(): string | null {
     return this.storage.get('registrationId') || null;
@@ -92,7 +92,7 @@ export class IdentityService {
 
   /**
    * One-step launch reconciliation: backfill whatever v2 needs that this
-   * install's vintage never stored (plan 0003, F0.4 / guide §6).
+   * install's vintage never stored.
    * Idempotent — safe to run on every launch.
    */
   async reconcileOnLaunch(): Promise<void> {
@@ -107,8 +107,8 @@ export class IdentityService {
 
     // 3. Backfill registrationId via GET /api/v2/registration/existing with
     //    the key chain installation_id → device_hardware_id →
-    //    giga_id + browser_id. Blocked on backend dependency B2 (plan 0003);
-    //    wired up in F1 through RegistrationService.
+    //    giga_id + browser_id. Blocked on the backend endpoint; wired up
+    //    through RegistrationService once that lands.
   }
 
   private generateUuidV4(): string {

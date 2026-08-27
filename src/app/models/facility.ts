@@ -6,7 +6,7 @@
  * backend support), not scattered `if` statements.
  *
  * This static list is the client's superset; the backend narrows it per
- * country (supported facility types — plan 0003, dependency B7).
+ * country, through the supported facility types it reports back.
  */
 export type FacilityType = 'school' | 'health';
 

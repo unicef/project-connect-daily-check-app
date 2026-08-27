@@ -143,7 +143,7 @@ export class ConfirmschoolPage implements OnInit{
                 this.registrationService
                   .register(schoolData as any)
                   .subscribe(async (response) => {
-                    // New keys only — legacy keys stay untouched (plan 0003 §5)
+                    // New keys only — legacy keys stay untouched
                     await this.registrationService.persistRegistration(
                       response,
                       this.school,

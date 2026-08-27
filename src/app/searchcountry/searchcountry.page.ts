@@ -1087,7 +1087,7 @@ export class SearchcountryPage {
       this.detectedCountry = this.selectedCountry;
     }
 
-    // Country + facility-type gate (plan 0003, B7), checked at CONFIRM time —
+    // Country + facility-type gate, checked at CONFIRM time —
     // the selection isn't final until here (autodetect can be wrong and the
     // user may keep changing it). Whitelist-driven; fail-open: without
     // narrowing info the registration 403 remains the backstop.

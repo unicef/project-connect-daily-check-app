@@ -44,7 +44,7 @@ export interface RegistrationPayload {
 }
 
 /**
- * Unified v2 device registration (plan 0003, F1). The v2 response is
+ * Unified v2 device registration. The v2 response is
  * top-level `{ giga_id, registration_id, facility_type }` — no `data.user_id`
  * wrapper — and the client no longer captures or stores any browser/user id.
  */
@@ -115,7 +115,7 @@ export class RegistrationService {
 
   /**
    * Store the result of a successful v2 registration under the NEW keys only
-   * (legacy keys are never written by new registrations — plan 0003 §5).
+   * (legacy keys are never written by new registrations).
    */
   async persistRegistration(
     response: RegistrationV2Response,
@@ -134,7 +134,7 @@ export class RegistrationService {
   }
 
   /**
-   * Reconciliation step 3 (plan 0003 §6): backfill `registrationId` for
+   * Launch reconciliation, step 3: backfill `registrationId` for
    * installs that predate v2, using the key chain installation_id →
    * device_hardware_id → giga_id + legacy browser_id. Idempotent and
    * fail-open: network errors leave the install as-is (the ingest self-heal

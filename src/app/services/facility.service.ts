@@ -15,7 +15,7 @@ export interface CountryFacilityTypes {
 }
 
 /**
- * Facility-agnostic lookup layer (plan 0003, F1). One code path for the
+ * Facility-agnostic lookup layer. One code path for the
  * "type an ID + country" flow of every facility type:
  *   - school → existing v1 school lookup (unchanged contract)
  *   - health → GET /api/v2/health?country_code&govt_id
