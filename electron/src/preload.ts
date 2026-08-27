@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWindowsUsername: () => ipcRenderer.invoke('get-windows-username'),
   getInstalledPath: () => ipcRenderer.invoke('get-installed-path'),
   getWifiConnections: () => ipcRenderer.invoke('get-wifi-connections'),
+  getDeviceNetworkInformation: () =>
+    ipcRenderer.invoke('get-device-network-information'),
+  getDeviceIdentity: () => ipcRenderer.invoke('get-device-identity'),
   onHardwareId: (callback: (data: any) => void) => {
     ipcRenderer.on('system-hardware-id', (event, data) => callback(data));
   },
@@ -37,5 +40,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeHardwareIdListener: () => {
     ipcRenderer.removeAllListeners('system-hardware-id');
     ipcRenderer.removeAllListeners('system-hardware-id-error');
+  },
+  // Eventos del main process (ciclo de vida del auto-update) que el renderer
+  // publica en PostHog: su SDK persiste la cola en localStorage y sobrevive a
+  // reinicios sin red, cosa que el SDK de node no hace.
+  onTelemetryEvent: (
+    callback: (payload: { event: string; properties?: any }) => void
+  ) => {
+    ipcRenderer.on('telemetry-event', (event, payload) => callback(payload));
   },
 });

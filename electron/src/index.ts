@@ -21,6 +21,17 @@ import {
   getIsQuiting,
 } from './setup';
 import { captureException } from '@sentry/node';
+import {
+  AUTO_UPDATE_ENABLED,
+  BUILD_COMMIT,
+  BUILD_MODE,
+  SDK_VERSIONS,
+} from './build-mode';
+import {
+  classifyWifiUnavailable,
+  getDeviceNetworkInformation,
+  getSsidFromNlm,
+} from './device-context';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
@@ -43,6 +54,29 @@ unhandled({
 
 let mainWindow = null;
 let isDownloaded = false;
+
+/**
+ * Manda un evento de telemetría al renderer, que lo publica en PostHog.
+ *
+ * El SDK del renderer (posthog-js) persiste su cola en localStorage y sobrevive
+ * a reinicios; `posthog-node` en el main process no, y este equipo pasa horas
+ * sin red. Por eso el main no habla con PostHog directamente: solo el ciclo de
+ * vida del auto-update, que es lo único que ni el renderer ni el backend ven
+ * (un equipo que falla al actualizar deja de mandar mediciones y desaparece de
+ * las queries de adopción).
+ *
+ * Si la ventana no está viva el evento se pierde, y es aceptable: el fallo de
+ * update ya va a Sentry por separado.
+ */
+function sendTelemetry(event: string, properties: Record<string, any> = {}) {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    if (!mainWindow.webContents || mainWindow.webContents.isDestroyed()) return;
+    mainWindow.webContents.send('telemetry-event', { event, properties });
+  } catch (error) {
+    console.warn('[telemetry] send failed:', error);
+  }
+}
 
 // Define our menu templates (these are optional)
 const trayMenuTemplate: (MenuItemConstructorOptions | MenuItem)[] = [
@@ -135,6 +169,16 @@ if (!gotTheLock) {
         systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
       console.log('\n🔑 PRIMARY HARDWARE ID (use this):', hardwareId);
 
+      // hardwareId viaja solo como metadato de diagnóstico, nunca como
+      // identidad de analítica: el distinct_id y el grupo de escuela los pone
+      // el renderer, que es quien habla con PostHog.
+      sendTelemetry('app_launched', {
+        manufacturer: systemData.manufacturer,
+        model: systemData.model,
+        os: osData.distro,
+        hardware_id: hardwareId,
+      });
+
       // Send hardware ID to renderer process when ready
       if (mainWindow && mainWindow.webContents) {
         const hardwareData = {
@@ -201,6 +245,14 @@ if (!gotTheLock) {
       });
   
       */
+  // Auto-update is only wired up for production builds. In `stg`/`dev` builds
+  // (see electron/scripts/generate-build-mode.js) we skip the updater entirely
+  // so test/staging installs never try to download or install releases.
+  if (!AUTO_UPDATE_ENABLED) {
+    console.log(
+      `[auto-update] disabled for build mode "${BUILD_MODE}" — skipping updater setup`
+    );
+  } else {
   autoUpdater.autoDownload = true;
 
   setInterval(() => {
@@ -208,6 +260,7 @@ if (!gotTheLock) {
   }, 3600000);
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
+    sendTelemetry('desktop_update_downloaded', { release_name: releaseName });
     const dialogOpts = {
       type: 'info' as const,
       buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
@@ -269,7 +322,11 @@ if (!gotTheLock) {
   autoUpdater.on('error', (error) => {
     console.error('Update Error:', error);
     captureException(error);
+    sendTelemetry('desktop_update_failed', {
+      message: error?.message ?? null,
+    });
   });
+  }
   /*
     autoUpdater.on('error', (error) => {
       console.error('Update Error:', error);
@@ -324,6 +381,10 @@ app.on('activate', async function () {
 // Handle app quitting to cleanup resources
 app.on('before-quit', () => {
   setIsQuiting(true);
+  // Antes de cleanup(): sendTelemetry necesita la ventana viva. posthog-js
+  // persiste su cola en localStorage, así que si el proceso muere antes de
+  // mandarlo, el evento sale en el siguiente arranque.
+  sendTelemetry('app_quit');
   myCapacitorApp.cleanup();
 });
 
@@ -333,6 +394,8 @@ ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
 });
 
+// Receive the renderer's PostHog identity (anonymous distinct_id + school
+// GigaID) so main-process analytics share the same person and school group.
 // IPC handler to get Windows username from renderer process
 ipcMain.handle('get-windows-username', async () => {
   try {
@@ -370,22 +433,112 @@ ipcMain.handle('get-installed-path', async () => {
   }
 });
 
-// IPC handler to get WiFi connections from renderer process
+// IPC handler to get WiFi connections from renderer process.
+//
+// On Windows 11 24H2+ `netsh wlan` — which systeminformation wraps — returns
+// nothing while the Location services toggle is off, so this comes back EMPTY on a
+// machine that is connected over Wi-Fi. When that happens the
+// handler says why, and recovers the SSID through the ungated NLM profile so the
+// row is not left with no network name at all. Both extra calls only run on the
+// empty path, so a healthy machine pays nothing for them.
 ipcMain.handle('get-wifi-connections', async () => {
   try {
     console.log('📤 [Electron] WiFi connections requested via IPC');
     const wifiConnections = await si.wifiConnections();
 
-    console.log(
-      '✅ [Electron] WiFi connections returned via IPC:',
-      wifiConnections
+    if (Array.isArray(wifiConnections) && wifiConnections.length > 0) {
+      console.log(
+        '✅ [Electron] WiFi connections returned via IPC:',
+        wifiConnections
+      );
+      return { wifiConnections, ssidSource: 'wlan' };
+    }
+
+    const wifiUnavailableReason = await classifyWifiUnavailable();
+    const fallbackSsid = await getSsidFromNlm();
+    console.warn(
+      `⚠️ [Electron] WiFi connections empty (${wifiUnavailableReason}); ` +
+        `NLM SSID fallback: ${fallbackSsid ?? 'none'}`
     );
-    return { wifiConnections };
+
+    return {
+      wifiConnections,
+      wifiUnavailableReason,
+      // Only claim the NLM source when it actually produced a name.
+      ssidSource: fallbackSsid ? 'nlm' : undefined,
+      fallbackSsid,
+    };
   } catch (error) {
     console.error(
       '❌ [Electron] Error getting WiFi connections via IPC:',
       error
     );
+    captureException(error);
+    return { error: error.message };
+  }
+});
+
+// IPC handler for the volatile network/system context stored alongside the
+// measurement. Never throws: a machine where PowerShell or
+// the registry is locked down returns whatever fields it could read.
+ipcMain.handle('get-device-network-information', async () => {
+  try {
+    console.log('📤 [Electron] Device network information requested via IPC');
+    const deviceNetworkInformation = await getDeviceNetworkInformation();
+
+    console.log(
+      '✅ [Electron] Device network information returned via IPC:',
+      deviceNetworkInformation
+    );
+    return { deviceNetworkInformation };
+  } catch (error) {
+    console.error(
+      '❌ [Electron] Error getting device network information via IPC:',
+      error
+    );
+    captureException(error);
+    return { error: error.message };
+  }
+});
+
+// IPC handler for the device identity columns the backend already accepts
+// (device_name / device_model / device_manufacturer) plus the build number.
+// These barely move, so systeminformation is only asked once per app run.
+let cachedDeviceIdentity: {
+  deviceName: string;
+  deviceModel: string;
+  deviceManufacturer: string;
+  appBuildNumber: string;
+  sdkVersions: { mlab: string | null; cloudflare: string | null };
+} | null = null;
+
+ipcMain.handle('get-device-identity', async () => {
+  try {
+    if (cachedDeviceIdentity) {
+      return cachedDeviceIdentity;
+    }
+    console.log('📤 [Electron] Device identity requested via IPC');
+    const systemData = await si.system();
+
+    cachedDeviceIdentity = {
+      deviceName: os.hostname(),
+      deviceModel: systemData.model,
+      deviceManufacturer: systemData.manufacturer,
+      // The commit the build came from; falls back to the app version when the
+      // build ran outside a git checkout (see generate-build-mode.js).
+      appBuildNumber: BUILD_COMMIT ?? app.getVersion(),
+      // Both are shipped; the renderer picks the one matching the protocol that
+      // actually ran, which it only knows after the test.
+      sdkVersions: SDK_VERSIONS,
+    };
+
+    console.log(
+      '✅ [Electron] Device identity returned via IPC:',
+      cachedDeviceIdentity
+    );
+    return cachedDeviceIdentity;
+  } catch (error) {
+    console.error('❌ [Electron] Error getting device identity via IPC:', error);
     captureException(error);
     return { error: error.message };
   }

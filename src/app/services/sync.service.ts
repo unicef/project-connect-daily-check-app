@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { IndexedDBService } from './indexed-db.service';
 import { StorageService } from './storage.service';
+import { PosthogService } from './posthog.service';
 import { environment } from 'src/environments/environment';
 
 @Injectable({
@@ -13,7 +14,8 @@ export class SyncService {
   constructor(
     private http: HttpClient,
     private indexedDBService: IndexedDBService,
-    private storage: StorageService
+    private storage: StorageService,
+    private posthog: PosthogService
   ) { }
 
   async syncPendingMeasurements(): Promise<void> {
@@ -40,11 +42,20 @@ export class SyncService {
           }
 
           console.log(`Successfully synced measurements batch ${index / batchSize + 1}`);
+          // Mediciones que fallaron en tiempo real y se recuperan ahora: el
+          // otro extremo de measurement_queued_offline.
+          this.posthog.capture('measurements_synced', {
+            batch_size: batch.length,
+          });
         } catch (error) {
           console.error(
             `Failed to sync measurement batch ${index / batchSize + 1} after retry:`,
             error
           );
+          this.posthog.capture('measurements_sync_failed', {
+            batch_size: batch.length,
+            status: (error as any)?.status ?? null,
+          });
           break; // Stop further sync until next cycle
         }
 
@@ -59,7 +70,8 @@ export class SyncService {
   }
 
   private async postMeasurementsWithRetry(batch: any[]): Promise<void> {
-    const payload = batch.map(({ isSynced, ...rest }) => rest);
+    // Strip IndexedDB-local bookkeeping fields before posting
+    const payload = batch.map(({ id, status, createdAt, ...rest }) => rest);
 
     try {
       await this.http

@@ -20,6 +20,25 @@ export const environment = {
   matomoSiteIdDev: 'MATOMO_SITE_ID_DEV',
   matomoSiteIdStg: 'MATOMO_SITE_ID_STG',
   matomoSiteIdProd: 'MATOMO_SITE_ID_PROD',
+
+  // PostHog product analytics (per-environment project API keys).
+  // The "project API key" is PostHog's public write key — the equivalent of a
+  // Sentry DSN. It is embedded in the client build, so use a project key, never
+  // a personal API key.
+  // Leaving a key empty disables PostHog for that mode: no key, no tracking.
+  // Optional: overrides the default EU host set in environment.ts. Leave as-is
+  // to keep school data in the EU region.
+  posthogHost: '', // e.g. https://us.i.posthog.com to override
+  posthogKeyDev: 'POSTHOG_PROJECT_API_KEY_DEV',
+  posthogKeyStg: 'POSTHOG_PROJECT_API_KEY_STG',
+  posthogKeyProd: 'POSTHOG_PROJECT_API_KEY_PROD',
+  // The Electron main process has no key of its own: it forwards its two
+  // auto-update events to the renderer over IPC, which publishes them with the
+  // keys above. posthog-node would not survive a restart offline; posthog-js
+  // persists its queue in localStorage, and this app is offline a lot.
+  // Session replay records the user's screen. Off unless explicitly enabled —
+  // scope is still being defined (plan 0004, item 2).
+  posthogEnableSessionRecording: false,
   languages: [
     {
       name: 'En',

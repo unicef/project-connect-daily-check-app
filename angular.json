@@ -29,6 +29,11 @@
                 "output": "assets"
               },
               {
+                "glob": "ndt7-*-worker.js",
+                "input": "node_modules/@m-lab/ndt7/src",
+                "output": "assets/js/ndt"
+              },
+              {
                 "glob": "**/*.svg",
                 "input": "node_modules/ionicons/dist/ionicons/svg",
                 "output": "./svg"
@@ -45,7 +50,8 @@
             "namedChunks": true,
             "allowedCommonJsDependencies": [
               "electron",
-              "@electron/remote"
+              "@electron/remote",
+              "@m-lab/ndt7"
             ]
           },
           "configurations": {
@@ -74,6 +80,14 @@
             },
             "ci": {
               "progress": false
+            },
+            "e2e": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/_environment.prod.ts",
+                  "with": "src/environments/_environment.e2e.ts"
+                }
+              ]
             }
           }
         },
@@ -88,6 +102,9 @@
             },
             "ci": {
               "progress": false
+            },
+            "e2e": {
+              "buildTarget": "app:build:e2e"
             }
           }
         },

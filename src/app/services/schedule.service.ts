@@ -16,8 +16,10 @@ export class ScheduleService {
   private readonly SLOT_B_START = 12; // 12 PM
   private readonly SLOT_C_START = 16; // 4 PM
   private readonly SLOT_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
-  private readonly MAX_RETRY_ATTEMPTS = 3; // Maximum number of retry attempts
-  private readonly RETRY_DELAY = 15 * 60 * 1000; // 15 minutes in milliseconds
+  private readonly NO_NETWORK_RETRY_DELAY = 60 * 1000; // 1 minute in milliseconds
+  private readonly RETRY_BASE_DELAY = 60 * 1000; // 1 minute in milliseconds
+  private readonly RETRY_BACKOFF_FACTOR = 1.2;
+  private readonly RETRY_MAX_DELAY = 10 * 60 * 1000; // 10 minutes in milliseconds
   private readonly STARTUP_TEST_DELAY = 15 * 60 * 1000; // 15 minutes in milliseconds
   private readonly STARTUP_TEST_KEY = 'lastStartupTest';
   private readonly STARTUP_TEST_SCHEDULED_KEY = 'startupTestScheduled';
@@ -114,7 +116,18 @@ export class ScheduleService {
     console.log(
       `Scheduling for slot ${slotName}: ${new Date(choice).toISOString()}`
     );
-    return { start, end, choice, intervalType: 'daily', retryAttempts: 0 };
+    return {
+      start,
+      end,
+      choice,
+      // choice moves with every retry; scheduledAt keeps the originally
+      // planned run time for the measurement record
+      scheduledAt: choice,
+      slot: slotName,
+      intervalType: 'daily',
+      retryAttempts: 0,
+      backoffLevel: 0,
+    };
   }
 
   // Get the timestamp of the last measurement
@@ -146,10 +159,10 @@ export class ScheduleService {
 
     if (scheduleSemaphore.choice && currentTime > scheduleSemaphore.choice) {
       console.log("It's time to run the measurement");
-      const networkInfo = await this.networkService.getNetInfo();
+      const networkInfo = await this.getNetworkInfoSafe();
       if (!networkInfo) {
         console.log('Network not available, rescheduling measurement.');
-        await this.rescheduleFailedMeasurement(scheduleSemaphore);
+        await this.rescheduleFailedMeasurement(scheduleSemaphore, 'no-network');
         return;
       }
       if (currentTime > scheduleSemaphore.end) {
@@ -157,11 +170,20 @@ export class ScheduleService {
         await this.setSemaphore({});
         return;
       }
+      if (scheduleSemaphore.lastFailReason === 'no-network') {
+        // Network is back: the failed-test backoff starts over
+        scheduleSemaphore.backoffLevel = 0;
+      }
 
       try {
         console.log('Running test...');
         await this.measurementClientService.runTest(
-          scheduleSemaphore.intervalType
+          scheduleSemaphore.intervalType,
+          {
+            slot: scheduleSemaphore.slot || null,
+            scheduledAt:
+              scheduleSemaphore.scheduledAt || scheduleSemaphore.choice,
+          }
         );
         console.log('Measurement completed successfully');
         await this.storageService.set(
@@ -171,43 +193,69 @@ export class ScheduleService {
         await this.setSemaphore({});
       } catch (error) {
         console.error('Measurement failed:', error);
-        await this.rescheduleFailedMeasurement(scheduleSemaphore);
+        await this.rescheduleFailedMeasurement(scheduleSemaphore, 'test-failed');
       }
     } else {
       console.log('Not time to run measurement yet');
     }
   }
 
-  private async rescheduleFailedMeasurement(scheduleSemaphore: any) {
+  // getNetInfo() throws when fully offline (its geojs fallback fails too);
+  // treat both the throw and an empty result as "no network"
+  private async getNetworkInfoSafe(): Promise<any> {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      console.log('navigator.onLine is false, skipping network check');
+      return null;
+    }
+    try {
+      return await this.networkService.getNetInfo();
+    } catch (error) {
+      console.log('Network check failed:', error);
+      return null;
+    }
+  }
+
+  private async rescheduleFailedMeasurement(
+    scheduleSemaphore: any,
+    reason: 'no-network' | 'test-failed'
+  ) {
     console.log(
-      'Rescheduling failed measurement. Current semaphore:',
+      `Rescheduling failed measurement (${reason}). Current semaphore:`,
       scheduleSemaphore
     );
     const currentTime = Date.now();
-    const retryAttempts = (scheduleSemaphore.retryAttempts || 0) + 1;
 
-    if (
-      retryAttempts <= this.MAX_RETRY_ATTEMPTS &&
-      currentTime < scheduleSemaphore.end
-    ) {
-      const rescheduleTime = currentTime + this.RETRY_DELAY;
-      const newSemaphore = {
-        ...scheduleSemaphore,
-        choice: Math.min(rescheduleTime, scheduleSemaphore.end),
-        retryAttempts,
-      };
-      await this.setSemaphore(newSemaphore);
-      console.log(
-        `Rescheduled measurement for ${new Date(
-          newSemaphore.choice
-        ).toISOString()}`
-      );
-    } else {
-      console.log(
-        'Max retry attempts reached or slot ended. Scheduling for next slot.'
-      );
+    if (currentTime >= scheduleSemaphore.end) {
+      console.log('Slot ended. Scheduling for next slot.');
       await this.setSemaphore({});
+      return;
     }
+
+    // no-network retries are free (no test traffic), so they stay at a fixed
+    // 1-minute pace; failed tests consume real bandwidth, so they back off
+    const backoffLevel = scheduleSemaphore.backoffLevel || 0;
+    const delay =
+      reason === 'no-network'
+        ? this.NO_NETWORK_RETRY_DELAY
+        : Math.min(
+            this.RETRY_BASE_DELAY *
+              Math.pow(this.RETRY_BACKOFF_FACTOR, backoffLevel),
+            this.RETRY_MAX_DELAY
+          );
+
+    const newSemaphore = {
+      ...scheduleSemaphore,
+      choice: Math.min(currentTime + delay, scheduleSemaphore.end),
+      retryAttempts: (scheduleSemaphore.retryAttempts || 0) + 1,
+      backoffLevel: reason === 'test-failed' ? backoffLevel + 1 : backoffLevel,
+      lastFailReason: reason,
+    };
+    await this.setSemaphore(newSemaphore);
+    console.log(
+      `Rescheduled measurement for ${new Date(
+        newSemaphore.choice
+      ).toISOString()}`
+    );
   }
 
   async getSemaphore() {
@@ -325,14 +373,21 @@ export class ScheduleService {
   // Run the startup test
   private async runStartupTest() {
     console.log('Running startup test');
-    const networkInfo = await this.networkService.getNetInfo();
+    const networkInfo = await this.getNetworkInfoSafe();
     if (!networkInfo) {
       console.log('Network not available for startup test, skipping.');
       return;
     }
 
     try {
-      await this.measurementClientService.runTest('startup');
+      const scheduledFor = parseInt(
+        await this.storageService.get(this.STARTUP_TEST_SCHEDULED_KEY),
+        10
+      );
+      await this.measurementClientService.runTest('startup', {
+        slot: 'startup',
+        scheduledAt: isNaN(scheduledFor) ? null : scheduledFor,
+      });
       console.log('Startup test completed successfully');
       this.storageService.set('lastMeasurement', Date.now().toString());
       this.storageService.set(this.STARTUP_TEST_KEY, Date.now().toString());
