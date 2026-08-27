@@ -13,12 +13,17 @@
     <div class="warning-section">
       <div class="warning-message">
         <p class="main-text">
-          {{ "logout.warning" | translate }}
+          {{
+            "logout.warning"
+              | translate : { facility: facilityLabelKey | translate }
+          }}
         </p>
         <p
           class="sub-text"
           [innerHTML]="
-            'logout.confirmText' | translate : { schoolId: schoolId }
+            'logout.confirmText'
+              | translate
+                : { schoolId: schoolId, facility: facilityLabelKey | translate }
           "
         ></p>
       </div>
@@ -27,7 +32,10 @@
         <ion-item lines="none" class="confirmation-input">
           <ion-input
             [(ngModel)]="enteredSchoolId"
-            [placeholder]="'logout.placeholder' | translate"
+            [placeholder]="
+              'logout.placeholder'
+                | translate : { facility: facilityLabelKey | translate }
+            "
             (ionInput)="onInputChange()"
             type="text"
           ></ion-input>

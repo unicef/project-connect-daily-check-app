@@ -11,7 +11,8 @@
       <app-selected-detail></app-selected-detail>
 
       <div *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry" class="confirm-txt"
-        [translate]="'confirmSchool.confirm1'"></div>
+        [translate]="'confirmSchool.confirm1'"
+        [translateParams]="{ facility: (facilityLabelKey | translate) }"></div>
       <ion-item lines="none" *ngIf="school" class="detail_box">
         <ion-label class="box_margin">
           <span *ngIf="school?.name" class="schoolName">{{school.name}}</span><br  *ngIf="school?.name" />
@@ -37,7 +38,7 @@
     <div class="notification" *ngIf="showNotification">
       <ion-img name="information-circle-outline"  src="assets/images/info_icon.svg"></ion-img>
 
-      <p class="MakeSureText" [innerHTML]="'schoolDetails.confirmText' | translate">
+      <p class="MakeSureText" [innerHTML]="'schoolDetails.confirmText' | translate : { facility: (facilityLabelKey | translate) }">
        
       </p>
       <!-- <ion-img src="assets/images/close_notication.svg" name="close-outline" class="close-icon" (click)="closeNotification()"></ion-img> -->

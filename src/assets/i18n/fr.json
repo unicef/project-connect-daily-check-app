@@ -10,9 +10,9 @@
     "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Foire Aux Questions",
     "faq-help": "FAQ",
     "language-pref": "Préférences linguistiques",
-    "my-school-id": "<span class=\"hash\">#</span>Mon identifiant scolaire",
+    "my-school-id": "<span class=\"hash\">#</span>Mon identifiant {{facility}}",
     "project-connect-desc": "{{appName}} effectue automatiquement des tests pour mesurer les performances d'internet durant la journée, créant ainsi une représentation claire de la connectivité dans les écoles au fil du temps. Les résultats sont synchronisés de manière transparente avec Giga Maps - une carte mondiale et ouverte montrant l'état de connectivité des écoles en temps réel. Assurer des connexions internet solides dans les écoles soutient la mission de Giga de connecter tous les jeunes à l'information, aux opportunités et aux choix.",
-    "school-id": "VOTRE IDENTIFIANT SCOLAIRE",
+    "school-id": "Votre identifiant {{facility}}",
     "test-type-setting": "Paramètres des types de tests",
     "thank-you": "Merci d'avoir contribué à {{appName}}. Recherchez votre établissement et obtenez plus d’informations sur notre site Internet. Nous ajoutons de nouveaux établissements chaque jour!",
     "version": "VERSION {{ app_version }}",
@@ -22,7 +22,7 @@
   },
   "checkboxText": "En m'inscrivant et en utilisant GigaMeter, j'accepte la collecte, le traitement et la publication de mes données de mesure ainsi que d’autres données connexes par Giga conformément à la",
   "confirmSchool": {
-    "confirm1": "Confirmez les informations de l’établissement afin d’enregistrer votre école",
+    "confirm1": "Confirmez les informations afin d’enregistrer votre {{facility}}",
     "confirm2": "LES INFORMATIONS CI-DESSUS SONT-ELLES CORRECTES?",
     "title": "Les informations ci-dessous sont-elles correctes ?"
   },
@@ -71,8 +71,8 @@
     "welcome": "Bienvenue à"
   },
   "invalidLocation": {
-    "resultLocation": "- Votre emplacement est {{pays}}.<br />- Les écoles sélectionnées sont de {{paysSélectionné}}. <br />",
-    "unableToLocate": "VEUILLEZ SÉLECTIONNER UNE ÉCOLE CORRECTE."
+    "resultLocation": "- Votre emplacement est {{country}}.<br />- {{facility}} sélectionné est de {{selectedCountry}}. <br />",
+    "unableToLocate": "Veuillez sélectionner un {{facility}} correct."
   },
   "language": "Langue",
   "learn-more": "EN SAVOIR PLUS SUR {{appName}}",
@@ -87,9 +87,9 @@
   "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
   "privacyPolicy": "Politique de confidentialité",
   "registerSchool": {
-    "register-part-2": "Chaque école peut installer et enregistrer jusqu'à deux appareils, sauf indication contraire.",
-    "register-step-1": "Vous êtes sur le point d'enregistrer votre école.",
-    "register-step-2": "Installez Giga Meter sur des ordinateurs qui sont utilisés fréquemment et connectez-vous uniquement à l'internet de l'école.",
+    "register-part-2": "Chaque {{facility}} peut installer et enregistrer jusqu'à deux appareils, sauf indication contraire.",
+    "register-step-1": "Vous êtes sur le point d'enregistrer votre {{facility}}.",
+    "register-step-2": "Installez Giga Meter sur des ordinateurs qui sont utilisés fréquemment et connectez-vous uniquement à l'internet de votre {{facility}}.",
     "register-step-3": "Si possible, assurez-vous qu'au moins un ordinateur se connecte à Internet en utilisant une connexion filaire (Ethernet).",
     "start-registeration": "Commencer l'Enregistrement"
   },
@@ -98,11 +98,11 @@
     "readMore": "En savoir plus sur la façon de garantir une bonne inscription",
     "tip1": "De préférence, sur une connexion filaire",
     "tip2": "Installé sur 2 appareils qui sont principalement utilisés",
-    "tip3": "Connecté uniquement à l'internet de l'école",
-    "title1": "Vous êtes sur le point d’inscrire votre école",
+    "tip3": "Connecté uniquement à l'internet de votre {{facility}}",
+    "title1": "Vous êtes sur le point d’inscrire votre {{facility}}",
     "title2": "Pour garantir un bon processus d'inscription, assurez-vous que les directives suivantes sont respectées :"
   },
-  "resultSchool": "RÉSULTATS POUR L'IDENTIFICATION DE L'ÉCOLE",
+  "resultSchool": "Résultats pour l'identifiant de {{facility}}",
   "saveEmail": {
     "emailFormat": "Veuillez saisir une adresse e-mail valide avec un domaine et un point (par exemple, info@school.com).",
     "emailRequired": "Un e-mail est requis.",
@@ -113,31 +113,31 @@
   "schoolDetails": {
     "add": "Ajouter",
     "checkGiga": "Consultez les cartes Giga",
-    "confirmText": "Une fois que vous appuyez sur <b>&quot;Oui&quot;</b>, changer votre école nécessitera de désinstaller et réinstaller l'application.",
+    "confirmText": "Une fois que vous appuyez sur <b>&quot;Oui&quot;</b>, changer votre {{facility}} nécessitera de désinstaller et réinstaller l'application.",
     "enterEmail": "Texte de saisie",
-    "noSchoolList": "MON ÉCOLE NE FIGURE PAS DANS LA LISTE",
-    "saveEmail": "Veuillez ajouter l'adresse e-mail de votre école",
-    "search": "Recherche de votre école...",
-    "searchSchool": "Recherche d'identifiants scolaires",
+    "noSchoolList": "Mon {{facility}} ne figure pas dans la liste",
+    "saveEmail": "Veuillez ajouter l'adresse e-mail de votre {{facility}}",
+    "search": "Recherche de votre {{facility}}...",
+    "searchSchool": "Recherche d'identifiants de {{facility}}",
     "select": "Sélectionner",
-    "selectAndConfirm": "Sélectionnez votre école",
+    "selectAndConfirm": "Sélectionnez votre {{facility}}",
     "skip": "Sauter",
     "totalSchools": "{{schoolCount}} résultats correspondant à {{schoolId}}"
   },
   "schoolNotFound": {
-    "notFound": "Malheureusement, nous n'avons pas pu localiser votre école",
-    "notRegister": "Malheureusement, votre école n'est pas enregistrée dans {{appName}}\nVeuillez contacter l'administrateur de votre école pour enregistrer à nouveau votre école dans\nPCDC.",
+    "notFound": "Malheureusement, nous n'avons pas pu localiser votre {{facility}}",
+    "notRegister": "Malheureusement, votre {{facility}} n'est pas enregistré dans {{appName}}\nVeuillez contacter l'administrateur de votre {{facility}} pour l'enregistrer à nouveau dans\nPCDC.",
     "tryAgainPlaceholder": "Veuillez vous assurer que vous avez saisi le bon identifiant ou réessayez avec un identifiant différent",
-    "unableToLocate": "Nous n'avons pas pu trouver votre école : {{schoolId}}"
+    "unableToLocate": "Nous n'avons pas pu trouver votre {{facility}} : {{schoolId}}"
   },
   "schoolSuccess": {
     "app-run": "CETTE APPLICATION FONCTIONNERA <br />EN ARRIÈRE-PLAN",
-    "app-run-desc": "Vos données scolaires seront collectées lorsque l'appareil sera allumé.",
+    "app-run-desc": "Les données de votre {{facility}} seront collectées lorsque l'appareil sera allumé.",
     "congratulations": "FÉLICITATIONS!",
     "get-started": "Commencer",
     "go-dashboard": "Accédez à votre tableau de bord",
     "internet-checks": "Cette application vérifiera votre statut Internet 4 fois par jour.",
-    "school-registered": "Votre école a été enregistrée sur <br />{{appName}}",
+    "school-registered": "Votre {{facility}} a été enregistré sur <br />{{appName}}",
     "success-txt": "VOTRE VÉRIFICATION INTERNET QUOTIDIENNE <br />EST PARAMÉTRÉE",
     "you-can-close": "Vous pouvez fermer l'application."
   },
@@ -150,13 +150,16 @@
     "detected-auto": "Votre pays est détecté automatiquement",
     "loading": "Chargement",
     "not-available": "l'application {{appName}} {{appNameSuffix}} n'est pas disponible dans ce pays. Veuillez choisir un autre pays.",
-    "please-double-check": "Veuillez vérifier votre sélection."
+    "please-double-check": "Veuillez vérifier votre sélection.",
+    "facility-not-enabled": "L'inscription pour {{facility}} n'est pas encore activée en {{country}}. Veuillez contacter l'administrateur de {{appName}} ou choisir un autre pays."
   },
   "searchSchool": {
     "placeholder-school-id": "par exemple 00000000",
-    "provide-school-id": "Veuillez saisir votre identifiant d'école",
-    "search": "Recherche de votre école...",
-    "user-has-not-id": "Une fois que vous avez saisi votre identifiant scolaire, nous rechercherons les identifiants correspondant à votre saisie."
+    "provide-school-id": "Veuillez saisir l'identifiant de votre {{facility}}",
+    "search": "Recherche de votre {{facility}}...",
+    "user-has-not-id": "Une fois que vous avez saisi l'identifiant de votre {{facility}}, nous rechercherons les identifiants correspondant à votre saisie.",
+    "provide-govt-id": "Veuillez saisir l'identifiant gouvernemental de l'établissement",
+    "placeholder-govt-id": "ex. GOV-00000000"
   },
   "start": "Commencez  ",
   "startTest": {
@@ -179,7 +182,7 @@
     "retrying": "Veuillez réessayer {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Test en cours (Téléchargement)",
     "runningTestUpload": "Test en cours (Téléversement)",
-    "schoolRegistered": "École enregistrée avec succès",
+    "schoolRegistered": "{{facility}} enregistré avec succès",
     "server": "Serveur le plus proche",
     "serverSelected": "Serveur trouvé",
     "start": "DÉMARREZ",
@@ -225,12 +228,24 @@
   },
   "logout": {
     "title": "Confirmer la déconnexion",
-    "warning": "Cette opération déconnectera tous les comptes d'utilisateurs de l'application sur cet appareil, désenregistrera l'école et effacera toutes les données locales.",
-    "confirmText": "Veuillez saisir <strong class=\"school-id-highlight\">{{ schoolId }}</strong> pour confirmer l'identifiant de l'école pour le désenregistrement.",
-    "placeholder": "Entrez l'identifiant de l'école",
-    "errorMessage": "L'identifiant de l'école ne correspond pas. Veuillez réessayer.",
+    "warning": "Cela déconnectera votre compte ainsi que les autres comptes de cet appareil, annulera l'enregistrement de votre {{facility}} et effacera toutes les données locales.",
+    "confirmText": "Veuillez saisir <strong class=\"school-id-highlight\">{{ schoolId }}</strong> pour confirmer l'identifiant de votre {{facility}} et annuler l'enregistrement.",
+    "placeholder": "Saisissez l'identifiant de votre {{facility}}",
+    "errorMessage": "L'identifiant ne correspond pas. Veuillez réessayer.",
     "logoutButton": "Se déconnecter",
     "cancelButton": "Annuler"
   },
-  "yes": "Oui"
+  "yes": "Oui",
+  "facilityType": {
+    "school": "Établissement scolaire",
+    "health": "Établissement de santé"
+  },
+  "idLabel": {
+    "school": "Identifiant de l'établissement",
+    "health": "Identifiant gouvernemental"
+  },
+  "selectFacility": {
+    "title": "Que souhaitez-vous connecter ?",
+    "subtitle": "Choisissez le type d'établissement où {{appName}} est installé."
+  }
 }

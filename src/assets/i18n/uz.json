@@ -10,9 +10,9 @@
     "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Tez-tez so'raladigan savollar",
     "faq-help": "Savollar",
     "language-pref": "Til sozlamalari",
-    "my-school-id": "<span class=\"hash\">#</span>Mening maktab ID raqamim",
+    "my-school-id": "<span class=\"hash\">#</span>Mening {{facility}} ID raqamim",
     "project-connect-desc": "{{appName}} kun davomida avtomatik ravishda internet tezligi va sifatini o‘lchab boradi, bu esa maktablarning vaqt o‘tishi bilan ulanish holatini aniq tasvirlaydi. Natijalar real vaqt rejimida maktablarning ulanish holatini ko‘rsatadigan global ochiq xarita — Giga Maps bilan avtomatik sinxronlanadi. Maktablarda kuchli internet ulanishi Gigaʼning barcha yoshlarni axborot, imkoniyat va tanlovga ulan tirish missiyasini qo‘llab-quvvatlaydi.",
-    "school-id": "MAKTAB ID RAQAMINGIZ",
+    "school-id": "{{facility}} ID raqamingiz",
     "test-type-setting": "Test turi sozlamalari",
     "thank-you": "{{appName}} loyihasiga hissa qo‘shganingiz uchun rahmat. Maktabinggizni toping va ko‘proq ma’lumotni veb-saytimizdan bilib oling. Biz har kuni yangi maktablar qo‘shamiz!",
     "version": "VERSIYA {{ app_version }}",
@@ -22,7 +22,7 @@
   },
   "checkboxText": "GigaMeter’dan ro‘yxatdan o‘tib foydalanish orqali men Giga tomonidan o‘lchov va boshqa yordamchi ma’lumotlarimni yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
   "confirmSchool": {
-    "confirm1": "Maktabingizni ro‘yxatdan o‘tkazish uchun ma’lumotlarni tasdiqlang",
+    "confirm1": "{{facility}}ni ro‘yxatdan o‘tkazish uchun ma’lumotlarni tasdiqlang",
     "confirm2": "YUQORIDAGI MA’LUMOT TO‘G‘RIMI?",
     "title": "Quyidagi ma’lumotlar to‘g‘rimi?"
   },
@@ -71,8 +71,8 @@
     "welcome": "Xush kelibsiz"
   },
   "invalidLocation": {
-    "resultLocation": "- Sizning joylashuvingiz: {{country}}.<br />- Tanlangan maktab: {{selectedCountry}}. <br />",
-    "unableToLocate": "Iltimos, to‘g‘ri maktabni tanlang."
+    "resultLocation": "- Sizning joylashuvingiz: {{country}}.<br />- Tanlangan {{facility}}: {{selectedCountry}}. <br />",
+    "unableToLocate": "Iltimos, to‘g‘ri {{facility}}ni tanlang."
   },
   "language": "Til",
   "learn-more": "{{appName}} HAQIDA KO‘PROQ BILISH",
@@ -87,9 +87,9 @@
   "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
   "privacyPolicy": "Maxfiylik siyosati",
   "registerSchool": {
-    "register-part-2": "Har bir maktab ko‘pi bilan ikki qurilma o‘rnatishi mumkin, agar boshqacha ko‘rsatma berilmagan bo‘lsa.",
-    "register-step-1": "Maktabingizni ro‘yxatdan o‘tkazish arafasidasiz.",
-    "register-step-2": "Giga Meter’ni faqat maktab internetiga ulanadigan va tez-tez ishlatiladigan kompyuterlarga o‘rnating.",
+    "register-part-2": "Har bir {{facility}} ko‘pi bilan ikki qurilma o‘rnatishi mumkin, agar boshqacha ko‘rsatma berilmagan bo‘lsa.",
+    "register-step-1": "{{facility}}ni ro‘yxatdan o‘tkazish arafasidasiz.",
+    "register-step-2": "Giga Meter’ni faqat {{facility}} internetiga ulanadigan va tez-tez ishlatiladigan kompyuterlarga o‘rnating.",
     "register-step-3": "Imkon bo‘lsa, kamida bitta kompyuter simli (Ethernet) ulanish orqali internetga ulangan bo‘lsin.",
     "start-registeration": "Ro‘yxatdan o‘tishni boshlash"
   },
@@ -98,11 +98,11 @@
     "readMore": "Yaxshi ro‘yxatdan o‘tish uchun ko‘rsatmalar",
     "tip1": "Afsuski, simli ulanish afzalroq",
     "tip2": "Ko‘proq ishlatiladigan ikki qurilmaga o‘rnating",
-    "tip3": "Faqat maktab internetiga ulangan bo‘lishi kerak",
-    "title1": "Maktabingizni ro‘yxatdan o‘tkazmoqchisiz",
+    "tip3": "Faqat {{facility}} internetiga ulangan bo‘lishi kerak",
+    "title1": "{{facility}}ni ro‘yxatdan o‘tkazmoqchisiz",
     "title2": "Yaxshi ro‘yxatdan o‘tish uchun kompyuterlar quyidagilarga mos bo‘lishi kerak:"
   },
-  "resultSchool": "MAKTAB ID UCHUN NATIJALAR",
+  "resultSchool": "{{facility}} ID uchun natijalar",
   "saveEmail": {
     "emailFormat": "Iltimos, to‘g‘ri formatdagi emailni kiriting (masalan, info@school.com).",
     "emailRequired": "Email talab qilinadi.",
@@ -113,31 +113,31 @@
   "schoolDetails": {
     "add": "Qo‘shish",
     "checkGiga": "Giga Maps’da tekshirish",
-    "confirmText": "<b>&quot;Ha&quot;</b> tugmasini bosganingizdan so‘ng, maktabni o‘zgartirish uchun ilovani o‘chirib qayta o‘rnatishingiz kerak bo‘ladi.",
+    "confirmText": "<b>&quot;Ha&quot;</b> tugmasini bosganingizdan so‘ng, {{facility}}ni o‘zgartirish uchun ilovani o‘chirib qayta o‘rnatishingiz kerak bo‘ladi.",
     "enterEmail": "Matn kiriting",
-    "noSchoolList": "MAKTABIM RO‘YXATDA YO‘Q",
-    "saveEmail": "Maktab email manzilini qo‘shing",
-    "search": "Maktabingiz qidirilmoqda...",
-    "searchSchool": "Maktab ID raqamlarini qidirish",
+    "noSchoolList": "{{facility}} ro‘yxatda yo‘q",
+    "saveEmail": "{{facility}} email manzilini qo‘shing",
+    "search": "{{facility}} qidirilmoqda...",
+    "searchSchool": "{{facility}} ID raqamlarini qidirish",
     "select": "Tanlash",
-    "selectAndConfirm": "Maktabingizni tanlang",
+    "selectAndConfirm": "{{facility}}ni tanlang",
     "skip": "O‘tkazib yuborish",
     "totalSchools": "{{schoolCount}} ta natija {{schoolId}} bilan mos keldi"
   },
   "schoolNotFound": {
-    "notFound": "Afsuski, biz maktabingizni topa olmadik",
-    "notRegister": "Afsuski, maktabingiz hali {{appName}} tizimiga ro‘yxatdan o‘tmagan.\nIltimos, maktab administratoriga murojaat qiling va PCDC orqali yana ro‘yxatdan o‘tkazing.",
+    "notFound": "Afsuski, biz {{facility}}ni topa olmadik",
+    "notRegister": "Afsuski, {{facility}} hali {{appName}} tizimiga ro‘yxatdan o‘tmagan.\nIltimos, {{facility}} administratoriga murojaat qiling va PCDC orqali yana ro‘yxatdan o‘tkazing.",
     "tryAgainPlaceholder": "Iltimos, to‘g‘ri ID kiritganingizga ishonch hosil qiling yoki boshqa ID bilan urinib ko‘ring",
-    "unableToLocate": "Biz sizning maktabingizni topa olmadik: <br /><b>{{schoolId}}</b>"
+    "unableToLocate": "Biz {{facility}}ni topa olmadik: <br /><b>{{schoolId}}</b>"
   },
   "schoolSuccess": {
     "app-run": "Ilova <br /> fon rejimida ishlaydi",
-    "app-run-desc": "Maktab ma’lumotlari qurilma yoqilganida yig‘iladi.",
+    "app-run-desc": "{{facility}} ma’lumotlari qurilma yoqilganida yig‘iladi.",
     "congratulations": "Tabriklaymiz — hammasi tayyor!",
     "get-started": "Boshlash",
     "go-dashboard": "Dashboard’ga o‘tish",
     "internet-checks": "Ilova kuniga 4 marta <br />internet holatini tekshiradi.",
-    "school-registered": "Maktabinggiz {{appName}} ga <br />ro‘yxatdan o‘tkazildi",
+    "school-registered": "{{facility}} {{appName}} ga <br />ro‘yxatdan o‘tkazildi",
     "success-txt": "Kunlik internet <br />tekshiruvi yo‘lga qo‘yildi!",
     "you-can-close": "Ilovani yopishingiz mumkin."
   },
@@ -150,13 +150,16 @@
     "detected-auto": "Mamlakatingiz avtomatik aniqlangan",
     "loading": "Yuklanmoqda",
     "not-available": "{{appName}} {{appNameSuffix}} ushbu mamlakatda mavjud emas. Iltimos, boshqa mamlakat tanlang.",
-    "please-double-check": "Davom etishga ishonchingiz komilmi?"
+    "please-double-check": "Davom etishga ishonchingiz komilmi?",
+    "facility-not-enabled": "{{country}}da {{facility}} uchun ro‘yxatdan o‘tish hali yoqilmagan. Iltimos, {{appName}} administratoriga murojaat qiling yoki boshqa davlatni tanlang."
   },
   "searchSchool": {
     "placeholder-school-id": "masalan: 00000000",
-    "provide-school-id": "Maktab ID raqamini kiriting",
-    "search": "Maktabingiz qidirilmoqda...",
-    "user-has-not-id": "ID kiritganingizdan so‘ng, mos ID raqamlar qidiriladi."
+    "provide-school-id": "{{facility}} ID raqamini kiriting",
+    "search": "{{facility}} qidirilmoqda...",
+    "user-has-not-id": "{{facility}} ID raqamini kiritganingizdan so‘ng, mos ID raqamlar qidiriladi.",
+    "provide-govt-id": "Muassasaning davlat ID raqamini kiriting",
+    "placeholder-govt-id": "masalan, GOV-00000000"
   },
   "start": "Boshlash",
   "startTest": {
@@ -179,7 +182,7 @@
     "retrying": "Urinish {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Test bajarilmoqda (Yuklab olish)",
     "runningTestUpload": "Test bajarilmoqda (Yuklash)",
-    "schoolRegistered": "Maktab muvaffaqiyatli ro‘yxatdan o‘tdi",
+    "schoolRegistered": "{{facility}} muvaffaqiyatli ro‘yxatdan o‘tdi",
     "server": "Eng yaqin server",
     "serverSelected": "Server topildi",
     "start": "BOSHLASH",
@@ -225,12 +228,24 @@
   },
   "logout": {
     "title": "Chiqishni tasdiqlang",
-    "warning": "Bu amal sizni va ushbu qurilmadagi boshqa foydalanuvchilarni ilovadan chiqaradi, maktabni ro‘yxatdan o‘chirishni amalga oshiradi va barcha mahalliy ma’lumotlarni tozalaydi.",
-    "confirmText": "Maktabni ro‘yxatdan o‘chirishni tasdiqlash uchun quyidagi ID’ni kiriting: <strong class=\"school-id-highlight\">{{ schoolId }}</strong>.",
-    "placeholder": "Maktab ID’ni kiriting",
-    "errorMessage": "Maktab ID mos kelmadi. Qayta urinib ko‘ring.",
+    "warning": "Bu amal sizni va ushbu qurilmadagi boshqa foydalanuvchilarni ilovadan chiqaradi, {{facility}} ro‘yxatdan chiqariladi va barcha mahalliy ma’lumotlar o‘chiriladi.",
+    "confirmText": "Ro‘yxatdan chiqarish uchun <strong class=\"school-id-highlight\">{{ schoolId }}</strong> ni kiriting va {{facility}} ID raqamini tasdiqlang.",
+    "placeholder": "{{facility}} ID raqamini kiriting",
+    "errorMessage": "ID raqami mos kelmadi. Iltimos, qayta urinib ko‘ring.",
     "logoutButton": "Chiqish",
     "cancelButton": "Bekor qilish"
   },
-  "yes": "Ha"
+  "yes": "Ha",
+  "facilityType": {
+    "school": "Maktab",
+    "health": "Tibbiyot muassasasi"
+  },
+  "idLabel": {
+    "school": "Maktab ID raqami",
+    "health": "Davlat ID raqami"
+  },
+  "selectFacility": {
+    "title": "Nimani ulashni xohlaysiz?",
+    "subtitle": "{{appName}} o‘rnatilayotgan muassasa turini tanlang."
+  }
 }

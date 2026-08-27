@@ -9,6 +9,8 @@ import { StorageService } from '../services/storage.service';
 import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { IdentityService } from '../services/identity.service';
+import { RegistrationService } from '../services/registration.service';
 
 @Component({
   selector: 'app-home',
@@ -30,7 +32,9 @@ export class HomePage {
     private storage: StorageService,
     private loading: LoadingService,
     private readonly schoolService: SchoolService,
-    private hardwareIdService: HardwareIdService
+    private hardwareIdService: HardwareIdService,
+    private identityService: IdentityService,
+    private registrationService: RegistrationService
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
@@ -52,7 +56,7 @@ export class HomePage {
       '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="white" [translate]="\'loading\'">Loading...</p></div>';
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
 
-    if (this.storage.get('schoolId')) {
+    if (this.identityService.isRegistered()) {
       // User has local registration - check if device is still active
       this.checkDeviceStatusAndProceed();
     } else {
@@ -68,6 +72,26 @@ export class HomePage {
     console.log(
       '🔍 [HomePage] Checking device status for existing registration...'
     );
+
+    // v2 installs (any facility type) check status by installation_id
+    const registrationId = this.identityService.getRegistrationId();
+    if (registrationId) {
+      try {
+        const status = await this.registrationService
+          .status(this.identityService.getInstallationId())
+          .toPromise();
+        if (status?.exists && status.is_active === false) {
+          console.warn('🚫 [HomePage] v2 registration deactivated');
+          await this.storage.clear();
+          this.loading.dismiss();
+          return;
+        }
+      } catch (error) {
+        console.warn('v2 status check failed, proceeding (fail open)', error);
+      }
+      this.proceedWithExistingRegistration();
+      return;
+    }
 
     const gigaId = this.storage.get('gigaId');
 
@@ -148,6 +172,13 @@ export class HomePage {
       try {
         // get the feature flags
         await this.settingsService.getFeatureFlags();
+        // Wrong-giga-id data-fix / unregister checks are school-only
+        // hygiene flows — never run them for other facility types.
+        if (this.storage.get('facilityType') === 'health') {
+          this.loading.dismiss();
+          this.router.navigate(['/starttest']);
+          return;
+        }
         // check if the gigaId is correct
         schoolId = this.storage.get('schoolId');
         removeUnregisterSchool(

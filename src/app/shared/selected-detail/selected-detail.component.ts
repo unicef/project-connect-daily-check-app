@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
   selector: 'app-selected-detail',
   templateUrl: './selected-detail.component.html',
   styleUrls: ['./selected-detail.component.scss'],
+  standalone: false,
 })
 export class SelectedDetailComponent implements OnInit {
   private sub: any;

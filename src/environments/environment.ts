@@ -23,6 +23,8 @@ export const environment = {
   mode: env.mode,
   // restAPI: 'https://uni-connect-services.azurewebsites.net/api/v1/',
   restAPI: environmentConfig[env.mode].restApi,
+  // v2 base derived from the v1 URL so private _environment files need no new field.
+  restAPIv2: environmentConfig[env.mode].restApi.replace(/\/v1\/?$/, '/v2/'),
   token: environmentConfig[env.mode].token,
   matomo: {
     trackerUrl: (env as any).matomoTrackerUrl as string,

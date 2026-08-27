@@ -10,6 +10,7 @@ import { environment } from 'src/environments/environment';
 import { Observable, of, throwError } from 'rxjs';
 import { SettingsService } from '../services/settings.service';
 import { StorageService } from './storage.service';
+import { IdentityService } from './identity.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
@@ -23,6 +24,7 @@ export class UploadService {
     private http: HttpClient,
     private settingService: SettingsService,
     private storage: StorageService,
+    private identityService: IdentityService,
     private hardwareIdService: HardwareIdService,
     private indexedDB: IndexedDBService,
     private locationService: LocationService
@@ -81,7 +83,6 @@ export class UploadService {
         ASN: '', //record.accessInformation.asn,
         City: '',
       },
-      BrowserID: '',
       Timestamp: '',
       timestamplocal: '',
       DeviceType: '',
@@ -134,7 +135,7 @@ export class UploadService {
     if (!this.settingService.currentSettings.uploadEnabled) {
       return;
     }
-    let uploadURL = environment.restAPI + 'measurements';
+    let uploadURL = environment.restAPIv2 + 'measurements';
     const apiKey = this.settingService.get('uploadAPIKey');
     // const browserID = this.settingService.get("browserID");
     // const deviceType = this.settingService.get("deviceType");
@@ -153,16 +154,28 @@ export class UploadService {
       : (measurement.ip_address = this.storage.get('ip_address'));
     measurement.country_code = measurement.ClientInfo.Country;
 
-    // Add measure-saver-specific metadata.
-    measurement.BrowserID = this.storage.get('schoolUserId');
+    // Add measure-saver-specific metadata. No BrowserID in v2 — the record
+    // is keyed on registration_id + installation_id.
     measurement.Timestamp = this.ts.toISOString();
     measurement.timestamplocal = this.ts.toLocaleString();
     measurement.DeviceType = this.storage.get('deviceType');
     measurement.Notes = notes;
-    measurement.school_id = this.storage.get('schoolId');
-    measurement.giga_id_school = this.storage.get('gigaId');
+    measurement.school_id = this.identityService.getFacilityId();
     measurement.app_version = environment.app_version;
     measurement.ip_address = measurement.ClientInfo.IP;
+
+    const facilityType = this.identityService.getFacilityType();
+    const gigaId = this.identityService.getGigaId();
+    measurement['facility_type'] = facilityType;
+    if (facilityType === 'health') {
+      measurement.giga_id_school = '';
+      measurement['giga_id_health'] = gigaId;
+    } else {
+      measurement.giga_id_school = gigaId;
+    }
+    measurement['registration_id'] =
+      this.identityService.getRegistrationId() || undefined;
+    measurement['installation_id'] = this.identityService.getInstallationId();
 
     // Add hardware ID for machine-level tracking
     const hardwareId = this.hardwareIdService.getHardwareId();

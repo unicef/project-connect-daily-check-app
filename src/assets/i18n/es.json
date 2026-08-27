@@ -10,9 +10,9 @@
     "faq": "<ion-icon name=\"chatbox-outline\"></ion-icon>Preguntas frecuentes",
     "faq-help": "Preguntas frecuentes",
     "language-pref": "Preferencias de idioma",
-    "my-school-id": "<span class=\"hash\">#</span>Mi ID de Escuela",
+    "my-school-id": "<span class=\"hash\">#</span>Mi ID de {{facility}}",
     "project-connect-desc": "{{appName}} mide automáticamente el rendimiento de internet durante el día, construyendo una imagen clara de la conectividad en las escuelas a lo largo del tiempo. Los resultados se sincronizan con Giga Maps - un mapa global y abierto que muestra el estado de conectividad de las escuelas en tiempo real. Garantizar buenas conexiones de internet en las escuelas apoya la misión de Giga de conectar a todos los jóvenes con información, oportunidades y opciones.",
-    "school-id": "EL IDENTIFICADOR (ID) DE SU ESCUELA",
+    "school-id": "El identificador (ID) de su {{facility}}",
     "test-type-setting": "Configuración del tipo de prueba",
     "thank-you": "Gracias por contribuir a {{appName}}. Encuentre su escuela y obtenga más información en nuestro sitio web. ¡Añadimos nuevas escuelas todos los días!",
     "version": "VERSIÓN {{ app_version }}",
@@ -22,7 +22,7 @@
   },
   "checkboxText": "Al registrarme y utilizar GigaMeter, acepto la recopilación, el procesamiento y la publicación de mi medición y otros datos de apoyo por parte de Giga bajo la",
   "confirmSchool": {
-    "confirm1": "Confirme la información de la escuela para registrarla",
+    "confirm1": "Confirme la información de su {{facility}} para registrarlo",
     "confirm2": "¿ES CORRECTA LA INFORMACIÓN ANTERIOR?",
     "title": "¿Es correcta la información que aparece a continuación?"
   },
@@ -63,7 +63,7 @@
     "learnMore": "Obtenga más información sobre Giga Meter",
     "licenseLink": "Licencia Abierta de Bases de Datos (ODbL)",
     "next": "Siguiente",
-    "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targesurl}}>Para más detalles sobre cómo Giga gestiona sus datos, visite la Política de Privacidad de UNICEF.</a>",
+    "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>Para más detalles sobre cómo Giga gestiona sus datos, visite la Política de Privacidad de UNICEF.</a>",
     "privacyPolicy": "Política de Privacidad",
     "start": "Comenzar",
     "title1": "Bienvenido a {{appName}} <span class=\"daily-chk-blue\">{{appNameSuffix}}</span>",
@@ -71,8 +71,8 @@
     "welcome": "Bienvenido a"
   },
   "invalidLocation": {
-    "resultLocation": "- su ubicación es {{country}}.<br />- Las escuelas seleccionadas son de {{selectedCountry}}. <br />",
-    "unableToLocate": "POR FAVOR, SELECCIONE UNA ESCUELA VÁLIDA."
+    "resultLocation": "- su ubicación es {{country}}.<br />- {{facility}} seleccionado: {{selectedCountry}}. <br />",
+    "unableToLocate": "Por favor, seleccione un {{facility}} válido."
   },
   "language": "Idioma",
   "learn-more": "APRENDA MÁS SOBRE {{appName}}",
@@ -87,9 +87,9 @@
   "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
   "privacyPolicy": "Política de Privacidad",
   "registerSchool": {
-    "register-part-2": "Cada escuela puede instalar y registrar hasta dos dispositivos, a menos que se indique lo contrario.",
-    "register-step-1": "Está a punto de registrar su escuela.",
-    "register-step-2": "Instale Giga Meter en computadoras que se utilicen con frecuencia y conéctelas únicamente a la red de internet de la escuela.",
+    "register-part-2": "Cada {{facility}} puede instalar y registrar hasta dos dispositivos, a menos que se indique lo contrario.",
+    "register-step-1": "Está a punto de registrar su {{facility}}.",
+    "register-step-2": "Instale Giga Meter en computadoras que se utilicen con frecuencia y conéctelas únicamente a la red de internet de su {{facility}}.",
     "register-step-3": "De ser posible, asegúrese de que al menos una computadora se conecte a Internet mediante una conexión por cable (Ethernet).",
     "start-registeration": "Iniciar Registro"
   },
@@ -98,11 +98,11 @@
     "readMore": "Lea más sobre cómo garantizar un buen registro",
     "tip1": "Preferiblemente, mediante una conexión por cable.",
     "tip2": "Instalado en 2 dispositivos que se utilizen con mayor frecuencia",
-    "tip3": "Conectado únicamente a internet de la escuela",
-    "title1": "Estás a punto de registrar su escuela",
+    "tip3": "Conectado únicamente a internet de su {{facility}}",
+    "title1": "Estás a punto de registrar su {{facility}}",
     "title2": "Para garantizar un buen proceso de registro, asegúrese de que las computadoras estén:"
   },
-  "resultSchool": "RESULTADOS PARA EL IDENTIFICADOR (ID) DE LA ESCUELA",
+  "resultSchool": "Resultados para el identificador (ID) de {{facility}}",
   "saveEmail": {
     "emailFormat": "Ingrese una dirección de correo electrónico válida, que incluya un dominio y una extension (por ejemplo, info@school.com).",
     "emailRequired": "Se requiere correo electrónico.",
@@ -113,31 +113,31 @@
   "schoolDetails": {
     "add": "Agregar",
     "checkGiga": "Consulte los mapas de Giga",
-    "confirmText": "Una vez que pulse <b>&quot;Sí&quot;</b>, cambiar su escuela requerirá desinstalar y volver a instalar la aplicación.",
+    "confirmText": "Una vez que pulse <b>&quot;Sí&quot;</b>, cambiar su {{facility}} requerirá desinstalar y volver a instalar la aplicación.",
     "enterEmail": "Texto de entrada",
-    "noSchoolList": "MI ESCUELA NO ESTÁ EN LA LISTA",
-    "saveEmail": "Por favor, agregue la dirección de correo electrónico de su escuela",
-    "search": "Buscando su escuela...",
-    "searchSchool": "Búsqueda de identificadors escolares",
+    "noSchoolList": "Mi {{facility}} no está en la lista",
+    "saveEmail": "Por favor, agregue la dirección de correo electrónico de su {{facility}}",
+    "search": "Buscando su {{facility}}...",
+    "searchSchool": "Búsqueda de identificadores de {{facility}}",
     "select": "Seleccionar",
-    "selectAndConfirm": "Seleccione su escuela",
+    "selectAndConfirm": "Seleccione su {{facility}}",
     "skip": "Saltar",
     "totalSchools": "{{schoolCount}} resultados que coinciden con {{schoolId}}"
   },
   "schoolNotFound": {
-    "notFound": "Lamentablemente no pudimos localizar su escuela",
-    "notRegister": "Lamentablemente, su escuela no está registrada en {{appName}}. Por favor, contacte al administrador de su escuela para registrarla en PCDC nuevamente.",
+    "notFound": "Lamentablemente no pudimos localizar su {{facility}}",
+    "notRegister": "Lamentablemente, su {{facility}} no está registrado en {{appName}}. Por favor, contacte al administrador de su {{facility}} para registrarlo en PCDC nuevamente.",
     "tryAgainPlaceholder": "Asegúrese de haber escrito el ID correcto o vuelva a intentarlo con un ID diferente.",
-    "unableToLocate": "No pudimos encontrar su escuela: {{schoolId}}"
+    "unableToLocate": "No pudimos encontrar su {{facility}}: {{schoolId}}"
   },
   "schoolSuccess": {
     "app-run": "ESTA APLICACIÓN SE EJECUTARÁ <br />EN SEGUNDO PLANO",
-    "app-run-desc": "Los datos de su escuela se recopilarán cuando el dispositivo esté encendido.",
+    "app-run-desc": "Los datos de su {{facility}} se recopilarán cuando el dispositivo esté encendido.",
     "congratulations": "¡FELICITACIONES!",
     "get-started": "Comenzar",
     "go-dashboard": "Ir a su panel de datos",
     "internet-checks": "Esta aplicación comprobará su estado de Internet 4 veces al día.",
-    "school-registered": "Su escuela ha sido registrada en <br />{{appName}}",
+    "school-registered": "Su {{facility}} ha sido registrado en <br />{{appName}}",
     "success-txt": "¡La verificación diaria de internet <br /> se ha establecido correctamente!",
     "you-can-close": "Puede cerrar la aplicación."
   },
@@ -150,13 +150,16 @@
     "detected-auto": "Su país ha sido detectado automáticamente.",
     "loading": "Cargando",
     "not-available": "la aplicación {{appName}} {{appNameSuffix}} no está disponible en este país. Por favor elija otro país.",
-    "please-double-check": "Por favor, verifique su selección."
+    "please-double-check": "Por favor, verifique su selección.",
+    "facility-not-enabled": "El registro de {{facility}} aún no está habilitado en {{country}}. Por favor, contacte al administrador de {{appName}} o elija otro país."
   },
   "searchSchool": {
     "placeholder-school-id": "p.ej. 00000000",
-    "provide-school-id": "Por favor, escriba e ingrese el identificador único (ID) de su centro educativo",
-    "search": "Buscando su escuela...",
-    "user-has-not-id": "Una vez que escriba su identificación escolar, buscaremos identificaciones que coincidan con su entrada."
+    "provide-school-id": "Por favor, escriba e ingrese el identificador único (ID) de su {{facility}}",
+    "search": "Buscando su {{facility}}...",
+    "user-has-not-id": "Una vez que escriba el ID de su {{facility}}, buscaremos identificaciones que coincidan con su entrada.",
+    "provide-govt-id": "Por favor, escriba e ingrese el ID gubernamental del establecimiento",
+    "placeholder-govt-id": "ej. GOB-00000000"
   },
   "start": "Comenzar",
   "startTest": {
@@ -179,7 +182,7 @@
     "retrying": "Reintento {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Ejecutando prueba (Descarga)",
     "runningTestUpload": "Ejecutando prueba (Carga)",
-    "schoolRegistered": "Escuela registrada exitosamente",
+    "schoolRegistered": "{{facility}} registrado exitosamente",
     "server": "Servidor más cercano",
     "serverSelected": "Servidor encontrado",
     "start": "INICIAR",
@@ -225,12 +228,24 @@
   },
   "logout": {
     "title": "Confirmar cierre de sesión",
-    "warning": "Esta acción cerrará su sesión y la de otras cuentas de usuario en este dispositivo, cancelará el registro de la escuela y borrará todos los datos locales.",
-    "confirmText": "Por favor, escriba <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar el ID de la escuela para la cancelación del registro.",
-    "placeholder": "Ingrese el ID de la escuela",
-    "errorMessage": "El ID de la escuela no coincide. Por favor, inténtelo de nuevo.",
+    "warning": "Esto cerrará la sesión de su cuenta y de las demás cuentas de este dispositivo, cancelará el registro de su {{facility}} y borrará todos los datos locales.",
+    "confirmText": "Escriba <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar el ID de su {{facility}} y cancelar el registro.",
+    "placeholder": "Ingrese el ID de su {{facility}}",
+    "errorMessage": "El ID no coincide. Por favor, inténtelo de nuevo.",
     "logoutButton": "Cerrar sesión",
     "cancelButton": "Cancelar"
   },
-  "yes": "Sí"
+  "yes": "Sí",
+  "facilityType": {
+    "school": "Centro educativo",
+    "health": "Centro de salud"
+  },
+  "idLabel": {
+    "school": "ID del centro educativo",
+    "health": "ID gubernamental"
+  },
+  "selectFacility": {
+    "title": "¿Qué desea conectar?",
+    "subtitle": "Elija el tipo de establecimiento donde se está instalando {{appName}}."
+  }
 }

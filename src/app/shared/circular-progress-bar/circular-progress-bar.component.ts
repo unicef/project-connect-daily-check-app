@@ -4,6 +4,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
   selector: 'app-circular-progress-bar',
   templateUrl: './circular-progress-bar.component.html',
   styleUrls: ['./circular-progress-bar.component.scss'],
+  standalone: false,
 })
 export class CircularProgressBarComponent {
   @Input() firstLabel!: string;

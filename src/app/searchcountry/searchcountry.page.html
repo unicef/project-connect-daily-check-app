@@ -21,7 +21,7 @@
         <ion-item
           lines="none"
           class="searchCountry"
-          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && isPcdcCountry !== false) ? 'warning_color' : this.isPcdcCountry === false ? 'error_color' : ''"
+          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && facilitySupported !== false) ? 'warning_color' : facilitySupported === false ? 'error_color' : ''"
         >
           <ion-label
             class="label"
@@ -34,15 +34,14 @@
             placeholder="Search country..."
           ></ion-searchbar>
           <ion-img
-            *ngIf="this.isPcdcCountry === false "
+            *ngIf="facilitySupported === false"
             class="img_wifi"
             src="assets/images/error_country.svg"
           ></ion-img>
 
           <ion-img
-            *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && (this.isPcdcCountry !== false)"
+            *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && (facilitySupported !== false)"
             class="img_wifi"
-            [ngClass]="{'margin_on_condition': this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && this.isPcdcCountry === false}"
             src="assets/images/Warning.svg"
           ></ion-img>
         </ion-item>
@@ -66,22 +65,23 @@
           class="search-label change-country"
           [translate]="'searchCountry.change-country'"
         ></div>
-        <span class="error_message" *ngIf="this.isPcdcCountry === false">
+        <span
+          class="error_message"
+          *ngIf="facilitySupported === false"
+        >
           <ion-img
-            *ngIf="this.isPcdcCountry === false"
             class="error_icon"
             src="assets/images/error_country.svg"
           ></ion-img>
-
           <div
             class="search-label-error"
-            [translate]="'searchCountry.not-available'"
-            [translateParams]="{ appName, appNameSuffix }"
+            [translate]="'searchCountry.facility-not-enabled'"
+            [translateParams]="{ facility: (facilityLabelKey | translate), country: searchTerm, appName }"
           ></div>
         </span>
         <span
           class="error_message"
-          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && this.isPcdcCountry !== false"
+          *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && facilitySupported !== false"
         >
           <ion-img class="error_icon" src="assets/images/Warning.svg"></ion-img>
           <div
@@ -112,7 +112,7 @@
           tabindex="0"
           block
           class="dailycheck_btn btn_margin"
-          [disabled]="isCheckingEligibility || (!selectedFromList && !automaticSearched) || this.isPcdcCountry === false || !searchTerm.length"
+          [disabled]="isCheckingEligibility || (!selectedFromList && !automaticSearched) || facilitySupported === false || !searchTerm.length"
           (click)="confirmCountry()"
           ><span
             class="submit_button_size"

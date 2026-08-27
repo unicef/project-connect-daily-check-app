@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 
 import { CircularProgressBarComponent } from './circular-progress-bar.component';
+import { TranslateModule } from '@ngx-translate/core';
 
 describe('CircularProgressBarComponent', () => {
   let component: CircularProgressBarComponent;
@@ -10,7 +11,7 @@ describe('CircularProgressBarComponent', () => {
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ CircularProgressBarComponent ],
-      imports: [IonicModule.forRoot()]
+      imports: [TranslateModule.forRoot(), IonicModule.forRoot()]
     }).compileComponents();
 
     fixture = TestBed.createComponent(CircularProgressBarComponent);
