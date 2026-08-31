@@ -89,6 +89,7 @@
         [statusMessage]="getStatusMessage()"
         [icon]="''"
         [error]="(connectionStatus=='error' && currentState == undefined) || (!onlineStatus)"
+        [disabled]="testInProgress"
         (startTest)="startNDT()"
         [firstLabel]="(currentState == undefined && currentRate != 'error' && onlineStatus) ? ('startTest.startTest' | translate) : ''"
         [currentRateDownload]="currentRateDownload"

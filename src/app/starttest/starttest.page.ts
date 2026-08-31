@@ -104,6 +104,9 @@ export class StarttestPage implements OnInit, OnDestroy {
   private uploadSub!: Subscription;
   private downloadStartedSub!: Subscription;
   private uploadStartedSub!: Subscription;
+  private testRunningSub!: Subscription;
+  /** Mirrors MeasurementClientService.testRunning$; disables the test button while a run is live. */
+  testInProgress = false;
 
   downloadTimer: any;
   uploadTimer: any;
@@ -285,6 +288,13 @@ export class StarttestPage implements OnInit, OnDestroy {
    */
   private setupServiceSubscriptions() {
     console.log('Setting up service subscriptions');
+
+    this.testRunningSub = this.measurementClientService.testRunning$.subscribe(
+      (running) => {
+        this.testInProgress = running;
+        this.ref.markForCheck();
+      }
+    );
 
     this.downloadSub =
       this.measurementClientService.downloadComplete$.subscribe((data) => {
@@ -565,6 +575,13 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   startNDT(notes: string = 'manual') {
+    // Bail out before touching the UI state. The service drops the duplicate run
+    // anyway, but everything below resets the progress of the test that is still
+    // running, which makes the app look stuck and invites another tap.
+    if (this.testInProgress) {
+      console.warn(`Test already running; ignoring the "${notes}" request.`);
+      return;
+    }
     try {
       this.uploadProgressStarted = false;
       this.downloadStarted = false;
@@ -1015,5 +1032,6 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();
     this.uploadStartedSub.unsubscribe();
+    this.testRunningSub?.unsubscribe();
   }
 }

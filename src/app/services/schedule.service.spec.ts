@@ -45,6 +45,7 @@ describe('ScheduleService', () => {
     };
     measurementClientService = {
       runTest: jasmine.createSpy('runTest').and.resolveTo(undefined),
+      isRunning: false,
     };
     settingsService = {
       get: jasmine.createSpy('get').and.resolveTo(true),
@@ -237,6 +238,31 @@ describe('ScheduleService', () => {
       expect(sem.scheduledAt).toBe(sem.choice);
       expect(sem.choice).toBeGreaterThanOrEqual(sem.start);
       expect(sem.choice).toBeLessThanOrEqual(sem.end);
+    });
+  });
+
+  describe('waiting for a running measurement', () => {
+    it('leaves the semaphore alone so the next tick retries', async () => {
+      measurementClientService.isRunning = true;
+      const sem = slotASemaphore({ choice: NOW.getTime() - MINUTE });
+      await service.setSemaphore(sem);
+
+      await service.decide(savedSemaphore());
+
+      expect(measurementClientService.runTest).not.toHaveBeenCalled();
+      // Untouched: same choice, no retry counters moved.
+      expect(savedSemaphore().choice).toBe(sem.choice);
+      expect(savedSemaphore().retryAttempts).toBe(0);
+    });
+
+    it('runs once the other measurement has finished', async () => {
+      measurementClientService.isRunning = false;
+      const sem = slotASemaphore({ choice: NOW.getTime() - MINUTE });
+      await service.setSemaphore(sem);
+
+      await service.decide(savedSemaphore());
+
+      expect(measurementClientService.runTest).toHaveBeenCalledTimes(1);
     });
   });
 });
