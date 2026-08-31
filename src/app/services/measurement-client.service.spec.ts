@@ -2,9 +2,29 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
-import ndt7 from '@m-lab/ndt7';
+import ndt7 from '../../assets/js/ndt/ndt7.js';
 import { MeasurementClientService } from './measurement-client.service';
-import { environment } from '../../environments/environment';
+
+/**
+ * Minimal shape of a finished ndt7 run: just the fields finalizeMeasurement
+ * and calculateDataUsage read. `ServerTime` is what ndt7.js now reports from
+ * the Date header of the locate response.
+ */
+const resultsWith = (s2cServerTime: any, c2sServerTime: any) => ({
+  'NDTResult.S2C': {
+    ServerTime: s2cServerTime,
+    LastServerMeasurement: {
+      ConnectionInfo: { UUID: 'ndt-abcde_1591240104_00000000000042C7' },
+      TCPInfo: { BytesAcked: 10, BytesReceived: 20 },
+    },
+  },
+  'NDTResult.C2S': {
+    ServerTime: c2sServerTime,
+    LastServerMeasurement: {
+      TCPInfo: { BytesAcked: 30, BytesReceived: 40 },
+    },
+  },
+});
 
 describe('MeasurementClientService', () => {
   let service: MeasurementClientService;
@@ -19,14 +39,58 @@ describe('MeasurementClientService', () => {
     ]
 });
     service = TestBed.inject(MeasurementClientService);
+    // uploadEnabled = false keeps finalizeMeasurement off the network.
+    spyOn(service['settingsService'], 'get').and.returnValue(false);
+    spyOn(service['historyService'], 'add').and.stub();
+    spyOn(service['sharedService'], 'broadcast').and.stub();
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
   });
+
+  describe('serverTimestamp', () => {
+    it('takes the server clock reported by the download leg', async () => {
+      const serverTime = Date.UTC(2026, 7, 24, 10, 30, 0);
+      const record: any = {
+        timestamp: 1,
+        results: resultsWith(serverTime, serverTime),
+      };
+
+      await service['finalizeMeasurement'](record);
+
+      expect(record.serverTimestamp).toBe(serverTime);
+    });
+
+    it('falls back to the upload leg when the download leg has none', async () => {
+      const serverTime = Date.UTC(2026, 7, 24, 10, 30, 0);
+      const record: any = {
+        timestamp: 1,
+        results: resultsWith(undefined, serverTime),
+      };
+
+      await service['finalizeMeasurement'](record);
+
+      expect(record.serverTimestamp).toBe(serverTime);
+    });
+
+    it('stays null when neither leg reports one', async () => {
+      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+
+      await service['finalizeMeasurement'](record);
+
+      expect(record.serverTimestamp).toBeNull();
+    });
+
+    it('is initialized to null on a fresh record', () => {
+      const record: any = service['initializeMeasurementRecord']('manual');
+
+      expect(record.serverTimestamp).toBeNull();
+    });
+  });
 });
 
-describe('MeasurementClientService ndt7 package integration', () => {
+describe('MeasurementClientService ndt7 integration', () => {
   let service: MeasurementClientService;
   let ndt7TestSpy: jasmine.Spy;
 
@@ -81,15 +145,13 @@ describe('MeasurementClientService ndt7 package integration', () => {
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
   });
 
-  it('runs the test through the npm package with the giga-meter metadata', async () => {
+  it('runs the test through the vendored ndt7 with the worker files', async () => {
     await service.runTest('manual');
 
     expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
     const config = ndt7TestSpy.calls.mostRecent().args[0];
-    expect(config.metadata).toEqual({
-      client_name: 'giga-meter',
-      client_version: environment.app_version,
-    });
+    // No `metadata` here on purpose: the vendored ndt7.js hardcodes the client
+    // name and version, unlike the npm package this reverted away from.
     expect(config.userAcceptedDataPolicy).toBeTrue();
     expect(config.downloadworkerfile).toBe(
       'assets/js/ndt/ndt7-download-worker.js'

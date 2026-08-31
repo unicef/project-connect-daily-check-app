@@ -29,11 +29,6 @@
                 "output": "assets"
               },
               {
-                "glob": "ndt7-*-worker.js",
-                "input": "node_modules/@m-lab/ndt7/src",
-                "output": "assets/js/ndt"
-              },
-              {
                 "glob": "**/*.svg",
                 "input": "node_modules/ionicons/dist/ionicons/svg",
                 "output": "./svg"
@@ -50,8 +45,7 @@
             "namedChunks": true,
             "allowedCommonJsDependencies": [
               "electron",
-              "@electron/remote",
-              "@m-lab/ndt7"
+              "@electron/remote"
             ]
           },
           "configurations": {
