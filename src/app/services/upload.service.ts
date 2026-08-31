@@ -94,6 +94,30 @@ export class UploadService {
       giga_id_school: '',
       app_version: environment.app_version,
     };
+
+    // Device info is optional: only include a field if a value is actually
+    // available, rather than sending empty strings for unknown devices.
+    const deviceName = this.storage.get('deviceName');
+    if (deviceName) {
+      measurement['device_name'] = deviceName;
+    }
+    const deviceModel = this.storage.get('deviceModel');
+    if (deviceModel) {
+      measurement['device_model'] = deviceModel;
+    }
+    const deviceManufacturer = this.storage.get('deviceManufacturer');
+    if (deviceManufacturer) {
+      measurement['device_manufacturer'] = deviceManufacturer;
+    }
+    const appBuildNumber = this.storage.get('appBuildNumber');
+    if (appBuildNumber) {
+      measurement['app_build_number'] = appBuildNumber;
+    }
+    const osVersion = this.storage.get('osVersion');
+    if (osVersion) {
+      measurement['os_version'] = osVersion;
+    }
+
     if (record.hasOwnProperty('accessInformation')) {
       let clientInfo = record.accessInformation;
 
