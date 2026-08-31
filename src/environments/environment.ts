@@ -80,5 +80,10 @@ export const environment = {
       label: 'Монгол',
       code: 'mn',
     },
+    {
+      name: 'Uz',
+      label: "O'zbekcha",
+      code: 'uz',
+    },
   ],
 };
