@@ -54,8 +54,8 @@ data class SpeedTestResultRequestEntity(
   val deviceModel: String?,
   @SerializedName(" device_name")
   val deviceName: String?,
-  @SerializedName("sdk_version")
-  val sdkVersion: String?,
+  @SerializedName("os_version")
+  val osVersion: String?,
 //  val id: String?,
 //  val createdAt: String?,
 //  val dataDownloaded: Int?,

@@ -294,7 +294,7 @@ object GigaUtil {
         deviceManufacturer = deviceInfo.manufacturer,
         deviceModel = deviceInfo.model,
         deviceName = deviceInfo.deviceName,
-        sdkVersion = "", //TODO Need to confirm
+        osVersion = deviceInfo.sdkInt.toString(),
 //      createdAt = null,
 //      dataDownloaded = null,
 //      dataUploaded = null,
@@ -467,7 +467,7 @@ object GigaUtil {
       deviceManufacturer = deviceInfo.manufacturer,
       deviceModel = deviceInfo.model,
       deviceName = deviceInfo.deviceName,
-      sdkVersion = "", //TODO Need to confirm
+      osVersion = deviceInfo.sdkInt.toString(),
     )
   }
 

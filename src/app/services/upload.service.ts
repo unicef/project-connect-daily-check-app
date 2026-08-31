@@ -217,20 +217,6 @@ export class UploadService {
         return measurement;
       }),
       switchMap(async (measurementWithGeo) => {
-        if (Capacitor.getPlatform() === 'android') {
-          const deviceInfo = await Device.getInfo();
-          measurementWithGeo['device_name'] = deviceInfo.name || null;
-          measurementWithGeo['device_model'] = deviceInfo.model || null;
-          measurementWithGeo['device_manufacturer'] =
-            deviceInfo.manufacturer || null;
-          measurementWithGeo['app_build_number'] =
-            environment.app_version || null;
-          measurementWithGeo['sdk_version'] =
-            deviceInfo.androidSDKVersion || null;
-          console.log(
-            `Giga Meter Measurement Angular : ${JSON.stringify(measurementWithGeo)}`,
-          );
-        }
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
           tap((data) => data),

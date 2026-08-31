@@ -105,7 +105,7 @@ export class ConfirmschoolPage implements OnInit {
   }
 
   isNativeApp(): boolean {
-    return Capacitor.getPlatform() === 'android';
+    return this.isNative;
   }
 
   async getLocation() {
@@ -197,8 +197,15 @@ export class ConfirmschoolPage implements OnInit {
                     if (a.manufacturer) {
                       this.storage.set('deviceManufacturer', a.manufacturer);
                     }
-                    if (a.osVersion) {
-                      this.storage.set('osVersion', a.osVersion);
+
+                    if (this.isNative) {
+                      if (a.osVersion) {
+                        this.storage.set('osVersion', a.androidSDKVersion);
+                      }
+                    } else {
+                      if (a.osVersion) {
+                        this.storage.set('osVersion', a.osVersion);
+                      }
                     }
                     this.getAppBuildNumber().then((buildNumber) => {
                       if (buildNumber) {
@@ -378,7 +385,11 @@ export class ConfirmschoolPage implements OnInit {
   async getAppBuildNumber() {
     try {
       const info = await App.getInfo();
-      return info.build;
+      if (Capacitor.getPlatform() === 'android') {
+        return info.version;
+      } else {
+        return info.build;
+      }
     } catch (error) {
       // Not available on this platform (e.g. web/Electron).
       return null;

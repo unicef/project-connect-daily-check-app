@@ -138,7 +138,7 @@ fun SpeedTestResultRequestEntity.toModel(): SpeedTestResultRequestModel {
     deviceManufacturer = deviceManufacturer,
     deviceModel = deviceModel,
     deviceName = deviceName,
-    sdkVersion = sdkVersion,
+    osVersion = osVersion,
 
 //    id = id,
 //    createdAt = createdAt,
