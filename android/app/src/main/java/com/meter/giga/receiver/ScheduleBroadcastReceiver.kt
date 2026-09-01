@@ -140,31 +140,6 @@ class ScheduleBroadcastReceiver(
       WorkManager.getInstance(context).enqueue(workRequest)
     }
   }
-//  private fun checkNotificationAndStartService(context: Context) {
-//    val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-//      ContextCompat.checkSelfPermission(
-//        context,
-//        Manifest.permission.POST_NOTIFICATIONS
-//      ) == PackageManager.PERMISSION_GRANTED
-//    } else true
-//
-//    if (hasNotificationPermission) {
-//      AppLogger.d(
-//        "GIGA ScheduleBroadcastReceiver",
-//        "Notification permission granted - starting service"
-//      )
-//      val serviceIntent = Intent(context, NetworkTestService::class.java).apply {
-//        putExtra(SCHEDULE_TYPE, SCHEDULE_TYPE_START)
-//      }
-//      ContextCompat.startForegroundService(context, serviceIntent)
-//    } else {
-//      AppLogger.d(
-//        "GIGA ScheduleBroadcastReceiver",
-//        "Notification permission still denied after alarm permission granted"
-//      )
-//      // Optionally: Show notification in settings or prompt user
-//    }
-//  }
 
   /**
    * Handles the main alarm trigger when scheduled time arrives

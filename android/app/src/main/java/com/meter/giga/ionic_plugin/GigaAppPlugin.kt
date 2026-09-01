@@ -101,7 +101,7 @@ open class GigaAppPlugin : Plugin() {
           put("uploadSpeed", uploadSpeed)
           put("testStatus", testStatus)
         }
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedUpdate: $data")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedUpdate: $data")
         it.notifyListeners("speedTestUpdate", data)
       }
     }
@@ -117,7 +117,7 @@ open class GigaAppPlugin : Plugin() {
         val data = JSObject().apply {
           put("testStatus", "offline")
         }
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedUpdate: $data")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedUpdate: $data")
         it.notifyListeners("speedTestUpdate", data)
       }
     }
@@ -140,7 +140,7 @@ open class GigaAppPlugin : Plugin() {
       measurementsItem: MeasurementsItem
     ) {
       pluginInstance?.let {
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedTestCompleted")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompleted")
         val speedTestResultEntity = SpeedTestResultEntity(
           speedTestData = speedTestData,
           testStatus = "complete",
@@ -150,7 +150,7 @@ open class GigaAppPlugin : Plugin() {
           .serializeNulls()
           .create().toJson(speedTestResultEntity)
         val data = JSObject(jsonString)
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedTestCompleted $data")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompleted $data")
         it.notifyListeners("speedTestUpdate", data as JSObject?)
       }
     }
@@ -169,7 +169,7 @@ open class GigaAppPlugin : Plugin() {
       measurementsItem: MeasurementsItem?
     ) {
       pluginInstance?.let {
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedTestCompletedWithError")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompletedWithError")
         val speedTestResultEntity = SpeedTestResultEntity(
           speedTestData = speedTestData,
           testStatus = "onerror",
@@ -179,7 +179,7 @@ open class GigaAppPlugin : Plugin() {
           .serializeNulls()
           .create().toJson(speedTestResultEntity)
         val data = JSObject(jsonString)
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedTestCompletedWithError $data")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompletedWithError $data")
         it.notifyListeners("speedTestUpdate", data as JSObject?)
       }
     }
@@ -192,7 +192,7 @@ open class GigaAppPlugin : Plugin() {
      */
     fun sendSpeedTestStarted() {
       pluginInstance?.let {
-        AppLogger.d("GIGA NetworkTestService", "sendSpeedTestStarted")
+        AppLogger.d("Giga Meter Plugin", "sendSpeedTestStarted")
         val data = JSObject().apply {
           put("testStatus", "onstart")
         }
@@ -208,7 +208,7 @@ open class GigaAppPlugin : Plugin() {
      */
     fun sendServerDiscoveryStarted() {
       pluginInstance?.let {
-        AppLogger.d("GIGA NetworkTestService", "server_discovery")
+        AppLogger.d("Giga Meter Plugin", "server_discovery")
         val data = JSObject().apply {
           put("testStatus", "server_discovery")
         }
@@ -222,7 +222,7 @@ open class GigaAppPlugin : Plugin() {
      */
     fun sendServerDiscoveryCompleted() {
       pluginInstance?.let {
-        AppLogger.d("GIGA NetworkTestService", "server_chosen")
+        AppLogger.d("Giga Meter Plugin", "server_chosen")
         val data = JSObject().apply {
           put("testStatus", "server_chosen")
         }
