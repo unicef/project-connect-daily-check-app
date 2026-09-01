@@ -14,7 +14,6 @@ import androidx.work.WorkManager
 import com.meter.giga.alarm_scheduler.AlarmHelper
 import com.meter.giga.alarm_scheduler.AlarmHelperType
 import com.meter.giga.prefrences.AlarmSharedPref
-import com.meter.giga.service.NetworkTestService
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.FIRST_15_MIN
 import com.meter.giga.utils.Constants.NEXT_SLOT
@@ -184,32 +183,6 @@ class ScheduleBroadcastReceiver(
         ) == PackageManager.PERMISSION_GRANTED
       } else true
 
-      val serviceIntent = Intent(context, NetworkTestService::class.java).apply {
-        putExtra(
-          SCHEDULE_TYPE,
-          if (intent?.getStringExtra(SCHEDULE_TYPE) == FIRST_15_MIN) {
-            SCHEDULE_TYPE_START
-          } else if (today != lastExecutionDate) {
-            SCHEDULE_TYPE_START
-          } else {
-            SCHEDULE_TYPE_DAILY
-          }
-        )
-      }
-
-      // Only start foreground service if notification permission is granted
-//      if (hasNotificationPermission) {
-//        if (intent?.getStringExtra(SCHEDULE_TYPE) == FIRST_15_MIN) {
-//          ContextCompat.startForegroundService(context, serviceIntent)
-//        } else if (today != lastExecutionDate &&
-//          intent?.getStringExtra(SCHEDULE_TYPE) != FIRST_15_MIN &&
-//          GigaUtil.isBefore8AM()
-//        ) {
-//          AppLogger.d("GIGA ScheduleBroadcastReceiver", "Schedule for 8 AM to 12 PM Slot")
-//        } else {
-//          ContextCompat.startForegroundService(context, serviceIntent)
-//        }
-//      }
       if (hasNotificationPermission) {
         val scheduleType = if (intent?.getStringExtra(SCHEDULE_TYPE) == FIRST_15_MIN) {
           SCHEDULE_TYPE_START
