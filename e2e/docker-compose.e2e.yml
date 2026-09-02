@@ -81,10 +81,10 @@ services:
         condition: service_started
     environment:
       DATABASE_URL: postgresql://giga:giga@e2e-db:5432/giga_e2e?schema=public
-      # Algunas ramas del backend declaran `directUrl = env("DIRECT_DATABASE_URL")`
-      # en el datasource de Prisma y sin la variable el arranque muere con P1012.
-      # Aquí no hay pooler, así que apunta a la misma DB; sobra sin hacer daño en
-      # las ramas cuyo schema no la usa.
+      # Some backend branches declare `directUrl = env("DIRECT_DATABASE_URL")`
+      # in the Prisma datasource, and without the variable startup dies with
+      # P1012. There is no pooler here, so it points at the same DB; it is
+      # harmless on branches whose schema does not use it.
       DIRECT_DATABASE_URL: postgresql://giga:giga@e2e-db:5432/giga_e2e?schema=public
       REDIS_URL: redis://e2e-redis:6379
       NODE_ENV: development # dev mode => CORS allows the ng serve origin
@@ -99,13 +99,13 @@ services:
     ports:
       - '3000:3000'
     volumes:
-      # Fixtures y cargador viven en ESTE repo, no en el backend: el seed-runner
-      # y el seed de España del backend solo existen en la línea de `develop`
-      # (los añadió el trabajo health-entity), así que depender de ellos ataba la
-      # suite a esa rama. Montados aquí, funciona con cualquier rama del backend.
+      # Fixtures and loader live in THIS repo, not in the backend: the backend's
+      # seed runner and Spain seed only exist on the `develop` line (added by the
+      # health-entity work), so depending on them tied the suite to that branch.
+      # Mounted here, it works with any backend branch.
       - ./seed:/APP/e2e-seed:ro
-    # La imagen arranca por defecto con start.sh (ssh + boot de prod); se
-    # sustituye por migrate -> seed -> serve. `node` y `pg` salen de /APP.
+    # The image starts with start.sh by default (ssh + prod boot); it is
+    # replaced by migrate -> seed -> serve. `node` and `pg` come from /APP.
     entrypoint:
       - /bin/sh
       - -c

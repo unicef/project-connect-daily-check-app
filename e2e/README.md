@@ -1,104 +1,104 @@
 # E2E — happy path (Playwright)
 
-Suite Playwright del happy path del Daily Check App corriendo en navegador
-(`ng serve`) contra el backend real en docker. Corresponde al plan 0010 del
-`project-memory` del workspace.
+Playwright suite for the Daily Check App happy path, running in a browser
+(`ng serve`) against the real backend in docker.
 
-> La carpeta `e2e/src` + `protractor.conf.js` son restos de Protractor
-> (descontinuado) y no se usan.
+> The `e2e/src` folder and `protractor.conf.js` are leftovers from Protractor
+> (discontinued) and are not used.
 
-## Qué cubre
+## What it covers
 
-Los 8 pasos del checklist del plan 0010, en serie sobre la misma instalación
-(comparten página: el checklist es un recorrido lineal y el estado se acumula):
+The 8 checklist steps, serially over the same installation (they share a page:
+the checklist is a linear walk and state accumulates):
 
-| # | Paso | Verificación |
+| # | Step | Verification |
 |---|------|--------------|
-| 1-4 | Instalación limpia → registro (España / `ES-TEST-SCHOOL-01`) → primer test ndt7 **real** → upload en tiempo real | payload y fila en DB con `upload_failed=false`, slot `null`; cola offline vacía |
-| 5 | Test manual desde el medidor | fila con `scheduled_slot`/`scheduled_at` en `null` |
-| 6 | Slot programado | fila con `scheduled_slot='A'` y `scheduled_at` = la hora planificada, sin reintentos |
-| 7 | UI post-medición | historial local + cifras visibles en la tarjeta de última medición |
-| 8 | Reinicio | el registro persiste (sin onboarding) y el scheduler se rearma |
+| 1-4 | Clean install → registration (Spain / `ES-TEST-SCHOOL-01`) → first **real** ndt7 test → realtime upload | payload and DB row with `upload_failed=false`, slot `null`; offline queue empty |
+| 5 | Manual test from the meter | row with `scheduled_slot`/`scheduled_at` set to `null` |
+| 6 | Scheduled slot | row with `scheduled_slot='A'` and `scheduled_at` = the planned time, no retries |
+| 7 | Post-measurement UI | local history + figures visible on the latest measurement card |
+| 8 | Restart | the registration persists (no onboarding) and the scheduler re-arms |
 
-El paso 6 no espera a un slot real (serían horas): inyecta un semáforo vencido
-para el slot A y deja que lo recoja el tick de 60 s del scheduler, como en
-producción. Los tres campos del plan 0006 se comprueban **en columna de DB**
-(`e2e/playwright/db.ts`, vía `psql` en el contenedor), no solo en el payload.
+Step 6 does not wait for a real slot (that would take hours): it injects an
+expired semaphore for slot A and lets the scheduler's 60 s tick pick it up, as
+in production. The three scheduling fields are checked **in the DB columns**
+(`e2e/playwright/db.ts`, via `psql` in the container), not only in the payload.
 
-Lo que NO cubre (por diseño): el main process de Electron
-(`systeminformation`, wifi, hardware id — llegan como `null`/`'N/A'`), el
-instalador, y el camino de fallo de upload → sync (QA del plan 0006).
+What it does NOT cover (by design): the Electron main process
+(`systeminformation`, wifi, hardware id — they arrive as `null`/`'N/A'`), the
+installer, and the upload-failure → sync path.
 
-## Requisitos
+## Requirements
 
-- Docker Desktop corriendo.
-- `giga-meter-backend` como repo hermano (layout del workspace giga).
-- Internet (el speed test ndt7 corre contra servidores M-Lab reales).
-- Una vez: `npx playwright install chromium`.
+- Docker Desktop running.
+- `giga-meter-backend` checked out as a sibling repo.
+- Internet (the ndt7 speed test runs against real M-Lab servers).
+- Once: `npx playwright install chromium`.
 
-### Rama del backend hermano
+### Sibling backend branch
 
-El stack construye el backend desde el **working tree** del repo hermano, así
-que la suite corre contra la rama que tengas ahí checked out. Funciona con
-`develop` y con `staging` (verificado en ambas, 2026-08-17).
+The stack builds the backend from the sibling repo's **working tree**, so the
+suite runs against whichever branch you have checked out there. It works with
+`develop` and with `staging` (verified on both, 2026-08-17).
 
-Los fixtures viven en `e2e/seed/` de **este** repo y se montan en el
-contenedor, para no depender de que el backend traiga el tooling de seed:
+The fixtures live in `e2e/seed/` in **this** repo and are mounted into the
+container, so nothing depends on the backend shipping the seed tooling:
 
-- `seed.js` — cargador con `pg`. Sustituye a `src/prisma/scripts/seed-runner.ts`
-  del backend, que solo existe en la línea de `develop` (lo añadió el commit
-  `ef07c5b` del trabajo health-entity y nunca llegó a `staging`).
-- `seed-spain.sql` — fixture ES mínimo: `country`, `dailycheckapp_country` y la
-  escuela `ES-TEST-SCHOOL-01`. Nada de `facility_type`, whitelist ni `health`:
-  eso es del multi-facility (plan 0003), sus tablas no existen en `staging` y el
-  RC 2.0.4 solo hace el flujo school sobre `/api/v1`.
+- `seed.js` — loader using `pg`. Replaces the backend's
+  `src/prisma/scripts/seed-runner.ts`, which only exists on the `develop` line
+  (commit `ef07c5b` of the health-entity work added it and it never reached
+  `staging`).
+- `seed-spain.sql` — minimal ES fixture: `country`, `dailycheckapp_country` and
+  the `ES-TEST-SCHOOL-01` school. No `facility_type`, whitelist or `health`:
+  those belong to multi-facility, their tables do not exist on `staging`, and
+  RC 2.0.4 only runs the school flow over `/api/v1`.
 
-Única condición extra: para que pasen las aserciones en DB de
-`upload_failed`/`scheduled_slot`/`scheduled_at`, la rama del backend necesita la
-migración del plan 0006.
+One extra condition: for the `upload_failed`/`scheduled_slot`/`scheduled_at` DB
+assertions to pass, the backend branch needs the migration that adds those
+columns.
 
-## Contra el staging real
+## Against real staging
 
 ```bash
 npm run e2e:stg
 ```
 
-Usa `playwright.stg.config.ts`: no levanta docker, sirve el app con `npm start`
-(sin la config `e2e`, así que `_environment.prod.ts` manda — está en
-`mode: 'stg'` y resuelve `restAPIStg` + `tokenStg`) y corre el mismo spec con
-`E2E_SKIP_DB=1`, que omite las comprobaciones en columna porque no hay
-contenedor de Postgres. Quedan las de payload, storage y UI.
+Uses `playwright.stg.config.ts`: no docker, serves the app with `npm start`
+(without the `e2e` configuration, so `_environment.prod.ts` wins — it is on
+`mode: 'stg'` and resolves `restAPIStg` + `tokenStg`) and runs the same spec
+with `E2E_SKIP_DB=1`, which skips the column checks because there is no Postgres
+container. The payload, storage and UI ones remain.
 
-**Escribe datos reales**: un registro de dispositivo y hasta 3 mediciones ndt7
-por corrida, en un entorno compartido. No es desechable.
+**It writes real data**: one device registration and up to 3 ndt7 measurements
+per run, in a shared environment. It is not disposable.
 
-## Correr
+## Running
 
 ```bash
 npm run e2e
 ```
 
-Playwright levanta solo los dos servidores (config `webServer`):
+Playwright starts both servers itself (`webServer` config):
 
 1. `docker compose -f e2e/docker-compose.e2e.yml up --build` — Postgres
-   (PostGIS, puerto host 55432) + Redis + backend en `:3000` + un mock del
-   servicio de validación de api keys de Project Connect (acepta cualquier
-   token con write access y categoría `giga_meter`). Al arrancar aplica
-   migraciones y los seeds idempotentes (`seed-spain-project-connect.sql` +
-   `e2e/seed/e2e-category-config.sql`). La primera vez el build de la imagen
-   tarda varios minutos.
-2. `npm run start:e2e` — `ng serve --configuration e2e`, que reemplaza
-   `_environment.prod.ts` por `src/environments/_environment.e2e.ts`
+   (PostGIS, host port 55432) + Redis + backend on `:3000` + a mock of the
+   Project Connect api key validation service (it accepts any token with write
+   access and the `giga_meter` category). On startup it applies migrations and
+   the idempotent seeds (`seed-spain-project-connect.sql` +
+   `e2e/seed/e2e-category-config.sql`). The first image build takes several
+   minutes.
+2. `npm run start:e2e` — `ng serve --configuration e2e`, which replaces
+   `_environment.prod.ts` with `src/environments/_environment.e2e.ts`
    (API → `http://localhost:3000/api/v1/`).
 
-Ambos usan `reuseExistingServer`: si ya los tienes levantados a mano, los
-reutiliza. Para bajar y limpiar el stack docker (borra la DB):
+Both use `reuseExistingServer`: if you already have them up by hand, they are
+reused. To bring down and clean the docker stack (this deletes the DB):
 
 ```bash
 npm run e2e:down
 ```
 
-Modo visible / debug:
+Headed / debug mode:
 
 ```bash
 npm run e2e:headed
@@ -108,24 +108,24 @@ npm run e2e:headed
 npx playwright test --debug
 ```
 
-Reporte HTML tras un fallo: `e2e/playwright-report/` (trace y video se
-guardan solo en fallos).
+HTML report after a failure: `e2e/playwright-report/` (trace and video are kept
+on failures only).
 
-## Notas de estabilidad
+## Stability notes
 
-- `api.ipinfo.io` y `ipv4.geojs.io` van interceptados con respuestas fijas
-  (evita ~14 s de reintentos y flakiness).
-- El **startup test** se silencia sembrando `startupTestScheduled`/
-  `lastStartupTest`/`lastMeasurement` en localStorage antes de cargar la app,
-  para que su delay aleatorio de 0-15 min no compita con los tests del
-  checklist. El scheduler en sí sigue vivo: el paso 6 lo necesita.
-- `scheduledTesting` viene desactivado por defecto; el paso 6 lo habilita en
-  `savedSettings` antes de inyectar el semáforo, o `getSemaphore()` lo vaciaría
-  en cada tick.
-- El primer test dispara un modal de felicitación que tapa el medidor: el paso 5
-  lo cierra antes de pinchar.
-- La suite completa tarda ~4-5 min (cada speed test real dura ~25-45 s y el
-  paso 6 espera hasta un minuto al tick del scheduler).
-- El compose define `DIRECT_DATABASE_URL` además de `DATABASE_URL`: algunas
-  ramas declaran `directUrl` en el datasource de Prisma y sin ella el backend
-  no arranca (P1012).
+- `api.ipinfo.io` and `ipv4.geojs.io` are intercepted with fixed responses
+  (avoids ~14 s of retries and flakiness).
+- The **startup test** is silenced by seeding `startupTestScheduled`/
+  `lastStartupTest`/`lastMeasurement` into localStorage before loading the app,
+  so its random 0-15 min delay does not compete with the checklist tests. The
+  scheduler itself stays alive: step 6 needs it.
+- `scheduledTesting` is off by default; step 6 enables it in `savedSettings`
+  before injecting the semaphore, or `getSemaphore()` would clear it on every
+  tick.
+- The first test triggers a congratulations modal that covers the meter: step 5
+  closes it before clicking.
+- The full suite takes ~4-5 min (each real speed test lasts ~25-45 s and step 6
+  waits up to a minute for the scheduler tick).
+- The compose file defines `DIRECT_DATABASE_URL` in addition to `DATABASE_URL`:
+  some branches declare `directUrl` in the Prisma datasource and without it the
+  backend does not start (P1012).

@@ -1,41 +1,41 @@
 import { defineConfig } from '@playwright/test';
 
-// Variante de la suite e2e contra el **staging real** (Azure), no el stack
-// local de docker. Corre con:  npm run e2e:stg
+// Variant of the e2e suite that runs against **real staging** (Azure) instead
+// of the local docker stack. Run it with:  npm run e2e:stg
 //
-// Diferencias con playwright.config.ts:
-//   * No levanta docker: el backend es el desplegado en Azure.
-//   * Sirve el app con `ng serve` **sin** la configuración e2e, así que usa
-//     `_environment.prod.ts` tal cual — que está en `mode: 'stg'` y por tanto
-//     resuelve restAPIStg + tokenStg. El token nunca se maneja aquí.
-//   * `E2E_SKIP_DB=1`: no hay contenedor de Postgres al que consultar, así que
-//     las comprobaciones en columna se omiten y quedan las de payload, storage
-//     y UI.
-//   * La escuela es una real de staging, cuyo giga id no se conoce de antemano.
+// Differences from playwright.config.ts:
+//   * No docker: the backend is the one deployed on Azure.
+//   * Serves the app with `ng serve` **without** the e2e configuration, so it
+//     uses `_environment.prod.ts` as-is — which is on `mode: 'stg'` and
+//     therefore resolves restAPIStg + tokenStg. The token is never handled here.
+//   * `E2E_SKIP_DB=1`: there is no Postgres container to query, so the column
+//     assertions are skipped and only the payload, storage and UI ones remain.
+//   * The school is a real staging one, whose giga id is not known upfront.
 //
-// AVISO: esto **escribe datos reales** en staging (un registro de dispositivo y
-// una medición por cada test que sube). No es un entorno desechable.
+// WARNING: this **writes real data** to staging (one device registration and
+// one measurement per test that uploads). It is not a disposable environment.
 //
-// Limitación conocida: mientras el PR #349 no esté mergeado y desplegado,
-// staging no tiene las columnas del plan 0006, así que esta corrida no puede
-// validar `upload_failed`/`scheduled_slot`/`scheduled_at` en base de datos —
-// solo que el app los envía en el payload.
+// Known limitation: until unicef/giga-meter-backend#349 is merged and deployed,
+// staging does not have the `upload_failed`/`scheduled_slot`/`scheduled_at`
+// columns, so this run cannot validate them in the database — only that the app
+// sends them in the payload.
 const STG_API = 'https://uni-ooi-giga-meter-backend-stg.azurewebsites.net/api/v1/';
 
-// Se fijan aquí, no en `webServer.env`, porque eso solo afecta al proceso del
-// servidor: los specs las leen en los workers, que heredan el entorno de este
-// proceso. Se respeta lo que ya venga del shell para poder sobreescribir.
+// Set here and not in `webServer.env`, because that only affects the server
+// process: the specs read them in the workers, which inherit this process's
+// environment. Whatever the shell already provides wins, so it can be
+// overridden.
 process.env.E2E_API ??= STG_API;
 process.env.E2E_SKIP_DB ??= '1';
 process.env.E2E_SCHOOL_ID ??= 'spaintestschool1';
-// Vacío a propósito: el giga id de una escuela real no se conoce de antemano,
-// así que el spec solo comprueba que exista y sea coherente.
+// Deliberately empty: the giga id of a real school is not known upfront, so
+// the spec only checks that it exists and is consistent.
 process.env.E2E_GIGA_ID ??= '';
 
 export default defineConfig({
   testDir: './e2e/playwright',
   timeout: 300_000,
-  expect: { timeout: 20_000 }, // Azure responde más lento que el stack local
+  expect: { timeout: 20_000 }, // Azure responds more slowly than the local stack
   workers: 1,
   retries: 0,
   reporter: [
@@ -52,7 +52,7 @@ export default defineConfig({
       command: 'npm start',
       url: 'http://localhost:4200',
       timeout: 300_000,
-      reuseExistingServer: false, // no reutilizar un ng serve apuntando a local
+      reuseExistingServer: false, // do not reuse an ng serve pointing at local
       stdout: 'ignore',
       stderr: 'pipe',
     },

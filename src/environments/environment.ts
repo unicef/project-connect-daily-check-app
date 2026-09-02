@@ -32,15 +32,15 @@ export const environment = {
     siteId: environmentConfig[env.mode].matomoSiteId as string,
   },
   posthog: {
-    // Project API key de PostHog (lo que en Sentry sería el DSN). Sin clave, el
-    // servicio no arranca: un build sin configurar simplemente no manda nada.
+    // PostHog project API key (the equivalent of Sentry's DSN). Without a key
+    // the service does not start: an unconfigured build simply sends nothing.
     apiKey: environmentConfig[env.mode].posthogKey as string,
-    // Región EU por defecto: los datos de escuelas no deben salir a US salvo
-    // decisión explícita.
+    // EU region by default: school data must not leave for the US without an
+    // explicit decision.
     host: ((env as any).posthogHost as string) || 'https://eu.i.posthog.com',
-    // Session replay graba la pantalla del usuario. Queda apagado salvo que se
-    // active explícitamente: el alcance lo está definiendo el research de
-    // Shilpa (ítem 2 del plan 0004) y en escuelas es decisión de privacidad.
+    // Session replay records the user's screen. It stays off unless explicitly
+    // enabled: its scope is still being defined, and in schools it is a privacy
+    // decision.
     enableSessionRecording:
       (env as any).posthogEnableSessionRecording === true,
   },

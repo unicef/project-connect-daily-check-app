@@ -5,22 +5,23 @@ import posthog from 'posthog-js';
 import { environment } from 'src/environments/environment';
 
 /**
- * PostHog product analytics (ítem 2 del plan 0004, release v2.0.4).
+ * PostHog product analytics (release v2.0.4).
  *
- * Mismas reglas que MatomoService: todo va envuelto en try/catch para que un
- * fallo aquí (config ausente, red caída, SDK roto) nunca tumbe el app, y sin
- * configuración el servicio simplemente no hace nada.
+ * Same rules as MatomoService: everything is wrapped in try/catch so a failure
+ * here (missing config, network down, broken SDK) never takes the app down,
+ * and with no configuration the service simply does nothing.
  *
- * Notas propias de este app:
- * - Es un Electron de escritorio que vive con conectividad intermitente — es
- *   literalmente lo que mide. El SDK se empaqueta (no se carga por CDN como
- *   Matomo) para que funcione offline y encole los eventos hasta que vuelva la
- *   red, y para no depender de cargar un script remoto bajo la CSP de Electron.
- * - En Electron `window.location` es `file://`, inútil para analítica: se usa
- *   el mismo host virtual que Matomo para que las URLs sean legibles.
- * - Nada de PII: se identifica por giga id de la escuela, que es lo mismo que
- *   ya viaja en cada medición. Nunca nombre de escuela, usuario de Windows,
- *   rutas de instalación ni IP.
+ * Notes specific to this app:
+ * - It is a desktop Electron app living with intermittent connectivity — that
+ *   is literally what it measures. The SDK is bundled (not loaded from a CDN
+ *   like Matomo) so it works offline and queues events until the network is
+ *   back, and so it does not depend on loading a remote script under Electron's
+ *   CSP.
+ * - In Electron `window.location` is `file://`, useless for analytics: the same
+ *   virtual host as Matomo is used so the URLs stay readable.
+ * - No PII: identification is by the school's giga id, which is the same value
+ *   that already travels with every measurement. Never a school name, a Windows
+ *   user, installation paths or an IP.
  */
 @Injectable({
   providedIn: 'root',
@@ -28,21 +29,20 @@ import { environment } from 'src/environments/environment';
 export class PosthogService {
   private initialized = false;
 
-  // Tipo de grupo de PostHog para agregar por centro. La escuela va como
-  // *group*, no como persona: cada instalación sigue siendo un "person"
-  // propio, así que se pueden contar dispositivos por escuela en vez de
-  // colapsarlos todos en uno.
+  // PostHog group type used to aggregate by site. The school goes in as a
+  // *group*, not as a person: each installation stays its own "person", so
+  // devices can be counted per school instead of collapsing them all into one.
   private readonly SCHOOL_GROUP = 'school';
 
-  // Mismo host virtual que MatomoService, para que ambas herramientas reporten
-  // las mismas URLs y se puedan cruzar.
+  // Same virtual host as MatomoService, so both tools report the same URLs and
+  // can be cross-referenced.
   private readonly electronVirtualOrigin = 'https://app.gigameter.local';
 
   constructor(private router: Router) {}
 
   /**
-   * Arranca PostHog. Es seguro llamarlo varias veces.
-   * No hace nada si falta la project API key o el host.
+   * Starts PostHog. Safe to call more than once.
+   * Does nothing when the project API key or the host is missing.
    */
   init(): void {
     try {
@@ -60,17 +60,17 @@ export class PosthogService {
 
       posthog.init(apiKey, {
         api_host: host,
-        // Las vistas se mandan a mano en trackRouteChanges(): con rutas hash
-        // de Angular el autocapture de pageviews no las ve.
+        // Page views are sent by hand in trackRouteChanges(): with Angular's
+        // hash routes the pageview autocapture does not see them.
         capture_pageview: false,
         capture_pageleave: true,
-        autocapture: false, // solo eventos explícitos: menos ruido y menos PII
+        autocapture: false, // explicit events only: less noise and less PII
         disable_session_recording: !environment.posthog?.enableSessionRecording,
-        // localStorage guarda la cola offline; la cookie mantiene estable el
-        // anon id del dispositivo si se limpia el storage del renderer.
+        // localStorage holds the offline queue; the cookie keeps the device's
+        // anon id stable if the renderer's storage is cleared.
         persistence: 'localStorage+cookie',
-        // La instalación puede pasar horas sin red; que el SDK reintente en vez
-        // de descartar.
+        // The installation can spend hours without network; let the SDK retry
+        // instead of dropping events.
         request_batching: true,
         loaded: (ph) => {
           try {
@@ -98,7 +98,7 @@ export class PosthogService {
   }
 
   /**
-   * Registra un evento. Seguro aunque PostHog no esté inicializado.
+   * Records an event. Safe even when PostHog is not initialized.
    */
   capture(event: string, properties?: Record<string, any>): void {
     try {
@@ -112,10 +112,10 @@ export class PosthogService {
   }
 
   /**
-   * Asocia los eventos a una escuela. Se llama al arrancar (si ya hay registro)
-   * y justo después de completar el registro.
+   * Ties events to a school. Called at startup (when a registration already
+   * exists) and right after the registration completes.
    *
-   * El identificador es el giga id: identifica al centro, no a la persona.
+   * The identifier is the giga id: it identifies the site, not the person.
    */
   identify(gigaId: string, properties?: Record<string, any>): void {
     try {
@@ -129,7 +129,7 @@ export class PosthogService {
   }
 
   /**
-   * Vista de página manual. Con rutas hash hay que mandarlas a mano.
+   * Manual page view. With hash routes they have to be sent by hand.
    */
   trackPageView(url?: string): void {
     try {
@@ -145,7 +145,7 @@ export class PosthogService {
     }
   }
 
-  /** Corta la sesión al cerrar sesión en el app, para no mezclar escuelas. */
+  /** Ends the session when the user logs out, so schools are not mixed. */
   reset(): void {
     try {
       if (!this.initialized) {
@@ -158,22 +158,23 @@ export class PosthogService {
   }
 
   /**
-   * Reenvía a PostHog los eventos que emite el main process de Electron.
+   * Forwards to PostHog the events emitted by the Electron main process.
    *
-   * El main no habla con PostHog directamente: `posthog-node` no persiste su
-   * cola entre sesiones y este equipo pasa horas sin red, así que sus eventos
-   * serían los menos fiables justo donde más cuesta recuperarlos. El SDK del
-   * renderer sí encola en localStorage y sobrevive a reinicios.
+   * The main process does not talk to PostHog directly: `posthog-node` does not
+   * persist its queue across sessions and these machines spend hours without
+   * network, so its events would be the least reliable exactly where they are
+   * hardest to recover. The renderer SDK does queue in localStorage and
+   * survives restarts.
    *
-   * Hoy solo llega el ciclo de vida del auto-update, que es lo único que ni el
-   * renderer ni el backend ven: un equipo que falla al actualizar deja de
-   * mandar mediciones y desaparece de las queries de adopción de versiones.
+   * Today only the auto-update lifecycle arrives, which is the one thing
+   * neither the renderer nor the backend sees: a machine that fails to update
+   * stops sending measurements and disappears from version adoption queries.
    */
   private bridgeMainProcessEvents(): void {
     try {
       const electronAPI = (window as any).electronAPI;
       if (!electronAPI?.onTelemetryEvent) {
-        return; // navegador, o build sin el preload nuevo
+        return; // browser, or a build without the new preload
       }
       electronAPI.onTelemetryEvent(
         (payload: { event: string; properties?: Record<string, any> }) => {
@@ -192,8 +193,8 @@ export class PosthogService {
   }
 
   /**
-   * Asocia el dispositivo al grupo de su escuela. Se llama al arrancar (si ya
-   * hay registro) y justo después de completar el registro.
+   * Ties the device to its school's group. Called at startup (when a
+   * registration already exists) and right after the registration completes.
    */
   setSchool(gigaId: string | number | null | undefined): void {
     try {
@@ -242,8 +243,8 @@ export class PosthogService {
   }
 
   /**
-   * Origen limpio para reportar. En Electron el real es `file://`, que no sirve
-   * para analítica, así que se sustituye por un host virtual fijo.
+   * Clean origin for reporting. In Electron the real one is `file://`, which is
+   * useless for analytics, so it is replaced by a fixed virtual host.
    */
   private getTrackingOrigin(): string {
     try {

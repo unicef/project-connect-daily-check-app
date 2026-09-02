@@ -41,9 +41,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.removeAllListeners('system-hardware-id');
     ipcRenderer.removeAllListeners('system-hardware-id-error');
   },
-  // Eventos del main process (ciclo de vida del auto-update) que el renderer
-  // publica en PostHog: su SDK persiste la cola en localStorage y sobrevive a
-  // reinicios sin red, cosa que el SDK de node no hace.
+  // Main process events (auto-update lifecycle) that the renderer publishes to
+  // PostHog: its SDK persists the queue in localStorage and survives restarts
+  // without network, which the node SDK does not.
   onTelemetryEvent: (
     callback: (payload: { event: string; properties?: any }) => void
   ) => {

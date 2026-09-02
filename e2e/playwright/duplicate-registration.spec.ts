@@ -1,16 +1,16 @@
 import { test, expect, Browser, Page } from '@playwright/test';
 import { schoolRegistrationCount } from './db';
 
-// Regresión del bug de registros duplicados: la pantalla de confirmación creaba
-// una fila en `dailycheckapp_school` (con su propio user_id) por cada tap en
-// "Yes", porque el botón no tenía guard de reentrada y el loader se cerraba solo
-// a los 4 s, dejando la pantalla aparentemente muerta mientras el registro
-// seguía en curso.
+// Regression test for the duplicate registration bug: the confirmation screen
+// created one `dailycheckapp_school` row (with its own user_id) per tap on
+// "Yes", because the button had no re-entrancy guard and the loader dismissed
+// itself after 4 s, leaving the screen apparently dead while the registration
+// was still in flight.
 //
-// Fixtures: los mismos que el happy path (seed-spain, aplicado por el compose
-// de e2e). Este spec crea su propia página, así que no depende del estado que
-// deja happy-path.spec.ts — solo mide el delta de filas en la DB, que sí es
-// compartido.
+// Fixtures: the same as the happy path (seed-spain, applied by the e2e
+// compose). This spec creates its own page, so it does not depend on the state
+// happy-path.spec.ts leaves behind — it only measures the delta of rows in the
+// DB, which is shared.
 test.describe.configure({ mode: 'serial' });
 
 const API = process.env.E2E_API ?? 'http://localhost:3000/api/v1/';
@@ -20,11 +20,11 @@ const EXPECTED_GIGA_ID =
   process.env.E2E_GIGA_ID ?? '11111111-1111-4111-8111-111111111111';
 const SKIP_DB = process.env.E2E_SKIP_DB === '1';
 
-// Contra el backend local el POST de registro responde en milisegundos, así que
-// sin retardo no habría ventana en la que tocar "Yes" otra vez y el test pasaría
-// incluso con el bug presente. Este retardo simula la máquina lenta del reporte.
-// Es mayor que los 4 s del auto-dismiss que tenía el loader, para que el spec
-// también detecte si alguien vuelve a pasarle una `duration`.
+// Against the local backend the registration POST answers in milliseconds, so
+// without a delay there would be no window in which to tap "Yes" again and the
+// test would pass even with the bug present. This delay simulates the slow
+// machine from the report. It is longer than the 4 s auto-dismiss the loader
+// used to have, so the spec also catches anyone passing it a `duration` again.
 const REGISTRATION_DELAY = 6_000;
 const EXTRA_TAPS = 5;
 const TAP_INTERVAL = 1_000;
@@ -57,8 +57,8 @@ const FAKE_IP_METADATA = {
   timezone: 'Europe/Madrid',
 };
 
-// Ionic deja las páginas anteriores en el DOM (ion-page-hidden): todo selector
-// filtra por :visible o matchea copias ocultas.
+// Ionic leaves previous pages in the DOM (ion-page-hidden): every selector
+// filters by :visible or it matches hidden copies.
 function visibleButton(page: Page, text: string) {
   return page.locator('ion-button:visible', { hasText: text }).first();
 }
@@ -92,9 +92,9 @@ test.beforeAll(async ({ browser }: { browser: Browser }) => {
     route.fulfill({ json: FAKE_IP_METADATA }),
   );
 
-  // Retardar el registro y contar cuántas veces se manda. El contador va aquí
-  // (y no en page.on('response')) para que cuente también los POST que se
-  // quedan en vuelo si el test termina antes de que respondan.
+  // Delay the registration and count how many times it is sent. The counter
+  // lives here (and not in page.on('response')) so it also counts the POSTs
+  // still in flight if the test ends before they answer.
   await page.route(`${API}dailycheckapp_schools`, async (route) => {
     if (route.request().method() !== 'POST') {
       await route.continue();
@@ -105,8 +105,8 @@ test.beforeAll(async ({ browser }: { browser: Browser }) => {
     await route.continue();
   });
 
-  // Silenciar el startup test (delay aleatorio de 0-15 min) para que no compita
-  // con el registro.
+  // Silence the startup test (random 0-15 min delay) so it does not compete
+  // with the registration.
   await page.addInitScript(() => {
     const now = String(Date.now());
     localStorage.setItem('startupTestScheduled', now);
@@ -119,10 +119,10 @@ test.afterAll(async () => {
   await page?.close();
 });
 
-test('tocar "Yes" varias veces registra la escuela una sola vez', async () => {
+test('tapping "Yes" several times registers the school only once', async () => {
   const rowsBefore = SKIP_DB ? null : schoolRegistrationCount(EXPECTED_GIGA_ID);
 
-  // ── Registro hasta la pantalla de confirmación (pasos 1-5 del happy path) ──
+  // ── Registration up to the confirmation screen (happy path steps 1-5) ──
   await page.goto('/#/home');
   await waitForLoaderGone(page);
   await visibleButton(page, 'Next').click();
@@ -155,25 +155,25 @@ test('tocar "Yes" varias veces registra la escuela una sola vez', async () => {
   await expect(page.locator('ion-item.single_school:visible')).toBeVisible();
   await visibleButton(page, 'Select').click();
 
-  // ── Usuario impaciente: un tap y cinco más mientras el POST está en vuelo ──
+  // ── Impatient user: one tap plus five more while the POST is in flight ──
   await waitForLoaderGone(page);
   const yesBtn = page
     .locator('ion-button.yesbtn:visible', { hasText: 'Yes' })
     .first();
   await yesBtn.click();
 
-  // El botón queda deshabilitado en cuanto arranca el registro.
+  // The button is disabled as soon as the registration starts.
   await expect(yesBtn).toHaveAttribute('aria-disabled', 'true');
 
-  // dispatchEvent salta la comprobación de "clickable": así el test cubre el
-  // guard del componente y no solo el binding [disabled] del template.
+  // dispatchEvent skips the "clickable" check, so the test covers the
+  // component guard and not just the template's [disabled] binding.
   for (let i = 0; i < EXTRA_TAPS; i++) {
     await page.waitForTimeout(TAP_INTERVAL);
     await yesBtn.dispatchEvent('click').catch(() => undefined);
   }
 
-  // ~5 s después del primer tap el loader sigue en pantalla: ya no se cierra
-  // solo a los 4 s mientras el registro sigue en vuelo.
+  // ~5 s after the first tap the loader is still on screen: it no longer
+  // dismisses itself after 4 s while the registration is in flight.
   await expect(page.locator('ion-loading').first()).toBeAttached();
 
   await page.waitForURL('**/starttest', { timeout: 30_000 });

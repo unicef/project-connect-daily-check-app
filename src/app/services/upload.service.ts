@@ -231,8 +231,9 @@ export class UploadService {
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
           tap((data) => {
-            // Medición entregada en tiempo real. Sin cifras de velocidad: para
-            // eso está la propia tabla de mediciones; aquí interesa el embudo.
+            // Measurement delivered in realtime. No speed figures: that is what
+            // the measurements table itself is for; what matters here is the
+            // funnel.
             this.posthog.capture('measurement_uploaded', {
               notes: measurementWithGeo.Notes,
               scheduled_slot: measurementWithGeo['scheduled_slot'],
@@ -247,8 +248,8 @@ export class UploadService {
               ...measurementWithGeo,
               upload_failed: true,
             });
-            // El upload en tiempo real falló y la medición queda en la cola
-            // local: es la señal que el flag del plan 0006 persigue.
+            // The realtime upload failed and the measurement stays in the local
+            // queue: this is the signal the upload_failed flag is after.
             this.posthog.capture('measurement_queued_offline', {
               notes: measurementWithGeo.Notes,
               scheduled_slot: measurementWithGeo['scheduled_slot'],

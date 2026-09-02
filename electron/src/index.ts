@@ -56,17 +56,17 @@ let mainWindow = null;
 let isDownloaded = false;
 
 /**
- * Manda un evento de telemetría al renderer, que lo publica en PostHog.
+ * Sends a telemetry event to the renderer, which publishes it to PostHog.
  *
- * El SDK del renderer (posthog-js) persiste su cola en localStorage y sobrevive
- * a reinicios; `posthog-node` en el main process no, y este equipo pasa horas
- * sin red. Por eso el main no habla con PostHog directamente: solo el ciclo de
- * vida del auto-update, que es lo único que ni el renderer ni el backend ven
- * (un equipo que falla al actualizar deja de mandar mediciones y desaparece de
- * las queries de adopción).
+ * The renderer SDK (posthog-js) persists its queue in localStorage and survives
+ * restarts; `posthog-node` in the main process does not, and these machines
+ * spend hours without network. That is why the main process does not talk to
+ * PostHog directly: only the auto-update lifecycle, which is the one thing
+ * neither the renderer nor the backend sees (a machine that fails to update
+ * stops sending measurements and disappears from adoption queries).
  *
- * Si la ventana no está viva el evento se pierde, y es aceptable: el fallo de
- * update ya va a Sentry por separado.
+ * If the window is not alive the event is lost, and that is acceptable: update
+ * failures already go to Sentry separately.
  */
 function sendTelemetry(event: string, properties: Record<string, any> = {}) {
   try {
@@ -169,9 +169,9 @@ if (!gotTheLock) {
         systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
       console.log('\n🔑 PRIMARY HARDWARE ID (use this):', hardwareId);
 
-      // hardwareId viaja solo como metadato de diagnóstico, nunca como
-      // identidad de analítica: el distinct_id y el grupo de escuela los pone
-      // el renderer, que es quien habla con PostHog.
+      // hardwareId travels only as diagnostic metadata, never as an analytics
+      // identity: the distinct_id and the school group are set by the renderer,
+      // which is the side that talks to PostHog.
       sendTelemetry('app_launched', {
         manufacturer: systemData.manufacturer,
         model: systemData.model,
@@ -381,9 +381,9 @@ app.on('activate', async function () {
 // Handle app quitting to cleanup resources
 app.on('before-quit', () => {
   setIsQuiting(true);
-  // Antes de cleanup(): sendTelemetry necesita la ventana viva. posthog-js
-  // persiste su cola en localStorage, así que si el proceso muere antes de
-  // mandarlo, el evento sale en el siguiente arranque.
+  // Before cleanup(): sendTelemetry needs the window alive. posthog-js
+  // persists its queue in localStorage, so if the process dies before sending
+  // it, the event goes out on the next launch.
   sendTelemetry('app_quit');
   myCapacitorApp.cleanup();
 });

@@ -1,28 +1,28 @@
 -- ============================================================
--- Fixture de España (ES) para la suite e2e — flujo school
+-- Spain (ES) fixture for the e2e suite — school flow
 -- ============================================================
--- Portado (y recortado) desde `seed-spain-project-connect.sql` de
--- giga-meter-backend, que vive solo en la línea de `develop`: lo añadió el
--- commit ef07c5b del trabajo health-entity y nunca llegó a `staging`. Esta
--- copia es del repo del app y se monta en el contenedor, para que la suite no
--- dependa de qué rama tenga el backend hermano.
+-- Ported (and trimmed) from `seed-spain-project-connect.sql` in
+-- giga-meter-backend, which only lives on the `develop` line: commit ef07c5b of
+-- the health-entity work added it and it never reached `staging`. This copy
+-- belongs to the app repo and is mounted into the container, so the suite does
+-- not depend on which branch the sibling backend has checked out.
 --
--- Alcance: solo lo que necesita el RC 2.0.4, que registra y mide por
--- `/api/v1` con escuelas. Del original se dejaron fuera `facility_type`,
--- `country_facility_type_whitelist` y `health`: son del trabajo multi-facility
--- (plan 0003), sus tablas no existen en `staging` y el app de esta rama nunca
--- las toca.
+-- Scope: only what RC 2.0.4 needs, which registers and measures through
+-- `/api/v1` with schools. `facility_type`, `country_facility_type_whitelist`
+-- and `health` were left out of the original: they belong to the multi-facility
+-- work, their tables do not exist on `staging`, and the app on this branch
+-- never touches them.
 --
--- Lo que necesita el app (trazado desde sus servicios):
---   * dailycheckapp_country → dropdown de países y validación del código
---   * country               → destino de la FK de school
---   * school                → match por external_id + country_code
+-- What the app needs (traced from its services):
+--   * dailycheckapp_country → country dropdown and code validation
+--   * country               → target of the school FK
+--   * school                → matched by external_id + country_code
 --
--- Registros y mediciones NO se siembran a propósito: crearlos es justamente lo
--- que verifica el test.
+-- Registrations and measurements are deliberately NOT seeded: creating them is
+-- exactly what the test verifies.
 
 -- ============================================================
--- 1.  country (ES) — destino de la FK de school
+-- 1.  country (ES) — target of the school FK
 -- ============================================================
 INSERT INTO country (name, code, iso3_format, is_active)
 VALUES ('Spain', 'ES', 'ESP', true)
@@ -32,9 +32,9 @@ SET name        = EXCLUDED.name,
     is_active   = true;
 
 -- ============================================================
--- 2.  dailycheckapp_country (ES) — respalda el dropdown de países
+-- 2.  dailycheckapp_country (ES) — backs the country dropdown
 -- ============================================================
--- id 34 / country_id '216' siguen la convención de local-dev-seed.sql.
+-- id 34 / country_id '216' follow the local-dev-seed.sql convention.
 INSERT INTO dailycheckapp_country (id, code, code_iso3, name, country_id)
 VALUES (34, 'ES', 'ESP', 'Spain', '216')
 ON CONFLICT (id) DO UPDATE
@@ -44,11 +44,11 @@ SET code      = EXCLUDED.code,
     country_id= EXCLUDED.country_id;
 
 -- ============================================================
--- 3.  school — escuela de prueba
+-- 3.  school — test school
 -- ============================================================
--- Se busca por external_id (case-insensitive) + country_code + is_active
--- + deleted IS NULL. geopoint es geography(Point,4326) de PostGIS:
--- ST_MakePoint(longitud, latitud) — el orden importa.
+-- Looked up by external_id (case-insensitive) + country_code + is_active
+-- + deleted IS NULL. geopoint is PostGIS geography(Point,4326):
+-- ST_MakePoint(longitude, latitude) — the order matters.
 INSERT INTO school (
   id, external_id, giga_id_school, name,
   country_id, country_code, address,
@@ -71,6 +71,6 @@ SELECT setval(
   GREATEST(COALESCE((SELECT MAX(id) FROM school), 0), 900001)
 );
 
--- Nada de facility_type / whitelist / health a propósito: el RC 2.0.4 solo
--- hace el flujo school sobre /api/v1, y `staging` no tiene esas tablas. Cuando
--- entre multi-facility (plan 0003), el seed de esa rama añade lo suyo.
+-- No facility_type / whitelist / health on purpose: RC 2.0.4 only runs the
+-- school flow over /api/v1, and `staging` does not have those tables. When
+-- multi-facility lands, the seed on that branch adds its own.

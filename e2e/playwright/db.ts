@@ -1,21 +1,22 @@
-// Consultas a la DB del stack e2e (plan 0010, pasos 5-6: "verificar en DB").
+// Database queries for the e2e stack, used by the specs that assert on columns
+// rather than only on the request payload.
 //
-// Se habla con Postgres vía `docker compose exec psql` en vez de un cliente
-// node: el stack de docker ya es requisito duro de la suite, así que esto no
-// añade ninguna dependencia nueva al repo del app.
+// Postgres is reached through `docker compose exec psql` instead of a node
+// client: the docker stack is already a hard requirement of the suite, so this
+// adds no new dependency to the app repo.
 //
-// Las queries devuelven JSON generado por Postgres y se parsean con JSON.parse,
-// así no hay que elegir separador de campos ni escapar la salida de psql.
+// Queries return JSON built by Postgres and are parsed with JSON.parse, which
+// avoids picking a field separator or escaping psql output.
 import { execFileSync } from 'node:child_process';
 
 const COMPOSE_FILE = 'e2e/docker-compose.e2e.yml';
 const DB_SERVICE = 'e2e-db';
 
-// Formato que produce exactamente lo mismo que Date#toISOString() en JS, para
-// poder comparar scheduled_at contra el timestamp inyectado en el semáforo.
+// Format that produces exactly what Date#toISOString() produces in JS, so
+// scheduled_at can be compared against the timestamp injected in the semaphore.
 const ISO_MS = `'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'`;
 
-/** Corre una query que devuelve una sola columna JSON y la parsea. */
+/** Runs a query that returns a single JSON column and parses it. */
 function queryJson<T>(sql: string): T {
   const stdout = execFileSync(
     'docker',
@@ -31,8 +32,8 @@ function queryJson<T>(sql: string): T {
       'giga',
       '-d',
       'giga_e2e',
-      '-t', // solo tuplas, sin cabecera
-      '-A', // sin alineación ni padding
+      '-t', // tuples only, no header
+      '-A', // unaligned, no padding
       '-c',
       sql,
     ],
@@ -50,8 +51,9 @@ export interface MeasurementRow {
 }
 
 /**
- * Última fila de `measurements` que cumple la condición, o null si no hay
- * ninguna. `where` se interpola tal cual: solo se llama con literales del test.
+ * Latest `measurements` row matching the condition, or null when there is
+ * none. `where` is interpolated as-is: it is only ever called with test
+ * literals.
  */
 export function latestMeasurement(where: string): MeasurementRow | null {
   return queryJson<MeasurementRow | null>(
@@ -70,14 +72,14 @@ export function latestMeasurement(where: string): MeasurementRow | null {
   );
 }
 
-/** Cuántas mediciones hay para la escuela del fixture. */
+/** How many measurements exist for the fixture school. */
 export function measurementCount(gigaIdSchool: string): number {
   return queryJson<number>(
     `SELECT to_json(count(*)) FROM measurements WHERE giga_id_school = '${gigaIdSchool}';`,
   );
 }
 
-/** Cuántos registros de dispositivo hay para la escuela del fixture. */
+/** How many device registrations exist for the fixture school. */
 export function schoolRegistrationCount(gigaIdSchool: string): number {
   return queryJson<number>(
     `SELECT to_json(count(*)) FROM dailycheckapp_school WHERE giga_id_school = '${gigaIdSchool}';`,

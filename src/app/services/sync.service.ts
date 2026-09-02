@@ -42,8 +42,8 @@ export class SyncService {
           }
 
           console.log(`Successfully synced measurements batch ${index / batchSize + 1}`);
-          // Mediciones que fallaron en tiempo real y se recuperan ahora: el
-          // otro extremo de measurement_queued_offline.
+          // Measurements that failed in realtime and are recovered now: the
+          // other end of measurement_queued_offline.
           this.posthog.capture('measurements_synced', {
             batch_size: batch.length,
           });

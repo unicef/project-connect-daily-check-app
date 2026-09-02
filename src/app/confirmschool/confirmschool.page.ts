@@ -168,7 +168,7 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.setFirstTimeVisit(true);
       this.storage.setRegistrationCompleted(Date.now());
 
-      // A partir de aquí los eventos pertenecen a esta escuela.
+      // From here on, events belong to this school.
       this.posthog.identify(this.school.giga_id_school, {
         country_code: this.selectedCountry,
       });
