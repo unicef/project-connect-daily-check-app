@@ -340,7 +340,8 @@ class NetworkTestWorker(
       super.onFinished(clientResponse, error, testType)
 
       if (error != null && error.message != null) {
-        Sentry.captureMessage("$testType Failed: ${error.message}", SentryLevel.ERROR)
+        Sentry.captureMessage("$testType Failed Message: ${error.message}", SentryLevel.ERROR)
+        Sentry.captureMessage("$testType Failed Cause: ${error.cause}", SentryLevel.ERROR)
       }
 
       try {

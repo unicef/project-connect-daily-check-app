@@ -90,11 +90,13 @@
     "register-part-2": "Har bir maktab ko‘pi bilan ikki qurilma o‘rnatishi mumkin, agar boshqacha ko‘rsatma berilmagan bo‘lsa.",
     "register-step-1": "Maktabingizni ro‘yxatdan o‘tkazish arafasidasiz.",
     "register-step-2": "Giga Meter’ni faqat maktab internetiga ulanadigan va tez-tez ishlatiladigan kompyuterlarga o‘rnating.",
+    "register-step-2-android": "Giga Meter dasturini tez-tez foydalaniladigan va faqat maktab internetiga ulanadigan qurilmalarga o'rnating.",
     "register-step-3": "Imkon bo‘lsa, kamida bitta kompyuter simli (Ethernet) ulanish orqali internetga ulangan bo‘lsin.",
     "start-registeration": "Ro‘yxatdan o‘tishni boshlash"
   },
   "registerSchoolPage": {
     "privacy": "Giga Meter’dan foydalanib, men o‘lchov ma’lumotlarimni Giga tomonidan yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
+    "privacy-android": "Men ma'lumotlardan foydalanish va ularni qayta ishlashga quyidagi siyosatga muvofiq roziman",
     "readMore": "Yaxshi ro‘yxatdan o‘tish uchun ko‘rsatmalar",
     "tip1": "Afsuski, simli ulanish afzalroq",
     "tip2": "Ko‘proq ishlatiladigan ikki qurilmaga o‘rnating",

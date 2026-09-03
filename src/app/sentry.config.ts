@@ -11,13 +11,16 @@ export async function initSentry() {
     Capacitor.getPlatform() === 'android'
       ? await getBuildInfo()
       : `giga-meter-angular@${environment.app_version}`;
+  const isDubug =
+    Capacitor.getPlatform() === 'android' && (await isDebugBuild());
   Sentry.init({
     dsn:
       Capacitor.getPlatform() === 'android'
         ? 'https://5c0e907b260d9edc3a215e5fb51ece9c@excubo.unicef.org/9' // Add Android APP DSN Here
         : 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47', // Replace with your actual DSN
-    environment:
-      environment.mode === 'prod'
+    environment: isDubug
+      ? 'test'
+      : environment.mode === 'prod'
         ? 'production'
         : environment.mode === 'stg'
           ? 'staging'
@@ -52,5 +55,12 @@ export async function initSentry() {
 
 async function getBuildInfo() {
   const info = await App.getInfo();
-  return info.version;
+  return `${info.version} (${info.build}) `;
+}
+
+async function isDebugBuild() {
+  const info = await App.getInfo();
+  const appId = info.id;
+  console.log(`App Identifier : ${info.id}`);
+  return appId.toLowerCase().includes('.debug');
 }

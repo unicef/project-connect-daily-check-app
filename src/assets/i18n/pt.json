@@ -91,11 +91,13 @@
     "register-part-2": "Cada escola pode instalar e registrar até dois dispositivos, a menos que seja instruído de outra forma.",
     "register-step-1": "Você está prestes a registrar sua escola.",
     "register-step-2": "Instale o Giga Meter em computadores que são usados frequentemente e conecte apenas à internet da escola.",
+    "register-step-2-android": "Instale o Giga Meter em dispositivos usados com frequência e que se conectem apenas à internet da escola.",
     "register-step-3": "Se possível, certifique-se de que pelo menos um computador se conecte à Internet usando uma conexão com fio (Ethernet).",
     "start-registeration": "Iniciar Registro"
   },
   "registerSchoolPage": {
     "privacy": "Ao me registrar e usar o Giga Meter, concordo com a coleta, processamento e publicação das minhas medições e outros dados de apoio pela Giga sob a",
+    "privacy-android": "Concordo com o uso e o processamento de dados sob a",
     "readMore": "Saiba mais sobre como garantir um bom registro",
     "tip1": "De preferência, em uma conexão com fio",
     "tip2": "Instalado em 2 dispositivos que são mais usados",

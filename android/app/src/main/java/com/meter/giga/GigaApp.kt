@@ -96,6 +96,7 @@ class GigaApp : Application() {
     val deviceModel = Build.MODEL
     val deviceManufacturer = Build.MANUFACTURER
     val deviceName = Build.DEVICE
+    val isDebugBuild = BuildConfig.DEBUG
     AppLogger.d("Android Id : ", androidId)
     AppLogger.d("Android Device Manufacturer : ", deviceManufacturer)
     AppLogger.d("Android Device Name : ", deviceName)
@@ -123,7 +124,7 @@ class GigaApp : Application() {
       options.sessionReplay.sessionSampleRate = 1.0
       // Capture the replay when an error occurs
       options.sessionReplay.onErrorSampleRate = 1.0
-      options.environment = getEnvironment(environment)
+      options.environment = if (isDebugBuild) "test" else getEnvironment(environment)
 
       options.setTag("Android Device Id", "$androidId")
       options.setTag("Android Device Name", "$deviceName")

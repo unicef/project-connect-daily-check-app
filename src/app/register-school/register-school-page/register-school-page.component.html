@@ -25,12 +25,12 @@
         <div class="top-layout">
           <div class="successInfo">
             <ion-img src="assets/images/installing_register.svg" class="icon2"></ion-img>
-            <div class="success-txt" [innerHtml]="'registerSchool.register-step-2' | translate"></div>
+            <div class="success-txt" [innerHtml]="isNativeApp() ? ('registerSchool.register-step-2-android'| translate) : ('registerSchool.register-step-2-android' | translate)"></div>
           </div>
         </div>
       </ion-slide>
 
-      <ion-slide data-testid="register-school-slide-3">
+      <ion-slide data-testid="register-school-slide-3" *ngIf="!isNativeApp()">
         <div class="top-layout">
           <div class="successInfo-slide3">
             <ion-img src="assets/images/start_registeration.svg" class="icon3"></ion-img>
@@ -50,42 +50,42 @@
         </div>
 
         <div class="learnmore">
-          <span class="learnmore" [innerHTML]="'registerSchoolPage.privacy' | translate"></span>
+          <span class="learnmore" [innerHTML]="isNativeApp() ? ('registerSchoolPage.privacy-android' | translate) : ('registerSchoolPage.privacy' | translate)"></span>
           <span class="learnmore">
-            <b
-            data-testid="register-school-ccby-link"
+            <ng-container *ngIf="isNativeApp()">
+              <b>
+                <br />
+                <b data-testid="register-school-android-link" class="underline" (click)="openExternalUrl(tncURL)" [innerHtml]="'privacyPolicy' | translate">
+                </b>.
+              </b>
+            </ng-container>
+            
+            <!-- Non‑native app content -->
+            <ng-container *ngIf="!isNativeApp()">
+             <b
               class="underline"
               (click)="
                 openExternalUrl('https://creativecommons.org/licenses/by/4.0/')
               "
-            >
-              CC-BY-4.0 License</b
-            >, the
-            <b
-            data-testid="register-school-unicef-link"
+             >
+               CC-BY-4.0 License</b
+             >, the
+             <b
               class="underline"
               (click)="
                 openExternalUrl('https://www.unicef.org/legal#privacy-policy')
               "
               >UNICEF's Privacy Policy</b
-            >
-            and
-            <b data-testid="register-school-mlab-link"
+             >
+             and
+             <b 
               class="underline"
               (click)="
                 openExternalUrl('https://www.measurementlab.net/privacy/')
               "
-              >M-Lab Privacy Policy</b
-            >.
-                  <ng-container *ngIf="isNativeApp()">
-                    <br>
-                    <b data-testid="register-school-android-link" class="underline"
-                      (click)="openExternalUrl(tncURL)">
-                      Learn how Giga Meter collects and uses data on Android in our Data Safety Policy
-                    </b>.
-                  </ng-container>
-                  </span
-          >
+              >M-Lab Privacy Policy</b>.  
+            </ng-container>
+          </span>
         </div>
       </label>
     </div>
