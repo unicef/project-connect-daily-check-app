@@ -44,7 +44,7 @@ function queryJson<T>(sql: string): T {
 
 export interface MeasurementRow {
   notes: string | null;
-  upload_failed: boolean | null;
+  offline_synced: boolean | null;
   scheduled_slot: string | null;
   scheduled_at: string | null;
   giga_id_school: string | null;
@@ -60,7 +60,7 @@ export function latestMeasurement(where: string): MeasurementRow | null {
     `SELECT coalesce(to_json(t), 'null'::json)
        FROM (
          SELECT notes,
-                upload_failed,
+                offline_synced,
                 scheduled_slot,
                 to_char(scheduled_at AT TIME ZONE 'UTC', ${ISO_MS}) AS scheduled_at,
                 giga_id_school

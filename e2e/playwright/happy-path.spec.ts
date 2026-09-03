@@ -138,7 +138,7 @@ test.afterAll(async () => {
   await page?.close();
 });
 
-test('steps 1-4: school registration → first test → upload with upload_failed=false', async () => {
+test('steps 1-4: school registration → first test → upload with offline_synced=false', async () => {
   // ── 1. Clean install: home is the onboarding screen ──
   await page.goto('/#/home');
   await waitForLoaderGone(page); // home's 6 s loader
@@ -221,6 +221,10 @@ test('steps 1-4: school registration → first test → upload with upload_faile
   expect(upload.ok()).toBe(true);
 
   const payload = upload.request().postDataJSON();
+  // NOTE: the client still sends `upload_failed`, a name the backend stopped
+  // accepting when it renamed the column to `offline_synced`. This assertion
+  // documents what the client sends today; the row below passes on the column
+  // default, not because the client said so.
   expect(payload.upload_failed).toBe(false); // happy path: realtime upload
   expect(payload.scheduled_slot).toBeNull(); // first test, not scheduled
   expect(payload.scheduled_at).toBeNull();
@@ -233,7 +237,7 @@ test('steps 1-4: school registration → first test → upload with upload_faile
   // The first test lands in the DB with no slot context.
   const row = await expectMeasurementRow(`notes = 'first'`);
   if (row) {
-    expect(row.upload_failed).toBe(false);
+    expect(row.offline_synced).toBe(false);
     expect(row.scheduled_slot).toBeNull();
     expect(row.scheduled_at).toBeNull();
     expect(row.giga_id_school).toBe(stored.gigaId);
@@ -293,7 +297,7 @@ test('step 5: manual test → DB row with no slot context', async () => {
 
   const row = await expectMeasurementRow(`notes = 'manual'`);
   if (row) {
-    expect(row.upload_failed).toBe(false);
+    expect(row.offline_synced).toBe(false);
     expect(row.scheduled_slot).toBeNull();
     expect(row.scheduled_at).toBeNull();
   }
@@ -353,7 +357,7 @@ test('step 6: scheduled slot → DB row with slot and scheduled_at, no retries',
 
   const row = await expectMeasurementRow(`scheduled_slot = 'A'`);
   if (row) {
-    expect(row.upload_failed).toBe(false);
+    expect(row.offline_synced).toBe(false);
     expect(row.scheduled_slot).toBe('A');
     // scheduled_at keeps the planned time, not the execution time.
     expect(row.scheduled_at).toBe(new Date(scheduledAt).toISOString());
