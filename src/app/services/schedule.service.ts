@@ -191,6 +191,13 @@ export class ScheduleService {
         await this.setSemaphore({});
         return;
       }
+      if (this.measurementClientService.isRunning) {
+        // A manual or first-run test is using the link. Leave the semaphore
+        // untouched and let the next tick try again, so the scheduled test
+        // waits for the running one instead of being lost.
+        console.log('Another measurement is running, waiting for it to finish.');
+        return;
+      }
       if (scheduleSemaphore.lastFailReason === 'no-network') {
         // Network is back: the failed-test backoff starts over
         scheduleSemaphore.backoffLevel = 0;
