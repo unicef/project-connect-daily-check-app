@@ -13,6 +13,7 @@ import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
+import { PosthogService } from './posthog.service';
 
 @Injectable({
   providedIn: 'root',
@@ -25,7 +26,8 @@ export class UploadService {
     private storage: StorageService,
     private hardwareIdService: HardwareIdService,
     private indexedDB: IndexedDBService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private posthog: PosthogService
   ) {}
 
   /**
@@ -173,6 +175,42 @@ export class UploadService {
     measurement['installed_path'] = record.installedPath || null;
     measurement['wifi_connections'] = record.wifiConnections || null;
 
+    // Device identity. These columns have existed backend-side since
+    // giga-meter-backend#353 but nothing filled them, so every row landed NULL.
+    const identity = record.deviceIdentity || {};
+    measurement['device_name'] = identity.device_name || null;
+    measurement['device_model'] = identity.device_model || null;
+    measurement['device_manufacturer'] = identity.device_manufacturer || null;
+    measurement['app_build_number'] = identity.app_build_number || null;
+    measurement['sdk_version'] = record.sdkVersion || null;
+
+    // Network/device context and the Wi-Fi diagnosis.
+    // On Windows 11 24H2+ an empty wifi_connections does not mean "no Wi-Fi":
+    // the WLAN stack is gated behind the Location permission, and these two
+    // fields are what let a query tell the two cases apart.
+    const wifiDiagnostics = record.wifiDiagnostics || {};
+    measurement['wifi_unavailable_reason'] =
+      wifiDiagnostics.wifi_unavailable_reason || null;
+    measurement['ssid_source'] = wifiDiagnostics.ssid_source || null;
+    measurement['device_network_information'] =
+      record.deviceNetworkInformation || null;
+
+    // Schedule context: which slot/time this measurement was planned for
+    // (null for manual runs). offline_synced flips to true only on the copy
+    // queued for later sync, so the row records how it reached the backend:
+    // the realtime upload, or the offline queue.
+    measurement['scheduled_slot'] = record.scheduledSlot || null;
+    measurement['scheduled_at'] = record.scheduledAt
+      ? new Date(record.scheduledAt).toISOString()
+      : null;
+    measurement['offline_synced'] = false;
+
+    // M-Lab's own clock at server discovery. Independent of the device clock,
+    // which on these machines is often wrong; null when ndt7 could not read it.
+    measurement['server_timestamp'] = record.serverTimestamp
+      ? new Date(record.serverTimestamp).toISOString()
+      : null;
+
     // Add API key if configured.
 
     if (apiKey != '') {
@@ -193,10 +231,31 @@ export class UploadService {
       switchMap(measurementWithGeo =>
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
-          tap((data) => data),
+          tap((data) => {
+            // Measurement delivered in realtime. No speed figures: that is what
+            // the measurements table itself is for; what matters here is the
+            // funnel.
+            this.posthog.capture('measurement_uploaded', {
+              notes: measurementWithGeo.Notes,
+              scheduled_slot: measurementWithGeo['scheduled_slot'],
+              protocol: measurementWithGeo['protocol'] ?? 'mlab',
+              offline_synced: false,
+            });
+            return data;
+          }),
           catchError(async (error) => {
             console.error('Upload failed, saving to IndexedDB...', error);
-            await this.indexedDB.saveMeasurement(measurementWithGeo);
+            await this.indexedDB.saveMeasurement({
+              ...measurementWithGeo,
+              offline_synced: true,
+            });
+            // The realtime upload failed and the measurement stays in the local
+            // queue: this is the signal the offline_synced flag is after.
+            this.posthog.capture('measurement_queued_offline', {
+              notes: measurementWithGeo.Notes,
+              scheduled_slot: measurementWithGeo['scheduled_slot'],
+              status: error?.status ?? null,
+            });
             return of({ savedLocally: true, error });
           })
         )

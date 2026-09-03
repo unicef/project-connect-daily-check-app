@@ -74,6 +74,14 @@
             },
             "ci": {
               "progress": false
+            },
+            "e2e": {
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/_environment.prod.ts",
+                  "with": "src/environments/_environment.e2e.ts"
+                }
+              ]
             }
           }
         },
@@ -88,6 +96,9 @@
             },
             "ci": {
               "progress": false
+            },
+            "e2e": {
+              "buildTarget": "app:build:e2e"
             }
           }
         },

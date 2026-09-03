@@ -1,0 +1,5 @@
+# Probe outputs: the raw JSON contains SSIDs, MACs, internal IPs and the
+# Windows username. Never commit them; share only the -redacted.json / CSV
+# after review.
+probe-*.json
+probe-*.csv

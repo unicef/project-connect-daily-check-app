@@ -26,6 +26,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getWindowsUsername: () => ipcRenderer.invoke('get-windows-username'),
   getInstalledPath: () => ipcRenderer.invoke('get-installed-path'),
   getWifiConnections: () => ipcRenderer.invoke('get-wifi-connections'),
+  getDeviceNetworkInformation: () =>
+    ipcRenderer.invoke('get-device-network-information'),
+  getDeviceIdentity: () => ipcRenderer.invoke('get-device-identity'),
   onHardwareId: (callback: (data: any) => void) => {
     ipcRenderer.on('system-hardware-id', (event, data) => callback(data));
   },
@@ -37,5 +40,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   removeHardwareIdListener: () => {
     ipcRenderer.removeAllListeners('system-hardware-id');
     ipcRenderer.removeAllListeners('system-hardware-id-error');
+  },
+  // Main process events (auto-update lifecycle) that the renderer publishes to
+  // PostHog: its SDK persists the queue in localStorage and survives restarts
+  // without network, which the node SDK does not.
+  onTelemetryEvent: (
+    callback: (payload: { event: string; properties?: any }) => void
+  ) => {
+    ipcRenderer.on('telemetry-event', (event, payload) => callback(payload));
   },
 });
