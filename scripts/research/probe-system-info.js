@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * probe-system-info.js — Research probe for Plan 0008 (network & device info).
+ * probe-system-info.js — Research probe for network & device info.
  *
  * Standalone Node script: no app build, no Electron. Copy this file to the
  * target Windows PC and run:
@@ -472,7 +472,7 @@ async function main() {
   const baseName = `probe-${hostname}-${runtime}-${timestamp}`;
   const elevated = isProcessElevated();
 
-  console.log(`\nNetwork/system probe — plan 0008 (release v2.0.4)`);
+  console.log(`\nNetwork/system probe (release v2.0.4)`);
   console.log(
     `Machine: ${hostname} | Node ${process.version}` +
       (process.versions.electron ? ` (Electron ${process.versions.electron}, main process)` : '') +
@@ -548,12 +548,12 @@ async function main() {
   console.log(
     '\nWARNING: the raw JSON contains SSIDs, MACs, internal IPs and the Windows\n' +
       'username. Do NOT share it outside the team without reviewing it first; attach\n' +
-      'the -redacted.json version and the CSV to the ticket/spreadsheet.'
+      'the -redacted.json version and the CSV to the ticket.'
   );
 }
 
 // Run directly (`node probe-system-info.js`) or require it from an Electron
-// main process (Artifact 2 of plan 0008) and await `main()` there.
+// main process (see electron-probe-main.js) and await `main()` there.
 if (require.main === module) {
   main().catch((err) => {
     console.error('The probe finished with an unhandled error:', err);

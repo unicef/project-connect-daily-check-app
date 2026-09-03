@@ -1,8 +1,8 @@
 # Backend stack for the Playwright e2e suite: Postgres (PostGIS) + Redis +
-# giga-meter-backend built from the sibling repo in the giga workspace.
+# giga-meter-backend built from the sibling repo checkout.
 #
-# Layout requirement: this repo and giga-meter-backend must be siblings
-# (giga-workspace/giga/{project-connect-daily-check-app,giga-meter-backend}).
+# Layout requirement: this repo and giga-meter-backend must be checked out as
+# sibling directories under the same parent.
 #
 # Started automatically by playwright.config.ts (webServer). Manual usage:
 #   docker compose -f e2e/docker-compose.e2e.yml up --build
@@ -16,7 +16,7 @@ name: giga-meter-e2e
 services:
   e2e-db:
     # PostGIS build: the backend migrations/seeds use the postgis extension
-    # and ST_MakePoint (same image as the workspace docker-compose-local.yml).
+    # and ST_MakePoint (the same image the backend uses for local development).
     image: postgis/postgis:15-3.3
     environment:
       POSTGRES_USER: giga

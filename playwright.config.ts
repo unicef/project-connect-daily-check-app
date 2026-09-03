@@ -1,6 +1,6 @@
 import { defineConfig } from '@playwright/test';
 
-// Happy-path e2e suite (plan 0010 in the workspace project-memory).
+// Happy-path e2e suite for the Daily Check App.
 // Boots the backend stack in docker (postgres + redis + giga-meter-backend)
 // and the Angular app via `ng serve --configuration e2e`, then drives the
 // real registration + speed-test flow in a browser. The NDT7 speed test runs

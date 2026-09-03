@@ -1,5 +1,5 @@
 /**
- * electron-probe-main.js — Artifact 2 of plan 0008.
+ * electron-probe-main.js — Electron runner for probe-system-info.js.
  *
  * Runs probe-system-info.js inside an Electron MAIN PROCESS, so the calls run
  * on Electron's embedded Node (not the system Node) — the same runtime the
@@ -9,8 +9,8 @@
  *
  * Optionally set PROBE_OUT_DIR to choose where the output files go.
  *
- * Caveat: this is the unpackaged runtime. The last step of the plan is still
- * to verify the finalist attributes in the *packaged* app (temporary
+ * Caveat: this is the unpackaged runtime. The finalist attributes still have
+ * to be verified in the *packaged* app (temporary
  * `ipcMain.handle('research-probe', …)` in electron/src/index.ts).
  */
 

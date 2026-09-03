@@ -37,7 +37,7 @@ export const environment = {
   // keys above. posthog-node would not survive a restart offline; posthog-js
   // persists its queue in localStorage, and this app is offline a lot.
   // Session replay records the user's screen. Off unless explicitly enabled —
-  // scope is still being defined (plan 0004, item 2).
+  // its scope is still being defined.
   posthogEnableSessionRecording: false,
   languages: [
     {
