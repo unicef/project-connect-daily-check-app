@@ -221,11 +221,7 @@ test('steps 1-4: school registration → first test → upload with offline_sync
   expect(upload.ok()).toBe(true);
 
   const payload = upload.request().postDataJSON();
-  // NOTE: the client still sends `upload_failed`, a name the backend stopped
-  // accepting when it renamed the column to `offline_synced`. This assertion
-  // documents what the client sends today; the row below passes on the column
-  // default, not because the client said so.
-  expect(payload.upload_failed).toBe(false); // happy path: realtime upload
+  expect(payload.offline_synced).toBe(false); // happy path: realtime upload
   expect(payload.scheduled_slot).toBeNull(); // first test, not scheduled
   expect(payload.scheduled_at).toBeNull();
   expect(payload.giga_id_school).toBe(stored.gigaId);
@@ -290,7 +286,7 @@ test('step 5: manual test → DB row with no slot context', async () => {
   // A manual test belongs to no slot: neither slot nor scheduled time.
   const payload = upload.request().postDataJSON();
   expect(payload.Notes).toBe('manual');
-  expect(payload.upload_failed).toBe(false);
+  expect(payload.offline_synced).toBe(false);
   expect(payload.scheduled_slot).toBeNull();
   expect(payload.scheduled_at).toBeNull();
   expect(payload.Download).toBeGreaterThan(0);
@@ -307,8 +303,8 @@ test('step 6: scheduled slot → DB row with slot and scheduled_at, no retries',
   test.setTimeout(SCHEDULER_TICK + NDT7_UPLOAD_TIMEOUT + 60_000);
 
   // Waiting for a real slot would take hours: an expired semaphore is injected
-  // for slot A (choice in the past, window still open) and the scheduler's 60 s
-  // tick is left to pick it up exactly as it does in production.
+  // for the morning slot (choice in the past, window still open) and the
+  // scheduler's 60 s tick is left to pick it up as it does in production.
   //
   // getSemaphore() keeps the current semaphore when it has a `choice`, the same
   // intervalType as the one due now and a `start` that is not later — hence
@@ -329,7 +325,7 @@ test('step 6: scheduled slot → DB row with slot and scheduled_at, no retries',
         end: now + 60 * 60 * 1000, // open window: the test must run
         choice: now - 1000, // expired: fires on the next tick
         scheduledAt: scheduled,
-        slot: 'A',
+        slot: 'morning',
         intervalType: 'daily',
         retryAttempts: 0,
         backoffLevel: 0,
@@ -342,7 +338,7 @@ test('step 6: scheduled slot → DB row with slot and scheduled_at, no retries',
     (resp) =>
       resp.url() === `${API}measurements` &&
       resp.request().method() === 'POST' &&
-      resp.request().postDataJSON()?.scheduled_slot === 'A',
+      resp.request().postDataJSON()?.scheduled_slot === 'morning',
     { timeout: SCHEDULER_TICK + NDT7_UPLOAD_TIMEOUT },
   );
 
@@ -350,15 +346,15 @@ test('step 6: scheduled slot → DB row with slot and scheduled_at, no retries',
   expect(upload.ok()).toBe(true);
 
   const payload = upload.request().postDataJSON();
-  expect(payload.scheduled_slot).toBe('A');
+  expect(payload.scheduled_slot).toBe('morning');
   expect(payload.scheduled_at).toBe(new Date(scheduledAt).toISOString());
-  expect(payload.upload_failed).toBe(false);
+  expect(payload.offline_synced).toBe(false);
   expect(payload.Download).toBeGreaterThan(0);
 
-  const row = await expectMeasurementRow(`scheduled_slot = 'A'`);
+  const row = await expectMeasurementRow(`scheduled_slot = 'morning'`);
   if (row) {
     expect(row.offline_synced).toBe(false);
-    expect(row.scheduled_slot).toBe('A');
+    expect(row.scheduled_slot).toBe('morning');
     // scheduled_at keeps the planned time, not the execution time.
     expect(row.scheduled_at).toBe(new Date(scheduledAt).toISOString());
   }

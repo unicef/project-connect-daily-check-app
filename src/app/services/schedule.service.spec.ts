@@ -11,19 +11,19 @@ describe('ScheduleService', () => {
 
   const MINUTE = 60 * 1000;
 
-  // 2026-08-07 09:00 local time — inside slot A (08:00–12:00)
+  // 2026-08-07 09:00 local time — inside the morning slot (08:00–12:00)
   const NOW = new Date(2026, 7, 7, 9, 0, 0);
-  const SLOT_A_START = new Date(2026, 7, 7, 8, 0, 0).getTime();
-  const SLOT_A_END = new Date(2026, 7, 7, 12, 0, 0).getTime();
+  const MORNING_START = new Date(2026, 7, 7, 8, 0, 0).getTime();
+  const MORNING_END = new Date(2026, 7, 7, 12, 0, 0).getTime();
 
-  const SLOT_A_CHOICE = new Date(2026, 7, 7, 8, 30, 0).getTime();
+  const MORNING_CHOICE = new Date(2026, 7, 7, 8, 30, 0).getTime();
 
-  const slotASemaphore = (overrides: any = {}) => ({
-    start: SLOT_A_START,
-    end: SLOT_A_END,
-    choice: SLOT_A_CHOICE,
-    scheduledAt: SLOT_A_CHOICE,
-    slot: 'A',
+  const morningSemaphore = (overrides: any = {}) => ({
+    start: MORNING_START,
+    end: MORNING_END,
+    choice: MORNING_CHOICE,
+    scheduledAt: MORNING_CHOICE,
+    slot: 'morning',
     intervalType: 'daily',
     retryAttempts: 0,
     backoffLevel: 0,
@@ -78,7 +78,7 @@ describe('ScheduleService', () => {
     it('reschedules 1 minute ahead when getNetInfo rejects, without raising backoffLevel', async () => {
       networkService.getNetInfo.and.rejectWith(new Error('offline'));
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
       const sem = savedSemaphore();
       expect(sem.choice).toBe(NOW.getTime() + MINUTE);
@@ -91,7 +91,7 @@ describe('ScheduleService', () => {
     it('keeps the 1-minute pace across consecutive offline ticks', async () => {
       networkService.getNetInfo.and.rejectWith(new Error('offline'));
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
       jasmine.clock().tick(2 * MINUTE);
       await service.decide(savedSemaphore());
 
@@ -104,7 +104,7 @@ describe('ScheduleService', () => {
     it('treats a null getNetInfo result as no network', async () => {
       networkService.getNetInfo.and.resolveTo(null);
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
       expect(savedSemaphore().lastFailReason).toBe('no-network');
     });
@@ -114,7 +114,7 @@ describe('ScheduleService', () => {
     it('backs off 60s * 1.2^n and increments backoffLevel on each failure', async () => {
       measurementClientService.runTest.and.rejectWith(new Error('test broke'));
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
       let sem = savedSemaphore();
       expect(sem.choice).toBe(NOW.getTime() + MINUTE); // 60s * 1.2^0
       expect(sem.retryAttempts).toBe(1);
@@ -132,7 +132,7 @@ describe('ScheduleService', () => {
     it('caps the delay at 10 minutes', async () => {
       measurementClientService.runTest.and.rejectWith(new Error('test broke'));
 
-      await service.decide(slotASemaphore({ backoffLevel: 30 }));
+      await service.decide(morningSemaphore({ backoffLevel: 30 }));
 
       const sem = savedSemaphore();
       expect(sem.choice).toBe(NOW.getTime() + 10 * MINUTE);
@@ -145,7 +145,7 @@ describe('ScheduleService', () => {
       measurementClientService.runTest.and.rejectWith(new Error('test broke'));
 
       await service.decide(
-        slotASemaphore({ backoffLevel: 5, lastFailReason: 'no-network' })
+        morningSemaphore({ backoffLevel: 5, lastFailReason: 'no-network' })
       );
 
       const sem = savedSemaphore();
@@ -156,11 +156,11 @@ describe('ScheduleService', () => {
 
   describe('success and window expiry', () => {
     it('saves lastMeasurement and clears the semaphore on success', async () => {
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
       expect(measurementClientService.runTest).toHaveBeenCalledWith('daily', {
-        slot: 'A',
-        scheduledAt: SLOT_A_CHOICE,
+        slot: 'morning',
+        scheduledAt: MORNING_CHOICE,
       });
       expect(store.lastMeasurement).toBe(NOW.getTime().toString());
       expect(savedSemaphore()).toEqual({});
@@ -168,26 +168,26 @@ describe('ScheduleService', () => {
 
     it('keeps the originally planned time in scheduledAt across retries', async () => {
       measurementClientService.runTest.and.rejectWith(new Error('test broke'));
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
       const rescheduled = savedSemaphore();
-      expect(rescheduled.choice).not.toBe(SLOT_A_CHOICE);
-      expect(rescheduled.scheduledAt).toBe(SLOT_A_CHOICE);
+      expect(rescheduled.choice).not.toBe(MORNING_CHOICE);
+      expect(rescheduled.scheduledAt).toBe(MORNING_CHOICE);
 
       measurementClientService.runTest.and.resolveTo(undefined);
       jasmine.clock().tick(2 * MINUTE);
       await service.decide(rescheduled);
 
       expect(measurementClientService.runTest).toHaveBeenCalledWith('daily', {
-        slot: 'A',
-        scheduledAt: SLOT_A_CHOICE,
+        slot: 'morning',
+        scheduledAt: MORNING_CHOICE,
       });
     });
 
     it('clears the semaphore when the window already ended', async () => {
       jasmine.clock().mockDate(new Date(2026, 7, 7, 12, 30, 0));
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
       expect(savedSemaphore()).toEqual({});
       expect(measurementClientService.runTest).not.toHaveBeenCalled();
@@ -195,27 +195,27 @@ describe('ScheduleService', () => {
 
     it('gives up instead of rescheduling when the retry would land past the window end', async () => {
       networkService.getNetInfo.and.rejectWith(new Error('offline'));
-      jasmine.clock().mockDate(new Date(SLOT_A_END));
+      jasmine.clock().mockDate(new Date(MORNING_END));
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
       expect(savedSemaphore()).toEqual({});
     });
 
     it('clamps the rescheduled choice to the window end', async () => {
       networkService.getNetInfo.and.rejectWith(new Error('offline'));
-      jasmine.clock().mockDate(new Date(SLOT_A_END - 30 * 1000));
+      jasmine.clock().mockDate(new Date(MORNING_END - 30 * 1000));
 
-      await service.decide(slotASemaphore());
+      await service.decide(morningSemaphore());
 
-      expect(savedSemaphore().choice).toBe(SLOT_A_END);
+      expect(savedSemaphore().choice).toBe(MORNING_END);
     });
   });
 
   describe('legacy semaphores', () => {
     it('handles a pre-2.0.4 semaphore without the new fields', async () => {
       measurementClientService.runTest.and.rejectWith(new Error('test broke'));
-      const legacy = slotASemaphore();
+      const legacy = morningSemaphore();
       delete legacy.backoffLevel;
 
       await service.decide(legacy);
@@ -223,6 +223,15 @@ describe('ScheduleService', () => {
       const sem = savedSemaphore();
       expect(sem.choice).toBe(NOW.getTime() + MINUTE);
       expect(sem.backoffLevel).toBe(1);
+    });
+
+    it('maps a semaphore still carrying an A/B/C slot code to its name', async () => {
+      await service.decide(morningSemaphore({ slot: 'A' }));
+
+      expect(measurementClientService.runTest).toHaveBeenCalledWith('daily', {
+        slot: 'morning',
+        scheduledAt: MORNING_CHOICE,
+      });
     });
   });
 
@@ -233,7 +242,7 @@ describe('ScheduleService', () => {
 
       expect(sem.retryAttempts).toBe(0);
       expect(sem.backoffLevel).toBe(0);
-      expect(sem.slot).toBe('A');
+      expect(sem.slot).toBe('morning');
       expect(sem.scheduledAt).toBe(sem.choice);
       expect(sem.choice).toBeGreaterThanOrEqual(sem.start);
       expect(sem.choice).toBeLessThanOrEqual(sem.end);

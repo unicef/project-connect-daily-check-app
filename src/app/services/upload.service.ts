@@ -196,13 +196,14 @@ export class UploadService {
       record.deviceNetworkInformation || null;
 
     // Schedule context: which slot/time this measurement was planned for
-    // (null for manual runs). upload_failed flips to true only when the
-    // realtime upload fails and the record is queued for later sync.
+    // (null for manual runs). offline_synced flips to true only on the copy
+    // queued for later sync, so the row records how it reached the backend:
+    // the realtime upload, or the offline queue.
     measurement['scheduled_slot'] = record.scheduledSlot || null;
     measurement['scheduled_at'] = record.scheduledAt
       ? new Date(record.scheduledAt).toISOString()
       : null;
-    measurement['upload_failed'] = false;
+    measurement['offline_synced'] = false;
 
     // M-Lab's own clock at server discovery. Independent of the device clock,
     // which on these machines is often wrong; null when ndt7 could not read it.
@@ -238,7 +239,7 @@ export class UploadService {
               notes: measurementWithGeo.Notes,
               scheduled_slot: measurementWithGeo['scheduled_slot'],
               protocol: measurementWithGeo['protocol'] ?? 'mlab',
-              upload_failed: false,
+              offline_synced: false,
             });
             return data;
           }),
@@ -246,10 +247,10 @@ export class UploadService {
             console.error('Upload failed, saving to IndexedDB...', error);
             await this.indexedDB.saveMeasurement({
               ...measurementWithGeo,
-              upload_failed: true,
+              offline_synced: true,
             });
             // The realtime upload failed and the measurement stays in the local
-            // queue: this is the signal the upload_failed flag is after.
+            // queue: this is the signal the offline_synced flag is after.
             this.posthog.capture('measurement_queued_offline', {
               notes: measurementWithGeo.Notes,
               scheduled_slot: measurementWithGeo['scheduled_slot'],

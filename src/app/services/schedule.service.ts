@@ -7,14 +7,28 @@ import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
 import { NetworkService } from './network.service';
 
+/** The three daily windows, named as the backend stores them. */
+export type DailySlot = 'morning' | 'afternoon' | 'evening';
+
+/**
+ * Slot codes used before the windows were named. A semaphore persisted by an
+ * older build can still be in flight when the app is upgraded mid-window, so
+ * its code is mapped on read rather than written to the measurement.
+ */
+const LEGACY_SLOT_CODES: Record<string, DailySlot> = {
+  A: 'morning',
+  B: 'afternoon',
+  C: 'evening',
+};
+
 @Injectable({
   providedIn: 'root',
 })
 export class ScheduleService {
   // Constants for slot timings and retry mechanism
-  private readonly SLOT_A_START = 8; // 8 AM
-  private readonly SLOT_B_START = 12; // 12 PM
-  private readonly SLOT_C_START = 16; // 4 PM
+  private readonly MORNING_START = 8; // 8 AM
+  private readonly AFTERNOON_START = 12; // 12 PM
+  private readonly EVENING_START = 16; // 4 PM
   private readonly SLOT_DURATION = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
   private readonly NO_NETWORK_RETRY_DELAY = 60 * 1000; // 1 minute in milliseconds
   private readonly RETRY_BASE_DELAY = 60 * 1000; // 1 minute in milliseconds
@@ -50,67 +64,74 @@ export class ScheduleService {
   }
 
   // Calculate start times for all slots on a given date
-  private getSlotTimes(date: Date): {
-    slotA: number;
-    slotB: number;
-    slotC: number;
-  } {
+  private getSlotTimes(date: Date): Record<DailySlot, number> {
     console.log(`Getting slot times for date: ${date.toISOString()}`);
-    const result = {
-      slotA: new Date(
+    const result: Record<DailySlot, number> = {
+      morning: new Date(
         date.getFullYear(),
         date.getMonth(),
         date.getDate(),
-        this.SLOT_A_START
+        this.MORNING_START
       ).getTime(),
-      slotB: new Date(
+      afternoon: new Date(
         date.getFullYear(),
         date.getMonth(),
         date.getDate(),
-        this.SLOT_B_START
+        this.AFTERNOON_START
       ).getTime(),
-      slotC: new Date(
+      evening: new Date(
         date.getFullYear(),
         date.getMonth(),
         date.getDate(),
-        this.SLOT_C_START
+        this.EVENING_START
       ).getTime(),
     };
     console.log('Slot times:', result);
     return result;
   }
 
+  /**
+   * Slot name to send with a measurement. Maps the pre-naming A/B/C codes so a
+   * semaphore written by an older build still reports a name the backend knows.
+   */
+  private normalizeSlot(slot: string | null | undefined): string | null {
+    if (!slot) {
+      return null;
+    }
+    return LEGACY_SLOT_CODES[slot] ?? slot;
+  }
+
   // Create a semaphore for the next available slot
   async createIntervalSemaphore(start: number, interval_ms: number) {
     const now = new Date();
     const lastMeasurementTime = await this.getLastMeasurementTime();
-    const { slotA, slotB, slotC } = this.getSlotTimes(now);
+    const { morning, afternoon, evening } = this.getSlotTimes(now);
     const tomorrow = new Date(
       now.getFullYear(),
       now.getMonth(),
       now.getDate() + 1
     );
-    const nextDaySlotA = this.getSlotTimes(tomorrow).slotA;
+    const nextDayMorning = this.getSlotTimes(tomorrow).morning;
 
-    if (lastMeasurementTime < slotA && now.getTime() < slotB) {
-      return this.createSlotSemaphore(slotA, 'A');
-    } else if (lastMeasurementTime < slotB && now.getTime() < slotC) {
-      return this.createSlotSemaphore(slotB, 'B');
-    } else if (lastMeasurementTime < slotC) {
-      return this.createSlotSemaphore(slotC, 'C');
-    } else if (lastMeasurementTime < nextDaySlotA) {
-      return this.createSlotSemaphore(nextDaySlotA, 'A');
+    if (lastMeasurementTime < morning && now.getTime() < afternoon) {
+      return this.createSlotSemaphore(morning, 'morning');
+    } else if (lastMeasurementTime < afternoon && now.getTime() < evening) {
+      return this.createSlotSemaphore(afternoon, 'afternoon');
+    } else if (lastMeasurementTime < evening) {
+      return this.createSlotSemaphore(evening, 'evening');
+    } else if (lastMeasurementTime < nextDayMorning) {
+      return this.createSlotSemaphore(nextDayMorning, 'morning');
     } else {
       // If lastMeasurementTime is in the future, reset to next available slot
       console.warn(
         'Last measurement time is in the future. Resetting to next available slot.'
       );
-      return this.createSlotSemaphore(nextDaySlotA, 'A');
+      return this.createSlotSemaphore(nextDayMorning, 'morning');
     }
   }
 
   // Create a semaphore for a specific slot
-  private createSlotSemaphore(start: number, slotName: string) {
+  private createSlotSemaphore(start: number, slotName: DailySlot) {
     const end = start + this.SLOT_DURATION;
     const choice = start + Math.floor(Math.random() * this.SLOT_DURATION);
     console.log(
@@ -180,7 +201,7 @@ export class ScheduleService {
         await this.measurementClientService.runTest(
           scheduleSemaphore.intervalType,
           {
-            slot: scheduleSemaphore.slot || null,
+            slot: this.normalizeSlot(scheduleSemaphore.slot),
             scheduledAt:
               scheduleSemaphore.scheduledAt || scheduleSemaphore.choice,
           }
