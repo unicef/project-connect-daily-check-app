@@ -5,15 +5,14 @@ import { environment } from '../../environments/environment';
  * Device identity uploaded with every measurement.
  *
  * The backend has accepted these columns since giga-meter-backend#353, but
- * nothing filled them, so every row landed with NULLs. `sdk_version` is resolved
- * here rather than in the main process because it depends on which measurement
- * protocol actually ran.
+ * nothing filled them, so every row landed with NULLs.
  */
 export interface DeviceIdentity {
   device_name: string | null;
   device_model: string | null;
   device_manufacturer: string | null;
   app_build_number: string | null;
+  os_version: string | null;
 }
 
 /** Volatile network/system context; shape mirrors the backend whitelist. */
@@ -62,6 +61,7 @@ export class DeviceContextService {
       device_model: null,
       device_manufacturer: null,
       app_build_number: null,
+      os_version: null,
     };
 
     const api = this.electronAPI;
@@ -83,6 +83,7 @@ export class DeviceContextService {
         device_model: info.deviceModel ?? null,
         device_manufacturer: info.deviceManufacturer ?? null,
         app_build_number: info.appBuildNumber ?? environment.app_version ?? null,
+        os_version: info.osVersion ?? null,
       };
       return this.cachedIdentity;
     } catch (error) {
@@ -146,33 +147,4 @@ export class DeviceContextService {
     };
   }
 
-  /**
-   * Version of the speed-test SDK that produced this measurement.
-   *
-   * Both versions are baked into the build from the root package.json by
-   * electron/scripts/generate-build-mode.js, so the value cannot drift from the
-   * dependency that actually shipped. Which one applies is only known after the
-   * test, because it depends on the protocol that ran.
-   */
-  async getSdkVersion(protocol: string | null | undefined): Promise<string | null> {
-    const api = this.electronAPI;
-    if (!api?.getDeviceIdentity) {
-      return null;
-    }
-
-    try {
-      const info = await api.getDeviceIdentity();
-      const versions = info?.sdkVersions;
-      if (!versions) return null;
-
-      return (
-        ((protocol ?? 'mlab').toLowerCase() === 'cloudflare'
-          ? versions.cloudflare
-          : versions.mlab) ?? null
-      );
-    } catch (error) {
-      console.warn('[DeviceContext] could not resolve SDK version:', error);
-      return null;
-    }
-  }
 }

@@ -182,7 +182,7 @@ export class UploadService {
     measurement['device_model'] = identity.device_model || null;
     measurement['device_manufacturer'] = identity.device_manufacturer || null;
     measurement['app_build_number'] = identity.app_build_number || null;
-    measurement['sdk_version'] = record.sdkVersion || null;
+    measurement['os_version'] = identity.os_version || null;
 
     // Network/device context and the Wi-Fi diagnosis.
     // On Windows 11 24H2+ an empty wifi_connections does not mean "no Wi-Fi":

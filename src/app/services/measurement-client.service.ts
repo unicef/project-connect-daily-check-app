@@ -111,16 +111,12 @@ export class MeasurementClientService {
     // the readings describe the machine as the test found it, and awaited
     // together because they are independent I/O — serialising them is what would
     // push the capture past the 1.5 s budget the plan set.
-    const [deviceIdentity, deviceNetworkInformation, sdkVersion] =
-      await Promise.all([
-        this.deviceContext.getDeviceIdentity(),
-        this.deviceContext.getDeviceNetworkInformation(),
-        // This client is the ndt7 one, so the SDK that runs is always M-Lab's.
-        this.deviceContext.getSdkVersion('mlab'),
-      ]);
+    const [deviceIdentity, deviceNetworkInformation] = await Promise.all([
+      this.deviceContext.getDeviceIdentity(),
+      this.deviceContext.getDeviceNetworkInformation(),
+    ]);
     measurementRecord.deviceIdentity = deviceIdentity;
     measurementRecord.deviceNetworkInformation = deviceNetworkInformation;
-    measurementRecord.sdkVersion = sdkVersion;
     // Derived from the Wi-Fi read that already happened above, so the expensive
     // wifiConnections() call is not repeated.
     measurementRecord.wifiDiagnostics =
@@ -188,7 +184,6 @@ export class MeasurementClientService {
       deviceIdentity: null,
       deviceNetworkInformation: null,
       wifiDiagnostics: null,
-      sdkVersion: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
       // Wall clock reported by M-Lab, filled in by finalizeMeasurement. Null

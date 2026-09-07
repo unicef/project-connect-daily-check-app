@@ -21,12 +21,7 @@ import {
   getIsQuiting,
 } from './setup';
 import { captureException } from '@sentry/node';
-import {
-  AUTO_UPDATE_ENABLED,
-  BUILD_COMMIT,
-  BUILD_MODE,
-  SDK_VERSIONS,
-} from './build-mode';
+import { AUTO_UPDATE_ENABLED, BUILD_COMMIT, BUILD_MODE } from './build-mode';
 import {
   classifyWifiUnavailable,
   getDeviceNetworkInformation,
@@ -509,7 +504,7 @@ let cachedDeviceIdentity: {
   deviceModel: string;
   deviceManufacturer: string;
   appBuildNumber: string;
-  sdkVersions: { mlab: string | null; cloudflare: string | null };
+  osVersion: string | null;
 } | null = null;
 
 ipcMain.handle('get-device-identity', async () => {
@@ -518,7 +513,16 @@ ipcMain.handle('get-device-identity', async () => {
       return cachedDeviceIdentity;
     }
     console.log('📤 [Electron] Device identity requested via IPC');
-    const systemData = await si.system();
+    const [systemData, osData] = await Promise.all([si.system(), si.osInfo()]);
+
+    // Edition plus build, e.g. "Microsoft Windows 11 Home 10.0.26200". Both
+    // halves matter: the edition is what a reader recognises, the build is what
+    // distinguishes 24H2 from 23H2. os.release() is the fallback for the case
+    // where systeminformation cannot read the registry.
+    const osVersion =
+      [osData?.distro, osData?.release].filter(Boolean).join(' ').trim() ||
+      os.release() ||
+      null;
 
     cachedDeviceIdentity = {
       deviceName: os.hostname(),
@@ -527,9 +531,7 @@ ipcMain.handle('get-device-identity', async () => {
       // The commit the build came from; falls back to the app version when the
       // build ran outside a git checkout (see generate-build-mode.js).
       appBuildNumber: BUILD_COMMIT ?? app.getVersion(),
-      // Both are shipped; the renderer picks the one matching the protocol that
-      // actually ran, which it only knows after the test.
-      sdkVersions: SDK_VERSIONS,
+      osVersion,
     };
 
     console.log(

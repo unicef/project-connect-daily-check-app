@@ -29,6 +29,7 @@ describe('DeviceContextService', () => {
             deviceModel: 'ThinkPad E14',
             deviceManufacturer: 'LENOVO',
             appBuildNumber: 'a1b2c3d',
+            osVersion: 'Microsoft Windows 11 Home 10.0.26200',
           }),
       });
 
@@ -37,6 +38,7 @@ describe('DeviceContextService', () => {
         device_model: 'ThinkPad E14',
         device_manufacturer: 'LENOVO',
         app_build_number: 'a1b2c3d',
+        os_version: 'Microsoft Windows 11 Home 10.0.26200',
       });
     });
 
@@ -74,6 +76,7 @@ describe('DeviceContextService', () => {
         device_model: null,
         device_manufacturer: null,
         app_build_number: null,
+        os_version: null,
       });
     });
 
@@ -183,31 +186,19 @@ describe('DeviceContextService', () => {
     });
   });
 
-  describe('getSdkVersion', () => {
-    beforeEach(() => {
+  describe('os_version', () => {
+    it('is null when the Electron shell predates the field', async () => {
       setElectronAPI({
         getDeviceIdentity: () =>
           Promise.resolve({
-            sdkVersions: { mlab: '0.1.5', cloudflare: '1.4.1' },
+            deviceName: 'SCHOOL-PC-01',
+            deviceModel: 'ThinkPad E14',
+            deviceManufacturer: 'LENOVO',
+            appBuildNumber: 'a1b2c3d',
           }),
       });
-    });
 
-    it('picks the SDK matching the protocol that ran', async () => {
-      expect(await service.getSdkVersion('mlab')).toBe('0.1.5');
-      expect(await service.getSdkVersion('cloudflare')).toBe('1.4.1');
-      expect(await service.getSdkVersion('Cloudflare')).toBe('1.4.1');
-    });
-
-    it('defaults to the M-Lab SDK when no protocol is given', async () => {
-      expect(await service.getSdkVersion(null)).toBe('0.1.5');
-      expect(await service.getSdkVersion(undefined)).toBe('0.1.5');
-    });
-
-    it('returns null outside Electron', async () => {
-      delete (window as any).electronAPI;
-
-      expect(await service.getSdkVersion('mlab')).toBeNull();
+      expect((await service.getDeviceIdentity()).os_version).toBeNull();
     });
   });
 });
