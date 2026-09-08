@@ -121,8 +121,8 @@ describe('MeasurementClientService ndt7 integration', () => {
         device_manufacturer: null,
         app_build_number: null,
       }),
-      getDeviceNetworkInformation: jasmine
-        .createSpy('getDeviceNetworkInformation')
+      getDeviceContext: jasmine
+        .createSpy('getDeviceContext')
         .and.resolveTo(null),
       getSdkVersion: jasmine.createSpy('getSdkVersion').and.resolveTo(null),
       extractWifiDiagnostics: jasmine

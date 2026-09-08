@@ -111,12 +111,12 @@ export class MeasurementClientService {
     // the readings describe the machine as the test found it, and awaited
     // together because they are independent I/O — serialising them is what would
     // push the capture past the 1.5 s budget the plan set.
-    const [deviceIdentity, deviceNetworkInformation] = await Promise.all([
+    const [deviceIdentity, deviceContext] = await Promise.all([
       this.deviceContext.getDeviceIdentity(),
-      this.deviceContext.getDeviceNetworkInformation(),
+      this.deviceContext.getDeviceContext(),
     ]);
     measurementRecord.deviceIdentity = deviceIdentity;
-    measurementRecord.deviceNetworkInformation = deviceNetworkInformation;
+    measurementRecord.deviceContext = deviceContext;
     // Derived from the Wi-Fi read that already happened above, so the expensive
     // wifiConnections() call is not repeated.
     measurementRecord.wifiDiagnostics =
@@ -182,7 +182,7 @@ export class MeasurementClientService {
       installedPath: '',
       wifiConnections: null,
       deviceIdentity: null,
-      deviceNetworkInformation: null,
+      deviceContext: null,
       wifiDiagnostics: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
