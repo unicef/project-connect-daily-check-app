@@ -1,22 +1,16 @@
 package com.meter.giga.worker
 
 import android.Manifest
-import android.app.Notification
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
-import com.meter.giga.MainActivity
-import com.meter.giga.R
 import com.meter.giga.domain.entity.history.Geo
 import com.meter.giga.domain.entity.history.GeoLocation
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
@@ -35,9 +29,9 @@ import com.meter.giga.utils.Constants.DEVICE_TYPE_CHROMEBOOK
 import com.meter.giga.utils.Constants.NOTIFICATION_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
-import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
 import com.meter.giga.utils.DeviceInfo
 import com.meter.giga.utils.GigaUtil
+import com.meter.giga.utils.NotificationHelper
 import com.meter.giga.utils.ResultState
 import io.sentry.Sentry
 import io.sentry.SentryLevel
@@ -75,7 +69,7 @@ class NetworkTestWorker(
 
   private lateinit var fusedLocationClient: FusedLocationProviderClient
   private var currentLocation: Location? = null
-
+  val notificationHelper = NotificationHelper(context)
   override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
     // Initialize location client
     fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
@@ -156,7 +150,7 @@ class NetworkTestWorker(
   }
 
   override suspend fun getForegroundInfo(): ForegroundInfo {
-    val notification = createNotification("Starting speed test...")
+    val notification = notificationHelper.createNotification("Starting speed test...")
     return ForegroundInfo(NOTIFICATION_ID, notification)
   }
 
@@ -182,38 +176,38 @@ class NetworkTestWorker(
       }
   }
 
-  private fun createNotification(content: String): Notification {
-
-
-    val intent = android.content.Intent(context, MainActivity::class.java).apply {
-      flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-    }
-
-    val pendingIntent = PendingIntent.getActivity(
-      context,
-      0,
-      intent,
-      PendingIntent.FLAG_UPDATE_CURRENT or
-        PendingIntent.FLAG_IMMUTABLE
-    )
-
-    val largeBitmap = android.graphics.BitmapFactory.decodeResource(
-      context.resources,
-      R.mipmap.ic_launcher_round
-    )
-
-    return NotificationCompat.Builder(context, SPEED_TEST_CHANNEL_ID)
-      .setContentTitle(context.getString(R.string.notification_header))
-      .setContentText(content)
-      .setSmallIcon(R.mipmap.ic_launcher_round)
-      .setLargeIcon(largeBitmap)
-      .setOngoing(true)
-      .setOnlyAlertOnce(true)
-      .setPriority(NotificationCompat.PRIORITY_HIGH)
-      .setContentIntent(pendingIntent)
-      .build()
-  }
+//  private fun createNotification(content: String): Notification {
+//
+//
+//    val intent = android.content.Intent(context, MainActivity::class.java).apply {
+//      flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+//        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+//    }
+//
+//    val pendingIntent = PendingIntent.getActivity(
+//      context,
+//      0,
+//      intent,
+//      PendingIntent.FLAG_UPDATE_CURRENT or
+//        PendingIntent.FLAG_IMMUTABLE
+//    )
+//
+//    val largeBitmap = android.graphics.BitmapFactory.decodeResource(
+//      context.resources,
+//      R.mipmap.ic_launcher_round
+//    )
+//
+//    return NotificationCompat.Builder(context, SPEED_TEST_CHANNEL_ID)
+//      .setContentTitle(context.getString(R.string.notification_header))
+//      .setContentText(content)
+//      .setSmallIcon(R.mipmap.ic_launcher_round)
+//      .setLargeIcon(largeBitmap)
+//      .setOngoing(true)
+//      .setOnlyAlertOnce(true)
+//      .setPriority(NotificationCompat.PRIORITY_HIGH)
+//      .setContentIntent(pendingIntent)
+//      .build()
+//  }
 
   private fun createHttpClient(
     connectTimeout: Long = 12,
@@ -341,7 +335,6 @@ class NetworkTestWorker(
 
       if (error != null && error.message != null) {
         Sentry.captureMessage("$testType Failed Message: ${error.message}", SentryLevel.ERROR)
-        Sentry.captureMessage("$testType Failed Cause: ${error.cause}", SentryLevel.ERROR)
       }
 
       try {
@@ -637,9 +630,10 @@ class NetworkTestWorker(
     }
 
     private fun updateNotification(content: String) {
-      val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
-        as NotificationManager
-      manager.notify(NOTIFICATION_ID, createNotification(content))
+//      val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
+//        as NotificationManager
+//      manager.notify(NOTIFICATION_ID, createNotification(content))
+      notificationHelper.showOrUpdateNotification(content)
     }
   }
 }

@@ -1008,6 +1008,9 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.gigaAppPlugin.executeManualSpeedTest({
           SCHEDULE_TYPE: notes,
         });
+        this.gigaAppPlugin.createNotification({
+          MESSAGE: notes,
+        });
       }
       this.measurementClientService.runTest(notes);
     } catch (e) {
@@ -1115,6 +1118,12 @@ export class StarttestPage implements OnInit, OnDestroy {
           8
         ).toFixed(2);
         this.currentRateUpload = this.currentRate;
+        if (this.isNative) {
+          const message = `DL: ${this.currentRateDownload ?? 0.0} Mbps | UL: ${this.currentRate ?? 0.0} Mbps`;
+          this.gigaAppPlugin.updateNotification({
+            MESSAGE: message,
+          });
+        }
         if (!this.uploadProgressStarted) {
           this.uploadProgressStarted = true;
           this.startUploadProgress();
@@ -1126,10 +1135,22 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.currentRate = data.passedResults.Data.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults.Data.MeanClientMbps?.toFixed(2);
+        if (this.isNative) {
+          const message = `DL: ${this.currentRate ?? 0.0} Mbps | UL: ${this.currentRateUpload ?? 0.0} Mbps`;
+          this.gigaAppPlugin.updateNotification({
+            MESSAGE: message,
+          });
+        }
         if (this.downloadStarted) {
           this.startDownloadProgress();
         }
       } else if (data.testStatus === 'complete') {
+        if (this.isNative) {
+          const message = `Speed test completed`;
+          this.gigaAppPlugin.updateNotification({
+            MESSAGE: message,
+          });
+        }
         this.currentState = 'Completed';
         this.currentDate = new Date();
         this.currentRate =
@@ -1174,6 +1195,12 @@ export class StarttestPage implements OnInit, OnDestroy {
         // Handle first test completion for new registrations
         this.handleFirstTestCompletion();
       } else if (data.testStatus === 'onerror') {
+        if (this.isNative) {
+          const message = `Speed test measurements not available, please try again.`;
+          this.gigaAppPlugin.updateNotification({
+            MESSAGE: message,
+          });
+        }
         this.gaugeError();
         this.currentState = undefined;
         this.currentRate = undefined;

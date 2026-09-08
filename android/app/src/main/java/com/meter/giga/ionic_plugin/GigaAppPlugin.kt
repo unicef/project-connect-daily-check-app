@@ -44,6 +44,7 @@ import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
+import com.meter.giga.utils.NotificationHelper
 import com.meter.giga.utils.PluginEvent
 import com.meter.giga.worker.await
 import io.sentry.Sentry
@@ -79,6 +80,8 @@ open class GigaAppPlugin : Plugin() {
      * sending events to the Capacitor UI layer.
      */
     private var pluginInstance: GigaAppPlugin? = null
+
+    private lateinit var notificationHelper: NotificationHelper
 
     /**
      * Sends real-time speed test progress updates to the Ionic UI.
@@ -239,6 +242,7 @@ open class GigaAppPlugin : Plugin() {
    */
   override fun load() {
     pluginInstance = this
+    notificationHelper = NotificationHelper(context)
   }
 
   /**
@@ -512,6 +516,39 @@ open class GigaAppPlugin : Plugin() {
     Sentry.removeTag("School ID")
     Sentry.removeTag("School GIGA ID")
     call.resolve()
+  }
+
+
+  @PluginMethod
+  fun createNotification(call: PluginCall) {
+    val content = call.getString("MESSAGE") ?: "Speed test started"
+    try {
+      notificationHelper.showOrUpdateNotification(content)
+      call.resolve(JSObject().apply { put("success", true) })
+    } catch (e: Exception) {
+      call.reject("Failed to start notification: ${e.message}")
+    }
+  }
+
+  @PluginMethod
+  fun updateNotification(call: PluginCall) {
+    val content = call.getString("MESSAGE") ?: ""
+    try {
+      notificationHelper.showOrUpdateNotification(content)
+      call.resolve(JSObject().apply { put("success", true) })
+    } catch (e: Exception) {
+      call.reject("Failed to update notification: ${e.message}")
+    }
+  }
+
+  @PluginMethod
+  fun closeNotification(call: PluginCall) {
+    try {
+      notificationHelper.cancelNotification()
+      call.resolve(JSObject().apply { put("success", true) })
+    } catch (e: Exception) {
+      call.reject("Failed to cancel notification: ${e.message}")
+    }
   }
 
   /**
