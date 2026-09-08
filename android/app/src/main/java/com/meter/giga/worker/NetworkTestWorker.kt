@@ -351,18 +351,18 @@ class NetworkTestWorker(
         AppLogger.d("GIGA NetworkTestWorker", "ALL DONE count: $allDoneInvoked")
 
         if (allDoneInvoked == 2) {
-          publishSpeedTestData(scheduleType, appVersion, isRunningOnChromebook)
+          publishSpeedTestData()
           // isTestRunning will be set to false inside uploadSpeedTestData paths
         }
       } catch (e: Exception) {
         Sentry.captureException(e)
+        updateNotification("Speed test measurements not available, please try again.")
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+        prefs.isTestRunning = false
       }
     }
 
     private fun publishSpeedTestData(
-      scheduleType: String,
-      appVersion: String,
-      isRunningOnChromebook: Boolean
     ) {
       AppLogger.d("GIGA NetworkTestWorker", "publishSpeedTestData invoked")
 
@@ -421,7 +421,6 @@ class NetworkTestWorker(
                   "GIGA NetworkTestWorker",
                   "Get Client Info API Failed: ${clientInfo.error}"
                 )
-                Sentry.captureMessage("Client Info Fetch Failed", SentryLevel.ERROR)
               }
 
               ResultState.Loading -> {}
@@ -450,7 +449,6 @@ class NetworkTestWorker(
                   "GIGA NetworkTestWorker",
                   "Get Server Info API Failed: ${serverInfo.error}"
                 )
-                Sentry.captureMessage("Server Info Fetch Failed", SentryLevel.ERROR)
               }
 
               ResultState.Loading -> {}
@@ -465,18 +463,9 @@ class NetworkTestWorker(
           )
         } catch (e: Exception) {
           Sentry.captureException(e)
-          if (lastUploadMeasurement != null &&
-            lastDownloadMeasurement != null &&
-            lastUploadResponse != null &&
-            lastDownloadResponse != null
-          ) {
-            uploadSpeedTestData(null, null, null, null)
-          } else {
-            Sentry.captureException(e)
-            updateNotification("Speed test measurements not available, please try again.")
-            GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
-            prefs.isTestRunning = false
-          }
+          updateNotification("Speed test measurements not available, please try again.")
+          GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+          prefs.isTestRunning = false
         }
       }
     }
@@ -603,6 +592,7 @@ class NetworkTestWorker(
                 speedTestResultRequestEntity,
                 measurementsItem
               )
+              updateNotification("Speed test completed")
             }
           }
         } catch (e: Exception) {
@@ -618,6 +608,7 @@ class NetworkTestWorker(
             speedTestResultRequestEntity,
             measurementsItem
           )
+          updateNotification("Failed to sync speed test data.")
           Sentry.captureException(e)
         }
       } else {
@@ -633,6 +624,7 @@ class NetworkTestWorker(
           speedTestResultRequestEntity,
           measurementsItem
         )
+        updateNotification("Failed to generate the speed test upload payload")
         Sentry.captureMessage(
           "Failed to generate the speed test upload payload",
           SentryLevel.ERROR
@@ -640,7 +632,6 @@ class NetworkTestWorker(
       }
 
       prefs.isTestRunning = false
-      updateNotification("Speed test completed")
       delay(5000)
       AppLogger.d("GIGA NetworkTestWorker", "Speed Test Completed")
     }

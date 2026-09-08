@@ -226,9 +226,9 @@ ion-label {
 
 .middle-layout-native .learnmore {
   /* Allow text to take available space */
-  font-size: 12px;
+  font-size: 18px;
   padding: 0;
-  line-height: 16px;
+  line-height: 18px;
   /* Ensure text is aligned properly */
   color: #222222;
   font-weight: 400;
@@ -237,7 +237,7 @@ ion-label {
 }
 
 .middle-layout-native ion-checkbox {
-  --size: 20px;
+  --size: 22px;
 
   /* Align checkbox with text */
   flex-shrink: 0;

@@ -53,11 +53,8 @@
           <span class="learnmore" [innerHTML]="isNativeApp() ? ('registerSchoolPage.privacy-android' | translate) : ('registerSchoolPage.privacy' | translate)"></span>
           <span class="learnmore">
             <ng-container *ngIf="isNativeApp()">
-              <b>
-                <br />
                 <b data-testid="register-school-android-link" class="underline" (click)="openExternalUrl(tncURL)" [innerHtml]="'privacyPolicy' | translate">
                 </b>.
-              </b>
             </ng-container>
             
             <!-- Non‑native app content -->

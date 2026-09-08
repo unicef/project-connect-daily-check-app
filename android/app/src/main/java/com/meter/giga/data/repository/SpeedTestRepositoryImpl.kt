@@ -15,6 +15,7 @@ import com.meter.giga.utils.ResultState
 import com.meter.giga.utils.toEntity
 import com.meter.giga.utils.toModel
 import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.delay
 
 /**
@@ -60,11 +61,17 @@ class SpeedTestRepositoryImpl(
           }
         }
       }
+      Sentry.captureMessage(
+        "Get client info api failed : ${response.errorBody().toString()}",
+        SentryLevel.ERROR
+      )
       return ResultState.Failure(
         ErrorEntity.Unknown("Get client info api failed")
       )
     } catch (e: Exception) {
       logger.d("GIGA SpeedTestRepositoryImpl", "Exception $e")
+      Sentry.captureException(e)
+
       return ResultState.Failure(
         ErrorEntity.Unknown("Get client info api failed")
       )
@@ -175,11 +182,16 @@ class SpeedTestRepositoryImpl(
           }
         }
       }
+      Sentry.captureMessage(
+        "Get client info api failed : ${response.errorBody().toString()}",
+        SentryLevel.ERROR
+      )
       return ResultState.Failure(
         ErrorEntity.Unknown("Get client info api failed")
       )
     } catch (e: Exception) {
       logger.d("GIGA SpeedTestRepositoryImpl", "Exception $e")
+      Sentry.captureException(e)
       return ResultState.Failure(
         ErrorEntity.Unknown("Get client info api failed")
       )
@@ -211,6 +223,10 @@ class SpeedTestRepositoryImpl(
         ResultState.Failure(ErrorHandlerImpl().getError(response.errorBody()))
       }
     }
+    Sentry.captureMessage(
+      "Get server info api failed : ${response.errorBody().toString()}",
+      SentryLevel.ERROR
+    )
     return ResultState.Failure(
       ErrorEntity.Unknown("Get client info api failed")
     )
