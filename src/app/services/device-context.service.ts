@@ -16,7 +16,7 @@ export interface DeviceIdentity {
 }
 
 /** Volatile network/system context; shape mirrors the backend whitelist. */
-export type DeviceNetworkInformation = Record<string, unknown>;
+export type DeviceContext = Record<string, unknown>;
 
 /** Why `wifi_connections` came back empty, and where the SSID came from. */
 export interface WifiDiagnostics {
@@ -99,14 +99,14 @@ export class DeviceContextService {
    * @returns the context object, or null when nothing could be read — so the
    *          payload carries no key rather than an empty object.
    */
-  async getDeviceNetworkInformation(): Promise<DeviceNetworkInformation | null> {
+  async getDeviceContext(): Promise<DeviceContext | null> {
     const api = this.electronAPI;
-    if (!api?.getDeviceNetworkInformation) {
+    if (!api?.getDeviceContext) {
       return null;
     }
 
     try {
-      const result = await api.getDeviceNetworkInformation();
+      const result = await api.getDeviceContext();
       if (!result || result.error) {
         console.warn(
           '[DeviceContext] network information unavailable:',
@@ -115,7 +115,7 @@ export class DeviceContextService {
         return null;
       }
 
-      const context = result.deviceNetworkInformation;
+      const context = result.deviceContext;
       return context && Object.keys(context).length > 0 ? context : null;
     } catch (error) {
       console.error('[DeviceContext] failed to read network information:', error);

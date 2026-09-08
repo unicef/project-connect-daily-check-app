@@ -3,7 +3,7 @@
  *
  * Two things live here:
  *
- * 1. `getDeviceNetworkInformation()` — the volatile per-measurement context the
+ * 1. `getDeviceContext()` — the volatile per-measurement context the
  *    ticket asked for and that no column covered: DNS, default gateway,
  *    connection type, VPN inference, IP family, rx/tx bytes, plus the cheap
  *    performance context around the test (CPU load, free memory, free disk).
@@ -30,10 +30,11 @@
  */
 
 import { execFile } from 'child_process';
+import * as os from 'os';
 import * as si from 'systeminformation';
 
-/** Volatile context stored as `device_network_information` on the measurement. */
-export interface DeviceNetworkInformation {
+/** Volatile context stored as `device_context` on the measurement. */
+export interface DeviceContext {
   connection_type?: string;
   default_gateway?: string;
   dns_servers?: string[];
@@ -46,6 +47,8 @@ export interface DeviceNetworkInformation {
   cpu_load_percent?: number;
   memory_available_mb?: number;
   disk_free_mb?: number;
+  device_uptime_seconds?: number;
+  device_start_time?: string;
 }
 
 /** Why `wifi_connections` came back empty. Mirrors the backend's whitelist. */
@@ -223,7 +226,7 @@ async function getNetworkShape(gateway: string | null): Promise<CachedNetworkSha
 }
 
 /** Drops the internal bookkeeping before the shape goes into the payload. */
-function shapeToPayload(shape: CachedNetworkShape): Partial<DeviceNetworkInformation> {
+function shapeToPayload(shape: CachedNetworkShape): Partial<DeviceContext> {
   return {
     connection_type: shape.connection_type,
     ip_family: shape.ip_family,
@@ -232,6 +235,48 @@ function shapeToPayload(shape: CachedNetworkShape): Partial<DeviceNetworkInforma
     link_speed_mbps: shape.link_speed_mbps,
     dns_servers: shape.dns_servers,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Boot context
+// ---------------------------------------------------------------------------
+
+/**
+ * How long the machine has been up, and when it was last started.
+ *
+ * `os.uptime()` is a Node built-in reading a kernel counter: no process spawn and
+ * no `systeminformation` call, so unlike `cpu()` or `diskLayout()` this costs
+ * nothing and belongs in the per-measurement path.
+ *
+ * The two values are not equally trustworthy. The uptime is measured by the
+ * kernel and is immune to a wrong clock; the start time is derived from it as
+ * `now - uptime`, so on the many school machines whose clock is off — the same
+ * reason a measurement carries `server_timestamp` at all — it is off by exactly
+ * the same amount. Prefer the uptime for anything analytical, and treat the start
+ * time as a convenience for reading a row.
+ *
+ * A caveat for whoever queries this: on Windows, fast startup and hibernation
+ * resume the counter instead of resetting it, so a high uptime means "not
+ * restarted", not "powered on continuously".
+ */
+function getBootContext(): {
+  device_uptime_seconds?: number;
+  device_start_time?: string;
+} {
+  try {
+    const uptime = os.uptime();
+    if (!Number.isFinite(uptime) || uptime < 0) {
+      return {};
+    }
+    const seconds = Math.round(uptime);
+    return {
+      device_uptime_seconds: seconds,
+      device_start_time: new Date(Date.now() - seconds * 1000).toISOString(),
+    };
+  } catch (error) {
+    console.warn('[device-context] boot context unavailable:', error?.message ?? error);
+    return {};
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -244,7 +289,7 @@ function shapeToPayload(shape: CachedNetworkShape): Partial<DeviceNetworkInforma
  * The cheap calls run concurrently: they are independent I/O, and serialising
  * them is what would push the capture past the 1.5 s budget.
  */
-export async function getDeviceNetworkInformation(): Promise<DeviceNetworkInformation> {
+export async function getDeviceContext(): Promise<DeviceContext> {
   const [gateway, stats, load, memory, disks] = await Promise.all([
     soft('default gateway', () => si.networkGatewayDefault()),
     soft('network stats', () => si.networkStats()),
@@ -263,7 +308,7 @@ export async function getDeviceNetworkInformation(): Promise<DeviceNetworkInform
       disks[0]
     : null;
 
-  const context: DeviceNetworkInformation = {
+  const context: DeviceContext = {
     ...shapeToPayload(shape),
     default_gateway: gateway || undefined,
     net_bytes_rx: primaryStats?.rx_bytes ?? undefined,
@@ -271,6 +316,7 @@ export async function getDeviceNetworkInformation(): Promise<DeviceNetworkInform
     cpu_load_percent: round(load?.currentLoad),
     memory_available_mb: toMb(memory?.available),
     disk_free_mb: toMb(systemDisk?.available),
+    ...getBootContext(),
   };
 
   // Undefined keys would serialise as absent anyway, but stripping them keeps the

@@ -192,8 +192,8 @@ export class UploadService {
     measurement['wifi_unavailable_reason'] =
       wifiDiagnostics.wifi_unavailable_reason || null;
     measurement['ssid_source'] = wifiDiagnostics.ssid_source || null;
-    measurement['device_network_information'] =
-      record.deviceNetworkInformation || null;
+    measurement['device_context'] =
+      record.deviceContext || null;
 
     // Schedule context: which slot/time this measurement was planned for
     // (null for manual runs). offline_synced flips to true only on the copy

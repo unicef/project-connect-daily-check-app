@@ -103,42 +103,42 @@ describe('DeviceContextService', () => {
     });
   });
 
-  describe('getDeviceNetworkInformation', () => {
+  describe('getDeviceContext', () => {
     it('returns the context object', async () => {
-      const deviceNetworkInformation = {
+      const deviceContext = {
         connection_type: 'wifi',
         default_gateway: '192.168.1.1',
         vpn_likely: false,
       };
       setElectronAPI({
-        getDeviceNetworkInformation: () =>
-          Promise.resolve({ deviceNetworkInformation }),
+        getDeviceContext: () =>
+          Promise.resolve({ deviceContext }),
       });
 
-      expect(await service.getDeviceNetworkInformation()).toEqual(
-        deviceNetworkInformation
+      expect(await service.getDeviceContext()).toEqual(
+        deviceContext
       );
     });
 
     it('returns null for an empty context so the payload carries no key', async () => {
       setElectronAPI({
-        getDeviceNetworkInformation: () =>
-          Promise.resolve({ deviceNetworkInformation: {} }),
+        getDeviceContext: () =>
+          Promise.resolve({ deviceContext: {} }),
       });
 
-      expect(await service.getDeviceNetworkInformation()).toBeNull();
+      expect(await service.getDeviceContext()).toBeNull();
     });
 
     it('returns null outside Electron', async () => {
-      expect(await service.getDeviceNetworkInformation()).toBeNull();
+      expect(await service.getDeviceContext()).toBeNull();
     });
 
     it('returns null when the handler rejects', async () => {
       setElectronAPI({
-        getDeviceNetworkInformation: () => Promise.reject(new Error('nope')),
+        getDeviceContext: () => Promise.reject(new Error('nope')),
       });
 
-      expect(await service.getDeviceNetworkInformation()).toBeNull();
+      expect(await service.getDeviceContext()).toBeNull();
       expect(console.error).toHaveBeenCalled();
     });
   });

@@ -24,7 +24,7 @@ import { captureException } from '@sentry/node';
 import { AUTO_UPDATE_ENABLED, BUILD_COMMIT, BUILD_MODE } from './build-mode';
 import {
   classifyWifiUnavailable,
-  getDeviceNetworkInformation,
+  getDeviceContext,
   getSsidFromNlm,
 } from './device-context';
 
@@ -476,16 +476,16 @@ ipcMain.handle('get-wifi-connections', async () => {
 // IPC handler for the volatile network/system context stored alongside the
 // measurement. Never throws: a machine where PowerShell or
 // the registry is locked down returns whatever fields it could read.
-ipcMain.handle('get-device-network-information', async () => {
+ipcMain.handle('get-device-context', async () => {
   try {
     console.log('📤 [Electron] Device network information requested via IPC');
-    const deviceNetworkInformation = await getDeviceNetworkInformation();
+    const deviceContext = await getDeviceContext();
 
     console.log(
       '✅ [Electron] Device network information returned via IPC:',
-      deviceNetworkInformation
+      deviceContext
     );
-    return { deviceNetworkInformation };
+    return { deviceContext };
   } catch (error) {
     console.error(
       '❌ [Electron] Error getting device network information via IPC:',
