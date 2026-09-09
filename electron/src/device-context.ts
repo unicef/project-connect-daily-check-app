@@ -7,6 +7,12 @@
  *    ticket asked for and that no column covered: DNS, default gateway,
  *    connection type, VPN inference, IP family, rx/tx bytes, plus the cheap
  *    performance context around the test (CPU load, free memory, free disk).
+ *    It also carries the stable per-unit hardware identifiers — motherboard
+ *    serial, boot-disk serial and the Windows MachineGuid — that complement the
+ *    SMBIOS UUID already sent as `device_hardware_id`: when that UUID goes
+ *    generic on a cloned or batch-imaged machine, these still tell two physical
+ *    units apart. They never change while the app is open, so they are captured
+ *    once and cached, not read per measurement.
  *
  * 2. `classifyWifiUnavailable()` / `getSsidFromNlm()` — the diagnosis for the
  *    finding that motivated the research: on Windows 11 24H2+ the WLAN stack is
@@ -49,6 +55,10 @@ export interface DeviceContext {
   disk_free_mb?: number;
   device_uptime_seconds?: number;
   device_start_time?: string;
+  // Stable per-unit hardware identifiers (see getHardwareIdentifiers).
+  baseboard_serial?: string;
+  disk_serial?: string;
+  machine_guid?: string;
 }
 
 /** Why `wifi_connections` came back empty. Mirrors the backend's whitelist. */
@@ -280,6 +290,117 @@ function getBootContext(): {
 }
 
 // ---------------------------------------------------------------------------
+// Stable per-unit hardware identifiers
+// ---------------------------------------------------------------------------
+
+/**
+ * Generic placeholder values OEMs leave in these fields. A shared "Default
+ * string" or an all-zero UUID must never masquerade as a real identifier — that
+ * is exactly the collision these serials are meant to break, not add to. Mirrors
+ * the backend's BLOCKED_HARDWARE_IDS plus the common textual junk.
+ */
+const GENERIC_ID_VALUES = new Set([
+  '0',
+  'none',
+  'null',
+  'n/a',
+  'na',
+  'unknown',
+  'invalid',
+  'default string',
+  'to be filled by o.e.m.',
+  'to be filled by oem',
+  'system serial number',
+  'not applicable',
+  'not specified',
+  'not available',
+  'oem',
+  '03000200-0400-0500-0006-000700080009',
+  'fefefefe-fefe-fefe-fefe-fefefefefefe',
+  '00000000-0000-0000-0000-000000000000',
+  '12345678-1234-1234-1234-123456789abc',
+  'ffffffff-ffff-ffff-ffff-ffffffffffff',
+]);
+
+/**
+ * Returns the trimmed identifier, or undefined when the value is empty or one of
+ * the generic placeholders above. Case-insensitive; also drops strings that are a
+ * single repeated character (e.g. "0000000000"), which carry no identity.
+ */
+export function cleanHardwareId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const normalized = trimmed.toLowerCase();
+  if (GENERIC_ID_VALUES.has(normalized)) return undefined;
+  if (/^(.)\1+$/.test(normalized)) return undefined;
+  return trimmed;
+}
+
+interface HardwareIdentifiers {
+  baseboard_serial?: string;
+  disk_serial?: string;
+  machine_guid?: string;
+}
+
+let cachedHardwareIds: HardwareIdentifiers | null = null;
+let hardwareIdsPromise: Promise<HardwareIdentifiers> | null = null;
+
+/**
+ * The stable per-unit identifiers: motherboard serial (`si.baseboard()`),
+ * boot-disk serial (`si.diskLayout()`) and the Windows MachineGuid
+ * (`si.uuid().os`, read from HKLM\...\Cryptography\MachineGuid).
+ *
+ * Captured once per app run and reused: `diskLayout()` alone costs ~2 s, and none
+ * of these move while the app is open. Each value is passed through
+ * cleanHardwareId(), so an OEM placeholder is dropped rather than stored as a
+ * shared pseudo-identifier. Every read fails soft — a blocked WMI/registry call
+ * yields an absent field, never a thrown error.
+ */
+async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
+  if (cachedHardwareIds) return cachedHardwareIds;
+  if (hardwareIdsPromise) return hardwareIdsPromise;
+
+  hardwareIdsPromise = (async () => {
+    const [baseboard, disks, ids] = await Promise.all([
+      soft('baseboard', () => si.baseboard()),
+      soft('disk layout', () => si.diskLayout()),
+      soft('machine uuid', () => si.uuid()),
+    ]);
+
+    const diskList = Array.isArray(disks) ? disks : disks ? [disks] : [];
+    // systeminformation exposes no "boot disk" flag, so prefer an internal
+    // (non-USB) disk and take the first serial that survives the filter — a
+    // removable drive's serial would not identify the machine.
+    const usableSerial = (
+      list: si.Systeminformation.DiskLayoutData[]
+    ): string | undefined =>
+      list
+        .map((disk) => cleanHardwareId(disk?.serialNum))
+        .find((serial) => serial !== undefined);
+    const diskSerial =
+      usableSerial(
+        diskList.filter(
+          (disk) => !/usb/i.test(String(disk?.interfaceType ?? ''))
+        )
+      ) ?? usableSerial(diskList);
+
+    cachedHardwareIds = {
+      baseboard_serial: cleanHardwareId(baseboard?.serial),
+      disk_serial: diskSerial,
+      machine_guid: cleanHardwareId(ids?.os),
+    };
+    return cachedHardwareIds;
+  })();
+
+  try {
+    return await hardwareIdsPromise;
+  } finally {
+    hardwareIdsPromise = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Per-measurement capture
 // ---------------------------------------------------------------------------
 
@@ -290,12 +411,14 @@ function getBootContext(): {
  * them is what would push the capture past the 1.5 s budget.
  */
 export async function getDeviceContext(): Promise<DeviceContext> {
-  const [gateway, stats, load, memory, disks] = await Promise.all([
+  const [gateway, stats, load, memory, disks, hardwareIds] = await Promise.all([
     soft('default gateway', () => si.networkGatewayDefault()),
     soft('network stats', () => si.networkStats()),
     soft('cpu load', () => si.currentLoad()),
     soft('memory', () => si.mem()),
     soft('filesystems', () => si.fsSize()),
+    // Cached after the first run; overlaps the cheap calls on that first pass.
+    getHardwareIdentifiers(),
   ]);
 
   const shape = await getNetworkShape(gateway || null);
@@ -310,6 +433,7 @@ export async function getDeviceContext(): Promise<DeviceContext> {
 
   const context: DeviceContext = {
     ...shapeToPayload(shape),
+    ...hardwareIds,
     default_gateway: gateway || undefined,
     net_bytes_rx: primaryStats?.rx_bytes ?? undefined,
     net_bytes_tx: primaryStats?.tx_bytes ?? undefined,
@@ -435,4 +559,6 @@ export async function getSsidFromNlm(): Promise<string | null> {
 /** Test seam: drops the cached slow-moving half. */
 export function resetDeviceContextCache(): void {
   cachedShape = null;
+  cachedHardwareIds = null;
+  hardwareIdsPromise = null;
 }
