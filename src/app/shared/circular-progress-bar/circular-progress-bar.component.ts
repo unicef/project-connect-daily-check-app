@@ -15,11 +15,19 @@ export class CircularProgressBarComponent {
   @Input() currentRateDownload!: number;
   @Input() error: boolean = false;
   @Input() completed: boolean = false;
+  /** Swallows clicks while a measurement is running, so a second tap cannot start one. */
+  @Input() disabled: boolean = false;
 
   @Output() startTest = new EventEmitter<void>();
   @Output() showError = new EventEmitter<boolean>();
 
   handleClick() {
+    // A run in progress passes the checks below at its start and at its end
+    // (progressValue 0 and 100), so the disabled flag is what actually stops a
+    // second test from being launched on top of the first.
+    if (this.disabled) {
+      return;
+    }
     if (
       this.progressValue === 0 ||
       this.progressValue === 100 ||

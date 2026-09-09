@@ -178,4 +178,87 @@ describe('MeasurementClientService ndt7 integration', () => {
 
     expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
   });
+
+  describe('single-flight lock', () => {
+    /** Holds the ndt7 run open so a second runTest() overlaps it. */
+    const blockNdt7 = () => {
+      let release: () => void;
+      const started = new Promise<void>((resolve) => {
+        ndt7TestSpy.and.callFake(
+          () => new Promise<number>((done) => {
+            resolve();
+            release = () => done(0);
+          })
+        );
+      });
+      return { started, release: () => release() };
+    };
+
+    it('drops a second run started while one is in flight', async () => {
+      const gate = blockNdt7();
+      const first = service.runTest('manual');
+      await gate.started;
+
+      // Second tap on the test button, first run still going.
+      await service.runTest('manual');
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+
+      gate.release();
+      await first;
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('blocks the manual button path while the first test runs', async () => {
+      const gate = blockNdt7();
+      const first = service.runTest('first');
+      await gate.started;
+
+      // What the user hit: the post-registration test was still going.
+      await service.runTest('manual');
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+
+      gate.release();
+      await first;
+    });
+
+    it('holds off a scheduled run while a manual one is going', async () => {
+      const gate = blockNdt7();
+      const manual = service.runTest('manual');
+      await gate.started;
+
+      await service.runTest('daily', { slot: 'A', scheduledAt: 1 });
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+
+      gate.release();
+      await manual;
+      // Link free again: the scheduler's next tick gets to run.
+      expect(service.isRunning).toBeFalse();
+    });
+
+    it('releases the lock once the run finishes', async () => {
+      await service.runTest('manual');
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('releases the lock when the run fails', async () => {
+      ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
+
+      await service.runTest('manual');
+      expect(service.isRunning).toBeFalse();
+
+      await service.runTest('manual');
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports the running state through testRunning$', async () => {
+      const seen: boolean[] = [];
+      service.testRunning$.subscribe((v) => seen.push(v));
+
+      await service.runTest('manual');
+
+      expect(seen).toEqual([false, true, false]);
+    });
+  });
 });

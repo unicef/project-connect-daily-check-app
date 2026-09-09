@@ -17,10 +17,18 @@ export class MeasurementClientService {
   public uploadComplete$ = new Subject<any>();
   public downloadStarted$ = new Subject<any>();
   public uploadStarted$ = new Subject<any>();
+  /** true while a measurement is in flight; drives the disabled state of the test button. */
+  public testRunning$ = new BehaviorSubject<boolean>(false);
 
   private TIME_EXPECTED = 10;
   private retryAttempts = 0;
   private maxRetries = 3;
+  /**
+   * The run currently in flight, or null. Two ndt7 runs over the same link steal
+   * bandwidth from each other and both report low, so only one is allowed at a
+   * time — see runTest().
+   */
+  private activeRun: Promise<void> | null = null;
   private readonly measurementNotificationActivity = new BehaviorSubject<any>(
     {}
   ).asObservable();
@@ -80,13 +88,43 @@ export class MeasurementClientService {
     private deviceContext: DeviceContextService
   ) {}
 
+  /** Whether a measurement is running right now. */
+  get isRunning(): boolean {
+    return this.activeRun !== null;
+  }
+
+  /**
+   * Runs one ndt7 measurement, single-flight.
+   *
+   * Every trigger funnels through here — the test button, the post-registration
+   * 'first' test, the scheduled slots and the startup test — and any of them can
+   * fire while another is still running. Two runs sharing the link measure each
+   * other's traffic as congestion, so both upload speeds that are too low.
+   *
+   * A request that arrives while a run is in flight is dropped, not queued: a
+   * measurement that starts late is worth less than the one already running, and
+   * queueing would just move the overlap later.
+   */
   async runTest(
     notes = 'manual',
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
   ): Promise<void> {
+    if (this.activeRun) {
+      console.warn(
+        `Measurement already in progress; dropping the "${notes}" request.`
+      );
+      return;
+    }
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
-    await this.runTestWithRetry(notes, scheduleContext);
+    this.testRunning$.next(true);
+    this.activeRun = this.runTestWithRetry(notes, scheduleContext);
+    try {
+      await this.activeRun;
+    } finally {
+      this.activeRun = null;
+      this.testRunning$.next(false);
+    }
   }
 
   private async runTestWithRetry(
