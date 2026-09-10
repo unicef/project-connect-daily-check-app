@@ -8,10 +8,10 @@ apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 
 android {
-  namespace "com.meter.giga"
+  namespace "com.meter.giga.app"
   compileSdk rootProject.ext.compileSdkVersion
   defaultConfig {
-    applicationId "com.meter.giga"
+    applicationId "com.meter.giga.app"
     minSdkVersion rootProject.ext.minSdkVersion
     targetSdkVersion rootProject.ext.targetSdkVersion
     versionCode project.VERSION_CODE.toInteger()

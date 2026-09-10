@@ -11,7 +11,6 @@ import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.meter.giga.utils.Constants.APP_UPDATE_CHANNEL_ID
-import com.meter.giga.utils.Constants.APP_UPGRADE_NOTIFICATION_ID
 import com.meter.giga.utils.Logger
 import io.mockk.*
 import io.sentry.Sentry

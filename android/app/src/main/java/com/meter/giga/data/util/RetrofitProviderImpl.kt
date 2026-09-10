@@ -2,7 +2,6 @@ package com.meter.giga.data.util
 
 import com.google.gson.Gson
 import com.meter.giga.network.RetrofitInstanceBuilder
-import com.meter.giga.network.api.ApiService
 import com.meter.giga.network.util.RetrofitProvider
 
 /**

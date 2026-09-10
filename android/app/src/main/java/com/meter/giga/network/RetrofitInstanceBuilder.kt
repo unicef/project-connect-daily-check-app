@@ -6,7 +6,6 @@ import com.meter.giga.utils.Constants.CLIENT_INFO_END_URL
 import com.meter.giga.utils.Constants.CLIENT_INFO_FALLBACK_END_URL
 import com.meter.giga.utils.Constants.CLIENT_LITE_INFO_END_URL
 import com.meter.giga.utils.Constants.SERVER_INFO_END_URL
-import io.sentry.Sentry
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 

@@ -1,9 +1,5 @@
 package com.meter.giga.domain.entity.response
 
-import com.meter.giga.data.models.responses.AsnResponseModel
-import com.meter.giga.data.models.responses.CompanyResponseModel
-import com.meter.giga.data.models.responses.PrivacyResponseModel
-
 data class ClientInfoResponseEntity(
   val asn: String?,
   val city: String?,

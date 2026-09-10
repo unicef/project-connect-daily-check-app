@@ -2,8 +2,8 @@
 <resources>
   <string name="app_name">Giga Meter</string>
   <string name="title_activity_main">Giga Meter</string>
-  <string name="package_name">com.meter.giga</string>
-  <string name="custom_url_scheme">com.meter.giga</string>
+  <string name="package_name">com.meter.giga.app</string>
+  <string name="custom_url_scheme">com.meter.giga.app</string>
   <string name="notification_header">GIGA Speed Test</string>
   <string name="sentry_dsn">https://5c0e907b260d9edc3a215e5fb51ece9c@excubo.unicef.org/9</string>
 </resources>

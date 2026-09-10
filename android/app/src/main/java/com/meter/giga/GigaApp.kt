@@ -7,6 +7,8 @@ import android.app.NotificationManager
 import android.os.Build
 import android.provider.Settings.Secure
 import android.provider.Settings.Secure.ANDROID_ID
+import com.meter.giga.app.BuildConfig
+import com.meter.giga.app.R
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants

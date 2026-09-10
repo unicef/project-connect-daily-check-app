@@ -35,6 +35,7 @@ import com.google.android.play.core.install.InstallStateUpdatedListener;
 import com.google.android.play.core.install.model.AppUpdateType;
 import com.google.android.play.core.install.model.InstallStatus;
 import com.google.android.play.core.install.model.UpdateAvailability;
+import com.meter.giga.app.BuildConfig;
 import com.meter.giga.ionic_plugin.GigaAppPlugin;
 import com.meter.giga.utils.AppLogger;
 import com.meter.giga.utils.AppUpdateCheckEventBus;

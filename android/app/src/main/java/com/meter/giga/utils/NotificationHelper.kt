@@ -6,7 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.meter.giga.MainActivity
-import com.meter.giga.R
+import com.meter.giga.app.R
 import com.meter.giga.utils.Constants.NOTIFICATION_ID
 import com.meter.giga.utils.Constants.SPEED_TEST_CHANNEL_ID
 
