@@ -1,0 +1,564 @@
+/**
+ * Network and device context captured next to a measurement.
+ *
+ * Two things live here:
+ *
+ * 1. `getDeviceContext()` — the volatile per-measurement context the
+ *    ticket asked for and that no column covered: DNS, default gateway,
+ *    connection type, VPN inference, IP family, rx/tx bytes, plus the cheap
+ *    performance context around the test (CPU load, free memory, free disk).
+ *    It also carries the stable per-unit hardware identifiers — motherboard
+ *    serial, boot-disk serial and the Windows MachineGuid — that complement the
+ *    SMBIOS UUID already sent as `device_hardware_id`: when that UUID goes
+ *    generic on a cloned or batch-imaged machine, these still tell two physical
+ *    units apart. They never change while the app is open, so they are captured
+ *    once and cached, not read per measurement.
+ *
+ * 2. `classifyWifiUnavailable()` / `getSsidFromNlm()` — the diagnosis for the
+ *    finding that motivated the research: on Windows 11 24H2+ the WLAN stack is
+ *    gated behind the Location services permission, so `si.wifiConnections()`
+ *    comes back EMPTY on a machine that is connected over Wi-Fi. The app cannot
+ *    prompt its way out (WinRT returns Denied with no dialog while the master
+ *    toggle is off), but it can say *why* the data is missing, and it can still
+ *    read the SSID through the ungated Network Location Manager profile.
+ *
+ * Cost discipline. A probe measured every call on a real Windows machine:
+ * `networkInterfaces` (~1100 ms), `cpu` (~1700 ms) and `diskLayout` (~2100 ms)
+ * are far too expensive to run per measurement, so everything derived from them
+ * is computed once and cached, keyed on the default gateway so that moving to a
+ * different network recomputes it. The per-measurement calls are the cheap ones
+ * and they run concurrently, which keeps the added wall-clock well inside the
+ * 1.5 s budget the plan set.
+ *
+ * Every capture fails soft: a blocked PowerShell policy or a missing adapter
+ * yields a null field, never a thrown error — a measurement must never fail
+ * because the diagnostics could not be read.
+ */
+
+import { execFile } from 'child_process';
+import * as os from 'os';
+import * as si from 'systeminformation';
+
+/** Volatile context stored as `device_context` on the measurement. */
+export interface DeviceContext {
+  connection_type?: string;
+  default_gateway?: string;
+  dns_servers?: string[];
+  ip_family?: string;
+  vpn_likely?: boolean;
+  vpn_adapter?: string;
+  link_speed_mbps?: number;
+  net_bytes_rx?: number;
+  net_bytes_tx?: number;
+  cpu_load_percent?: number;
+  memory_available_mb?: number;
+  disk_free_mb?: number;
+  device_uptime_seconds?: number;
+  device_start_time?: string;
+  // Stable per-unit hardware identifiers (see getHardwareIdentifiers).
+  baseboard_serial?: string;
+  disk_serial?: string;
+  machine_guid?: string;
+}
+
+/** Why `wifi_connections` came back empty. Mirrors the backend's whitelist. */
+export type WifiUnavailableReason =
+  | 'no_adapter'
+  | 'wlan_service_off'
+  | 'location_disabled'
+  | 'unknown';
+
+const EXEC_TIMEOUT_MS = 10000;
+
+/** VPN heuristic: virtual adapters plus well-known VPN driver/interface names. */
+const VPN_NAME_PATTERN =
+  /(tap|tun|wintun|wireguard|openvpn|anyconnect|cisco|zerotier|tailscale|nordlynx|hamachi|fortissl|fortinet|globalprotect|pangp|juniper|pulse|l2tp|sstp|ikev2)/i;
+
+const BYTES_PER_MB = 1024 * 1024;
+
+function run(command: string, args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile(
+      command,
+      args,
+      { timeout: EXEC_TIMEOUT_MS, windowsHide: true, maxBuffer: 4 * 1024 * 1024 },
+      (err, stdout) => (err ? reject(err) : resolve(String(stdout)))
+    );
+  });
+}
+
+function runPowershellJson(psCommand: string): Promise<any> {
+  return run('powershell.exe', [
+    '-NoProfile',
+    '-NonInteractive',
+    '-Command',
+    `${psCommand} | ConvertTo-Json -Depth 4 -Compress`,
+  ]).then((stdout) => {
+    const text = stdout.trim();
+    if (!text) return null;
+    return JSON.parse(text);
+  });
+}
+
+/** Resolves to null instead of rejecting, so one blocked call cannot sink the rest. */
+async function soft<T>(label: string, fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch (error) {
+    console.warn(`[device-context] ${label} unavailable:`, error?.message ?? error);
+    return null;
+  }
+}
+
+function toMb(bytes: unknown): number | undefined {
+  return typeof bytes === 'number' && Number.isFinite(bytes)
+    ? Math.round(bytes / BYTES_PER_MB)
+    : undefined;
+}
+
+function round(value: unknown, decimals = 1): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return undefined;
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
+// ---------------------------------------------------------------------------
+// Expensive, slow-moving half: derived from networkInterfaces + DNS, cached.
+// ---------------------------------------------------------------------------
+
+interface CachedNetworkShape {
+  gateway: string | null;
+  connection_type?: string;
+  ip_family?: string;
+  vpn_likely?: boolean;
+  vpn_adapter?: string;
+  link_speed_mbps?: number;
+  dns_servers?: string[];
+  /** Name of the wireless adapter, used by the Wi-Fi diagnosis below. */
+  wirelessAlias?: string;
+  hasWirelessAdapter: boolean;
+}
+
+let cachedShape: CachedNetworkShape | null = null;
+
+function pickDefaultInterface(interfaces: si.Systeminformation.NetworkInterfacesData[]) {
+  return (
+    interfaces.find((iface) => iface.default) ??
+    interfaces.find((iface) => iface.operstate === 'up' && !iface.internal && iface.ip4) ??
+    null
+  );
+}
+
+function inferConnectionType(iface: si.Systeminformation.NetworkInterfacesData | null) {
+  if (!iface) return undefined;
+  if (iface.type === 'wireless') return 'wifi';
+  if (iface.type === 'wired') return 'ethernet';
+  return 'unknown';
+}
+
+function inferIpFamily(iface: si.Systeminformation.NetworkInterfacesData | null) {
+  if (!iface) return undefined;
+  const hasV4 = Boolean(iface.ip4);
+  const hasV6 = Boolean(iface.ip6);
+  if (hasV4 && hasV6) return 'dual';
+  if (hasV4) return 'v4';
+  if (hasV6) return 'v6';
+  return undefined;
+}
+
+function inferVpn(interfaces: si.Systeminformation.NetworkInterfacesData[]) {
+  const candidate = interfaces.find(
+    (iface) =>
+      iface.operstate === 'up' &&
+      (iface.virtual === true ||
+        VPN_NAME_PATTERN.test(iface.ifaceName || '') ||
+        VPN_NAME_PATTERN.test(iface.iface || ''))
+  );
+  return {
+    vpn_likely: Boolean(candidate),
+    vpn_adapter: candidate ? candidate.ifaceName || candidate.iface : undefined,
+  };
+}
+
+/**
+ * DNS servers of the active interfaces.
+ *
+ * `si.networkInterfaces()` does not expose them on Windows, so this shells out to
+ * PowerShell (~1 s when measured) — which is exactly why it sits on the
+ * cached side and never in the per-measurement path.
+ */
+async function readDnsServers(): Promise<string[] | undefined> {
+  const result = await soft('DNS servers', () =>
+    runPowershellJson(
+      'Get-DnsClientServerAddress -AddressFamily IPv4 | ' +
+        'Where-Object {$_.ServerAddresses} | Select-Object -ExpandProperty ServerAddresses'
+    )
+  );
+  if (!result) return undefined;
+  const list = (Array.isArray(result) ? result : [result])
+    .filter((item): item is string => typeof item === 'string' && item !== '')
+    // Loopback entries are the local resolver stub, not a configured server.
+    .filter((item) => !item.startsWith('127.'));
+  return list.length > 0 ? Array.from(new Set(list)) : undefined;
+}
+
+/**
+ * The slow-moving half of the context, recomputed only when the default gateway
+ * changes — i.e. when the machine moves to a different network.
+ */
+async function getNetworkShape(gateway: string | null): Promise<CachedNetworkShape> {
+  if (cachedShape && cachedShape.gateway === gateway) {
+    return cachedShape;
+  }
+
+  const interfaces = (await soft('network interfaces', () => si.networkInterfaces())) ?? [];
+  const list = Array.isArray(interfaces) ? interfaces : [interfaces];
+  const active = pickDefaultInterface(list);
+  const wireless = list.find((iface) => iface.type === 'wireless');
+  const { vpn_likely, vpn_adapter } = inferVpn(list);
+
+  cachedShape = {
+    gateway,
+    connection_type: inferConnectionType(active),
+    ip_family: inferIpFamily(active),
+    vpn_likely,
+    vpn_adapter,
+    link_speed_mbps:
+      active && typeof active.speed === 'number' && active.speed > 0
+        ? active.speed
+        : undefined,
+    dns_servers: await readDnsServers(),
+    wirelessAlias: wireless ? wireless.ifaceName || wireless.iface : undefined,
+    hasWirelessAdapter: Boolean(wireless),
+  };
+
+  return cachedShape;
+}
+
+/** Drops the internal bookkeeping before the shape goes into the payload. */
+function shapeToPayload(shape: CachedNetworkShape): Partial<DeviceContext> {
+  return {
+    connection_type: shape.connection_type,
+    ip_family: shape.ip_family,
+    vpn_likely: shape.vpn_likely,
+    vpn_adapter: shape.vpn_adapter,
+    link_speed_mbps: shape.link_speed_mbps,
+    dns_servers: shape.dns_servers,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Boot context
+// ---------------------------------------------------------------------------
+
+/**
+ * How long the machine has been up, and when it was last started.
+ *
+ * `os.uptime()` is a Node built-in reading a kernel counter: no process spawn and
+ * no `systeminformation` call, so unlike `cpu()` or `diskLayout()` this costs
+ * nothing and belongs in the per-measurement path.
+ *
+ * The two values are not equally trustworthy. The uptime is measured by the
+ * kernel and is immune to a wrong clock; the start time is derived from it as
+ * `now - uptime`, so on the many school machines whose clock is off — the same
+ * reason a measurement carries `server_timestamp` at all — it is off by exactly
+ * the same amount. Prefer the uptime for anything analytical, and treat the start
+ * time as a convenience for reading a row.
+ *
+ * A caveat for whoever queries this: on Windows, fast startup and hibernation
+ * resume the counter instead of resetting it, so a high uptime means "not
+ * restarted", not "powered on continuously".
+ */
+function getBootContext(): {
+  device_uptime_seconds?: number;
+  device_start_time?: string;
+} {
+  try {
+    const uptime = os.uptime();
+    if (!Number.isFinite(uptime) || uptime < 0) {
+      return {};
+    }
+    const seconds = Math.round(uptime);
+    return {
+      device_uptime_seconds: seconds,
+      device_start_time: new Date(Date.now() - seconds * 1000).toISOString(),
+    };
+  } catch (error) {
+    console.warn('[device-context] boot context unavailable:', error?.message ?? error);
+    return {};
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Stable per-unit hardware identifiers
+// ---------------------------------------------------------------------------
+
+/**
+ * Generic placeholder values OEMs leave in these fields. A shared "Default
+ * string" or an all-zero UUID must never masquerade as a real identifier — that
+ * is exactly the collision these serials are meant to break, not add to. Mirrors
+ * the backend's BLOCKED_HARDWARE_IDS plus the common textual junk.
+ */
+const GENERIC_ID_VALUES = new Set([
+  '0',
+  'none',
+  'null',
+  'n/a',
+  'na',
+  'unknown',
+  'invalid',
+  'default string',
+  'to be filled by o.e.m.',
+  'to be filled by oem',
+  'system serial number',
+  'not applicable',
+  'not specified',
+  'not available',
+  'oem',
+  '03000200-0400-0500-0006-000700080009',
+  'fefefefe-fefe-fefe-fefe-fefefefefefe',
+  '00000000-0000-0000-0000-000000000000',
+  '12345678-1234-1234-1234-123456789abc',
+  'ffffffff-ffff-ffff-ffff-ffffffffffff',
+]);
+
+/**
+ * Returns the trimmed identifier, or undefined when the value is empty or one of
+ * the generic placeholders above. Case-insensitive; also drops strings that are a
+ * single repeated character (e.g. "0000000000"), which carry no identity.
+ */
+export function cleanHardwareId(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const normalized = trimmed.toLowerCase();
+  if (GENERIC_ID_VALUES.has(normalized)) return undefined;
+  if (/^(.)\1+$/.test(normalized)) return undefined;
+  return trimmed;
+}
+
+interface HardwareIdentifiers {
+  baseboard_serial?: string;
+  disk_serial?: string;
+  machine_guid?: string;
+}
+
+let cachedHardwareIds: HardwareIdentifiers | null = null;
+let hardwareIdsPromise: Promise<HardwareIdentifiers> | null = null;
+
+/**
+ * The stable per-unit identifiers: motherboard serial (`si.baseboard()`),
+ * boot-disk serial (`si.diskLayout()`) and the Windows MachineGuid
+ * (`si.uuid().os`, read from HKLM\...\Cryptography\MachineGuid).
+ *
+ * Captured once per app run and reused: `diskLayout()` alone costs ~2 s, and none
+ * of these move while the app is open. Each value is passed through
+ * cleanHardwareId(), so an OEM placeholder is dropped rather than stored as a
+ * shared pseudo-identifier. Every read fails soft — a blocked WMI/registry call
+ * yields an absent field, never a thrown error.
+ */
+async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
+  if (cachedHardwareIds) return cachedHardwareIds;
+  if (hardwareIdsPromise) return hardwareIdsPromise;
+
+  hardwareIdsPromise = (async () => {
+    const [baseboard, disks, ids] = await Promise.all([
+      soft('baseboard', () => si.baseboard()),
+      soft('disk layout', () => si.diskLayout()),
+      soft('machine uuid', () => si.uuid()),
+    ]);
+
+    const diskList = Array.isArray(disks) ? disks : disks ? [disks] : [];
+    // systeminformation exposes no "boot disk" flag, so prefer an internal
+    // (non-USB) disk and take the first serial that survives the filter — a
+    // removable drive's serial would not identify the machine.
+    const usableSerial = (
+      list: si.Systeminformation.DiskLayoutData[]
+    ): string | undefined =>
+      list
+        .map((disk) => cleanHardwareId(disk?.serialNum))
+        .find((serial) => serial !== undefined);
+    const diskSerial =
+      usableSerial(
+        diskList.filter(
+          (disk) => !/usb/i.test(String(disk?.interfaceType ?? ''))
+        )
+      ) ?? usableSerial(diskList);
+
+    cachedHardwareIds = {
+      baseboard_serial: cleanHardwareId(baseboard?.serial),
+      disk_serial: diskSerial,
+      machine_guid: cleanHardwareId(ids?.os),
+    };
+    return cachedHardwareIds;
+  })();
+
+  try {
+    return await hardwareIdsPromise;
+  } finally {
+    hardwareIdsPromise = null;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Per-measurement capture
+// ---------------------------------------------------------------------------
+
+/**
+ * Captures the volatile network/system context for one measurement.
+ *
+ * The cheap calls run concurrently: they are independent I/O, and serialising
+ * them is what would push the capture past the 1.5 s budget.
+ */
+export async function getDeviceContext(): Promise<DeviceContext> {
+  const [gateway, stats, load, memory, disks, hardwareIds] = await Promise.all([
+    soft('default gateway', () => si.networkGatewayDefault()),
+    soft('network stats', () => si.networkStats()),
+    soft('cpu load', () => si.currentLoad()),
+    soft('memory', () => si.mem()),
+    soft('filesystems', () => si.fsSize()),
+    // Cached after the first run; overlaps the cheap calls on that first pass.
+    getHardwareIdentifiers(),
+  ]);
+
+  const shape = await getNetworkShape(gateway || null);
+
+  const primaryStats = Array.isArray(stats) ? stats[0] : stats;
+  // Free space on the volume the OS lives on; a machine with several volumes
+  // would otherwise report whichever one happened to come back first.
+  const systemDisk = Array.isArray(disks)
+    ? disks.find((fs) => /^[a-z]:/i.test(fs.mount) && fs.mount.toUpperCase().startsWith('C')) ??
+      disks[0]
+    : null;
+
+  const context: DeviceContext = {
+    ...shapeToPayload(shape),
+    ...hardwareIds,
+    default_gateway: gateway || undefined,
+    net_bytes_rx: primaryStats?.rx_bytes ?? undefined,
+    net_bytes_tx: primaryStats?.tx_bytes ?? undefined,
+    cpu_load_percent: round(load?.currentLoad),
+    memory_available_mb: toMb(memory?.available),
+    disk_free_mb: toMb(systemDisk?.available),
+    ...getBootContext(),
+  };
+
+  // Undefined keys would serialise as absent anyway, but stripping them keeps the
+  // stored Json to the fields that were actually readable on this machine.
+  Object.keys(context).forEach((key) => {
+    if (context[key] === undefined) delete context[key];
+  });
+
+  return context;
+}
+
+// ---------------------------------------------------------------------------
+// Wi-Fi unavailability diagnosis
+// ---------------------------------------------------------------------------
+
+/**
+ * Reads one `CapabilityAccessManager\ConsentStore\location` value.
+ *
+ * HKLM is the system-wide Location master toggle; HKCU\...\NonPackaged is the
+ * per-user permission that covers desktop (unpackaged) apps such as this one.
+ * Either being off is enough to blank the WLAN stack.
+ *
+ * @returns the raw value ('Allow' / 'Deny'), or null when the key is unreadable.
+ */
+async function readLocationConsent(hive: 'HKLM' | 'HKCU'): Promise<string | null> {
+  const key =
+    hive === 'HKLM'
+      ? 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location'
+      : 'HKCU\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\CapabilityAccessManager\\ConsentStore\\location\\NonPackaged';
+
+  const stdout = await soft(`${hive} location consent`, () =>
+    run('reg.exe', ['query', key, '/v', 'Value'])
+  );
+  if (!stdout) return null;
+
+  const match = stdout.match(/Value\s+REG_SZ\s+(\S+)/i);
+  return match ? match[1] : null;
+}
+
+/** True when the WLAN AutoConfig service is running. */
+async function isWlanServiceRunning(): Promise<boolean | null> {
+  const stdout = await soft('WlanSvc state', () => run('sc.exe', ['query', 'WlanSvc']));
+  if (!stdout) return null;
+  return /STATE\s+:\s+4\s+RUNNING/i.test(stdout);
+}
+
+/**
+ * Explains an empty `wifiConnections()` result.
+ *
+ * Order matters: a machine with no wireless adapter is not a permission problem,
+ * and a stopped WLAN service is not one either — only once both are ruled out
+ * does the Location toggle become the answer.
+ */
+export async function classifyWifiUnavailable(): Promise<WifiUnavailableReason> {
+  // The Wi-Fi read happens before the context capture in the measurement flow, so
+  // on a blocked machine this is usually what populates the cache. Resolve the
+  // real gateway first (~200 ms) so the shape is cached under the right key and
+  // the capture that follows reuses it instead of recomputing the ~2 s of
+  // interface + DNS lookups.
+  const shape =
+    cachedShape ??
+    (await getNetworkShape(
+      (await soft('default gateway', () => si.networkGatewayDefault())) || null
+    ));
+  if (!shape.hasWirelessAdapter) {
+    return 'no_adapter';
+  }
+
+  const wlanRunning = await isWlanServiceRunning();
+  if (wlanRunning === false) {
+    return 'wlan_service_off';
+  }
+
+  const [machine, user] = await Promise.all([
+    readLocationConsent('HKLM'),
+    readLocationConsent('HKCU'),
+  ]);
+  const blocked = [machine, user].some(
+    (value) => typeof value === 'string' && value.toLowerCase() !== 'allow'
+  );
+  if (blocked) {
+    return 'location_disabled';
+  }
+
+  return 'unknown';
+}
+
+/**
+ * The connected SSID as the Network Location Manager knows it.
+ *
+ * NLM stores the profile name of the network the adapter is on, and — unlike
+ * `netsh wlan` — it is not gated behind the Location permission, so this still
+ * answers on a machine where the WLAN stack has gone silent. It only yields the
+ * name: BSSID, RSSI, channel and the neighbour scan have no ungated equivalent.
+ */
+export async function getSsidFromNlm(): Promise<string | null> {
+  const shape = cachedShape;
+  const profiles = await soft('NLM connection profile', () =>
+    runPowershellJson(
+      'Get-NetConnectionProfile | Select-Object Name, InterfaceAlias, IPv4Connectivity'
+    )
+  );
+  if (!profiles) return null;
+
+  const list = Array.isArray(profiles) ? profiles : [profiles];
+  const match =
+    (shape?.wirelessAlias &&
+      list.find((profile) => profile?.InterfaceAlias === shape.wirelessAlias)) ||
+    list.find((profile) => /wi-?fi|wireless|wlan/i.test(String(profile?.InterfaceAlias ?? ''))) ||
+    list[0];
+
+  const name = match?.Name;
+  return typeof name === 'string' && name.trim() !== '' ? name.trim() : null;
+}
+
+/** Test seam: drops the cached slow-moving half. */
+export function resetDeviceContextCache(): void {
+  cachedShape = null;
+  cachedHardwareIds = null;
+  hardwareIdsPromise = null;
+}

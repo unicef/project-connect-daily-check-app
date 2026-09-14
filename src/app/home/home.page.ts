@@ -9,6 +9,7 @@ import { StorageService } from '../services/storage.service';
 import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { PosthogService } from '../services/posthog.service';
 
 @Component({
   selector: 'app-home',
@@ -30,7 +31,8 @@ export class HomePage {
     private storage: StorageService,
     private loading: LoadingService,
     private readonly schoolService: SchoolService,
-    private hardwareIdService: HardwareIdService
+    private hardwareIdService: HardwareIdService,
+    private posthogService: PosthogService
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
@@ -278,6 +280,7 @@ export class HomePage {
     if (registrationData.giga_id_school != null) {
       await this.storage.set('gigaId', registrationData.giga_id_school);
       console.log('   ✓ Set gigaId:', registrationData.giga_id_school);
+      this.posthogService.setSchool(registrationData.giga_id_school);
     }
     if (registrationData.mac_address != null) {
       await this.storage.set('macAddress', registrationData.mac_address);

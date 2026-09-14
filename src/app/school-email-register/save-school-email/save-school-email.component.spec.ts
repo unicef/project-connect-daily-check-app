@@ -9,8 +9,8 @@ describe('SaveSchoolEmailComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ SaveSchoolEmailComponent ],
-      imports: [IonicModule.forRoot()]
+      // Standalone component: it is imported, not declared.
+      imports: [IonicModule.forRoot(), SaveSchoolEmailComponent],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SaveSchoolEmailComponent);

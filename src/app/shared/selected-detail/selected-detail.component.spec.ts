@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { RouterTestingModule } from '@angular/router/testing';
 
 import { SelectedDetailComponent } from './selected-detail.component';
 
@@ -9,8 +10,12 @@ describe('SelectedDetailComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ SelectedDetailComponent ],
-      imports: [IonicModule.forRoot()]
+      // Standalone component: it is imported, not declared.
+      imports: [
+        IonicModule.forRoot(),
+        RouterTestingModule,
+        SelectedDetailComponent,
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SelectedDetailComponent);

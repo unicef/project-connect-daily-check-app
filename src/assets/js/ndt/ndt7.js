@@ -43,6 +43,36 @@
     };
 
     /**
+     * serverTimeFromResponse reads the server's wall-clock time out of the
+     * Date header of a fetch response, as epoch milliseconds.
+     *
+     * The ndt7 protocol itself carries no wall clock: the measurement messages
+     * the server sends during the test only have ElapsedTime, which is
+     * relative to the start of the test, and the browser WebSocket API does
+     * not expose the headers of the handshake response. The locate service
+     * request is the one place a real server clock is reachable, and Date is a
+     * CORS-safelisted response header, so it can be read cross-origin without
+     * the service having to opt in via Access-Control-Expose-Headers.
+     *
+     * @param {Response} response - The fetch response to read the header from.
+     * @return {?number} Epoch milliseconds, or null when the header is absent
+     *   or unparseable.
+     *
+     * This function is not exported.
+     */
+    const serverTimeFromResponse = function (response) {
+      if (!response || !response.headers) {
+        return null;
+      }
+      const header = response.headers.get("Date");
+      if (!header) {
+        return null;
+      }
+      const parsed = Date.parse(header);
+      return isNaN(parsed) ? null : parsed;
+    };
+
+    /**
      * discoverServerURLs contacts a web service (likely the Measurement Lab
      * locate service, but not necessarily) and gets URLs with access tokens in
      * them for the client. It can be short-circuted if config.server exists,
@@ -85,6 +115,9 @@
         return {
           "///ndt/v7/download": downloadURL.toString(),
           "///ndt/v7/upload": uploadURL.toString(),
+          // No locate request happens on this path, so there is no server
+          // clock to report.
+          ServerTime: null,
         };
       }
 
@@ -99,6 +132,7 @@
       const response = await fetch(lbURL).catch((err) => {
         throw new Error(err);
       });
+      const serverTime = serverTimeFromResponse(response);
       const js = await response.json();
       if (!("results" in js)) {
         callbacks.error(`Could not understand response from ${lbURL}: ${js}`);
@@ -118,6 +152,10 @@
       return {
         "///ndt/v7/download": choice.urls[protocol + ":///ndt/v7/download"],
         "///ndt/v7/upload": choice.urls[protocol + ":///ndt/v7/upload"],
+        // Wall-clock time reported by the locate service, taken a few seconds
+        // before the test starts. The workers ignore this key; it is read back
+        // in runNDT7Worker.
+        ServerTime: serverTime,
       };
     }
 
@@ -149,6 +187,9 @@
 
       let clientMeasurement;
       let serverMeasurement;
+      // Stays null if server discovery never resolves (e.g. the worker times
+      // out first), so callers always get an explicit value.
+      let serverTime = null;
 
       // This makes the worker. The worker won't actually start until it
       // receives a message.
@@ -163,6 +204,7 @@
             callbacks.complete({
               LastClientMeasurement: clientMeasurement,
               LastServerMeasurement: serverMeasurement,
+              ServerTime: serverTime,
             });
           }
           worker.terminate();
@@ -218,6 +260,8 @@
         worker.resolve(2);
         throw err;
       });
+
+      serverTime = typeof urls.ServerTime === "number" ? urls.ServerTime : null;
 
       // Start the worker.
       worker.postMessage(urls);

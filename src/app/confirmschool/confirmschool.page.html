@@ -46,7 +46,7 @@
     </div>
     <div class="btn-holder" >
       <ion-button block class="nobtn"  fill="outline" (click)="backToSearchDetail()" [translate]="'no'"></ion-button>
-      <ion-button block class="yesbtn" (click)="confirmSchool()" [translate]="'yes'"></ion-button>
+      <ion-button block class="yesbtn" [disabled]="isRegistering" (click)="confirmSchool()" [translate]="'yes'"></ion-button>
     </div>
   </ion-toolbar>
   <!-- <div class="h-line"></div> -->
