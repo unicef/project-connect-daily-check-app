@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
 import {
   catchError,
@@ -10,7 +10,10 @@ import {
   retry,
   switchMap,
   tap,
+  throwError,
   timeout,
+  TimeoutError,
+  timer,
 } from 'rxjs';
 
 /**
@@ -24,6 +27,31 @@ export const GEOLOCATE_TIMEOUT_MS = 10_000;
 /** Upper bound for the Wi-Fi scan the Electron main process runs. */
 export const WIFI_SCAN_TIMEOUT_MS = 15_000;
 
+/** Delay before the single retry, when the failure is worth retrying at all. */
+export const GEOLOCATE_RETRY_DELAY_MS = 1_000;
+
+/**
+ * Whether a second attempt can plausibly do better than the first.
+ *
+ * Retrying was unconditional, so a deterministic answer was always asked for
+ * twice: the backend's 422 (these access points do not resolve to a location)
+ * and, now that the proxy is authenticated, every 401. That doubles the wait
+ * before the upload gives up on geolocation and doubles the load for nothing.
+ *
+ * Status 0 is a request that never reached the backend, which is worth another
+ * try, unlike anything the backend answered in the 4xx range.
+ */
+export function isRetryableGeolocateError(error: unknown): boolean {
+  if (error instanceof TimeoutError) {
+    return true;
+  }
+  if (error instanceof HttpErrorResponse) {
+    return error.status === 0 || error.status >= 500;
+  }
+  // Unknown failure: one more attempt is cheap and bounded by the timeout.
+  return true;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -34,9 +62,9 @@ export class LocationService {
   constructor(private http: HttpClient) { }
 
   async getWifiAccessPoints(): Promise<{ macAddress: string; signalStrength: number }[]> {
-    let timer: ReturnType<typeof setTimeout>;
+    let scanTimer: ReturnType<typeof setTimeout>;
     const scanTimeout = new Promise<never>((_, reject) => {
-      timer = setTimeout(
+      scanTimer = setTimeout(
         () => reject(new Error(`Wi-Fi scan timed out after ${WIFI_SCAN_TIMEOUT_MS} ms`)),
         WIFI_SCAN_TIMEOUT_MS
       );
@@ -51,7 +79,7 @@ export class LocationService {
         signalStrength: wifi.signal
       }));
     } finally {
-      clearTimeout(timer);
+      clearTimeout(scanTimer);
     }
   }
 
@@ -65,10 +93,13 @@ export class LocationService {
       // cached-value fallback get a chance to run.
       timeout(GEOLOCATE_TIMEOUT_MS),
 
-      //  Retry once with 1 second delay
+      // Retry once, and only when a second attempt could go differently.
       retry({
         count: 1,
-        delay: 1000
+        delay: (error) =>
+          isRetryableGeolocateError(error)
+            ? timer(GEOLOCATE_RETRY_DELAY_MS)
+            : throwError(() => error),
       }),
 
       map((response: any) => ({

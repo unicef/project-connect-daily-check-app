@@ -218,14 +218,17 @@ export class UploadService {
     }
 
     return this.locationService.fetchAndSaveGeolocation().pipe(
+      /* Geolocation is best effort: whatever happens, the measurement is still
+         posted. fetchAndSaveGeolocation already falls back to the cached value
+         and persists a fresh one, so nothing is written back here — the old
+         code overwrote the cache with null on the way past, which would have
+         destroyed the very fallback this relies on. */
       catchError(err => {
         console.error('Geolocation fetch failed, continuing with POST', err);
-        this.locationService.saveGeolocation(null);
-        return of(this.locationService.getSavedGeolocation() || null);
+        return of(this.locationService.getSavedGeolocation());
       }),
       map(geo => {
-        measurement['geolocation'] = geo;
-        this.locationService.saveGeolocation(geo);
+        measurement['geolocation'] = geo ?? null;
         return measurement;
       }),
       switchMap(measurementWithGeo =>

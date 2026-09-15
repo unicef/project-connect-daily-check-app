@@ -2,6 +2,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
 import {
+  GEOLOCATE_RETRY_DELAY_MS,
   GEOLOCATE_TIMEOUT_MS,
   LocationService,
   WIFI_SCAN_TIMEOUT_MS,
@@ -110,6 +111,71 @@ describe('LocationService', () => {
 
       expect(emitted).toEqual([CACHED_GEO]);
       httpMock.expectNone(isGeolocate);
+    }));
+  });
+
+  describe('retry', () => {
+    // A second attempt only makes sense when the first told us nothing about
+    // the answer. Anything the backend decided is decided.
+    beforeEach(() => {
+      (window as any).electronAPI = { getWifiList: () => Promise.resolve(WIFI) };
+      service.saveGeolocation(CACHED_GEO);
+    });
+
+    const attemptsFor = (status: number): number => {
+      let attempts = 0;
+      service.fetchAndSaveGeolocation().subscribe();
+      flushMicrotasks();
+
+      httpMock.expectOne(isGeolocate).flush(null, { status, statusText: 'x' });
+      attempts++;
+      tick(GEOLOCATE_RETRY_DELAY_MS);
+
+      const retried = httpMock.match(isGeolocate);
+      retried.forEach((r) => {
+        attempts++;
+        r.flush(null, { status, statusText: 'x' });
+      });
+      tick(GEOLOCATE_RETRY_DELAY_MS);
+      return attempts;
+    };
+
+    it('does not retry a 422: those access points will not resolve next time either', fakeAsync(() => {
+      expect(attemptsFor(422)).toBe(1);
+    }));
+
+    it('does not retry a 401', fakeAsync(() => {
+      expect(attemptsFor(401)).toBe(1);
+    }));
+
+    it('does not retry a 400', fakeAsync(() => {
+      expect(attemptsFor(400)).toBe(1);
+    }));
+
+    it('still retries a 503', fakeAsync(() => {
+      expect(attemptsFor(503)).toBe(2);
+    }));
+
+    it('still retries a 504', fakeAsync(() => {
+      expect(attemptsFor(504)).toBe(2);
+    }));
+
+    it('still retries a request that never reached the backend', fakeAsync(() => {
+      expect(attemptsFor(0)).toBe(2);
+    }));
+
+    it('keeps the cached geolocation after a failure that is not retried', fakeAsync(() => {
+      const emitted: any[] = [];
+      service.fetchAndSaveGeolocation().subscribe((geo) => emitted.push(geo));
+      flushMicrotasks();
+
+      httpMock
+        .expectOne(isGeolocate)
+        .flush(null, { status: 401, statusText: 'Unauthorized' });
+      tick(GEOLOCATE_RETRY_DELAY_MS);
+
+      expect(emitted).toEqual([CACHED_GEO]);
+      expect(service.getSavedGeolocation()).toEqual(CACHED_GEO);
     }));
   });
 });
