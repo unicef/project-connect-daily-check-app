@@ -24,6 +24,14 @@ expired semaphore for slot A and lets the scheduler's 60 s tick pick it up, as
 in production. The three scheduling fields are checked **in the DB columns**
 (`e2e/playwright/db.ts`, via `psql` in the container), not only in the payload.
 
+Standalone regression specs, each on its own page:
+
+- `duplicate-registration.spec.ts` — repeated taps on "Yes" register the school
+  once.
+- `geolocate-pending.spec.ts` — a geolocate request that never answers does not
+  block the upload. It injects a minimal `window.electronAPI` with a Wi-Fi list,
+  because without one the app never calls geolocate in a browser.
+
 What it does NOT cover (by design): the Electron main process
 (`systeminformation`, wifi, hardware id — they arrive as `null`/`'N/A'`), the
 installer, and the upload-failure → sync path.

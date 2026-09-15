@@ -10,7 +10,19 @@ import {
   retry,
   switchMap,
   tap,
+  timeout,
 } from 'rxjs';
+
+/**
+ * Upper bound for one geolocate request. The upload waits for geolocation
+ * before it posts the measurement, so a request that never settles used to
+ * stall the upload for good. The backend gives up on Google after 8 s; this
+ * covers the cases where no answer arrives at all.
+ */
+export const GEOLOCATE_TIMEOUT_MS = 10_000;
+
+/** Upper bound for the Wi-Fi scan the Electron main process runs. */
+export const WIFI_SCAN_TIMEOUT_MS = 15_000;
 
 @Injectable({
   providedIn: 'root'
@@ -22,11 +34,25 @@ export class LocationService {
   constructor(private http: HttpClient) { }
 
   async getWifiAccessPoints(): Promise<{ macAddress: string; signalStrength: number }[]> {
-    const wifiList = await (window as any).electronAPI.getWifiList();
-    return wifiList.map((wifi: any) => ({
-      macAddress: wifi.macAddress,
-      signalStrength: wifi.signal
-    }));
+    let timer: ReturnType<typeof setTimeout>;
+    const scanTimeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`Wi-Fi scan timed out after ${WIFI_SCAN_TIMEOUT_MS} ms`)),
+        WIFI_SCAN_TIMEOUT_MS
+      );
+    });
+    try {
+      const wifiList = await Promise.race([
+        (window as any).electronAPI.getWifiList(),
+        scanTimeout,
+      ]);
+      return wifiList.map((wifi: any) => ({
+        macAddress: wifi.macAddress,
+        signalStrength: wifi.signal
+      }));
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   resolveGeolocation(wifiAccessPoints: any) {
@@ -34,6 +60,10 @@ export class LocationService {
       `${environment.restAPI}geolocation/geolocate`,
       { considerIp: false, wifiAccessPoints }
     ).pipe(
+
+      // A pending request errors out here, so the retry and the callers'
+      // cached-value fallback get a chance to run.
+      timeout(GEOLOCATE_TIMEOUT_MS),
 
       //  Retry once with 1 second delay
       retry({
