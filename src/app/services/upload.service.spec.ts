@@ -1,7 +1,8 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { of } from 'rxjs';
+import { GEOLOCATE_TIMEOUT_MS } from './location.service';
 import { UploadService } from './upload.service';
 
 describe('UploadService', () => {
@@ -65,5 +66,57 @@ describe('UploadService', () => {
 
       expect(body['server_timestamp']).toBeNull();
     });
+  });
+
+  describe('geolocation that never answers', () => {
+    let originalElectronAPI: any;
+
+    beforeEach(() => {
+      originalElectronAPI = (window as any).electronAPI;
+      localStorage.removeItem('geolocation');
+      localStorage.removeItem('wifiAccessPoints');
+    });
+
+    afterEach(() => {
+      (window as any).electronAPI = originalElectronAPI;
+      localStorage.removeItem('geolocation');
+      localStorage.removeItem('wifiAccessPoints');
+      httpMock.verify();
+    });
+
+    it('still posts the measurement once the geolocate requests time out', fakeAsync(() => {
+      // A Wi-Fi list that is not cached forces the geolocate call.
+      (window as any).electronAPI = {
+        getWifiList: () =>
+          Promise.resolve([{ ssid: 'ap-1', signal: -40, macAddress: 'aa:bb:cc:dd:ee:01' }]),
+      };
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['posthog'], 'capture').and.stub();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return { ClientInfo: { Country: 'ES', IP: '10.0.0.1' }, Notes: 'manual' } as any;
+      });
+
+      let uploaded = false;
+      service
+        .uploadMeasurement({ Notes: 'manual', timestamp: Date.now() })
+        .subscribe(() => (uploaded = true));
+      flushMicrotasks();
+
+      // Both attempts (first + retry) are left pending.
+      httpMock.expectOne((r) => r.url.endsWith('geolocation/geolocate'));
+      httpMock.expectNone((r) => r.url.endsWith('measurements'));
+      tick(GEOLOCATE_TIMEOUT_MS + 1_000);
+      httpMock.expectOne((r) => r.url.endsWith('geolocation/geolocate'));
+      tick(GEOLOCATE_TIMEOUT_MS);
+
+      const upload = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+      expect(upload.request.body['geolocation']).toBeNull();
+      upload.flush({});
+      expect(uploaded).toBeTrue();
+    }));
   });
 });
