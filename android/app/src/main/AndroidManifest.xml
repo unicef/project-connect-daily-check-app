@@ -13,6 +13,11 @@
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
+  <!-- App doesn't use advertising/ad-attribution features; strip the permissions Firebase Analytics adds by default -->
+  <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+  <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
+  <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />
+
   <application
     android:name="com.meter.giga.GigaApp"
     android:allowBackup="false"
@@ -71,6 +76,11 @@
         <action android:name="android.intent.action.BOOT_COMPLETED" />
       </intent-filter>
     </receiver>
+
+    <!-- Disable advertising ID collection; app doesn't run ads or ad-campaign attribution -->
+    <meta-data
+      android:name="google_analytics_adid_collection_enabled"
+      android:value="false" />
 
     <meta-data
       android:name="io.sentry.dsn"
