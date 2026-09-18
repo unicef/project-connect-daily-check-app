@@ -205,6 +205,15 @@
     "headline": "Título"
   },
   "releaseNotes": {
+    "2.0.4": {
+      "title": "Testes agendados mais inteligentes e suporte ao idioma uzbeque",
+      "date": "Sexta-feira, 18 de setembro de 2026",
+      "items": [
+        "Testes agendados mais inteligentes: se um teste falhar, o aplicativo continua tentando novamente até que ele seja concluído com sucesso ou o período do teste termine.",
+        "Suporte ao idioma uzbeque: o uzbeque foi adicionado ao seletor de idioma, junto com traduções revisadas.",
+        "Correções de erros: diversas correções de erros e melhorias."
+      ]
+    },
     "2.0.3": {
       "title": "Rastreamento de geolocalização junto com as medições",
       "date": "Sexta-feira, 24 de abril de 2026",

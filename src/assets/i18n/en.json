@@ -205,6 +205,15 @@
     "headline": "Headline"
   },
   "releaseNotes": {
+    "2.0.4": {
+      "title": "Smarter scheduled tests and Uzbek language support",
+      "date": "Friday, 18th September 2026",
+      "items": [
+        "Smarter scheduled tests: If a test fails, the app continues retrying until it succeeds or the test window ends.",
+        "Uzbek language support: Added Uzbek to the language selector, along with revised translations.",
+        "Bug fixes: Various bug fixes and improvements."
+      ]
+    },
     "2.0.3": {
       "title": "Track geolocation along with measurements",
       "date": "Friday, 24th April 2026",
