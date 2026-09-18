@@ -205,6 +205,15 @@
     "headline": "Sarlavha"
   },
   "releaseNotes": {
+    "2.0.4": {
+      "title": "Aqlliroq rejalashtirilgan testlar va o‘zbek tilini qo‘llab-quvvatlash",
+      "date": "Juma, 2026-yil 18-sentabr",
+      "items": [
+        "Aqlliroq rejalashtirilgan testlar: agar test muvaffaqiyatsiz tugasa, ilova test muvaffaqiyatli o‘tguncha yoki test vaqti tugaguncha qayta urinishda davom etadi.",
+        "O‘zbek tilini qo‘llab-quvvatlash: til tanlash menyusiga o‘zbek tili qo‘shildi, tarjimalar ham qayta ko‘rib chiqildi.",
+        "Xatolarni tuzatish: turli xatolar tuzatildi va yaxshilanishlar kiritildi."
+      ]
+    },
     "2.0.3": {
       "title": "O'lchovlar bilan birga geolokatsiyani kuzatish",
       "date": "Juma, 2026-yil 24-aprel",
