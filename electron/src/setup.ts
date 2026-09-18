@@ -59,7 +59,7 @@ export function getIsQuiting(): boolean {
 
 // Enhanced Sentry configuration
 Sentry.init({
-  dsn: 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47',
+  dsn: 'https://f5e5a831e50ea526ab38e9e699a6eab3@excubo.unicef.org/47',
   environment: 'production',
   beforeSend: (event) => {
     // Add app version to help with debugging
