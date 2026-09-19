@@ -203,6 +203,7 @@ export class HomePage {
         );
         console.log('   User will need to manually register the device');
         this.loading.dismiss();
+        this.retryHardwareRegistrationInBackground();
       }
     } catch (error) {
       console.error(
@@ -210,6 +211,49 @@ export class HomePage {
         error
       );
       this.loading.dismiss();
+    }
+  }
+
+  /**
+   * Keep looking for the hardware ID after the initial wait gave up.
+   *
+   * When Windows starts the app from the logon Run key, WMI is often not
+   * answering yet, so the early probes return nothing and an existing
+   * registration for this machine is never claimed until someone restarts the
+   * app by hand. If an ID turns up later, run the lookup that was skipped -
+   * but only while the user is still sitting unregistered on this screen, so a
+   * late answer can never interrupt a registration they started themselves.
+   */
+  private async retryHardwareRegistrationInBackground() {
+    try {
+      const hardwareId = await this.hardwareIdService.waitForUsableHardwareId();
+
+      if (!hardwareId) {
+        return;
+      }
+      if (this.storage.get('schoolId')) {
+        console.log(
+          'ℹ️ [HomePage] Registered in the meantime, skipping late lookup'
+        );
+        return;
+      }
+      if (!this.router.url.startsWith('/home')) {
+        console.log(
+          'ℹ️ [HomePage] User moved on from home, skipping late lookup'
+        );
+        return;
+      }
+
+      console.log(
+        '🔁 [HomePage] Hardware ID arrived late, retrying registration lookup:',
+        hardwareId
+      );
+      await this.checkMachineRegistration(hardwareId);
+    } catch (error) {
+      console.error(
+        '❌ [HomePage] Background hardware ID retry failed:',
+        error
+      );
     }
   }
 
