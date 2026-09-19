@@ -24,6 +24,11 @@ export class HomePage {
   privacyUrl2 = 'https://www.measurementlab.net/privacy/';
   targetUrl = '_blank';
   isPrivacyChecked = false;
+  /**
+   * True while the app is still working out whether this machine already has a
+   * registration, so the welcome screen can say so instead of looking idle.
+   */
+  isCheckingRegistration = false;
   constructor(
     public router: Router,
     public translate: TranslateService,
@@ -186,6 +191,7 @@ export class HomePage {
   private async checkHardwareRegistration() {
     try {
       console.log('🔍 [HomePage] Starting hardware registration check...');
+      this.isCheckingRegistration = true;
 
       // Wait for hardware ID to be available (with 10 second timeout)
       const hardwareId = await this.hardwareIdService.ensureHardwareId(10000);
@@ -196,6 +202,7 @@ export class HomePage {
           hardwareId
         );
         await this.checkMachineRegistration(hardwareId);
+        this.isCheckingRegistration = false;
       } else {
         // No hardware ID available after timeout - proceed normally
         console.warn(
@@ -210,6 +217,7 @@ export class HomePage {
         '❌ [HomePage] Error in hardware registration check:',
         error
       );
+      this.isCheckingRegistration = false;
       this.loading.dismiss();
     }
   }
@@ -254,6 +262,8 @@ export class HomePage {
         '❌ [HomePage] Background hardware ID retry failed:',
         error
       );
+    } finally {
+      this.isCheckingRegistration = false;
     }
   }
 
