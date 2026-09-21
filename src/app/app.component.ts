@@ -16,7 +16,6 @@ import { WhatsNewModalComponent } from './components/whats-new-modal/whats-new-m
 import { LogoutModalComponent } from './components/logout-modal/logout-modal.component';
 import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
-import { MatomoService } from './services/matomo.service';
 import { PosthogService } from './services/posthog.service';
 
 // const shell = require('electron').shell;
@@ -73,14 +72,8 @@ export class AppComponent {
     private hardwareIdService: HardwareIdService,
     private router: Router,
     private schoolService: SchoolService,
-    private matomoService: MatomoService,
     private posthogService: PosthogService,
   ) {
-    try {
-      this.matomoService.init();
-    } catch (error) {
-      console.warn('Matomo init failed:', error);
-    }
     try {
       this.posthogService.init();
       this.posthogService.capture('app_started');
