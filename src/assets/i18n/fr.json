@@ -205,6 +205,15 @@
     "headline": "Titre"
   },
   "releaseNotes": {
+    "2.0.4": {
+      "title": "Des tests programmés plus intelligents et la prise en charge de l'ouzbek",
+      "date": "Vendredi, 18 septembre 2026",
+      "items": [
+        "Tests programmés plus intelligents : si un test échoue, l'application continue de réessayer jusqu'à ce qu'il réussisse ou que la plage horaire du test se termine.",
+        "Prise en charge de l'ouzbek : l'ouzbek a été ajouté au sélecteur de langue, avec des traductions révisées.",
+        "Corrections de bugs : diverses corrections de bugs et améliorations."
+      ]
+    },
     "2.0.3": {
       "title": "Suivi de la géolocalisation avec les mesures",
       "date": "Vendredi, 24 avril 2026",
