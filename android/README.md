@@ -34,7 +34,7 @@ This guide provides step-by-step setup and build instructions for a **Capacitor-
    java -version
    ```
 
-5. **Environment Variables**
+5. **Set  Android Environment Variables and Paths**
 
    ```
    ANDROID_HOME = <Your SDK path>
@@ -240,6 +240,11 @@ This commands need to execute when building the final builds to upload.
 
 Navigate to android directory in project and run below commands to create builds
 
+Tip: If you get an error - "permission denied" for gradlew, run the following command:
+```
+chmod +x gradlew
+```
+
 ### Debug Variants
 
 - **Build Debug**
@@ -300,6 +305,54 @@ Fill the details, create the password and signing config file and save. This fil
   Note: Apk can be shared with any one and can be installed, aab file can be installed via play store only.
 
 ## 10. Debugging
+
+### Entering / Exiting Developer Mode
+
+> The steps below apply only when testing directly on a **physical Android device** — emulators (AVDs) already have developer options and USB/ADB debugging enabled by default and don't need any of this.
+
+- **Enter developer mode**: Settings → About phone (or About tablet) → tap **Build number** 7 times in a row. You'll see a countdown toast ("You are now X steps away from being a developer"), and a **Developer options** menu will appear under Settings → System (location varies slightly by OEM/Android version — e.g. Samsung puts it under Settings → Developer options directly).
+- **Exit developer mode**: Settings → System → Developer options → toggle the switch at the **top of the Developer options screen** from on to off. This disables all developer settings (including USB debugging) and hides the menu's contents again, though the menu entry itself may remain visible until Build number is re-tapped to fully hide/reset it on some devices.
+  - If you want a full reset back to a "never enabled" state (rare, and more disruptive), you can clear the Settings app's own storage: Settings → Apps → show system apps → Settings → Storage → Clear data. This also resets other unrelated Settings app preferences, so only do this if the simple toggle-off above isn't enough.
+
+### Connecting a Physical Android Device
+
+- **Enable USB debugging** (requires developer mode to be on first, see above): Settings → System → Developer options → toggle on **USB debugging**.
+- **Connect via USB cable** to your computer, then accept the "Allow USB debugging?" prompt on the device (check "Always allow from this computer" to skip this next time).
+- **Verify the connection**:
+
+  ```bash
+  adb devices -l
+  ```
+
+  The device should show as `device` (not `unauthorized` — if so, check the phone screen for the trust prompt).
+
+- **Install the app to the connected device**:
+
+  ```bash
+  cd android
+  ./gradlew installDebug
+  ```
+
+  This builds the debug APK and installs it directly to whatever device `adb` currently sees connected — no separate install command needed. Debug builds don't require the release keystore (Android signs them automatically with an auto-generated debug key), so this works without any signing setup.
+
+- **Connect wirelessly instead** (device must be on the same network, and connected via USB once first to enable this):
+
+  ```bash
+  adb tcpip 5555
+  adb connect <device-ip>:5555
+  ```
+
+  Find the device's IP under Settings → About → Status → IP address.
+
+- **Disconnect**:
+
+  ```bash
+  adb disconnect <device-ip>:5555   # for a wireless connection
+  adb disconnect                    # disconnect all wireless devices
+  adb kill-server                   # drop all connections (USB and wireless) and restart the adb server
+  ```
+
+  For USB, unplugging the cable disconnects it directly.
 
 - Inspect logs:
 

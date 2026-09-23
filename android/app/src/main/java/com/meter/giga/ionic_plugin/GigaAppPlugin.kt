@@ -11,6 +11,9 @@ import android.os.Build
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
+import androidx.work.Data
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
@@ -42,8 +45,10 @@ import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_MANUAL
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
+import com.meter.giga.worker.NetworkTestWorker
 import com.meter.giga.utils.NotificationHelper
 import com.meter.giga.utils.PluginEvent
 import com.meter.giga.worker.await
@@ -280,7 +285,7 @@ open class GigaAppPlugin : Plugin() {
    *
    * <p>This method:
    * <ul>
-   *   <li>Starts the foreground speed test service.</li>
+   *   <li>Enqueues NetworkTestWorker so first/manual tests POST like daily ones.</li>
    *   <li>Checks whether future alarms already exist.</li>
    *   <li>Schedules a fallback alarm if required.</li>
    * </ul>
@@ -290,7 +295,7 @@ open class GigaAppPlugin : Plugin() {
   @PluginMethod
   fun executeManualSpeedTest(call: PluginCall) {
     val context = context
-    val scheduleType = call.getString(SCHEDULE_TYPE)
+    val scheduleType = call.getString(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_MANUAL
     AppLogger.d("GIGA GigaAppPlugin", "Manual Speed Test ${scheduleType}")
     val hasNotificationPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
       ContextCompat.checkSelfPermission(
@@ -299,6 +304,14 @@ open class GigaAppPlugin : Plugin() {
       ) == PackageManager.PERMISSION_GRANTED
     } else true
     if (hasNotificationPermission) {
+      val data = Data.Builder()
+        .putString(SCHEDULE_TYPE, scheduleType)
+        .build()
+      val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
+        .setInputData(data)
+        .build()
+      WorkManager.getInstance(context).enqueue(workRequest)
+
       val alarmPrefs = AlarmSharedPref(context)
       if (GigaUtil.checkIfFutureAlarmScheduled(alarmPrefs)) {
         AppLogger.d("GIGA GigaAppPlugin", "Alarm is already scheduled")
@@ -309,6 +322,11 @@ open class GigaAppPlugin : Plugin() {
         )
         scheduleAlarm(context, alarmPrefs)
       }
+    } else {
+      AppLogger.d(
+        "GIGA GigaAppPlugin",
+        "Notification permission denied, skipping manual speed test worker"
+      )
     }
     call.resolve()
   }

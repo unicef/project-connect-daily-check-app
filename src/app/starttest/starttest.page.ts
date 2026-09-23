@@ -1011,8 +1011,9 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.gigaAppPlugin.createNotification({
           MESSAGE: notes,
         });
+      } else {
+        this.measurementClientService.runTest(notes);
       }
-      this.measurementClientService.runTest(notes);
     } catch (e) {
       console.log(e);
     }

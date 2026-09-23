@@ -13,8 +13,6 @@ import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
-import { Capacitor } from '@capacitor/core';
-import { Device } from '@capacitor/device';
 
 @Injectable({
   providedIn: 'root',
@@ -216,7 +214,7 @@ export class UploadService {
         this.locationService.saveGeolocation(geo);
         return measurement;
       }),
-      switchMap(async (measurementWithGeo) => {
+      switchMap((measurementWithGeo) =>
         this.http.post(uploadURL, measurementWithGeo).pipe(
           map((res: any) => res),
           tap((data) => data),
@@ -225,8 +223,8 @@ export class UploadService {
             await this.indexedDB.saveMeasurement(measurementWithGeo);
             return of({ savedLocally: true, error });
           }),
-        );
-      }),
+        ),
+      ),
     );
   }
 
