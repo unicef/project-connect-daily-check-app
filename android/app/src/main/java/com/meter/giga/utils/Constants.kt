@@ -44,7 +44,6 @@ object Constants {
   const val CLIENT_INFO_END_URL = "https://ipinfo.io/"
   const val CLIENT_LITE_INFO_END_URL = "https://api.ipinfo.io/"
 
-  const val SERVER_INFO_END_URL = "https://mlab-ns.appspot.com/"
   const val SCHEDULE_TYPE_DAILY = "daily"
   const val SCHEDULE_TYPE_START = "startup"
   const val SCHEDULE_TYPE_MANUAL = "manual"
