@@ -2,7 +2,6 @@ package com.meter.giga.domain.repository
 
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.domain.entity.response.ClientInfoResponseEntity
-import com.meter.giga.domain.entity.response.ServerInfoResponseEntity
 import com.meter.giga.utils.ResultState
 
 /**
@@ -33,16 +32,6 @@ interface SpeedTestRepository {
     uploadKey: String,
     baseUrl: String
   ): ResultState<ClientInfoResponseEntity?>
-
-  /**
-   * This function provides getServerInfoData abstract definition
-   * to fetch the server info
-   * @param metro : Null or value if user has selected any metro
-   * @return ResultState<ClientInfoResponseEntity?> : Result State
-   * as Success as ServerInfoResponseEntity instance
-   * as Failure as String Message with failure message
-   */
-  suspend fun getServerInfoData(metro: String?): ResultState<ServerInfoResponseEntity?>
 
   /**
    * This function provides publishSpeedTestData abstract

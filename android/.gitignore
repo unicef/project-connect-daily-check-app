@@ -3,6 +3,7 @@
 # Built application files
 *.apk
 *.aar
+!app/libs/ndt7client.aar
 *.ap_
 *.aab
 

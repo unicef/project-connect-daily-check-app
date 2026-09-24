@@ -42,15 +42,9 @@ class RetrofitInstanceBuilderTest {
   }
 
   @Test
-  fun `serverInfoApi lazy initializer should create ApiService`() {
-    val api = RetrofitInstanceBuilder.serverInfoApi
-    assertNotNull(api)
-  }
-
-  @Test
-  fun `retrofit instances should be different`() {
+  fun `client info APIs should be different instances`() {
     val a = RetrofitInstanceBuilder.clintInfoApi
-    val b = RetrofitInstanceBuilder.serverInfoApi
+    val b = RetrofitInstanceBuilder.clintInfoFallbackApi
     assertNotEquals(a, b)
   }
 
