@@ -4,6 +4,7 @@ package net.measurementlab.ndt7.android.utils
 import net.measurementlab.ndt7.android.NDTTest
 import net.measurementlab.ndt7.android.models.AppInfo
 import net.measurementlab.ndt7.android.models.ClientResponse
+import java.util.Locale
 
 object DataConverter {
 
@@ -16,7 +17,7 @@ object DataConverter {
         var speed = clientResponse.appInfo.numBytes / time
         speed *= 8
         speed /= 1e6
-        return String.format("%.1f", speed)
+        return String.format(Locale.US, "%.1f", speed)
     }
 
     fun currentTimeInMicroseconds(): Long {

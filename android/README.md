@@ -207,6 +207,7 @@ android {
   }
 - It checks for google-services.json and if it's available then only it integrates firebase.
 - If new firebase config file google-services.json need to add, it should be added in app/src/release or app/src/debug path based on environment
+- For debug installs (`./gradlew installDebug` or Run in Android Studio), the debug Firebase config (containing the `com.meter.giga.app.debug` package) can instead be saved as `app/google-services-debug.json`. It is copied to `app/src/debug/google-services.json` at build time, overwriting any file already there, and is git-ignored like the other Firebase config files.
 
 ---
 

@@ -2,6 +2,7 @@
 !/build/.npmkeep
 # Firebase config files
 **/google-services.json
+**/google-services-debug.json
 **/GoogleService-Info.plist
 
 # Android keystore files
