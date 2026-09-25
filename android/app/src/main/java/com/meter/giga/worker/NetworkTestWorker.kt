@@ -46,6 +46,7 @@ import net.measurementlab.ndt7.android.models.Measurement
 import net.measurementlab.ndt7.android.utils.DataConverter
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 /**
@@ -275,7 +276,7 @@ class NetworkTestWorker(
       val speed = DataConverter.convertToMbps(clientResponse)
       downloadSpeed = speed.toDouble()
 
-      val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(downloadSpeed, uploadSpeed)
+      val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, downloadSpeed, uploadSpeed)
       lastDownloadResponse = clientResponse
 
       updateNotification(msg)
@@ -303,7 +304,7 @@ class NetworkTestWorker(
       val speed = DataConverter.convertToMbps(clientResponse)
       uploadSpeed = speed.toDouble()
 
-      val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(downloadSpeed, uploadSpeed)
+      val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, downloadSpeed, uploadSpeed)
       lastUploadResponse = clientResponse
 
       updateNotification(msg)

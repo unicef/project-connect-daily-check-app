@@ -1,9 +1,22 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
-if (new File("$projectDir/google-services.json").exists()) {
+
+// The Google Services plugin reads src/debug/google-services.json for debug builds,
+// and the debug file must contain a client for com.meter.giga.app.debug.
+def debugServicesJSON = file('google-services-debug.json')
+if (debugServicesJSON.exists()) {
+  copy {
+    from debugServicesJSON
+    into 'src/debug'
+    rename { 'google-services.json' }
+  }
+}
+
+if (new File("$projectDir/google-services.json").exists() || debugServicesJSON.exists()) {
   apply plugin: 'com.google.gms.google-services'
   apply plugin: 'com.google.firebase.crashlytics'
 }
+
 apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 
