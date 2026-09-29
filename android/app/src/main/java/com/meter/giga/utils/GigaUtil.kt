@@ -33,6 +33,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToLong
 
 /**
  * Utility singleton containing reusable helper methods
@@ -181,8 +182,8 @@ object GigaUtil {
    * Builds the backend POST body from ndt7 Go-client complete JSON for each
    * direction. [downloadCompleteJson] / [uploadCompleteJson] are used as-is for
    * Results (MeanClientMbps and ElapsedTime in seconds come from the client;
-   * they are not recomputed). Latency is the mean MinRTT of both directions,
-   * in milliseconds. ServerInfo comes from the locate target JSON.
+   * they are not recomputed). Latency is the mean BBRInfo.MinRTT of both
+   * directions, in milliseconds. ServerInfo comes from the locate target JSON.
    */
   fun createSpeedTestPayload(
     downloadCompleteJson: String,
@@ -220,7 +221,7 @@ object GigaUtil {
         upload = meanUpload * 1000,
         gigaIdSchool = gigaSchoolId,
         ipAddress = if (ipAddress == "") clientInfoRequestEntity?.ip else ipAddress,
-        latency = meanMinRttMs(downloadComplete, uploadComplete),
+        latency = meanBbrMinRttMs(downloadComplete, uploadComplete),
         notes = scheduleType,
         results = ResultsRequestEntity(
           ndtResultS2C = downloadComplete,
@@ -305,21 +306,20 @@ object GigaUtil {
     complete.objectOrNull("LastClientMeasurement")?.doubleOrNull("MeanClientMbps") ?: 0.0
 
   /**
-   * Mean of each direction's MinRTT in milliseconds. BBRInfo is not always
-   * present, so a direction without it falls back to TCPInfo, and a direction
-   * with neither is left out of the mean instead of counting as zero.
+   * Latency as the desktop app computes it: the mean of download and upload
+   * BBRInfo.MinRTT, in milliseconds, rounded. There is no fallback. If either
+   * direction has no BBRInfo.MinRTT, latency is null rather than an estimate.
    */
-  private fun meanMinRttMs(download: JsonObject, upload: JsonObject): String {
-    val minRtts = listOfNotNull(minRttMicros(download), minRttMicros(upload))
-    if (minRtts.isEmpty()) return "0"
-    return (minRtts.average() / 1000.0).toInt().toString()
+  private fun meanBbrMinRttMs(download: JsonObject, upload: JsonObject): String? {
+    val downloadMinRtt = bbrMinRtt(download) ?: return null
+    val uploadMinRtt = bbrMinRtt(upload) ?: return null
+    return ((downloadMinRtt + uploadMinRtt) / 2 / 1000).roundToLong().toString()
   }
 
-  private fun minRttMicros(complete: JsonObject): Double? {
-    val server = complete.objectOrNull("LastServerMeasurement") ?: return null
-    return server.objectOrNull("BBRInfo")?.doubleOrNull("MinRTT")
-      ?: server.objectOrNull("TCPInfo")?.doubleOrNull("MinRTT")
-  }
+  private fun bbrMinRtt(complete: JsonObject): Double? =
+    complete.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("BBRInfo")
+      ?.doubleOrNull("MinRTT")
 
   private fun connectionUuid(complete: JsonObject): String? =
     complete.objectOrNull("LastServerMeasurement")

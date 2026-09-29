@@ -242,23 +242,29 @@ class GigaUtilTest {
   }
 
   @Test
-  fun `latency falls back to TCPInfo MinRTT when BBRInfo is missing`() {
-    val download = """
-      {"LastServerMeasurement": {"TCPInfo": {"MinRTT": 20000}}}
-    """.trimIndent()
-    val upload = """
-      {"LastServerMeasurement": {"BBRInfo": {"MinRTT": 40000}, "TCPInfo": {"MinRTT": 99000}}}
-    """.trimIndent()
+  fun `latency is the rounded mean of both BBRInfo MinRTT values, as on desktop`() {
+    val download = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": 20000}}}"""
+    val upload = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": 41000}}}"""
+    assertEquals("31", payload(download, upload).latency) // 30.5 ms
+  }
+
+  @Test
+  fun `latency ignores TCPInfo MinRTT`() {
+    val download = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": 20000}, "TCPInfo": {"MinRTT": 90000}}}"""
+    val upload = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": 40000}, "TCPInfo": {"MinRTT": 90000}}}"""
     assertEquals("30", payload(download, upload).latency)
   }
 
   @Test
-  fun `latency uses only the directions that report MinRTT`() {
+  fun `latency is null when either direction has no BBRInfo MinRTT`() {
     val withRtt = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": 40000}}}"""
-    val nullBbr = """{"LastServerMeasurement": {"BBRInfo": null, "TCPInfo": {"MinRTT": null}}}"""
-    assertEquals("40", payload(withRtt, nullBbr).latency)
-    assertEquals("40", payload("{}", withRtt).latency)
-    assertEquals("0", payload("{}", nullBbr).latency)
+    val tcpOnly = """{"LastServerMeasurement": {"TCPInfo": {"MinRTT": 20000}}}"""
+    val nullBbr = """{"LastServerMeasurement": {"BBRInfo": null}}"""
+    val nullMinRtt = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": null}}}"""
+    assertEquals(null, payload(tcpOnly, withRtt).latency)
+    assertEquals(null, payload(withRtt, nullBbr).latency)
+    assertEquals(null, payload(withRtt, nullMinRtt).latency)
+    assertEquals(null, payload("{}", "{}").latency)
   }
 
   @Test
