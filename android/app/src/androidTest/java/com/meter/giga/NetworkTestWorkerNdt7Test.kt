@@ -8,6 +8,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.prefrences.AlarmSharedPref
+import com.meter.giga.utils.Constants.GIGA_APP_PREFERENCES
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_MANUAL
 import com.meter.giga.worker.NetworkTestWorker
@@ -16,6 +17,7 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -23,15 +25,21 @@ import org.junit.runner.RunWith
 /**
  * Runs the production [NetworkTestWorker] path (Go ndt7 client) on device/emulator
  * and asserts the persisted Results match the desktop complete-summary schema.
+ *
+ * Runs a live test against M-Lab, so it is skipped unless enabled; see
+ * [LiveMlabTests]. The app's preferences are restored afterwards.
  */
 @RunWith(AndroidJUnit4::class)
 class NetworkTestWorkerNdt7Test {
 
   private lateinit var prefs: AlarmSharedPref
+  private var snapshot: SharedPreferencesSnapshot? = null
 
   @Before
   fun setUp() {
+    LiveMlabTests.assumeEnabled()
     val context = InstrumentationRegistry.getInstrumentation().targetContext
+    snapshot = SharedPreferencesSnapshot(context, GIGA_APP_PREFERENCES)
     prefs = AlarmSharedPref(context)
     prefs.isTestRunning = false
     prefs.oldSpeedTestData = "[]"
@@ -46,6 +54,11 @@ class NetworkTestWorkerNdt7Test {
     prefs.baseUrl = "https://invalid.example/"
     prefs.mlabUploadKey = "test-key"
     prefs.ipInfoToken = ""
+  }
+
+  @After
+  fun tearDown() {
+    snapshot?.restore()
   }
 
   @Test
@@ -83,7 +96,7 @@ class NetworkTestWorkerNdt7Test {
 
     assertNotNull(measurement.mlabInformation?.url)
     assertTrue(
-      "ServerInfo URL should come from locate machine",
+      "ServerInfo URL should come from the locate target",
       !measurement.mlabInformation!!.url.isNullOrBlank()
     )
 
@@ -95,8 +108,6 @@ class NetworkTestWorkerNdt7Test {
       .getDouble("MeanClientMbps")
     assertTrue(downloadMbps > 0)
     assertTrue(uploadMbps > 0)
-
-    prefs.isTestRunning = false
   }
 
   private fun assertDesktopSummary(direction: String, raw: String) {
