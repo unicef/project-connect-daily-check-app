@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
+// import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -45,6 +46,7 @@ import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_FIRST
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_MANUAL
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
@@ -307,10 +309,16 @@ open class GigaAppPlugin : Plugin() {
       val data = Data.Builder()
         .putString(SCHEDULE_TYPE, scheduleType)
         .build()
-      val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
+      val workRequestBuilder = OneTimeWorkRequestBuilder<NetworkTestWorker>()
         .setInputData(data)
-        .build()
-      WorkManager.getInstance(context).enqueue(workRequest)
+      // Expedited disabled while testing plain one-time work
+      // if (scheduleType == SCHEDULE_TYPE_FIRST ||
+      //   scheduleType == SCHEDULE_TYPE_START ||
+      //   scheduleType == SCHEDULE_TYPE_DAILY
+      // ) {
+      //   workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+      // }
+      WorkManager.getInstance(context).enqueue(workRequestBuilder.build())
 
       val alarmPrefs = AlarmSharedPref(context)
       if (GigaUtil.checkIfFutureAlarmScheduled(alarmPrefs)) {
@@ -327,6 +335,7 @@ open class GigaAppPlugin : Plugin() {
         "GIGA GigaAppPlugin",
         "Notification permission denied, skipping manual speed test worker"
       )
+      sendSpeedTestCompletedWithError(null, null)
     }
     call.resolve()
   }

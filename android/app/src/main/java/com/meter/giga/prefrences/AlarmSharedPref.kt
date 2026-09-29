@@ -23,6 +23,9 @@ import com.meter.giga.utils.Constants.KEY_MLAB_UPLOAD_KEY
 import com.meter.giga.utils.Constants.KEY_NEXT_EXECUTION_TIME
 import com.meter.giga.utils.Constants.KEY_OLD_SPEEDTEST_DATA
 import com.meter.giga.utils.Constants.KEY_SCHOOL_ID
+import com.meter.giga.utils.Constants.KEY_STOPPED_TEST_WORK_ID
+import com.meter.giga.utils.Constants.KEY_TEST_STARTED_AT
+import com.meter.giga.utils.Constants.TEST_RUNNING_STALE_MS
 import java.util.Calendar
 
 /**
@@ -164,7 +167,29 @@ class AlarmSharedPref(context: Context) {
    */
   var isTestRunning: Boolean
     get() = prefs.getBoolean(KEY_IS_TEST_RUNNING, false)
-    set(value) = prefs.edit() { putBoolean(KEY_IS_TEST_RUNNING, value) }
+    set(value) = prefs.edit() {
+      putBoolean(KEY_IS_TEST_RUNNING, value)
+      if (value) putLong(KEY_TEST_STARTED_AT, System.currentTimeMillis())
+    }
+
+  /**
+   * Work id of a manual or first test that the system stopped. WorkManager
+   * re-runs stopped work later, but the user was already shown the failure.
+   */
+  var stoppedTestWorkId: String
+    get() = prefs.getString(KEY_STOPPED_TEST_WORK_ID, "").toString()
+    set(value) = prefs.edit() { putString(KEY_STOPPED_TEST_WORK_ID, value) }
+
+  /**
+   * True while a speed test is running. A flag older than
+   * [TEST_RUNNING_STALE_MS] is ignored, because a process killed
+   * mid-test never gets to clear it.
+   */
+  fun isTestInProgress(): Boolean {
+    if (!isTestRunning) return false
+    val startedAt = prefs.getLong(KEY_TEST_STARTED_AT, 0L)
+    return System.currentTimeMillis() - startedAt < TEST_RUNNING_STALE_MS
+  }
 
   /**
    * This checks if last executed speed test date is

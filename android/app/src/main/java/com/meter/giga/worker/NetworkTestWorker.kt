@@ -1,12 +1,19 @@
 package com.meter.giga.worker
 
 import android.Manifest
+import android.app.ActivityManager
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Build
+import android.os.PowerManager
 import androidx.core.app.ActivityCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
+import androidx.work.WorkInfo
 import androidx.work.WorkerParameters
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
@@ -25,21 +32,31 @@ import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.DEVICE_TYPE_ANDROID
 import com.meter.giga.utils.Constants.DEVICE_TYPE_CHROMEBOOK
+import com.meter.giga.utils.Constants.BACKGROUND_RETRY_DELAY_MIN
+import com.meter.giga.utils.Constants.MAX_BACKGROUND_RETRIES
 import com.meter.giga.utils.Constants.NOTIFICATION_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_FIRST
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_MANUAL
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
+import com.meter.giga.utils.Constants.SLOT_END_TIME
 import com.meter.giga.utils.GigaUtil
 import com.meter.giga.utils.NotificationHelper
 import com.meter.giga.utils.ResultState
+import io.sentry.IScope
 import io.sentry.Sentry
 import io.sentry.SentryLevel
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import ndt7client.Callbacks
 import ndt7client.Ndt7client
+import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 /**
@@ -71,16 +88,49 @@ class NetworkTestWorker(
 
     val networkChecker = NetworkCheckerImpl(context)
     val scheduleType = inputData.getString(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_DAILY
+    val isBackground = scheduleType == SCHEDULE_TYPE_DAILY || scheduleType == SCHEDULE_TYPE_START
+    val slotEnd = inputData.getLong(SLOT_END_TIME, 0L)
+
+    if (!isBackground && prefs.stoppedTestWorkId == id.toString()) {
+      prefs.stoppedTestWorkId = ""
+      AppLogger.d("GIGA NetworkTestWorker", "Skipping re-run of stopped $scheduleType test")
+      return@withContext Result.success()
+    }
+
+    // Work held back by Doze or the network constraint can run long after its slot.
+    if (isBackground && slotEnd > 0 && System.currentTimeMillis() > slotEnd) {
+      AppLogger.d("GIGA NetworkTestWorker", "Slot ended, skipping $scheduleType test")
+      Sentry.captureMessage("Speed test skipped, slot ended", SentryLevel.INFO) { scope ->
+        applyConnectionContext(scope)
+        scope.setTag("run_attempt", "$runAttemptCount")
+      }
+      return@withContext Result.success()
+    }
 
     if (!networkChecker.isNetworkAvailable()) {
-      AppLogger.d("GIGA NetworkTestWorker", "Device is offline")
-      Sentry.captureMessage("Device is offline, speed test skipped", SentryLevel.ERROR)
+      val willRetry = isBackground && canRetryInSlot()
+
+      AppLogger.d("GIGA NetworkTestWorker", "Device is offline, retry: $willRetry")
+      Sentry.captureMessage("Device is offline, speed test skipped", SentryLevel.WARNING) { scope ->
+        applyConnectionContext(scope)
+        scope.setTag("run_attempt", "$runAttemptCount")
+        scope.setTag("will_retry", "$willRetry")
+      }
+
+      if (isBackground) {
+        return@withContext if (willRetry) Result.retry() else Result.failure()
+      }
       GigaAppPlugin.sendNoNetworkError()
       return@withContext Result.failure()
     }
 
-    if (prefs.isTestRunning) {
+    if (prefs.isTestInProgress()) {
       AppLogger.d("GIGA NetworkTestWorker", "Speed test already running, skipping")
+      Sentry.captureMessage("Speed test skipped, another test is running", SentryLevel.INFO)
+      // A background daily or startup run must not replace the test already on screen.
+      if (scheduleType == SCHEDULE_TYPE_MANUAL || scheduleType == SCHEDULE_TYPE_FIRST) {
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+      }
       return@withContext Result.success()
     }
 
@@ -97,6 +147,7 @@ class NetworkTestWorker(
       val uploadComplete = AtomicReference<String>()
       val serverChosen = AtomicReference<String>()
       val error = AtomicReference<String>()
+      val serverLookupFailed = AtomicBoolean(false)
       val s2cRate = arrayListOf<Double>()
       val c2sRate = arrayListOf<Double>()
       val done = CountDownLatch(1)
@@ -122,7 +173,7 @@ class NetworkTestWorker(
             val progress = JsonParser.parseString(clientJSON).asJsonObject
             downloadSpeed = progress.get("MeanClientMbps")?.asDouble ?: downloadSpeed
             s2cRate.add(downloadSpeed)
-            val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(downloadSpeed, uploadSpeed)
+            val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, downloadSpeed, uploadSpeed)
             updateNotification(msg)
             GigaAppPlugin.sendSpeedUpdate(downloadSpeed, uploadSpeed, "download")
           }
@@ -131,7 +182,7 @@ class NetworkTestWorker(
             val progress = JsonParser.parseString(clientJSON).asJsonObject
             uploadSpeed = progress.get("MeanClientMbps")?.asDouble ?: uploadSpeed
             c2sRate.add(uploadSpeed)
-            val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(downloadSpeed, uploadSpeed)
+            val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, downloadSpeed, uploadSpeed)
             updateNotification(msg)
             GigaAppPlugin.sendSpeedUpdate(downloadSpeed, uploadSpeed, "upload")
           }
@@ -150,7 +201,11 @@ class NetworkTestWorker(
           override fun onError(direction: String, message: String) {
             AppLogger.d("GIGA NetworkTestWorker", "ndt7 error $direction: $message")
             error.set("$direction: $message")
-            Sentry.captureMessage("ndt7 $direction failed: $message", SentryLevel.ERROR)
+            if (direction == "locate") serverLookupFailed.set(true)
+            Sentry.captureMessage("ndt7 $direction failed: $message", SentryLevel.ERROR) { scope ->
+              applyConnectionContext(scope)
+              scope.setTag("test_type", direction)
+            }
             done.countDown()
           }
         }
@@ -159,10 +214,21 @@ class NetworkTestWorker(
       val finished = done.await(2, TimeUnit.MINUTES)
       if (!finished) {
         prefs.isTestRunning = false
-        Sentry.captureMessage("Speed test timed out", SentryLevel.ERROR)
+        Sentry.captureMessage("Speed test timed out", SentryLevel.ERROR) { scope ->
+          applyConnectionContext(scope)
+        }
         updateNotification("Speed test timed out, please try again.")
         GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
         return@withContext Result.failure()
+      }
+
+      if (serverLookupFailed.get()) {
+        val willRetry = isBackground && canRetryInSlot()
+        AppLogger.d("GIGA NetworkTestWorker", "Server lookup failed, retry: $willRetry")
+        prefs.isTestRunning = false
+        updateNotification("Could not reach the speed test server, please try again.")
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+        return@withContext if (willRetry) Result.retry() else Result.failure()
       }
 
       if (error.get() != null ||
@@ -188,12 +254,116 @@ class NetworkTestWorker(
       )
 
       Result.success()
+    } catch (e: CancellationException) {
+      // WorkManager stopped the worker. It ignores the result and re-runs the work later.
+      prefs.isTestRunning = false
+      val reason = stopReasonName(stopReason)
+      AppLogger.d("GIGA NetworkTestWorker", "Speed test stopped by the system: $reason")
+      Sentry.captureMessage("Speed test stopped by the system", SentryLevel.WARNING) { scope ->
+        applyConnectionContext(scope)
+        scope.setTag("stop_reason", reason)
+        scope.setTag("run_attempt", "$runAttemptCount")
+      }
+      if (!isBackground) {
+        prefs.stoppedTestWorkId = id.toString()
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+      }
+      throw e
     } catch (e: Exception) {
       prefs.isTestRunning = false
       Sentry.captureException(e)
       GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
       Result.failure()
     }
+  }
+
+  /**
+   * Battery restriction and network power-save state at the moment of a failure.
+   * Android does not expose the 802.11 power-save flag. A suspended network is
+   * the public signal that the system has paused it to save power.
+   */
+  private fun applyConnectionContext(scope: IScope) {
+    scope.setTag("schedule_type", inputData.getString(SCHEDULE_TYPE) ?: SCHEDULE_TYPE_DAILY)
+    try {
+      val powerManager = context.getSystemService(PowerManager::class.java)
+      val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+      val capabilities = connectivityManager?.activeNetwork?.let {
+        connectivityManager.getNetworkCapabilities(it)
+      }
+
+      scope.setTag("has_network", "${capabilities != null}")
+      scope.setTag("network_validated", "${capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true}")
+      scope.setTag("network_transport", networkTransport(capabilities))
+      scope.setTag("network_suspended", "${capabilities?.let { !it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED) }}")
+      scope.setTag("background_restricted", "${isBackgroundRestricted()}")
+      scope.setTag("ignoring_battery_optimizations", "${powerManager?.isIgnoringBatteryOptimizations(context.packageName)}")
+      scope.setTag("power_save_mode", "${powerManager?.isPowerSaveMode}")
+      scope.setTag("device_idle_mode", "${powerManager?.isDeviceIdleMode}")
+      scope.setTag("screen_interactive", "${powerManager?.isInteractive}")
+      scope.setTag("standby_bucket", standbyBucket())
+    } catch (e: Exception) {
+      AppLogger.d("GIGA NetworkTestWorker", "Failed to read connection context: ${e.message}")
+    }
+  }
+
+  private fun networkTransport(capabilities: NetworkCapabilities?): String {
+    if (capabilities == null) return "none"
+    return when {
+      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> "wifi"
+      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> "cellular"
+      capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> "ethernet"
+      else -> "other"
+    }
+  }
+
+  private fun isBackgroundRestricted(): Boolean? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return null
+    return context.getSystemService(ActivityManager::class.java)?.isBackgroundRestricted
+  }
+
+  private fun standbyBucket(): String {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return "unsupported"
+    val bucket = try {
+      context.getSystemService(UsageStatsManager::class.java)?.appStandbyBucket
+    } catch (e: SecurityException) {
+      return "unavailable"
+    } ?: return "unknown"
+    return when {
+      bucket == UsageStatsManager.STANDBY_BUCKET_ACTIVE -> "active"
+      bucket == UsageStatsManager.STANDBY_BUCKET_WORKING_SET -> "working_set"
+      bucket == UsageStatsManager.STANDBY_BUCKET_FREQUENT -> "frequent"
+      bucket == UsageStatsManager.STANDBY_BUCKET_RARE -> "rare"
+      Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+        bucket == UsageStatsManager.STANDBY_BUCKET_RESTRICTED -> "restricted"
+      else -> "unknown"
+    }
+  }
+
+  /**
+   * WorkManager spaces retries linearly (15, 30, then 45 minutes), so a retry
+   * is only worth scheduling if it still starts inside the slot.
+   */
+  private fun canRetryInSlot(): Boolean {
+    val nextRetryAt = System.currentTimeMillis() +
+      TimeUnit.MINUTES.toMillis(BACKGROUND_RETRY_DELAY_MIN * (runAttemptCount + 1))
+    return runAttemptCount < MAX_BACKGROUND_RETRIES &&
+      nextRetryAt < inputData.getLong(SLOT_END_TIME, 0L)
+  }
+
+  private fun stopReasonName(reason: Int): String = when (reason) {
+    WorkInfo.STOP_REASON_CANCELLED_BY_APP -> "cancelled_by_app"
+    WorkInfo.STOP_REASON_PREEMPT -> "preempt"
+    WorkInfo.STOP_REASON_TIMEOUT -> "timeout"
+    WorkInfo.STOP_REASON_DEVICE_STATE -> "device_state"
+    WorkInfo.STOP_REASON_CONSTRAINT_CONNECTIVITY -> "constraint_connectivity"
+    WorkInfo.STOP_REASON_QUOTA -> "quota"
+    WorkInfo.STOP_REASON_BACKGROUND_RESTRICTION -> "background_restriction"
+    WorkInfo.STOP_REASON_APP_STANDBY -> "app_standby"
+    WorkInfo.STOP_REASON_USER -> "user"
+    WorkInfo.STOP_REASON_SYSTEM_PROCESSING -> "system_processing"
+    WorkInfo.STOP_REASON_FOREGROUND_SERVICE_TIMEOUT -> "foreground_service_timeout"
+    WorkInfo.STOP_REASON_NOT_STOPPED -> "not_stopped"
+    else -> "other_$reason"
   }
 
   override suspend fun getForegroundInfo(): ForegroundInfo {

@@ -8,8 +8,13 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.content.ContextCompat
+import androidx.work.BackoffPolicy
+import androidx.work.Constraints
 import androidx.work.Data
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
 import androidx.work.OneTimeWorkRequestBuilder
+// import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.meter.giga.alarm_scheduler.AlarmHelper
 import com.meter.giga.alarm_scheduler.AlarmHelperType
@@ -17,12 +22,16 @@ import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.Constants.FIRST_15_MIN
 import com.meter.giga.utils.Constants.NEXT_SLOT
+import com.meter.giga.utils.Constants.BACKGROUND_RETRY_DELAY_MIN
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
+import com.meter.giga.utils.Constants.SLOT_DURATION_MS
+import com.meter.giga.utils.Constants.SLOT_END_TIME
 import com.meter.giga.worker.NetworkTestWorker
 import io.sentry.Sentry
 import java.util.Calendar
+import java.util.concurrent.TimeUnit
 import kotlin.random.Random
 
 /**
@@ -129,16 +138,46 @@ class ScheduleBroadcastReceiver(
         "Notification permission granted - enqueueing foreground work"
       )
 
-      val data = Data.Builder()
-        .putString(SCHEDULE_TYPE, SCHEDULE_TYPE_START)
-        .build()
-
-      val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
-        .setInputData(data)
-        .build()
-
-      WorkManager.getInstance(context).enqueue(workRequest)
+      WorkManager.getInstance(context)
+        .enqueue(buildBackgroundTestRequest(SCHEDULE_TYPE_START))
     }
+  }
+
+  /**
+   * Daily and startup tests wait for a network, and retry after a failed start
+   * until the end of the current 4-hour slot.
+   */
+  private fun buildBackgroundTestRequest(scheduleType: String): OneTimeWorkRequest {
+    val now = System.currentTimeMillis()
+    val slotStartHour = alarmHelper.getSlotStartHour(now)
+    val slotEnd = if (slotStartHour == -1) {
+      now + SLOT_DURATION_MS
+    } else {
+      Calendar.getInstance().apply {
+        timeInMillis = now
+        set(Calendar.HOUR_OF_DAY, slotStartHour)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+      }.timeInMillis + SLOT_DURATION_MS
+    }
+
+    val data = Data.Builder()
+      .putString(SCHEDULE_TYPE, scheduleType)
+      .putLong(SLOT_END_TIME, slotEnd)
+      .build()
+
+    return OneTimeWorkRequestBuilder<NetworkTestWorker>()
+      .setInputData(data)
+      .setConstraints(
+        Constraints.Builder()
+          .setRequiredNetworkType(NetworkType.CONNECTED)
+          .build()
+      )
+      .setBackoffCriteria(BackoffPolicy.LINEAR, BACKGROUND_RETRY_DELAY_MIN, TimeUnit.MINUTES)
+      // Expedited disabled while testing plain one-time work
+      // .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+      .build()
   }
 
   /**
@@ -167,15 +206,8 @@ class ScheduleBroadcastReceiver(
           SCHEDULE_TYPE_DAILY
         }
 
-        val data = Data.Builder()
-          .putString(SCHEDULE_TYPE, scheduleType)
-          .build()
-
-        val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
-          .setInputData(data)
-          .build()
-
-        WorkManager.getInstance(context).enqueue(workRequest)
+        WorkManager.getInstance(context)
+          .enqueue(buildBackgroundTestRequest(scheduleType))
       } else {
         // Notification permission denied - don't start foreground service
         AppLogger.d(
