@@ -182,8 +182,8 @@ object GigaUtil {
    * Builds the backend POST body from ndt7 Go-client complete JSON for each
    * direction. [downloadCompleteJson] / [uploadCompleteJson] are used as-is for
    * Results (MeanClientMbps and ElapsedTime in seconds come from the client;
-   * they are not recomputed). Latency is the mean BBRInfo.MinRTT of both
-   * directions, in milliseconds. ServerInfo comes from the locate target JSON.
+   * they are not recomputed). Latency is the download TCPInfo.MinRTT in
+   * milliseconds. ServerInfo comes from the locate target JSON.
    */
   fun createSpeedTestPayload(
     downloadCompleteJson: String,
@@ -221,7 +221,7 @@ object GigaUtil {
         upload = meanUpload * 1000,
         gigaIdSchool = gigaSchoolId,
         ipAddress = if (ipAddress == "") clientInfoRequestEntity?.ip else ipAddress,
-        latency = meanBbrMinRttMs(downloadComplete, uploadComplete),
+        latency = downloadMinRttMs(downloadComplete),
         notes = scheduleType,
         results = ResultsRequestEntity(
           ndtResultS2C = downloadComplete,
@@ -306,20 +306,19 @@ object GigaUtil {
     complete.objectOrNull("LastClientMeasurement")?.doubleOrNull("MeanClientMbps") ?: 0.0
 
   /**
-   * Latency as the desktop app computes it: the mean of download and upload
-   * BBRInfo.MinRTT, in milliseconds, rounded. There is no fallback. If either
-   * direction has no BBRInfo.MinRTT, latency is null rather than an estimate.
+   * Latency is the download test's TCPInfo.MinRTT in milliseconds, rounded:
+   * the value the backend stores and the one M-Lab recommends. BBRInfo.MinRTT
+   * is an internal BBR metric, and the upload's MinRTT comes from a handful of
+   * server-to-client messages, so neither is used. There is no fallback: if
+   * the download has no TCPInfo.MinRTT, latency is null.
    */
-  private fun meanBbrMinRttMs(download: JsonObject, upload: JsonObject): String? {
-    val downloadMinRtt = bbrMinRtt(download) ?: return null
-    val uploadMinRtt = bbrMinRtt(upload) ?: return null
-    return ((downloadMinRtt + uploadMinRtt) / 2 / 1000).roundToLong().toString()
-  }
-
-  private fun bbrMinRtt(complete: JsonObject): Double? =
-    complete.objectOrNull("LastServerMeasurement")
-      ?.objectOrNull("BBRInfo")
+  private fun downloadMinRttMs(download: JsonObject): String? {
+    val minRtt = download.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("TCPInfo")
       ?.doubleOrNull("MinRTT")
+      ?: return null
+    return (minRtt / 1000).roundToLong().toString()
+  }
 
   private fun connectionUuid(complete: JsonObject): String? =
     complete.objectOrNull("LastServerMeasurement")
