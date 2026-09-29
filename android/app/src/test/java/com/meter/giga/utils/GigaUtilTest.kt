@@ -184,13 +184,120 @@ class GigaUtilTest {
   @Test
   fun `serverInfoFromLocate maps desktop serverChosen shape`() {
     val info = GigaUtil.serverInfoFromLocate(
-      """{"machine":"mlab3-bcn01.mlab-oti.measurement-lab.org","location":{"city":"Barcelona","country":"ES"},"urls":{}}"""
+      """
+        {
+          "machine": "mlab1-lga03.mlab-oti.measurement-lab.org",
+          "location": {"city": "New York", "country": "US"},
+          "urls": {
+            "wss:///ndt/v7/download": "wss://ndt-mlab1-lga03.mlab-oti.measurement-lab.org/ndt/v7/download?access_token=secret",
+            "wss:///ndt/v7/upload": "wss://ndt-mlab1-lga03.mlab-oti.measurement-lab.org/ndt/v7/upload?access_token=secret"
+          }
+        }
+      """.trimIndent()
     )
     assertNotNull(info)
-    assertEquals("Barcelona", info!!.city)
-    assertEquals("ES", info.country)
+    assertEquals("New York", info!!.city)
+    assertEquals("US", info.country)
+    assertEquals("ndt-mlab1-lga03.mlab-oti.measurement-lab.org", info.fQDN)
+    assertEquals("wss://ndt-mlab1-lga03.mlab-oti.measurement-lab.org/ndt/v7/download", info.uRL)
+    assertEquals("lga03", info.site)
+    assertEquals("lga", info.metro)
+    assertEquals("New York", info.label)
+    assertEquals("", info.iPv4)
+    assertEquals("", info.iPv6)
+  }
+
+  @Test
+  fun `serverInfoFromLocate falls back to the machine name without urls`() {
+    val info = GigaUtil.serverInfoFromLocate(
+      """{"machine":"mlab3-bcn01.mlab-oti.measurement-lab.org","location":{"city":"Barcelona","country":"ES"},"urls":{}}"""
+    )!!
+    assertEquals("mlab3-bcn01.mlab-oti.measurement-lab.org", info.fQDN)
     assertEquals("mlab3-bcn01.mlab-oti.measurement-lab.org", info.uRL)
+    assertEquals("bcn01", info.site)
+    assertEquals("bcn", info.metro)
+  }
+
+  @Test
+  fun `serverInfoFromLocate tolerates missing and null fields`() {
+    val info = GigaUtil.serverInfoFromLocate(
+      """{"machine":null,"location":null,"urls":{"wss:///ndt/v7/download":null}}"""
+    )!!
+    assertEquals(null, info.city)
+    assertEquals(null, info.country)
     assertEquals("", info.fQDN)
+    assertEquals("", info.site)
+    assertEquals("", info.metro)
+    assertEquals("", info.label)
+
+    val empty = GigaUtil.serverInfoFromLocate("{}")!!
+    assertEquals("", empty.uRL)
+  }
+
+  @Test
+  fun `serverInfoFromLocate returns null for blank or malformed JSON`() {
+    assertEquals(null, GigaUtil.serverInfoFromLocate(null))
+    assertEquals(null, GigaUtil.serverInfoFromLocate(""))
+    assertEquals(null, GigaUtil.serverInfoFromLocate("not json"))
+  }
+
+  @Test
+  fun `latency falls back to TCPInfo MinRTT when BBRInfo is missing`() {
+    val download = """
+      {"LastServerMeasurement": {"TCPInfo": {"MinRTT": 20000}}}
+    """.trimIndent()
+    val upload = """
+      {"LastServerMeasurement": {"BBRInfo": {"MinRTT": 40000}, "TCPInfo": {"MinRTT": 99000}}}
+    """.trimIndent()
+    assertEquals("30", payload(download, upload).latency)
+  }
+
+  @Test
+  fun `latency uses only the directions that report MinRTT`() {
+    val withRtt = """{"LastServerMeasurement": {"BBRInfo": {"MinRTT": 40000}}}"""
+    val nullBbr = """{"LastServerMeasurement": {"BBRInfo": null, "TCPInfo": {"MinRTT": null}}}"""
+    assertEquals("40", payload(withRtt, nullBbr).latency)
+    assertEquals("40", payload("{}", withRtt).latency)
+    assertEquals("0", payload("{}", nullBbr).latency)
+  }
+
+  @Test
+  fun `createSpeedTestPayload reads null or missing client fields as zero`() {
+    val nullMbps = """{"LastClientMeasurement": {"MeanClientMbps": null}}"""
+    val result = payload(nullMbps, "{}")
+    assertEquals(0.0, result.download!!, 0.0)
+    assertEquals(0.0, result.upload!!, 0.0)
+    assertEquals(null, result.uUID)
+  }
+
+  @Test
+  fun `createSpeedTestPayload takes the download UUID when upload has none`() {
+    val download = """{"LastServerMeasurement": {"ConnectionInfo": {"UUID": "dl-uuid"}}}"""
+    val upload = """{"LastServerMeasurement": {"ConnectionInfo": {"UUID": null}}}"""
+    assertEquals("dl-uuid", payload(download, upload).uUID)
+  }
+
+  @Test
+  fun `progressMbps reads MeanClientMbps and ignores unusable updates`() {
+    assertEquals(12.5, GigaUtil.progressMbps("""{"MeanClientMbps": 12.5}""")!!, 0.0)
+    assertEquals(null, GigaUtil.progressMbps("""{"MeanClientMbps": null}"""))
+    assertEquals(null, GigaUtil.progressMbps("""{"ElapsedTime": 1.0}"""))
+    assertEquals(null, GigaUtil.progressMbps("""{"MeanClientMbps": "fast"}"""))
+    assertEquals(null, GigaUtil.progressMbps("[]"))
+    assertEquals(null, GigaUtil.progressMbps("not json"))
+  }
+
+  @Test
+  fun `getDataUsage counts missing or null TCPInfo as zero`() {
+    val download = JsonParser.parseString(
+      """{"LastServerMeasurement": {"TCPInfo": {"BytesReceived": 200, "BytesAcked": null}}}"""
+    ).asJsonObject
+    val upload = JsonParser.parseString("""{"LastServerMeasurement": {}}""").asJsonObject
+    val usage = GigaUtil.getDataUsage(upload, download)
+    assertEquals(200L, usage.download)
+    assertEquals(0L, usage.upload)
+    assertEquals(200L, usage.total)
+    assertEquals(0L, GigaUtil.getDataUsage(null, null).total)
   }
 
   @Test
@@ -274,6 +381,25 @@ class GigaUtilTest {
     assertEquals("u1", result[0].uuid)
     assertEquals("u3", result[1].uuid)
   }
+
+  private fun payload(downloadJson: String, uploadJson: String) =
+    GigaUtil.createSpeedTestPayload(
+      downloadCompleteJson = downloadJson,
+      uploadCompleteJson = uploadJson,
+      serverChosenJson = null,
+      clientInfoRequestEntity = null,
+      schoolId = "1",
+      gigaSchoolId = "GIGA",
+      appVersion = "1",
+      scheduleType = "manual",
+      deviceType = "android",
+      browserId = "b",
+      countryCode = "ES",
+      ipAddress = "1.1.1.1",
+      deviceHardwareId = "hw",
+      geo = null,
+      deviceInfo = deviceInfo
+    )!!
 
   private fun completeJson(
     meanMbps: Double,

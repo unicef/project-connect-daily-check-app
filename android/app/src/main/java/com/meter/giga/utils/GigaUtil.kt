@@ -25,6 +25,7 @@ import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.Constants.M_D_YYYY_H_MM_SS_A
 import io.sentry.Sentry
 import io.sentry.SentryLevel
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -180,8 +181,8 @@ object GigaUtil {
    * Builds the backend POST body from ndt7 Go-client complete JSON for each
    * direction. [downloadCompleteJson] / [uploadCompleteJson] are used as-is for
    * Results (MeanClientMbps and ElapsedTime in seconds come from the client;
-   * they are not recomputed). Latency is the mean of BBRInfo.MinRTT from both
-   * directions, in milliseconds. ServerInfo comes from the locate target JSON.
+   * they are not recomputed). Latency is the mean MinRTT of both directions,
+   * in milliseconds. ServerInfo comes from the locate target JSON.
    */
   fun createSpeedTestPayload(
     downloadCompleteJson: String,
@@ -219,7 +220,7 @@ object GigaUtil {
         upload = meanUpload * 1000,
         gigaIdSchool = gigaSchoolId,
         ipAddress = if (ipAddress == "") clientInfoRequestEntity?.ip else ipAddress,
-        latency = meanBbrMinRttMs(downloadComplete, uploadComplete),
+        latency = meanMinRttMs(downloadComplete, uploadComplete),
         notes = scheduleType,
         results = ResultsRequestEntity(
           ndtResultS2C = downloadComplete,
@@ -248,6 +249,11 @@ object GigaUtil {
   /**
    * Maps a locate target (same shape as the desktop serverChosen callback)
    * into the ServerInfo fields posted to the backend.
+   *
+   * Locate v2 does not return the server IPs, so IPv4 and IPv6 stay blank.
+   * The FQDN and URL come from the download URL, without its access token.
+   * Site and metro come from the machine name, e.g. mlab1-lga03 is site
+   * lga03 in metro lga.
    */
   fun serverInfoFromLocate(serverChosenJson: String?): ServerInfoRequestEntity? {
     if (serverChosenJson.isNullOrBlank()) {
@@ -255,18 +261,24 @@ object GigaUtil {
     }
     return try {
       val server = JsonParser.parseString(serverChosenJson).asJsonObject
-      val location = server.getAsJsonObject("location")
-      val machine = server.get("machine")?.asString ?: ""
+      val location = server.objectOrNull("location")
+      val city = location?.stringOrNull("city")
+      val machine = server.stringOrNull("machine") ?: ""
+      val downloadUrl = server.objectOrNull("urls")
+        ?.stringOrNull(LOCATE_DOWNLOAD_URL_KEY)
+        ?.let { runCatching { URI(it) }.getOrNull() }
+      val fqdn = downloadUrl?.host ?: machine
+      val site = siteFromMachine(machine)
       ServerInfoRequestEntity(
-        city = location?.get("city")?.asString,
-        country = location?.get("country")?.asString,
-        fQDN = "",
+        city = city,
+        country = location?.stringOrNull("country"),
+        fQDN = fqdn,
         iPv4 = "",
         iPv6 = "",
-        label = "",
-        metro = "",
-        site = "",
-        uRL = machine
+        label = city ?: "",
+        metro = site.take(3),
+        site = site,
+        uRL = downloadUrl?.let { "${it.scheme}://${it.host}${it.path}" } ?: fqdn
       )
     } catch (e: Exception) {
       Sentry.captureException(e)
@@ -274,31 +286,45 @@ object GigaUtil {
     }
   }
 
-  private fun meanClientMbps(complete: JsonObject): Double {
-    val client = complete.getAsJsonObject("LastClientMeasurement") ?: return 0.0
-    val value = client.get("MeanClientMbps") ?: return 0.0
-    return if (value.isJsonNull) 0.0 else value.asDouble
+  /**
+   * MeanClientMbps from a Go-client progress update, or null when the update
+   * has no usable value.
+   */
+  fun progressMbps(clientJson: String): Double? = try {
+    JsonParser.parseString(clientJson).asJsonObject.doubleOrNull("MeanClientMbps")
+  } catch (e: Exception) {
+    null
   }
 
-  private fun meanBbrMinRttMs(download: JsonObject, upload: JsonObject): String {
-    val downloadMin = bbrMinRtt(download) ?: 0.0
-    val uploadMin = bbrMinRtt(upload) ?: 0.0
-    return ((downloadMin + uploadMin) / 2.0 / 1000.0).toInt().toString()
+  private fun siteFromMachine(machine: String): String {
+    val name = machine.substringBefore('.')
+    return name.split('-').firstOrNull { SITE_PATTERN.matches(it) } ?: ""
   }
 
-  private fun bbrMinRtt(complete: JsonObject): Double? {
-    val server = complete.getAsJsonObject("LastServerMeasurement") ?: return null
-    val bbr = server.getAsJsonObject("BBRInfo") ?: return null
-    val minRtt = bbr.get("MinRTT") ?: return null
-    return if (minRtt.isJsonNull) null else minRtt.asDouble
+  private fun meanClientMbps(complete: JsonObject): Double =
+    complete.objectOrNull("LastClientMeasurement")?.doubleOrNull("MeanClientMbps") ?: 0.0
+
+  /**
+   * Mean of each direction's MinRTT in milliseconds. BBRInfo is not always
+   * present, so a direction without it falls back to TCPInfo, and a direction
+   * with neither is left out of the mean instead of counting as zero.
+   */
+  private fun meanMinRttMs(download: JsonObject, upload: JsonObject): String {
+    val minRtts = listOfNotNull(minRttMicros(download), minRttMicros(upload))
+    if (minRtts.isEmpty()) return "0"
+    return (minRtts.average() / 1000.0).toInt().toString()
   }
 
-  private fun connectionUuid(complete: JsonObject): String? {
-    val server = complete.getAsJsonObject("LastServerMeasurement") ?: return null
-    val connection = server.getAsJsonObject("ConnectionInfo") ?: return null
-    val uuid = connection.get("UUID") ?: return null
-    return if (uuid.isJsonNull) null else uuid.asString
+  private fun minRttMicros(complete: JsonObject): Double? {
+    val server = complete.objectOrNull("LastServerMeasurement") ?: return null
+    return server.objectOrNull("BBRInfo")?.doubleOrNull("MinRTT")
+      ?: server.objectOrNull("TCPInfo")?.doubleOrNull("MinRTT")
   }
+
+  private fun connectionUuid(complete: JsonObject): String? =
+    complete.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("ConnectionInfo")
+      ?.stringOrNull("UUID")
 
   /**
    * Adds a new JSON item into an existing JSON array string.
@@ -364,11 +390,24 @@ object GigaUtil {
   }
 
   private fun tcpInfoLong(complete: JsonObject?, field: String): Long {
-    val server = complete?.getAsJsonObject("LastServerMeasurement") ?: return 0L
-    val tcp = server.getAsJsonObject("TCPInfo") ?: return 0L
-    val value = tcp.get(field) ?: return 0L
-    return if (value.isJsonNull) 0L else value.asLong
+    val value = complete?.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("TCPInfo")
+      ?.get(field)
+    return if (value != null && value.isJsonPrimitive && value.asJsonPrimitive.isNumber) value.asLong else 0L
   }
+
+  // Go-client JSON can omit a field or send it as null; these read either as null.
+  private fun JsonObject.objectOrNull(name: String): JsonObject? =
+    get(name)?.takeIf { it.isJsonObject }?.asJsonObject
+
+  private fun JsonObject.stringOrNull(name: String): String? =
+    get(name)?.takeIf { it.isJsonPrimitive }?.asString
+
+  private fun JsonObject.doubleOrNull(name: String): Double? =
+    get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble
+
+  private const val LOCATE_DOWNLOAD_URL_KEY = "wss:///ndt/v7/download"
+  private val SITE_PATTERN = Regex("[a-z]{3}[0-9]+")
 
   /**
    * Creates a historical measurement item object
