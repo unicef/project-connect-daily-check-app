@@ -20,6 +20,7 @@ object Constants {
   const val FIRST_15_MIN = "FIRST_15_MIN"
   const val NEXT_SLOT = "NEXT_SLOT"
   const val SCHEDULE_TYPE = "SCHEDULE_TYPE"
+  const val SLOT_END_TIME = "SLOT_END_TIME"
   const val KEY_BROWSER_ID = "BROWSER_ID"
   const val KEY_IP_ADDRESS = "IP_ADDRESS"
   const val KEY_BASE_URL = "BASE_URL"
@@ -27,6 +28,8 @@ object Constants {
   const val KEY_MLAB_UPLOAD_KEY = "MLAB_UPLOAD_KEY"
   const val KEY_OLD_SPEEDTEST_DATA = "KEY_OLD_SPEEDTEST_DATA"
   const val KEY_IS_TEST_RUNNING = "KEY_IS_TEST_RUNNING"
+  const val KEY_TEST_STARTED_AT = "KEY_TEST_STARTED_AT"
+  const val KEY_STOPPED_TEST_WORK_ID = "KEY_STOPPED_TEST_WORK_ID"
   const val KEY_COUNTRY_CODE = "COUNTRY_CODE"
   const val KEY_SCHOOL_ID = "SCHOOL_ID"
   const val KEY_DEVICE_HARDWARE_ID = "DEVICE_HARDWARE_ID"
@@ -57,6 +60,14 @@ object Constants {
   const val REQ_NOTIF_PERMISSION: Int = 102
   const val REQ_STORAGE_PERMISSION: Int = 103
   const val APP_UPGRADE_NOTIFICATION_ID = 104
+
+  // Speed test run limits
+  const val TEST_RUNNING_STALE_MS = 5 * 60 * 1000L
+
+  // Retries for daily and startup tests, within their 4-hour slot
+  const val SLOT_DURATION_MS = 4 * 60 * 60 * 1000L
+  const val BACKGROUND_RETRY_DELAY_MIN = 15L
+  const val MAX_BACKGROUND_RETRIES = 3
 
 
   // Date Format
