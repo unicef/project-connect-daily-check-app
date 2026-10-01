@@ -5,7 +5,6 @@ import com.meter.giga.network.api.ApiService
 import com.meter.giga.utils.Constants.CLIENT_INFO_END_URL
 import com.meter.giga.utils.Constants.CLIENT_INFO_FALLBACK_END_URL
 import com.meter.giga.utils.Constants.CLIENT_LITE_INFO_END_URL
-import com.meter.giga.utils.Constants.SERVER_INFO_END_URL
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
@@ -74,15 +73,6 @@ object RetrofitInstanceBuilder {
       .baseUrl(baseUrl)
       .addConverterFactory(GsonConverterFactory.create(gson))
       .build()
-      .create(ApiService::class.java)
-  }
-
-  /**
-   * Creates ApiService service instance to
-   * fetch the server info data
-   */
-  val serverInfoApi: ApiService by lazy {
-    createRetrofit(SERVER_INFO_END_URL)
       .create(ApiService::class.java)
   }
 }

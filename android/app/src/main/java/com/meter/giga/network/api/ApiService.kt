@@ -5,7 +5,6 @@ import com.meter.giga.data.models.responses.ClientInfoFallbackResponseModel
 import com.meter.giga.data.models.responses.ClientInfoLiteResponseModel
 import com.meter.giga.data.models.responses.ClientInfoMetaDataModel
 import com.meter.giga.data.models.responses.ClientInfoResponseModel
-import com.meter.giga.data.models.responses.ServerInfoResponseModel
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -73,29 +72,4 @@ interface ApiService {
     @Header("Authorization") authorization: String,
     @Path(value = "ip", encoded = true) ip: String
   ): Response<ClientInfoMetaDataModel>
-
-  /**
-   * getServerInfoNoPolicy to fetch the server details
-   * @param format
-   * @return Instance of Response as ServerInfoResponseModel if Success or error
-   */
-  @GET("ndt")
-  suspend fun getServerInfoNoPolicy(
-    @Query("format") format: String = "json",
-  ): Response<ServerInfoResponseModel>
-
-
-  /**
-   * getServerMetroInfo to fetch the server details if metro details available
-   * @param format
-   * @param policy : metro type policy
-   * @param metro : Selected metro
-   * @return Instance of Response as ServerInfoResponseModel if Success or error
-   */
-  @GET("ndt")
-  suspend fun getServerMetroInfo(
-    @Query("format") format: String = "json",
-    @Query("policy") policy: String = "metro",
-    @Query("metro") metro: String
-  ): Response<ServerInfoResponseModel>
 }

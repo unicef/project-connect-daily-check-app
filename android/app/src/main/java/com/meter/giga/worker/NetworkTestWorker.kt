@@ -18,14 +18,13 @@ import androidx.work.WorkerParameters
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.meter.giga.domain.entity.history.Geo
 import com.meter.giga.domain.entity.history.GeoLocation
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
-import com.meter.giga.domain.entity.request.ServerInfoRequestEntity
 import com.meter.giga.domain.entity.response.ClientInfoResponseEntity
-import com.meter.giga.domain.entity.response.ServerInfoResponseEntity
 import com.meter.giga.domain.usecases.GetClientInfoUseCase
-import com.meter.giga.domain.usecases.GetServerInfoUseCase
 import com.meter.giga.domain.usecases.PostSpeedTestUseCase
 import com.meter.giga.ionic_plugin.GigaAppPlugin
 import com.meter.giga.network.util.NetworkCheckerImpl
@@ -51,26 +50,26 @@ import io.sentry.Sentry
 import io.sentry.SentryLevel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
-import net.measurementlab.ndt7.android.NDTTest
-import net.measurementlab.ndt7.android.ServerDiscoveryHelper
-import net.measurementlab.ndt7.android.models.ClientResponse
-import net.measurementlab.ndt7.android.models.Measurement
-import net.measurementlab.ndt7.android.utils.DataConverter
-import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
+import kotlinx.coroutines.withTimeoutOrNull
+import ndt7client.Callbacks
+import ndt7client.Ndt7client
+import java.util.Collections
 import java.util.Locale
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicReference
+import kotlin.concurrent.thread
 
 /**
  * WorkManager-based replacement for NetworkTestService.
  *
  * Executes scheduled/manual speed tests as a foreground worker:
  * - Shows foreground notification
- * - Runs NDT7 download/upload test
- * - Collects client/server info
+ * - Runs ndt7 download/upload via the Go client
+ * - Collects client info
  * - Uploads result to backend
  * - Persists offline history
  * - Notifies Capacitor/Ionic UI
@@ -86,8 +85,8 @@ class NetworkTestWorker(
   private lateinit var fusedLocationClient: FusedLocationProviderClient
   private var currentLocation: Location? = null
   val notificationHelper = NotificationHelper(context)
+
   override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-    // Initialize location client
     fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
     getLocation()
 
@@ -140,58 +139,78 @@ class NetworkTestWorker(
     }
 
     prefs.isTestRunning = true
-    var activeClient: NDTTestImpl? = null
+    var activeCallbacks: GoClientCallbacks? = null
 
     try {
       val appVersion = GigaUtil.getAppVersionName(context)
       val deviceInfo = GigaUtil.getDeviceInfo(context)
       val isRunningOnChromebook = GigaUtil.isRunningOnChromebook(context)
 
-      val testClient = NDTTestImpl(
-        createHttpClient(),
-        scheduleType,
-        appVersion,
-        isRunningOnChromebook,
-        prefs,
-        deviceInfo
-      ).also { activeClient = it }
-
       GigaAppPlugin.sendSpeedTestStarted()
 
-      testClient.setServerDiscoveryHelper(object : ServerDiscoveryHelper {
-        override fun onServerDiscovery() {
-          AppLogger.d("GIGA NetworkTestWorker", "Server Discovery in progress")
-          GigaAppPlugin.sendServerDiscoveryStarted()
-        }
-
-        override fun onServerChosen() {
-          AppLogger.d("GIGA NetworkTestWorker", "Server Discovered")
-          GigaAppPlugin.sendServerDiscoveryCompleted()
-        }
-      })
-
-      testClient.startTest(NDTTest.TestType.DOWNLOAD_AND_UPLOAD)
-
-      // The test runs in callbacks; publishSpeedTestData() clears isTestRunning when done.
-      waitWhileTestRunning(2 * 60 * 1000L)
-
-      if (testClient.serverLookupFailed) {
-        val willRetry = isBackground && canRetryInSlot()
-        AppLogger.d("GIGA NetworkTestWorker", "Server lookup failed, retry: $willRetry")
-        return@withContext if (willRetry) Result.retry() else Result.failure()
+      val callbacks = GoClientCallbacks().also { activeCallbacks = it }
+      // Ndt7client.run blocks until the test ends. Running it on its own thread
+      // keeps this coroutine free to time out or be cancelled.
+      thread(name = "ndt7-go-client", isDaemon = true) {
+        Ndt7client.run(appVersion, callbacks)
       }
 
-      if (prefs.isTestRunning) {
+      val finished = withTimeoutOrNull(TEST_TIMEOUT_MS) {
+        while (callbacks.done.count > 0) {
+          delay(250)
+        }
+        true
+      } ?: false
+      if (!finished) {
+        callbacks.stop()
+        Ndt7client.cancel()
         prefs.isTestRunning = false
         Sentry.captureMessage("Speed test timed out", SentryLevel.ERROR) { scope ->
           applyConnectionContext(scope)
         }
+        updateNotification("Speed test timed out, please try again.")
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+        return@withContext Result.failure()
       }
+
+      if (callbacks.serverLookupFailed.get()) {
+        val willRetry = isBackground && canRetryInSlot()
+        AppLogger.d("GIGA NetworkTestWorker", "Server lookup failed, retry: $willRetry")
+        prefs.isTestRunning = false
+        updateNotification("Could not reach the speed test server, please try again.")
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+        return@withContext if (willRetry) Result.retry() else Result.failure()
+      }
+
+      val downloadCompleteJson = callbacks.downloadComplete.get()
+      val uploadCompleteJson = callbacks.uploadComplete.get()
+      if (callbacks.error.get() != null ||
+        downloadCompleteJson == null ||
+        uploadCompleteJson == null
+      ) {
+        prefs.isTestRunning = false
+        updateNotification("Speed test measurements not available, please try again.")
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+        return@withContext Result.failure()
+      }
+
+      publishAndUpload(
+        scheduleType = scheduleType,
+        appVersion = appVersion,
+        isRunningOnChromebook = isRunningOnChromebook,
+        deviceInfo = deviceInfo,
+        downloadCompleteJson = downloadCompleteJson,
+        uploadCompleteJson = uploadCompleteJson,
+        serverChosenJson = callbacks.serverChosen.get(),
+        s2cRate = ArrayList(callbacks.s2cRate),
+        c2sRate = ArrayList(callbacks.c2sRate)
+      )
 
       Result.success()
     } catch (e: CancellationException) {
       // WorkManager stopped the worker. It ignores the result and re-runs the work later.
-      activeClient?.stopTest()
+      activeCallbacks?.stop()
+      Ndt7client.cancel()
       prefs.isTestRunning = false
       val reason = stopReasonName(stopReason)
       AppLogger.d("GIGA NetworkTestWorker", "Speed test stopped by the system: $reason")
@@ -206,6 +225,8 @@ class NetworkTestWorker(
       }
       throw e
     } catch (e: Exception) {
+      activeCallbacks?.stop()
+      Ndt7client.cancel()
       prefs.isTestRunning = false
       Sentry.captureException(e)
       GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
@@ -302,13 +323,6 @@ class NetworkTestWorker(
     else -> "other_$reason"
   }
 
-  private suspend fun waitWhileTestRunning(timeoutMs: Long) {
-    val start = System.currentTimeMillis()
-    while (prefs.isTestRunning && (System.currentTimeMillis() - start) < timeoutMs) {
-      delay(500)
-    }
-  }
-
   override suspend fun getForegroundInfo(): ForegroundInfo {
     val notification = notificationHelper.createNotification("Starting speed test...")
     return ForegroundInfo(NOTIFICATION_ID, notification)
@@ -336,349 +350,81 @@ class NetworkTestWorker(
       }
   }
 
-//  private fun createNotification(content: String): Notification {
-//
-//
-//    val intent = android.content.Intent(context, MainActivity::class.java).apply {
-//      flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-//        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-//    }
-//
-//    val pendingIntent = PendingIntent.getActivity(
-//      context,
-//      0,
-//      intent,
-//      PendingIntent.FLAG_UPDATE_CURRENT or
-//        PendingIntent.FLAG_IMMUTABLE
-//    )
-//
-//    val largeBitmap = android.graphics.BitmapFactory.decodeResource(
-//      context.resources,
-//      R.mipmap.ic_launcher_round
-//    )
-//
-//    return NotificationCompat.Builder(context, SPEED_TEST_CHANNEL_ID)
-//      .setContentTitle(context.getString(R.string.notification_header))
-//      .setContentText(content)
-//      .setSmallIcon(R.mipmap.ic_launcher_round)
-//      .setLargeIcon(largeBitmap)
-//      .setOngoing(true)
-//      .setOnlyAlertOnce(true)
-//      .setPriority(NotificationCompat.PRIORITY_HIGH)
-//      .setContentIntent(pendingIntent)
-//      .build()
-//  }
+  private suspend fun publishAndUpload(
+    scheduleType: String,
+    appVersion: String,
+    isRunningOnChromebook: Boolean,
+    deviceInfo: DeviceInfo,
+    downloadCompleteJson: String,
+    uploadCompleteJson: String,
+    serverChosenJson: String?,
+    s2cRate: ArrayList<Double>,
+    c2sRate: ArrayList<Double>,
+  ) {
+    AppLogger.d("GIGA NetworkTestWorker", "publishSpeedTestData invoked")
+    try {
+      val clientInfoState = runCatching {
+        GetClientInfoUseCase().invoke(prefs.ipInfoToken, prefs.mlabUploadKey, prefs.baseUrl)
+      }.getOrNull()
 
-  private fun createHttpClient(
-    connectTimeout: Long = 12,
-    readTimeout: Long = 12,
-    writeTimeout: Long = 12
-  ): OkHttpClient {
-    val interceptor = HttpLoggingInterceptor()
-    interceptor.level = HttpLoggingInterceptor.Level.NONE
-    return OkHttpClient.Builder()
-      .connectTimeout(connectTimeout, TimeUnit.SECONDS)
-      .readTimeout(readTimeout, TimeUnit.SECONDS)
-      .writeTimeout(writeTimeout, TimeUnit.SECONDS)
-      .addInterceptor(interceptor)
-      .build()
-  }
+      var clientInfoResponse: ClientInfoResponseEntity? = null
+      var clientInfoRequest: ClientInfoRequestEntity? = null
 
-  /**
-   * Inner NDTTest implementation, same logic as in NetworkTestService,
-   * but adapted to Worker (no LifecycleService, no lifecycleScope).
-   */
-  inner class NDTTestImpl(
-    okHttpClient: OkHttpClient?,
-    private val scheduleType: String,
-    private val appVersion: String,
-    private val isRunningOnChromebook: Boolean,
-    private val prefs: AlarmSharedPref,
-    private val deviceInfo: DeviceInfo,
-  ) : NDTTest(okHttpClient) {
-
-    var downloadSpeed = 0.0
-    var uploadSpeed = 0.0
-    var lastDownloadMeasurement: Measurement? = null
-    var lastUploadMeasurement: Measurement? = null
-    var lastDownloadResponse: ClientResponse? = null
-    var lastUploadResponse: ClientResponse? = null
-    var allDoneInvoked = 0
-
-    @Volatile
-    var serverLookupFailed = false
-
-    private val schoolId = prefs.schoolId
-    private val deviceHardwareId = prefs.deviceHardwareId
-    private val gigaSchoolId = prefs.gigaSchoolId
-    private val browserId = prefs.browserId
-    private val ipAddress = prefs.ipAddress
-    private val countryCode = prefs.countryCode
-    private val baseUrl = prefs.baseUrl
-    private val uploadKey = prefs.mlabUploadKey
-    private val ipInfoToken = prefs.ipInfoToken
-
-    private val s2cRate = arrayListOf<Double>()
-    private val c2sRate = arrayListOf<Double>()
-
-    override fun onMeasurementDownloadProgress(measurement: Measurement) {
-      super.onMeasurementDownloadProgress(measurement)
-      AppLogger.d("GIGA NetworkTestWorker", "Download progress: $measurement")
-      lastDownloadMeasurement = measurement
-    }
-
-    override fun onMeasurementUploadProgress(measurement: Measurement) {
-      super.onMeasurementUploadProgress(measurement)
-      AppLogger.d("GIGA NetworkTestWorker", "Upload progress: $measurement")
-      lastUploadMeasurement = measurement
-    }
-
-    override fun onDownloadProgress(clientResponse: ClientResponse) {
-      super.onDownloadProgress(clientResponse)
-      val speed = DataConverter.convertToMbps(clientResponse)
-      downloadSpeed = speed.toDouble()
-
-      val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, downloadSpeed, uploadSpeed)
-      lastDownloadResponse = clientResponse
-
-      updateNotification(msg)
-      GigaAppPlugin.sendSpeedUpdate(downloadSpeed, uploadSpeed, "download")
-
-      var meanDownloadClientMbps: Double? = null
-      clientResponse.appInfo.let {
-        meanDownloadClientMbps = if (it.elapsedTime == 0L) {
-          0.0
-        } else {
-          val value = (it.numBytes / (it.elapsedTime / 1000)) * 0.008
-          if (value.isInfinite()) {
-            AppLogger.d("GIGA", "Got infinite value in download")
-            0.0
-          } else {
-            value
+      when (clientInfoState) {
+        is ResultState.Success<*> -> {
+          clientInfoResponse = clientInfoState.data as ClientInfoResponseEntity
+          val location = clientInfoResponse.loc?.split(",")
+          var latitude = 0.0
+          var longitude = 0.0
+          if (location?.isNotEmpty() == true && location.size > 1) {
+            latitude = location[0].toDouble()
+            longitude = location[1].toDouble()
           }
-        }
-      }
-      meanDownloadClientMbps?.let { s2cRate.add(it) }
-    }
-
-    override fun onUploadProgress(clientResponse: ClientResponse) {
-      super.onUploadProgress(clientResponse)
-      val speed = DataConverter.convertToMbps(clientResponse)
-      uploadSpeed = speed.toDouble()
-
-      val msg = "DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, downloadSpeed, uploadSpeed)
-      lastUploadResponse = clientResponse
-
-      updateNotification(msg)
-      GigaAppPlugin.sendSpeedUpdate(downloadSpeed, uploadSpeed, "upload")
-
-      var meanUploadClientMbps: Double? = null
-      clientResponse.appInfo.let {
-        meanUploadClientMbps = if (it.elapsedTime == 0L) {
-          0.0
-        } else {
-          val value = (it.numBytes / (it.elapsedTime / 1000)) * 0.008
-          if (value.isInfinite()) {
-            AppLogger.d("GIGA", "Got infinite value in upload")
-            0.0
-          } else {
-            value
-          }
-        }
-      }
-      meanUploadClientMbps?.let { c2sRate.add(it) }
-    }
-
-    override fun onFinished(
-      clientResponse: ClientResponse?,
-      error: Throwable?,
-      testType: TestType
-    ) {
-      super.onFinished(clientResponse, error, testType)
-
-      if (error != null && error.message != null) {
-        Sentry.captureMessage("$testType Failed Message: ${error.message}", SentryLevel.ERROR) { scope ->
-          applyConnectionContext(scope)
-          scope.setTag("test_type", testType.name)
-        }
-      }
-
-      // Only the server lookup reports the combined type, and it reports once,
-      // so the download and upload count below would never reach 2.
-      if (testType == TestType.DOWNLOAD_AND_UPLOAD && error != null) {
-        serverLookupFailed = true
-        updateNotification("Could not reach the speed test server, please try again.")
-        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
-        prefs.isTestRunning = false
-        return
-      }
-
-      try {
-        val speed = clientResponse?.let { DataConverter.convertToMbps(it) }
-        AppLogger.d("GIGA NetworkTestWorker", "ALL DONE: $speed")
-        allDoneInvoked++
-        AppLogger.d("GIGA NetworkTestWorker", "ALL DONE count: $allDoneInvoked")
-
-        if (allDoneInvoked == 2) {
-          publishSpeedTestData()
-          // isTestRunning will be set to false inside uploadSpeedTestData paths
-        }
-      } catch (e: Exception) {
-        Sentry.captureException(e)
-        updateNotification("Speed test measurements not available, please try again.")
-        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
-        prefs.isTestRunning = false
-      }
-    }
-
-    private fun publishSpeedTestData(
-    ) {
-      AppLogger.d("GIGA NetworkTestWorker", "publishSpeedTestData invoked")
-
-      kotlinx.coroutines.runBlocking {
-        try {
-          val getClientInfoUseCase = GetClientInfoUseCase()
-          val clientInfoState = async {
-            runCatching {
-              getClientInfoUseCase.invoke(ipInfoToken, uploadKey, baseUrl)
-            }.getOrNull()
-          }
-
-          val getServerInfoUseCase = GetServerInfoUseCase()
-          val serverInfoState = async {
-            runCatching { getServerInfoUseCase.invoke(null) }.getOrNull()
-          }
-
-          val clientInfo = clientInfoState.await()
-          val serverInfo = serverInfoState.await()
-
-          var clientInfoResponse: ClientInfoResponseEntity? = null
-          var serverInfoResponse: ServerInfoResponseEntity? = null
-          var clientInfoRequest: ClientInfoRequestEntity? = null
-          var serverInfoRequest: ServerInfoRequestEntity? = null
-
-          if (clientInfo != null) {
-            when (clientInfo) {
-              is ResultState.Success<*> -> {
-                clientInfoResponse = clientInfo.data as ClientInfoResponseEntity
-                val location = clientInfoResponse.loc?.split(",")
-                var latitude = 0.0
-                var longitude = 0.0
-
-                if (location?.isNotEmpty() == true && location.size > 1) {
-                  latitude = location[0].toDouble()
-                  longitude = location[1].toDouble()
-                }
-
-                clientInfoRequest = ClientInfoRequestEntity(
-                  asn = clientInfoResponse.asn,
-                  city = clientInfoResponse.city,
-                  country = clientInfoResponse.country,
-                  hostname = clientInfoResponse.ip,
-                  ip = clientInfoResponse.ip,
-                  isp = clientInfoResponse.isp,
-                  latitude = latitude,
-                  longitude = longitude,
-                  postal = clientInfoResponse.postal,
-                  region = clientInfoResponse.region,
-                  timezone = clientInfoResponse.timezone
-                )
-              }
-
-              is ResultState.Failure -> {
-                AppLogger.d(
-                  "GIGA NetworkTestWorker",
-                  "Get Client Info API Failed: ${clientInfo.error}"
-                )
-              }
-
-              ResultState.Loading -> {}
-            }
-          }
-
-          if (serverInfo != null) {
-            when (serverInfo) {
-              is ResultState.Success<*> -> {
-                serverInfoResponse = serverInfo.data as ServerInfoResponseEntity
-                serverInfoRequest = ServerInfoRequestEntity(
-                  city = serverInfoResponse.city?.replace('_', ' ') ?: "",
-                  country = serverInfoResponse.country,
-                  fQDN = serverInfoResponse.fqdn,
-                  iPv4 = serverInfoResponse.ipv4,
-                  iPv6 = serverInfoResponse.ipv6,
-                  label = serverInfoResponse.label,
-                  metro = serverInfoResponse.metro,
-                  site = serverInfoResponse.site,
-                  uRL = serverInfoResponse.url
-                )
-              }
-
-              is ResultState.Failure -> {
-                AppLogger.d(
-                  "GIGA NetworkTestWorker",
-                  "Get Server Info API Failed: ${serverInfo.error}"
-                )
-              }
-
-              ResultState.Loading -> {}
-            }
-          }
-
-          uploadSpeedTestData(
-            clientInfoRequest,
-            serverInfoRequest,
-            clientInfoResponse,
-            serverInfoResponse
+          clientInfoRequest = ClientInfoRequestEntity(
+            asn = clientInfoResponse.asn,
+            city = clientInfoResponse.city,
+            country = clientInfoResponse.country,
+            hostname = clientInfoResponse.ip,
+            ip = clientInfoResponse.ip,
+            isp = clientInfoResponse.isp,
+            latitude = latitude,
+            longitude = longitude,
+            postal = clientInfoResponse.postal,
+            region = clientInfoResponse.region,
+            timezone = clientInfoResponse.timezone
           )
-        } catch (e: Exception) {
-          Sentry.captureException(e)
-          updateNotification("Speed test measurements not available, please try again.")
-          GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
-          prefs.isTestRunning = false
         }
-      }
-    }
 
-    private suspend fun uploadSpeedTestData(
-      clientInfoRequest: ClientInfoRequestEntity?,
-      serverInfoRequest: ServerInfoRequestEntity?,
-      clientInfoResponse: ClientInfoResponseEntity?,
-      serverInfoResponse: ServerInfoResponseEntity?
-    ) {
-      if (lastUploadMeasurement == null ||
-        lastDownloadMeasurement == null ||
-        lastUploadResponse == null ||
-        lastDownloadResponse == null
-      ) {
-        Sentry.captureMessage(
-          "Speed Test Failed with Download Measurements: $lastDownloadMeasurement " +
-            "and Upload Measurements: $lastUploadMeasurement",
-          SentryLevel.ERROR
-        ) { scope ->
-          applyConnectionContext(scope)
+        is ResultState.Failure -> {
+          AppLogger.d(
+            "GIGA NetworkTestWorker",
+            "Get Client Info API Failed: ${clientInfoState.error}"
+          )
         }
-        updateNotification("Speed test measurements not available, please try again.")
-        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
-        prefs.isTestRunning = false
-        return
+
+        else -> {}
       }
+
+      val downloadComplete: JsonObject =
+        JsonParser.parseString(downloadCompleteJson).asJsonObject
+      val uploadComplete: JsonObject =
+        JsonParser.parseString(uploadCompleteJson).asJsonObject
+      val serverInfo = GigaUtil.serverInfoFromLocate(serverChosenJson)
 
       val speedTestResultRequestEntity = GigaUtil.createSpeedTestPayload(
-        lastUploadMeasurement,
-        lastDownloadMeasurement,
-        clientInfoRequest,
-        serverInfoRequest,
-        schoolId,
-        gigaSchoolId,
-        appVersion,
-        scheduleType,
-        if (isRunningOnChromebook) DEVICE_TYPE_CHROMEBOOK else DEVICE_TYPE_ANDROID,
-        browserId,
-        countryCode,
-        ipAddress,
-        lastDownloadResponse,
-        lastUploadResponse,
-        deviceHardwareId,
+        downloadCompleteJson = downloadCompleteJson,
+        uploadCompleteJson = uploadCompleteJson,
+        serverChosenJson = serverChosenJson,
+        clientInfoRequestEntity = clientInfoRequest,
+        schoolId = prefs.schoolId,
+        gigaSchoolId = prefs.gigaSchoolId,
+        appVersion = appVersion,
+        scheduleType = scheduleType,
+        deviceType = if (isRunningOnChromebook) DEVICE_TYPE_CHROMEBOOK else DEVICE_TYPE_ANDROID,
+        browserId = prefs.browserId,
+        countryCode = prefs.countryCode,
+        ipAddress = prefs.ipAddress,
+        deviceHardwareId = prefs.deviceHardwareId,
         geo = if (currentLocation != null) {
           Geo(
             geoLocation = GeoLocation(
@@ -689,26 +435,25 @@ class NetworkTestWorker(
             timestamp = currentLocation!!.time
           )
         } else null,
-        deviceInfo
+        deviceInfo = deviceInfo
       )
 
       val existingSpeedTestData = prefs.oldSpeedTestData
       val historyDataIndex = prefs.historyDataIndex
-      val deviceId = prefs.deviceHardwareId
 
       val measurementsItem = GigaUtil.getMeasurementItem(
         clientInfoResponse = clientInfoResponse,
-        c2sLastServerManagement = lastUploadMeasurement,
-        s2cLastServerManagement = lastDownloadMeasurement,
-        serverInfoResponse = serverInfoResponse,
+        downloadComplete = downloadComplete,
+        uploadComplete = uploadComplete,
+        serverInfo = serverInfo,
         scheduleType = scheduleType,
         results = speedTestResultRequestEntity?.results,
         c2sRate = c2sRate,
         s2cRate = s2cRate,
-        historyDataIndex,
-        currentLocation,
-        deviceId,
-        deviceInfo
+        historyDataIndex = historyDataIndex,
+        currentLocation = currentLocation,
+        deviceHardwareId = prefs.deviceHardwareId,
+        deviceInfo = deviceInfo
       )
 
       prefs.historyDataIndex = historyDataIndex + 1
@@ -717,8 +462,11 @@ class NetworkTestWorker(
 
       if (speedTestResultRequestEntity != null) {
         try {
-          val postSpeedTestResultState =
-            postSpeedTestUseCase.invoke(speedTestResultRequestEntity, uploadKey, baseUrl)
+          val postSpeedTestResultState = postSpeedTestUseCase.invoke(
+            speedTestResultRequestEntity,
+            prefs.mlabUploadKey,
+            prefs.baseUrl
+          )
 
           when (postSpeedTestResultState) {
             is ResultState.Failure -> {
@@ -728,13 +476,10 @@ class NetworkTestWorker(
               )
               measurementsItem.uploaded = false
               measurementsItem.synced = false
-
-              val updateSpeedTestData = GigaUtil.addJsonItem(
+              prefs.oldSpeedTestData = GigaUtil.addJsonItem(
                 existingSpeedTestData,
                 Gson().toJson(measurementsItem)
               )
-              prefs.oldSpeedTestData = updateSpeedTestData
-
               Sentry.captureMessage("Failed to sync speed test data", SentryLevel.ERROR)
               updateNotification("Failed to sync speed test data.")
               GigaAppPlugin.sendSpeedTestCompletedWithError(
@@ -752,13 +497,10 @@ class NetworkTestWorker(
               )
               measurementsItem.uploaded = true
               measurementsItem.synced = true
-
-              val updateSpeedTestData = GigaUtil.addJsonItem(
+              prefs.oldSpeedTestData = GigaUtil.addJsonItem(
                 existingSpeedTestData,
                 Gson().toJson(measurementsItem)
               )
-              prefs.oldSpeedTestData = updateSpeedTestData
-
               GigaAppPlugin.sendSpeedTestCompleted(
                 speedTestResultRequestEntity,
                 measurementsItem
@@ -769,12 +511,10 @@ class NetworkTestWorker(
         } catch (e: Exception) {
           measurementsItem.uploaded = false
           measurementsItem.synced = false
-          val updateSpeedTestData = GigaUtil.addJsonItem(
+          prefs.oldSpeedTestData = GigaUtil.addJsonItem(
             existingSpeedTestData,
             Gson().toJson(measurementsItem)
           )
-          prefs.oldSpeedTestData = updateSpeedTestData
-
           GigaAppPlugin.sendSpeedTestCompletedWithError(
             speedTestResultRequestEntity,
             measurementsItem
@@ -785,12 +525,10 @@ class NetworkTestWorker(
       } else {
         measurementsItem.uploaded = false
         measurementsItem.synced = false
-        val updateSpeedTestData = GigaUtil.addJsonItem(
+        prefs.oldSpeedTestData = GigaUtil.addJsonItem(
           existingSpeedTestData,
           Gson().toJson(measurementsItem)
         )
-        prefs.oldSpeedTestData = updateSpeedTestData
-
         GigaAppPlugin.sendSpeedTestCompletedWithError(
           speedTestResultRequestEntity,
           measurementsItem
@@ -805,13 +543,118 @@ class NetworkTestWorker(
       prefs.isTestRunning = false
       delay(5000)
       AppLogger.d("GIGA NetworkTestWorker", "Speed Test Completed")
+    } catch (e: Exception) {
+      Sentry.captureException(e)
+      updateNotification("Speed test measurements not available, please try again.")
+      GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+      prefs.isTestRunning = false
+    }
+  }
+
+  private fun updateNotification(content: String) {
+    notificationHelper.showOrUpdateNotification(content)
+  }
+
+  /**
+   * Receives the Go client's events and holds the results for the worker.
+   *
+   * Callbacks run on a Go thread, outside the worker's try/catch, and an
+   * exception thrown back into Go crashes the process, so each one is guarded.
+   * After [stop], late events from a test that is shutting down are ignored.
+   */
+  private inner class GoClientCallbacks : Callbacks {
+    val done = CountDownLatch(1)
+    val downloadComplete = AtomicReference<String>()
+    val uploadComplete = AtomicReference<String>()
+    val serverChosen = AtomicReference<String>()
+    val error = AtomicReference<String>()
+    val serverLookupFailed = AtomicBoolean(false)
+    val s2cRate: MutableList<Double> = Collections.synchronizedList(ArrayList())
+    val c2sRate: MutableList<Double> = Collections.synchronizedList(ArrayList())
+
+    @Volatile
+    private var downloadSpeed = 0.0
+
+    @Volatile
+    private var uploadSpeed = 0.0
+
+    private val stopped = AtomicBoolean(false)
+
+    fun stop() = stopped.set(true)
+
+    override fun onServerDiscovery() = guard("onServerDiscovery") {
+      AppLogger.d("GIGA NetworkTestWorker", "Server Discovery in progress")
+      GigaAppPlugin.sendServerDiscoveryStarted()
     }
 
-    private fun updateNotification(content: String) {
-//      val manager = context.getSystemService(Context.NOTIFICATION_SERVICE)
-//        as NotificationManager
-//      manager.notify(NOTIFICATION_ID, createNotification(content))
-      notificationHelper.showOrUpdateNotification(content)
+    override fun onServerChosen(serverJSON: String) = guard("onServerChosen") {
+      serverChosen.set(serverJSON)
+      // The target's URLs carry an access token, so log only the server name.
+      AppLogger.d(
+        "GIGA NetworkTestWorker",
+        "Server Discovered: ${GigaUtil.serverInfoFromLocate(serverJSON)?.fQDN}"
+      )
+      GigaAppPlugin.sendServerDiscoveryCompleted()
     }
+
+    override fun onDownloadProgress(clientJSON: String) = guard("onDownloadProgress") {
+      downloadSpeed = GigaUtil.progressMbps(clientJSON) ?: downloadSpeed
+      s2cRate.add(downloadSpeed)
+      showProgress("download")
+    }
+
+    override fun onUploadProgress(clientJSON: String) = guard("onUploadProgress") {
+      uploadSpeed = GigaUtil.progressMbps(clientJSON) ?: uploadSpeed
+      c2sRate.add(uploadSpeed)
+      showProgress("upload")
+    }
+
+    override fun onDownloadComplete(summaryJSON: String) = guard("onDownloadComplete") {
+      AppLogger.d("GIGA NetworkTestWorker", "Download complete")
+      downloadComplete.set(summaryJSON)
+    }
+
+    override fun onUploadComplete(summaryJSON: String) {
+      uploadComplete.set(summaryJSON)
+      done.countDown()
+      guard("onUploadComplete") {
+        AppLogger.d("GIGA NetworkTestWorker", "Upload complete")
+      }
+    }
+
+    override fun onError(direction: String, message: String) {
+      error.set("$direction: $message")
+      if (direction == "locate") serverLookupFailed.set(true)
+      done.countDown()
+      guard("onError") {
+        AppLogger.d("GIGA NetworkTestWorker", "ndt7 error $direction: $message")
+        Sentry.captureMessage("ndt7 $direction failed: $message", SentryLevel.ERROR) { scope ->
+          applyConnectionContext(scope)
+          scope.setTag("test_type", direction)
+        }
+      }
+    }
+
+    private fun showProgress(testType: String) {
+      val download = downloadSpeed
+      val upload = uploadSpeed
+      updateNotification("DL: %.2f Mbps | UL: %.2f Mbps".format(Locale.US, download, upload))
+      GigaAppPlugin.sendSpeedUpdate(download, upload, testType)
+    }
+
+    private inline fun guard(callback: String, block: () -> Unit) {
+      if (stopped.get()) return
+      try {
+        block()
+      } catch (e: Exception) {
+        AppLogger.d("GIGA NetworkTestWorker", "$callback failed: ${e.message}")
+        Sentry.captureException(e)
+      }
+    }
+  }
+
+  private companion object {
+    // Backstop for the Go client's own 2-minute limit on the whole test.
+    const val TEST_TIMEOUT_MS = 150_000L
   }
 }

@@ -7,7 +7,6 @@ import com.meter.giga.data.models.requests.LastClientMeasurementRequestModel
 import com.meter.giga.data.models.requests.LastServerMeasurementRequestModel
 import com.meter.giga.data.models.requests.ResultsRequestModel
 import com.meter.giga.data.models.requests.ServerInfoRequestModel
-import com.meter.giga.data.models.requests.SpeedTestMeasurementRequestModel
 import com.meter.giga.data.models.requests.SpeedTestResultRequestModel
 import com.meter.giga.data.models.requests.TCPInfoRequestModel
 import com.meter.giga.data.models.responses.ClientInfoFallbackResponseModel
@@ -20,22 +19,16 @@ import com.meter.giga.domain.entity.request.LastClientMeasurementRequestEntity
 import com.meter.giga.domain.entity.request.LastServerMeasurementRequestEntity
 import com.meter.giga.domain.entity.request.ResultsRequestEntity
 import com.meter.giga.domain.entity.request.ServerInfoRequestEntity
-import com.meter.giga.domain.entity.request.SpeedTestMeasurementRequestEntity
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.domain.entity.request.TCPInfoRequestEntity
 import com.meter.giga.domain.entity.response.ClientInfoResponseEntity
 import com.meter.giga.domain.entity.response.ServerInfoResponseEntity
-import net.measurementlab.ndt7.android.models.BBRInfo
-import net.measurementlab.ndt7.android.models.ConnectionInfo
-import net.measurementlab.ndt7.android.models.Measurement
-import net.measurementlab.ndt7.android.models.TCPInfo
 
 /**
  * Collection of extension mapper functions used to convert:
  *
  * - API response models → domain entities
  * - Domain entities → request models
- * - NDT measurement models → application entities
  *
  * These helpers centralize transformation logic and keep the
  * application layers decoupled and maintainable.
@@ -174,19 +167,8 @@ fun ClientInfoRequestEntity.toModel(): ClientInfoRequestModel {
  */
 fun ResultsRequestEntity.toModel(): ResultsRequestModel {
   return ResultsRequestModel(
-    ndtResultS2C = ndtResultS2C?.toModel(),
-    ndtResultC2S = ndtResultC2S?.toModel()
-  )
-}
-
-/**
- * Converts [SpeedTestMeasurementRequestEntity] into
- * [SpeedTestMeasurementRequestModel].
- */
-fun SpeedTestMeasurementRequestEntity.toModel(): SpeedTestMeasurementRequestModel {
-  return SpeedTestMeasurementRequestModel(
-    lastClientMeasurement = lastClientMeasurement?.toModel(),
-    lastServerMeasurement = lastServerMeasurement?.toModel()
+    ndtResultS2C = ndtResultS2C,
+    ndtResultC2S = ndtResultC2S
   )
 }
 
@@ -199,106 +181,6 @@ fun LastClientMeasurementRequestEntity.toModel(): LastClientMeasurementRequestMo
     elapsedTime = elapsedTime,
     meanClientMbps = meanClientMbps,
     numBytes = numBytes
-  )
-}
-
-/**
- * Converts NDT [Measurement] into
- * [LastServerMeasurementRequestEntity].
- */
-fun Measurement.toEntity(): LastServerMeasurementRequestEntity {
-  return LastServerMeasurementRequestEntity(
-    bbrInfo = bbrInfo?.toEntity(),
-    connectionInfo = connectionInfo.toEntity(),
-    tcpInfo = tcpInfo?.toEntity()
-  )
-}
-
-
-/**
- * Converts [BBRInfo] into [BBRInfoRequestEntity].
- */
-fun BBRInfo.toEntity(): BBRInfoRequestEntity {
-  return BBRInfoRequestEntity(
-    bw = bw,
-    cwndGain = cwndGain,
-    elapsedTime = elapsedTime,
-    minRTT = minRtt,
-    pacingGain = pacingGain
-  )
-}
-
-/**
- * Converts [ConnectionInfo] into [ConnectionInfoRequestEntity].
- */
-fun ConnectionInfo.toEntity(): ConnectionInfoRequestEntity {
-  return ConnectionInfoRequestEntity(
-    client = client,
-    server = server,
-    uuid = uuid
-  )
-}
-
-/**
- * Converts [TCPInfo] into [TCPInfoRequestEntity].
- */
-fun TCPInfo.toEntity(): TCPInfoRequestEntity {
-  return TCPInfoRequestEntity(
-    ato = ato,
-    advMSS = advMss,
-    appLimited = appLimited,
-    backoff = backoff,
-    busyTime = busyTime,
-    bytesAcked = bytesAcked,
-    bytesReceived = bytesReceived,
-    bytesRetrans = bytesRetrans,
-    bytesSent = bytesSent,
-    caState = caState,
-    dSackDups = dSackDups,
-    dataSegsIn = dataSegsIn,
-    dataSegsOut = dataSegsOut,
-    delivered = delivered,
-    deliveredCE = deliveredCE,
-    deliveryRate = deliveryRate,
-    elapsedTime = elapsedTime,
-    fackets = fackets,
-    lastAckRecv = lastAckRecv,
-    lastAckSent = lastAckSent,
-    lastDataRecv = lastDataRecv,
-    lastDataSent = lastDataSent,
-    lost = lost,
-    maxPacingRate = maxPacingRate,
-    minRTT = minRtt,
-    notsentBytes = notSentBytes,
-    options = options,
-    pmtu = pmtu,
-    pacingRate = pacingRate,
-    probes = probes,
-    rto = rto,
-    rtt = rtt,
-    rttVar = rttVar,
-    rWndLimited = rWndLimited,
-    rcvMSS = rcvMss,
-    rcvOooPack = 0,
-    rcvRTT = rcvRtt,
-    rcvSpace = rcvSpace,
-    rcvSsThresh = rcvSsThresh,
-    reordSeen = reordSeen,
-    reordering = reordering,
-    retrans = retrans,
-    retransmits = retransmits,
-    sacked = sacked,
-    segsIn = segsIn,
-    segsOut = segsOut,
-    sndBufLimited = sndBufLimited,
-    sndCwnd = sndCwnd,
-    sndMSS = sndMss,
-    sndSsThresh = sndSsThresh,
-    sndWnd = sndCwnd,
-    state = state,
-    totalRetrans = totalRetrans,
-    unacked = unacked,
-    wScale = wScale
   )
 }
 
