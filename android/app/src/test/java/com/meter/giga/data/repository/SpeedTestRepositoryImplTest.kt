@@ -10,7 +10,6 @@ import com.meter.giga.data.models.responses.ClientInfoResponseModel
 import com.meter.giga.data.models.responses.CompanyResponseModel
 import com.meter.giga.data.models.responses.DomainsResponseModel
 import com.meter.giga.data.models.responses.PrivacyResponseModel
-import com.meter.giga.data.models.responses.ServerInfoResponseModel
 import com.meter.giga.data.repository.SpeedTestRepositoryImpl
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.error_handler.ErrorEntity
@@ -52,9 +51,6 @@ class SpeedTestRepositoryImplTest {
   lateinit var mockClientFallbackApi: ApiService
 
   @Mock
-  lateinit var mockServerApi: ApiService
-
-  @Mock
   lateinit var mockSpeedTestApi: ApiService
 
   @Mock
@@ -69,7 +65,6 @@ class SpeedTestRepositoryImplTest {
     whenever(mockProvider.clientInfoApi).thenReturn(mockClientApi)
     whenever(mockProvider.clientInfoLiteApi).thenReturn(mockClientLiteApi)
     whenever(mockProvider.clientInfoFallbackApi).thenReturn(mockClientFallbackApi)
-    whenever(mockProvider.serverInfoApi).thenReturn(mockServerApi)
     whenever(mockProvider.getSpeedTestApi(anyOrNull())).thenReturn(mockSpeedTestApi)
     whenever(logger.d(anyOrNull(), anyOrNull())).then { /* ignore */ }
     repo = SpeedTestRepositoryImpl(mockProvider, logger)
@@ -508,27 +503,6 @@ class SpeedTestRepositoryImplTest {
     val result = repo.getClientInfoLiteData("token", "key", "baseUrl")
 
     assertTrue(result is ResultState.Failure)
-  }
-
-  @Test
-  fun `getServerInfoData returns Success`() = runBlocking {
-
-    val apiModel = ServerInfoResponseModel(
-      ip = emptyList(),
-      site = "Delhi, India",
-      url = "",
-      city = "",
-      country = "",
-      fqdn = ""
-    )
-    val apiResponse = Response.success(apiModel)
-
-    whenever(mockServerApi.getServerInfoNoPolicy())
-      .thenReturn(apiResponse)
-
-    val result = repo.getServerInfoData(null)
-
-    assertTrue(result is ResultState.Success)
   }
 
   @Test

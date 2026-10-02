@@ -40,12 +40,6 @@ class RetrofitInstanceProviderImpl : RetrofitProvider {
   override val clientInfoFallbackApi = RetrofitInstanceBuilder.clintInfoFallbackApi
 
   /**
-   * Retrofit API instance used for retrieving
-   * server information data.
-   */
-  override val serverInfoApi = RetrofitInstanceBuilder.serverInfoApi
-
-  /**
    * Returns a Retrofit API instance configured
    * with the provided base URL.
    *

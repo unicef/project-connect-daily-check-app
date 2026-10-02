@@ -2,7 +2,7 @@ package com.meter.giga.utils
 
 import com.meter.giga.data.models.responses.*
 import com.meter.giga.domain.entity.request.*
-import net.measurementlab.ndt7.android.models.*
+import com.google.gson.JsonParser
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -176,89 +176,18 @@ class MappersTest {
       timestampLocal = "123456",
       source = "manual",
       deviceHardwareId = "testDeviceId",
-      geo = null
+      geo = null,
+      appBuildNumber = 1L,
+      deviceManufacturer = "m",
+      deviceModel = "model",
+      deviceName = "name",
+      osVersion = "35"
     )
 
     val model = entity.toModel()
     assertEquals("1.0", model.appVersion)
     assertEquals("manual", model.source)
     assertEquals(20.0, model.upload!!, 0.01)
-  }
-
-  @Test
-  fun `Measurement toEntity maps nested fields correctly`() {
-    val measurement = Measurement(
-      bbrInfo = BBRInfo(
-        bw = 10L,
-        cwndGain = 2L,
-        elapsedTime = 100L,
-        minRtt = 5L,
-        pacingGain = 3L
-      ),
-      connectionInfo = ConnectionInfo("client", "server", "uuid"),
-      tcpInfo = TCPInfo(
-        ato = 1,
-        advMss = 2,
-        appLimited = 3,
-        backoff = 4,
-        busyTime = 5,
-        bytesAcked = 6,
-        bytesReceived = 7,
-        bytesRetrans = 8,
-        bytesSent = 9,
-        caState = 10,
-        dSackDups = 11,
-        dataSegsIn = 12,
-        dataSegsOut = 13,
-        delivered = 14,
-        deliveredCE = 15,
-        deliveryRate = 16L,
-        elapsedTime = 17,
-        fackets = 18,
-        lastAckRecv = 19,
-        lastAckSent = 20,
-        lastDataRecv = 21,
-        lastDataSent = 22,
-        lost = 23,
-        maxPacingRate = 24L,
-        minRtt = 25L,
-        notSentBytes = 26,
-        options = 27,
-        pmtu = 28,
-        pacingRate = 29L,
-        probes = 30,
-        rto = 31L,
-        rtt = 32L,
-        rttVar = 33L,
-        rWndLimited = 34,
-        rcvMss = 35,
-        rcvRtt = 36L,
-        rcvSpace = 37,
-        rcvSsThresh = 38,
-        reordSeen = 39,
-        reordering = 40,
-        retrans = 41,
-        retransmits = 42,
-        sacked = 43,
-        segsIn = 44,
-        segsOut = 45,
-        sndBufLimited = 46,
-        sndCwnd = 47,
-        sndMss = 48,
-        sndSsThresh = 49,
-        state = 50,
-        totalRetrans = 51,
-        unacked = 52,
-        wScale = 53
-      )
-    )
-
-    val entity = measurement.toEntity()
-
-    assertEquals(10L, entity.bbrInfo!!.bw)
-    assertEquals("client", entity.connectionInfo!!.client)
-    assertEquals(1L, entity.tcpInfo!!.ato)
-    assertEquals(48L, entity.tcpInfo.sndMSS)
   }
 
   @Test
@@ -400,152 +329,25 @@ class MappersTest {
   }
 
   @Test
-  fun `ResultsRequestEntity maps nested models correctly`() {
+  fun `ResultsRequestEntity maps JsonObject results as-is`() {
+    val download = JsonParser.parseString(
+      """{"LastClientMeasurement":{"ElapsedTime":10.0,"MeanClientMbps":42.5,"NumBytes":1},"ServerTime":1}"""
+    ).asJsonObject
+    val upload = JsonParser.parseString(
+      """{"LastClientMeasurement":{"ElapsedTime":10.0,"MeanClientMbps":11.0,"NumBytes":1},"ServerTime":1}"""
+    ).asJsonObject
     val entity = ResultsRequestEntity(
-      ndtResultS2C = SpeedTestMeasurementRequestEntity(
-        lastClientMeasurement = LastClientMeasurementRequestEntity(
-          elapsedTime = 50.0,
-          meanClientMbps = 100.0,
-          numBytes = 0
-        ),
-        lastServerMeasurement = LastServerMeasurementRequestEntity(
-          bbrInfo = BBRInfoRequestEntity(1L, 2L, 3L, 4L, 5L),
-          connectionInfo = ConnectionInfoRequestEntity("c", "s", "u"),
-          tcpInfo = TCPInfoRequestEntity(
-            ato = 1,
-            advMSS = 2,
-            appLimited = 3,
-            backoff = 4,
-            busyTime = 5,
-            bytesAcked = 6,
-            bytesReceived = 7,
-            bytesRetrans = 8,
-            bytesSent = 9,
-            caState = 10,
-            dSackDups = 11,
-            dataSegsIn = 12,
-            dataSegsOut = 13,
-            delivered = 14,
-            deliveredCE = 15,
-            deliveryRate = 16L,
-            elapsedTime = 17,
-            fackets = 18,
-            lastAckRecv = 19,
-            lastAckSent = 20,
-            lastDataRecv = 21,
-            lastDataSent = 22,
-            lost = 23,
-            maxPacingRate = 24L,
-            minRTT = 25L,
-            notsentBytes = 26,
-            options = 27,
-            pmtu = 28,
-            pacingRate = 29L,
-            probes = 30,
-            rto = 31L,
-            rtt = 32L,
-            rttVar = 33L,
-            rWndLimited = 34,
-            rcvMSS = 35,
-            rcvOooPack = 0,
-            rcvRTT = 36L,
-            rcvSpace = 37,
-            rcvSsThresh = 38,
-            reordSeen = 39,
-            reordering = 40,
-            retrans = 41,
-            retransmits = 42,
-            sacked = 43,
-            segsIn = 44,
-            segsOut = 45,
-            sndBufLimited = 46,
-            sndCwnd = 47,
-            sndMSS = 48,
-            sndSsThresh = 49,
-            sndWnd = 47,
-            state = 50,
-            totalRetrans = 51,
-            unacked = 52,
-            wScale = 53
-          )
-        )
-      ),
-      ndtResultC2S = SpeedTestMeasurementRequestEntity(
-        lastClientMeasurement = LastClientMeasurementRequestEntity(
-          elapsedTime = 75.0,
-          meanClientMbps = 200.0,
-          numBytes = 0
-        ),
-        lastServerMeasurement = LastServerMeasurementRequestEntity(
-          bbrInfo = BBRInfoRequestEntity(1L, 2L, 3L, 4L, 5L),
-          connectionInfo = ConnectionInfoRequestEntity("c", "s", "u"),
-          tcpInfo = TCPInfoRequestEntity(
-            ato = 1,
-            advMSS = 2,
-            appLimited = 3,
-            backoff = 4,
-            busyTime = 5,
-            bytesAcked = 6,
-            bytesReceived = 7,
-            bytesRetrans = 8,
-            bytesSent = 9,
-            caState = 10,
-            dSackDups = 11,
-            dataSegsIn = 12,
-            dataSegsOut = 13,
-            delivered = 14,
-            deliveredCE = 15,
-            deliveryRate = 16L,
-            elapsedTime = 17,
-            fackets = 18,
-            lastAckRecv = 19,
-            lastAckSent = 20,
-            lastDataRecv = 21,
-            lastDataSent = 22,
-            lost = 23,
-            maxPacingRate = 24L,
-            minRTT = 25L,
-            notsentBytes = 26,
-            options = 27,
-            pmtu = 28,
-            pacingRate = 29L,
-            probes = 30,
-            rto = 31L,
-            rtt = 32L,
-            rttVar = 33L,
-            rWndLimited = 34,
-            rcvMSS = 35,
-            rcvOooPack = 0,
-            rcvRTT = 36L,
-            rcvSpace = 37,
-            rcvSsThresh = 38,
-            reordSeen = 39,
-            reordering = 40,
-            retrans = 41,
-            retransmits = 42,
-            sacked = 43,
-            segsIn = 44,
-            segsOut = 45,
-            sndBufLimited = 46,
-            sndCwnd = 47,
-            sndMSS = 48,
-            sndSsThresh = 49,
-            sndWnd = 47,
-            state = 50,
-            totalRetrans = 51,
-            unacked = 52,
-            wScale = 53
-          )
-        )
-      )
+      ndtResultS2C = download,
+      ndtResultC2S = upload
     )
 
     val model = entity.toModel()
 
-    assertEquals(100.0, model.ndtResultS2C!!.lastClientMeasurement!!.meanClientMbps!!, 0.0)
-    assertEquals(50.0, model.ndtResultS2C.lastClientMeasurement.elapsedTime!!, 0.0)
-    assertEquals(200.0, model.ndtResultC2S!!.lastClientMeasurement!!.meanClientMbps!!, 0.0)
-    assertEquals(75.0, model.ndtResultC2S.lastClientMeasurement.elapsedTime!!, 0.0)
+    assertEquals(42.5, model.ndtResultS2C!!.getAsJsonObject("LastClientMeasurement")
+      .get("MeanClientMbps").asDouble, 0.0)
+    assertEquals(11.0, model.ndtResultC2S!!.getAsJsonObject("LastClientMeasurement")
+      .get("MeanClientMbps").asDouble, 0.0)
+    assertTrue(model.ndtResultS2C.has("ServerTime"))
   }
 
   @Test
@@ -559,98 +361,6 @@ class MappersTest {
 
     assertNull(model.ndtResultS2C)
     assertNull(model.ndtResultC2S)
-  }
-
-  @Test
-  fun `SpeedTestMeasurementRequestEntity maps nested model correctly`() {
-
-    val entity = SpeedTestMeasurementRequestEntity(
-      lastClientMeasurement = LastClientMeasurementRequestEntity(
-        elapsedTime = 10.0,
-        meanClientMbps = 50.5,
-        numBytes = 10000
-      ),
-      lastServerMeasurement = LastServerMeasurementRequestEntity(
-        bbrInfo = BBRInfoRequestEntity(1L, 2L, 3L, 4L, 5L),
-        connectionInfo = ConnectionInfoRequestEntity("c", "s", "u"),
-        tcpInfo = TCPInfoRequestEntity(
-          ato = 1,
-          advMSS = 2,
-          appLimited = 3,
-          backoff = 4,
-          busyTime = 5,
-          bytesAcked = 6,
-          bytesReceived = 7,
-          bytesRetrans = 8,
-          bytesSent = 9,
-          caState = 10,
-          dSackDups = 11,
-          dataSegsIn = 12,
-          dataSegsOut = 13,
-          delivered = 14,
-          deliveredCE = 15,
-          deliveryRate = 16L,
-          elapsedTime = 17,
-          fackets = 18,
-          lastAckRecv = 19,
-          lastAckSent = 20,
-          lastDataRecv = 21,
-          lastDataSent = 22,
-          lost = 23,
-          maxPacingRate = 24L,
-          minRTT = 25L,
-          notsentBytes = 26,
-          options = 27,
-          pmtu = 28,
-          pacingRate = 29L,
-          probes = 30,
-          rto = 31L,
-          rtt = 32L,
-          rttVar = 33L,
-          rWndLimited = 34,
-          rcvMSS = 35,
-          rcvOooPack = 0,
-          rcvRTT = 36L,
-          rcvSpace = 37,
-          rcvSsThresh = 38,
-          reordSeen = 39,
-          reordering = 40,
-          retrans = 41,
-          retransmits = 42,
-          sacked = 43,
-          segsIn = 44,
-          segsOut = 45,
-          sndBufLimited = 46,
-          sndCwnd = 47,
-          sndMSS = 48,
-          sndSsThresh = 49,
-          sndWnd = 47,
-          state = 50,
-          totalRetrans = 51,
-          unacked = 52,
-          wScale = 53
-        )
-      )
-    )
-
-    val model = entity.toModel()
-
-    assertEquals(10.0, model.lastClientMeasurement?.elapsedTime)
-    assertEquals(50.5, model.lastClientMeasurement?.meanClientMbps!!, 0.0)
-    assertEquals(10000, model.lastClientMeasurement.numBytes)
-  }
-
-  @Test
-  fun `SpeedTestMeasurement handles null nested objects`() {
-    val entity = SpeedTestMeasurementRequestEntity(
-      lastClientMeasurement = null,
-      lastServerMeasurement = null
-    )
-
-    val model = entity.toModel()
-
-    assertNull(model.lastClientMeasurement)
-    assertNull(model.lastServerMeasurement)
   }
 
   @Test

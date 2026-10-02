@@ -6,6 +6,8 @@ import android.location.Location
 import android.os.Build
 import androidx.core.content.pm.PackageInfoCompat
 import com.google.gson.Gson
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.meter.giga.domain.entity.history.AccessInformation
 import com.meter.giga.domain.entity.history.DataUsage
@@ -15,19 +17,16 @@ import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.history.MlabInformation
 import com.meter.giga.domain.entity.history.SnapLog
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
-import com.meter.giga.domain.entity.request.LastClientMeasurementRequestEntity
 import com.meter.giga.domain.entity.request.ResultsRequestEntity
 import com.meter.giga.domain.entity.request.ServerInfoRequestEntity
-import com.meter.giga.domain.entity.request.SpeedTestMeasurementRequestEntity
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.domain.entity.response.ClientInfoResponseEntity
-import com.meter.giga.domain.entity.response.ServerInfoResponseEntity
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.Constants.M_D_YYYY_H_MM_SS_A
 import io.sentry.Sentry
 import io.sentry.SentryLevel
-import net.measurementlab.ndt7.android.models.ClientResponse
-import net.measurementlab.ndt7.android.models.Measurement
+import org.json.JSONObject
+import java.net.URI
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -35,6 +34,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Calendar
 import java.util.Locale
+import kotlin.math.roundToLong
 
 /**
  * Utility singleton containing reusable helper methods
@@ -180,43 +180,17 @@ object GigaUtil {
   }
 
   /**
-   * Creates the complete speed test payload
-   * required for backend API submission.
-   *
-   * <p>The payload includes:
-   * <ul>
-   *   <li>Upload/download measurements.</li>
-   *   <li>Client and server information.</li>
-   *   <li>Latency details.</li>
-   *   <li>Geo location information.</li>
-   *   <li>Measurement timestamps.</li>
-   * </ul>
-   *
-   * @param uploadMeasurement upload measurement details.
-   * @param downloadMeasurement download measurement details.
-   * @param clientInfoRequestEntity client device/network info.
-   * @param serverInfoRequestEntity speed test server details.
-   * @param schoolId school identifier.
-   * @param gigaSchoolId GIGA school identifier.
-   * @param appVersion current application version.
-   * @param scheduleType execution type/schedule source.
-   * @param deviceType device type information.
-   * @param browserId browser/device registration identifier.
-   * @param countryCode device country code.
-   * @param ipAddress client IP address.
-   * @param lastDownloadResponse latest download response.
-   * @param lastUploadResponse latest upload response.
-   * @param deviceHardwareId unique device hardware identifier.
-   * @param geo geo location details.
-   *
-   * @return generated speed test request payload,
-   * or {@code null} if creation fails.
+   * Builds the backend POST body from ndt7 Go-client complete JSON for each
+   * direction. [downloadCompleteJson] / [uploadCompleteJson] are used as-is for
+   * Results (MeanClientMbps and ElapsedTime in seconds come from the client;
+   * they are not recomputed). Latency is the download TCPInfo.MinRTT in
+   * milliseconds. ServerInfo comes from the locate target JSON.
    */
   fun createSpeedTestPayload(
-    uploadMeasurement: Measurement?,
-    downloadMeasurement: Measurement?,
+    downloadCompleteJson: String,
+    uploadCompleteJson: String,
+    serverChosenJson: String?,
     clientInfoRequestEntity: ClientInfoRequestEntity?,
-    serverInfoRequestEntity: ServerInfoRequestEntity?,
     schoolId: String,
     gigaSchoolId: String,
     appVersion: String,
@@ -225,8 +199,6 @@ object GigaUtil {
     browserId: String,
     countryCode: String,
     ipAddress: String,
-    lastDownloadResponse: ClientResponse?,
-    lastUploadResponse: ClientResponse?,
     deviceHardwareId: String?,
     geo: Geo?,
     deviceInfo: DeviceInfo
@@ -234,22 +206,10 @@ object GigaUtil {
     AppLogger.d("Giga Meter Payload", "$deviceInfo")
     try {
       val currentTime = getCurrentFormattedTime()
-      var meanUploadClientMbps: Double? = null
-      lastUploadResponse?.appInfo?.let {
-        meanUploadClientMbps = if (it.elapsedTime == 0L || it.numBytes.toInt() == 0) {
-          0.0
-        } else {
-          (it.numBytes / (it.elapsedTime / 1000)) * 0.008
-        }
-      }
-      var meanDownloadClientMbps: Double? = null
-      lastDownloadResponse?.appInfo?.let {
-        meanDownloadClientMbps = if (it.elapsedTime == 0L || it.numBytes.toInt() == 0) {
-          0.0
-        } else {
-          (it.numBytes / (it.elapsedTime / 1000)) * 0.008
-        }
-      }
+      val downloadComplete = JsonParser.parseString(downloadCompleteJson).asJsonObject
+      val uploadComplete = JsonParser.parseString(uploadCompleteJson).asJsonObject
+      val meanDownload = meanClientMbps(downloadComplete)
+      val meanUpload = meanClientMbps(uploadComplete)
       return SpeedTestResultRequestEntity(
         annotation = "",
         appVersion = appVersion,
@@ -258,36 +218,21 @@ object GigaUtil {
         clientInfo = clientInfoRequestEntity,
         countryCode = countryCode,
         deviceType = deviceType,
-        download = (meanDownloadClientMbps ?: 0.0) * 1000,
-        upload = (meanUploadClientMbps ?: 0.0) * 1000,
+        download = meanDownload * 1000,
+        upload = meanUpload * 1000,
         gigaIdSchool = gigaSchoolId,
         ipAddress = if (ipAddress == "") clientInfoRequestEntity?.ip else ipAddress,
-        latency = (if (uploadMeasurement?.tcpInfo?.minRtt != null) uploadMeasurement.tcpInfo!!.minRtt!! / 1000 else 0.0).toInt()
-          .toString(),
+        latency = downloadMinRttMs(downloadComplete),
         notes = scheduleType,
         results = ResultsRequestEntity(
-          ndtResultC2S = SpeedTestMeasurementRequestEntity(
-            lastClientMeasurement = LastClientMeasurementRequestEntity(
-              elapsedTime = (lastUploadResponse?.appInfo?.elapsedTime ?: 0).toDouble(),
-              meanClientMbps = meanUploadClientMbps,
-              numBytes = (lastUploadResponse?.appInfo?.numBytes ?: 0).toInt()
-            ),
-            lastServerMeasurement = uploadMeasurement?.toEntity()
-          ),
-          ndtResultS2C = SpeedTestMeasurementRequestEntity(
-            lastClientMeasurement = LastClientMeasurementRequestEntity(
-              elapsedTime = (lastDownloadResponse?.appInfo?.elapsedTime ?: 0).toDouble(),
-              meanClientMbps = meanDownloadClientMbps,
-              numBytes = (lastDownloadResponse?.appInfo?.numBytes ?: 0).toInt()
-            ),
-            lastServerMeasurement = downloadMeasurement?.toEntity()
-          )
+          ndtResultS2C = downloadComplete,
+          ndtResultC2S = uploadComplete
         ),
         schoolId = schoolId,
-        serverInfo = serverInfoRequestEntity,
+        serverInfo = serverInfoFromLocate(serverChosenJson),
         timestampLocal = currentTime,
         timestamp = convertToIso(currentTime),
-        uUID = uploadMeasurement?.connectionInfo?.uuid,
+        uUID = connectionUuid(uploadComplete) ?: connectionUuid(downloadComplete),
         source = "DailyCheckApp",
         geo = geo,
         appBuildNumber = deviceInfo.buildId,
@@ -295,18 +240,91 @@ object GigaUtil {
         deviceModel = deviceInfo.model,
         deviceName = deviceInfo.deviceName,
         osVersion = deviceInfo.sdkInt.toString(),
-//      createdAt = null,
-//      dataDownloaded = null,
-//      dataUploaded = null,
-//      dataUsage = null,
-//      id = null
       )
     } catch (e: Exception) {
       Sentry.captureMessage("Failed to create speedtest request payload", SentryLevel.ERROR)
       Sentry.captureException(e)
-      return null;
+      return null
     }
   }
+
+  /**
+   * Maps a locate target (same shape as the desktop serverChosen callback)
+   * into the ServerInfo fields posted to the backend.
+   *
+   * Locate v2 does not return the server IPs, so IPv4 and IPv6 stay blank.
+   * The FQDN and URL come from the download URL, without its access token.
+   * Site and metro come from the machine name, e.g. mlab1-lga03 is site
+   * lga03 in metro lga.
+   */
+  fun serverInfoFromLocate(serverChosenJson: String?): ServerInfoRequestEntity? {
+    if (serverChosenJson.isNullOrBlank()) {
+      return null
+    }
+    return try {
+      val server = JsonParser.parseString(serverChosenJson).asJsonObject
+      val location = server.objectOrNull("location")
+      val city = location?.stringOrNull("city")
+      val machine = server.stringOrNull("machine") ?: ""
+      val downloadUrl = server.objectOrNull("urls")
+        ?.stringOrNull(LOCATE_DOWNLOAD_URL_KEY)
+        ?.let { runCatching { URI(it) }.getOrNull() }
+      val fqdn = downloadUrl?.host ?: machine
+      val site = siteFromMachine(machine)
+      ServerInfoRequestEntity(
+        city = city,
+        country = location?.stringOrNull("country"),
+        fQDN = fqdn,
+        iPv4 = "",
+        iPv6 = "",
+        label = city ?: "",
+        metro = site.take(3),
+        site = site,
+        uRL = downloadUrl?.let { "${it.scheme}://${it.host}${it.path}" } ?: fqdn
+      )
+    } catch (e: Exception) {
+      Sentry.captureException(e)
+      null
+    }
+  }
+
+  /**
+   * MeanClientMbps from a Go-client progress update, or null when the update
+   * has no usable value.
+   */
+  fun progressMbps(clientJson: String): Double? = try {
+    JsonParser.parseString(clientJson).asJsonObject.doubleOrNull("MeanClientMbps")
+  } catch (e: Exception) {
+    null
+  }
+
+  private fun siteFromMachine(machine: String): String {
+    val name = machine.substringBefore('.')
+    return name.split('-').firstOrNull { SITE_PATTERN.matches(it) } ?: ""
+  }
+
+  private fun meanClientMbps(complete: JsonObject): Double =
+    complete.objectOrNull("LastClientMeasurement")?.doubleOrNull("MeanClientMbps") ?: 0.0
+
+  /**
+   * Latency is the download test's TCPInfo.MinRTT in milliseconds, rounded:
+   * the value the backend stores and the one M-Lab recommends. BBRInfo.MinRTT
+   * is an internal BBR metric, and the upload's MinRTT comes from a handful of
+   * server-to-client messages, so neither is used. There is no fallback: if
+   * the download has no TCPInfo.MinRTT, latency is null.
+   */
+  private fun downloadMinRttMs(download: JsonObject): String? {
+    val minRtt = download.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("TCPInfo")
+      ?.doubleOrNull("MinRTT")
+      ?: return null
+    return (minRtt / 1000).roundToLong().toString()
+  }
+
+  private fun connectionUuid(complete: JsonObject): String? =
+    complete.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("ConnectionInfo")
+      ?.stringOrNull("UUID")
 
   /**
    * Adds a new JSON item into an existing JSON array string.
@@ -321,8 +339,7 @@ object GigaUtil {
   fun addJsonItem(existingArrayStr: String, jsonString: String): String {
 
     val gson = Gson()
-    val listType = object : TypeToken<List<String>>() {}.type
-    val list: List<String> = gson.fromJson(existingArrayStr, listType)
+    val list: List<String> = gson.fromJson(existingArrayStr, stringListType)
 
     // Convert to mutable list of strings
     val itemList = mutableListOf<String>()
@@ -344,22 +361,17 @@ object GigaUtil {
 
   /**
    * Calculates total upload, download,
-   * and combined data usage values.
-   *
-   * @param c2sLastServerManagement upload-side measurement.
-   * @param s2cLastServerManagement download-side measurement.
-   *
-   * @return calculated data usage information.
+   * and combined data usage values from Go-client complete JSON.
    */
   fun getDataUsage(
-    c2sLastServerManagement: Measurement?,
-    s2cLastServerManagement: Measurement?,
+    uploadComplete: JsonObject?,
+    downloadComplete: JsonObject?,
   ): DataUsage {
     try {
-      val bytesReceived = (s2cLastServerManagement?.tcpInfo?.bytesReceived
-        ?: 0) + (c2sLastServerManagement?.tcpInfo?.bytesReceived ?: 0)
-      val bytesSent = (s2cLastServerManagement?.tcpInfo?.bytesAcked
-        ?: 0) + (c2sLastServerManagement?.tcpInfo?.bytesAcked ?: 0)
+      val bytesReceived = tcpInfoLong(downloadComplete, "BytesReceived") +
+        tcpInfoLong(uploadComplete, "BytesReceived")
+      val bytesSent = tcpInfoLong(downloadComplete, "BytesAcked") +
+        tcpInfoLong(uploadComplete, "BytesAcked")
       val totalBytes = bytesSent + bytesReceived
       return DataUsage(
         download = bytesReceived,
@@ -372,42 +384,155 @@ object GigaUtil {
         download = 0,
         upload = 0,
         total = 0,
-      );
+      )
     }
+  }
+
+  private fun tcpInfoLong(complete: JsonObject?, field: String): Long {
+    val value = complete?.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("TCPInfo")
+      ?.get(field)
+    return if (value != null && value.isJsonPrimitive && value.asJsonPrimitive.isNumber) value.asLong else 0L
+  }
+
+  // Go-client JSON can omit a field or send it as null; these read either as null.
+  private fun JsonObject.objectOrNull(name: String): JsonObject? =
+    get(name)?.takeIf { it.isJsonObject }?.asJsonObject
+
+  private fun JsonObject.stringOrNull(name: String): String? =
+    get(name)?.takeIf { it.isJsonPrimitive }?.asString
+
+  private fun JsonObject.doubleOrNull(name: String): Double? =
+    get(name)?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isNumber }?.asDouble
+
+  // getParameterized keeps the list-of-strings type without an anonymous TypeToken
+  // subclass, whose generic signature R8 strips in release builds.
+  private val stringListType =
+    TypeToken.getParameterized(List::class.java, String::class.java).type
+
+  private const val LOCATE_DOWNLOAD_URL_KEY = "wss:///ndt/v7/download"
+  private val SITE_PATTERN = Regex("[a-z]{3}[0-9]+")
+
+  /**
+   * Copy of Go-client results for the Android WebView.
+   *
+   * The shared UI reads MeanClientMbps, BBRInfo.MinRTT on both directions,
+   * and results.receivedBytes. A missing piece throws and stops the Data page.
+   * Gaps are filled on this copy. The object posted to the backend is separate
+   * and is left as the client sent it.
+   */
+  fun resultsForUi(results: ResultsRequestEntity?, receivedBytes: Long): ResultsRequestEntity {
+    val latencyUs = results?.ndtResultS2C?.let { tcpMinRttUs(it) }
+    return ResultsRequestEntity(
+      ndtResultS2C = directionForUi(results?.ndtResultS2C, latencyUs),
+      ndtResultC2S = directionForUi(results?.ndtResultC2S, latencyUs),
+      receivedBytes = receivedBytes,
+    )
+  }
+
+  private fun tcpMinRttUs(complete: JsonObject): Double? =
+    complete.objectOrNull("LastServerMeasurement")
+      ?.objectOrNull("TCPInfo")
+      ?.doubleOrNull("MinRTT")
+
+  private fun directionForUi(source: JsonObject?, latencyUs: Double?): JsonObject {
+    val direction = source?.deepCopy() ?: JsonObject()
+    val client = direction.childObject("LastClientMeasurement")
+    if (client.doubleOrNull("MeanClientMbps") == null) {
+      client.addProperty("MeanClientMbps", 0.0)
+    }
+    direction.add("LastClientMeasurement", client)
+    val server = direction.childObject("LastServerMeasurement")
+    val bbr = server.childObject("BBRInfo")
+    if (bbr.doubleOrNull("MinRTT") == null) {
+      bbr.addProperty("MinRTT", latencyUs ?: 0.0)
+    }
+    server.add("BBRInfo", bbr)
+    direction.add("LastServerMeasurement", server)
+    return direction
+  }
+
+  private fun JsonObject.childObject(name: String): JsonObject {
+    val existing = get(name)
+    return if (existing != null && existing.isJsonObject) existing.asJsonObject else JsonObject()
+  }
+
+  /**
+   * One stored measurement, shaped so the existing WebView can open the Data page.
+   *
+   * History already on the device can omit mlabInformation, accessInformation,
+   * MeanClientMbps, BBRInfo.MinRTT, or receivedBytes. The page reads those
+   * directly and a missing one throws while the page is opening.
+   * Other fields on the measurement are left as stored.
+   */
+  fun measurementJsonForUi(measurementJson: String): String {
+    val measurement = JSONObject(measurementJson)
+    val mlab = measurement.optJSONObject("mlabInformation") ?: JSONObject()
+    if (!mlab.has("city") || mlab.isNull("city")) {
+      mlab.put("city", "")
+    }
+    measurement.put("mlabInformation", mlab)
+    if (measurement.optJSONObject("accessInformation") == null) {
+      measurement.put("accessInformation", JSONObject())
+    }
+    val results = measurement.optJSONObject("results") ?: JSONObject()
+    val latencyUs = tcpMinRtt(results.optJSONObject("NDTResult.S2C"))
+    results.put(
+      "NDTResult.S2C",
+      directionJsonForUi(results.optJSONObject("NDTResult.S2C"), latencyUs),
+    )
+    results.put(
+      "NDTResult.C2S",
+      directionJsonForUi(results.optJSONObject("NDTResult.C2S"), latencyUs),
+    )
+    if (!results.has("receivedBytes") || results.isNull("receivedBytes")) {
+      val usage = measurement.optJSONObject("dataUsage")
+      val download = if (usage != null && usage.has("download") && !usage.isNull("download")) {
+        usage.optLong("download")
+      } else {
+        0L
+      }
+      results.put("receivedBytes", download)
+    }
+    measurement.put("results", results)
+    return measurement.toString()
+  }
+
+  private fun tcpMinRtt(direction: JSONObject?): Double? {
+    val tcp = direction
+      ?.optJSONObject("LastServerMeasurement")
+      ?.optJSONObject("TCPInfo")
+      ?: return null
+    if (!tcp.has("MinRTT") || tcp.isNull("MinRTT")) return null
+    return tcp.optDouble("MinRTT")
+  }
+
+  private fun directionJsonForUi(source: JSONObject?, latencyUs: Double?): JSONObject {
+    val direction = source ?: JSONObject()
+    val client = direction.optJSONObject("LastClientMeasurement") ?: JSONObject()
+    if (!client.has("MeanClientMbps") || client.isNull("MeanClientMbps")) {
+      client.put("MeanClientMbps", 0.0)
+    }
+    direction.put("LastClientMeasurement", client)
+    val server = direction.optJSONObject("LastServerMeasurement") ?: JSONObject()
+    val bbr = server.optJSONObject("BBRInfo") ?: JSONObject()
+    if (!bbr.has("MinRTT") || bbr.isNull("MinRTT")) {
+      bbr.put("MinRTT", latencyUs ?: 0.0)
+    }
+    server.put("BBRInfo", bbr)
+    direction.put("LastServerMeasurement", server)
+    return direction
   }
 
   /**
    * Creates a historical measurement item object
    * used for local storage and sync operations.
-   *
-   * <p>The measurement item contains:
-   * <ul>
-   *   <li>Access information.</li>
-   *   <li>Data usage statistics.</li>
-   *   <li>Server details.</li>
-   *   <li>Speed test result data.</li>
-   *   <li>Geo location information.</li>
-   *   <li>Measurement timeline metadata.</li>
-   * </ul>
-   *
-   * @param clientInfoResponse client network information.
-   * @param c2sLastServerManagement upload-side measurement.
-   * @param s2cLastServerManagement download-side measurement.
-   * @param serverInfoResponse server information response.
-   * @param scheduleType execution schedule type.
-   * @param results test result payload.
-   * @param c2sRate upload graph/rate data.
-   * @param s2cRate download graph/rate data.
-   * @param historyDataIndex historical data index.
-   * @param currentLocation current device location.
-   *
-   * @return populated measurement item.
    */
   fun getMeasurementItem(
     clientInfoResponse: ClientInfoResponseEntity?,
-    c2sLastServerManagement: Measurement?,
-    s2cLastServerManagement: Measurement?,
-    serverInfoResponse: ServerInfoResponseEntity?,
+    downloadComplete: JsonObject?,
+    uploadComplete: JsonObject?,
+    serverInfo: ServerInfoRequestEntity?,
     scheduleType: String?,
     results: ResultsRequestEntity?,
     c2sRate: ArrayList<Double>,
@@ -418,6 +543,7 @@ object GigaUtil {
     deviceInfo: DeviceInfo
   ): MeasurementsItem {
     AppLogger.d("Giga Meter Measurement", "$deviceInfo")
+    val dataUsage = getDataUsage(uploadComplete, downloadComplete)
     return MeasurementsItem(
       accessInformation = AccessInformation(
         asn = clientInfoResponse?.asn,
@@ -431,27 +557,28 @@ object GigaUtil {
         region = clientInfoResponse?.region,
         timezone = clientInfoResponse?.timezone
       ),
-      dataUsage = getDataUsage(c2sLastServerManagement, s2cLastServerManagement),
+      dataUsage = dataUsage,
       index = historyDataIndex + 1,
       mlabInformation = MlabInformation(
-        city = serverInfoResponse?.city,
-        country = serverInfoResponse?.country,
-        fqdn = serverInfoResponse?.fqdn,
-        ip = listOf(serverInfoResponse?.ipv4 ?: "", serverInfoResponse?.ipv6 ?: ""),
-        label = serverInfoResponse?.city,
-        metro = serverInfoResponse?.city,
-        site = serverInfoResponse?.site,
-        url = serverInfoResponse?.url
+        city = serverInfo?.city,
+        country = serverInfo?.country,
+        fqdn = serverInfo?.fQDN,
+        ip = listOf(serverInfo?.iPv4 ?: "", serverInfo?.iPv6 ?: ""),
+        label = serverInfo?.label,
+        metro = serverInfo?.metro,
+        site = serverInfo?.site,
+        url = serverInfo?.uRL
       ),
       notes = scheduleType,
-      results = results,
+      results = resultsForUi(results, dataUsage.download ?: 0L),
       snapLog = SnapLog(
         c2sRate = c2sRate,
         s2cRate = s2cRate
       ),
       timestamp = System.currentTimeMillis(),
       uploaded = false,
-      uuid = c2sLastServerManagement?.connectionInfo?.uuid,
+      uuid = uploadComplete?.let { connectionUuid(it) }
+        ?: downloadComplete?.let { connectionUuid(it) },
       version = 1,
       geolocation = if (currentLocation !== null) Geo(
         geoLocation = GeoLocation(
@@ -485,8 +612,7 @@ object GigaUtil {
     val gson = Gson()
 
 // Step 1: Parse the outer array (which contains inner JSON strings)
-    val type = object : TypeToken<List<String>>() {}.type
-    val jsonStringList: List<String> = gson.fromJson(measurementItems, type)
+    val jsonStringList: List<String> = gson.fromJson(measurementItems, stringListType)
 
 // Step 2: Parse each inner string to your model
     val modelList: List<MeasurementsItem> = jsonStringList.map { json ->

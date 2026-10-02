@@ -43,12 +43,6 @@ interface RetrofitProvider {
   val clientInfoLiteApi: ApiService
 
   /**
-   * Retrofit API service used for retrieving
-   * server-related information.
-   */
-  val serverInfoApi: ApiService
-
-  /**
    * Returns a Retrofit API service configured
    * with the provided base URL.
    *

@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.work.Data
 import androidx.work.OneTimeWorkRequestBuilder
+// import androidx.work.OutOfQuotaPolicy
 import androidx.work.WorkManager
 import com.getcapacitor.JSArray
 import com.getcapacitor.JSObject
@@ -45,6 +46,7 @@ import com.meter.giga.utils.Constants.REGISTRATION_IP_ADDRESS
 import com.meter.giga.utils.Constants.REGISTRATION_SCHOOL_ID
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_DAILY
+import com.meter.giga.utils.Constants.SCHEDULE_TYPE_FIRST
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_MANUAL
 import com.meter.giga.utils.Constants.SCHEDULE_TYPE_START
 import com.meter.giga.utils.GigaUtil
@@ -131,6 +133,25 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
+     * Copies sent to the WebView. The posted result is not modified.
+     */
+    private fun webViewCopies(
+      speedTestData: SpeedTestResultRequestEntity?,
+      measurementsItem: MeasurementsItem?,
+    ): Pair<SpeedTestResultRequestEntity?, MeasurementsItem?> {
+      if (speedTestData == null && measurementsItem == null) {
+        return null to null
+      }
+      val bytes = measurementsItem?.dataUsage?.download ?: 0L
+      val uiResults = GigaUtil.resultsForUi(
+        speedTestData?.results ?: measurementsItem?.results,
+        bytes,
+      )
+      return speedTestData?.copy(results = uiResults) to
+        measurementsItem?.copy(results = uiResults)
+    }
+
+    /**
      * Sends completed speed test results to the Ionic UI.
      *
      * <p>The result payload contains:
@@ -149,10 +170,12 @@ open class GigaAppPlugin : Plugin() {
     ) {
       pluginInstance?.let {
         AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompleted")
+        val (uiSpeedTestData, uiMeasurementsItem) =
+          webViewCopies(speedTestData, measurementsItem)
         val speedTestResultEntity = SpeedTestResultEntity(
-          speedTestData = speedTestData,
+          speedTestData = uiSpeedTestData,
           testStatus = "complete",
-          measurementsItem = measurementsItem
+          measurementsItem = uiMeasurementsItem
         )
         val jsonString = GsonBuilder()
           .serializeNulls()
@@ -178,10 +201,12 @@ open class GigaAppPlugin : Plugin() {
     ) {
       pluginInstance?.let {
         AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompletedWithError")
+        val (uiSpeedTestData, uiMeasurementsItem) =
+          webViewCopies(speedTestData, measurementsItem)
         val speedTestResultEntity = SpeedTestResultEntity(
-          speedTestData = speedTestData,
+          speedTestData = uiSpeedTestData,
           testStatus = "onerror",
-          measurementsItem = measurementsItem
+          measurementsItem = uiMeasurementsItem
         )
         val jsonString = GsonBuilder()
           .serializeNulls()
@@ -307,10 +332,16 @@ open class GigaAppPlugin : Plugin() {
       val data = Data.Builder()
         .putString(SCHEDULE_TYPE, scheduleType)
         .build()
-      val workRequest = OneTimeWorkRequestBuilder<NetworkTestWorker>()
+      val workRequestBuilder = OneTimeWorkRequestBuilder<NetworkTestWorker>()
         .setInputData(data)
-        .build()
-      WorkManager.getInstance(context).enqueue(workRequest)
+      // Expedited disabled while testing plain one-time work
+      // if (scheduleType == SCHEDULE_TYPE_FIRST ||
+      //   scheduleType == SCHEDULE_TYPE_START ||
+      //   scheduleType == SCHEDULE_TYPE_DAILY
+      // ) {
+      //   workRequestBuilder.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+      // }
+      WorkManager.getInstance(context).enqueue(workRequestBuilder.build())
 
       val alarmPrefs = AlarmSharedPref(context)
       if (GigaUtil.checkIfFutureAlarmScheduled(alarmPrefs)) {
@@ -327,6 +358,7 @@ open class GigaAppPlugin : Plugin() {
         "GIGA GigaAppPlugin",
         "Notification permission denied, skipping manual speed test worker"
       )
+      sendSpeedTestCompletedWithError(null, null)
     }
     call.resolve()
   }
@@ -352,7 +384,12 @@ open class GigaAppPlugin : Plugin() {
       val jsArray = JSArray()
       for (i in 0 until jsonArray.length()) {
         val jsonObjectString = jsonArray.getString(i)
-        val innerJsonObject = JSONObject(jsonObjectString)
+        val repaired = try {
+          GigaUtil.measurementJsonForUi(jsonObjectString)
+        } catch (e: Exception) {
+          jsonObjectString
+        }
+        val innerJsonObject = JSONObject(repaired)
         AppLogger.d("GIGA GigaAppPlugin jsonArray", "$innerJsonObject")
         jsArray.put(innerJsonObject)
       }

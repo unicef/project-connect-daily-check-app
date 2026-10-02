@@ -1002,6 +1002,9 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.latency = undefined;
       this.connectionStatus = ''; // Reset connection status
       this.currentRate = undefined; // Reset current rate
+      // An offline report from the native worker is only cleared by an online event,
+      // which never fires on Wi-Fi with no internet.
+      this.onlineStatus = navigator.onLine;
       this.isErrorClosed = false; // Reset error closed state
       this.uploadProgressStarted = false;
       if (this.isNative) {
