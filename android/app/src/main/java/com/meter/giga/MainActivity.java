@@ -40,6 +40,7 @@ import com.meter.giga.ionic_plugin.GigaAppPlugin;
 import com.meter.giga.utils.AppLogger;
 import com.meter.giga.utils.AppUpdateCheckEventBus;
 import com.meter.giga.utils.PluginEvent;
+import com.meter.giga.utils.WebViewHistoryRepair;
 import com.meter.giga.worker.UpdateCheckWorker;
 
 import java.util.Objects;
@@ -110,6 +111,15 @@ public class MainActivity extends BridgeActivity {
     }
 
     checkNotificationPermission();
+  }
+
+  @Override
+  protected void load() {
+    WebView webView = findViewById(com.getcapacitor.android.R.id.webview);
+    if (webView != null) {
+      WebViewHistoryRepair.install(webView);
+    }
+    super.load();
   }
 
   @Override

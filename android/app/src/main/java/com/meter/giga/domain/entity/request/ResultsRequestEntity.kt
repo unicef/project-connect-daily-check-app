@@ -13,4 +13,10 @@ data class ResultsRequestEntity(
   val ndtResultS2C: JsonObject?,
   @SerializedName("NDTResult.C2S")
   val ndtResultC2S: JsonObject?,
+  /**
+   * Present only on the copy shown in the WebView. The backend POST leaves
+   * this null, and Gson omits nulls, so the uploaded body is unchanged.
+   */
+  @SerializedName("receivedBytes")
+  val receivedBytes: Long? = null,
 )

@@ -11,12 +11,16 @@ import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.history.MlabInformation
 import com.meter.giga.domain.entity.history.SnapLog
 import com.meter.giga.domain.entity.request.ClientInfoRequestEntity
+import com.meter.giga.domain.entity.request.ResultsRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.Constants.M_D_YYYY_H_MM_SS_A
 import io.mockk.every
 import io.mockk.mockk
+import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -140,9 +144,71 @@ class GigaUtilTest {
       0.01
     )
     assertTrue(payload.results!!.ndtResultS2C!!.has("ServerTime"))
+    assertNull(payload.results!!.receivedBytes)
     assertEquals("Barcelona", payload.serverInfo!!.city)
     assertEquals("ES", payload.serverInfo!!.country)
     assertEquals("ndt-mlab1-xx.example", payload.serverInfo!!.uRL)
+  }
+
+  @Test
+  fun `resultsForUi fills gaps the WebView reads without changing the posted json`() {
+    val download = JsonParser.parseString(
+      """{"LastServerMeasurement":{"TCPInfo":{"MinRTT":20000}}}"""
+    ).asJsonObject
+    val upload = JsonParser.parseString("""{}""").asJsonObject
+    val posted = ResultsRequestEntity(download, upload)
+
+    val ui = GigaUtil.resultsForUi(posted, receivedBytes = 40)
+
+    assertNull(posted.receivedBytes)
+    assertEquals(false, download.has("LastClientMeasurement"))
+    assertEquals(40L, ui.receivedBytes)
+    assertEquals(
+      0.0,
+      ui.ndtResultS2C!!.getAsJsonObject("LastClientMeasurement").get("MeanClientMbps").asDouble,
+      0.01,
+    )
+    assertEquals(
+      20000.0,
+      ui.ndtResultC2S!!.getAsJsonObject("LastServerMeasurement")
+        .getAsJsonObject("BBRInfo").get("MinRTT").asDouble,
+      0.01,
+    )
+    assertEquals(
+      42.5,
+      GigaUtil.resultsForUi(
+        ResultsRequestEntity(
+          JsonParser.parseString(completeJson(42.5, 10.0, 20_000, "d", 1, 1)).asJsonObject,
+          JsonParser.parseString(completeJson(11.0, 10.0, 40_000, "u", 1, 1)).asJsonObject,
+        ),
+        1,
+      ).ndtResultS2C!!.getAsJsonObject("LastClientMeasurement").get("MeanClientMbps").asDouble,
+      0.01,
+    )
+  }
+
+  @Test
+  fun `measurementJsonForUi supplies city and receivedBytes the Data page reads`() {
+    val stored = """{"uuid":"abc","results":{"NDTResult.S2C":{"LastServerMeasurement":{"TCPInfo":{"MinRTT":20000}}}},"dataUsage":{"download":40}}"""
+
+    val ui = JSONObject(GigaUtil.measurementJsonForUi(stored))
+
+    assertEquals("abc", ui.getString("uuid"))
+    assertEquals("", ui.getJSONObject("mlabInformation").getString("city"))
+    assertFalse(ui.isNull("accessInformation"))
+    assertEquals(40L, ui.getJSONObject("results").getLong("receivedBytes"))
+    assertEquals(
+      0.0,
+      ui.getJSONObject("results").getJSONObject("NDTResult.S2C")
+        .getJSONObject("LastClientMeasurement").getDouble("MeanClientMbps"),
+      0.01,
+    )
+    assertEquals(
+      20000.0,
+      ui.getJSONObject("results").getJSONObject("NDTResult.C2S")
+        .getJSONObject("LastServerMeasurement").getJSONObject("BBRInfo").getDouble("MinRTT"),
+      0.01,
+    )
   }
 
   @Test

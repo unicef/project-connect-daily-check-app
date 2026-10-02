@@ -1,6 +1,9 @@
 # Keep all classes in com.example.app.data.models and subpackages
 -keep class com.meter.giga.domain.entity.request.** { *; }
 -keep class com.meter.giga.domain.entity.response.** { *; }
+# History items are written to storage and the WebView with Gson only; Kotlin
+# never reads most fields, so without this R8 removes them from the JSON.
+-keep class com.meter.giga.domain.entity.history.** { *; }
 -keep class com.meter.giga.data.models.requests.** { *; }
 -keep class com.meter.giga.data.models.responses.** { *; }
 -keep interface com.meter.giga.network.api.** { *; }
@@ -13,6 +16,10 @@
     <methods>;
 }
 -keepclassmembers class com.meter.giga.domain.entity.response.** {
+    <fields>;
+    <methods>;
+}
+-keepclassmembers class com.meter.giga.domain.entity.history.** {
     <fields>;
     <methods>;
 }

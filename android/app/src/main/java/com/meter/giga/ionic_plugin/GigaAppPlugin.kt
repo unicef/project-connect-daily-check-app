@@ -133,6 +133,25 @@ open class GigaAppPlugin : Plugin() {
     }
 
     /**
+     * Copies sent to the WebView. The posted result is not modified.
+     */
+    private fun webViewCopies(
+      speedTestData: SpeedTestResultRequestEntity?,
+      measurementsItem: MeasurementsItem?,
+    ): Pair<SpeedTestResultRequestEntity?, MeasurementsItem?> {
+      if (speedTestData == null && measurementsItem == null) {
+        return null to null
+      }
+      val bytes = measurementsItem?.dataUsage?.download ?: 0L
+      val uiResults = GigaUtil.resultsForUi(
+        speedTestData?.results ?: measurementsItem?.results,
+        bytes,
+      )
+      return speedTestData?.copy(results = uiResults) to
+        measurementsItem?.copy(results = uiResults)
+    }
+
+    /**
      * Sends completed speed test results to the Ionic UI.
      *
      * <p>The result payload contains:
@@ -151,10 +170,12 @@ open class GigaAppPlugin : Plugin() {
     ) {
       pluginInstance?.let {
         AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompleted")
+        val (uiSpeedTestData, uiMeasurementsItem) =
+          webViewCopies(speedTestData, measurementsItem)
         val speedTestResultEntity = SpeedTestResultEntity(
-          speedTestData = speedTestData,
+          speedTestData = uiSpeedTestData,
           testStatus = "complete",
-          measurementsItem = measurementsItem
+          measurementsItem = uiMeasurementsItem
         )
         val jsonString = GsonBuilder()
           .serializeNulls()
@@ -180,10 +201,12 @@ open class GigaAppPlugin : Plugin() {
     ) {
       pluginInstance?.let {
         AppLogger.d("Giga Meter Plugin", "sendSpeedTestCompletedWithError")
+        val (uiSpeedTestData, uiMeasurementsItem) =
+          webViewCopies(speedTestData, measurementsItem)
         val speedTestResultEntity = SpeedTestResultEntity(
-          speedTestData = speedTestData,
+          speedTestData = uiSpeedTestData,
           testStatus = "onerror",
-          measurementsItem = measurementsItem
+          measurementsItem = uiMeasurementsItem
         )
         val jsonString = GsonBuilder()
           .serializeNulls()
@@ -361,7 +384,12 @@ open class GigaAppPlugin : Plugin() {
       val jsArray = JSArray()
       for (i in 0 until jsonArray.length()) {
         val jsonObjectString = jsonArray.getString(i)
-        val innerJsonObject = JSONObject(jsonObjectString)
+        val repaired = try {
+          GigaUtil.measurementJsonForUi(jsonObjectString)
+        } catch (e: Exception) {
+          jsonObjectString
+        }
+        val innerJsonObject = JSONObject(repaired)
         AppLogger.d("GIGA GigaAppPlugin jsonArray", "$innerJsonObject")
         jsArray.put(innerJsonObject)
       }
