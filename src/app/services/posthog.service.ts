@@ -85,13 +85,15 @@ export class PosthogService {
         },
       });
 
+      // Set before the calls below: identify(), setSchool() and
+      // trackPageView() return early while `initialized` is false.
+      this.initialized = true;
+
       this.identifyFromStorage();
       this.applySchoolFromStorage();
       this.trackPageView();
       this.trackRouteChanges();
       this.bridgeMainProcessEvents();
-
-      this.initialized = true;
     } catch (error) {
       console.warn('[PostHog] init failed:', error);
     }
