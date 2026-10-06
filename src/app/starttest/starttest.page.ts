@@ -110,6 +110,8 @@ export class StarttestPage implements OnInit, OnDestroy {
   locationPermissionMessage: string = '';
   locationPermissionDenied: boolean = false;
   locationServicesDisabled: boolean = false;
+  showBatteryOptimizationMessage: boolean = false;
+  batteryOptimizationMessage: string = '';
   public currentDate: any;
   public connectionStatus: any;
   private sub: any;
@@ -577,6 +579,41 @@ export class StarttestPage implements OnInit, OnDestroy {
     }
   }
 
+  async checkBatteryOptimizationNotice() {
+    if (!this.isNativeApp() || !this.gigaAppPlugin?.getBatteryOptimizationStatus) {
+      this.showBatteryOptimizationMessage = false;
+      this.batteryOptimizationMessage = '';
+      return;
+    }
+
+    try {
+      const result = await this.gigaAppPlugin.getBatteryOptimizationStatus();
+      if (result?.status === 'restricted') {
+        this.showBatteryOptimizationMessage = true;
+        this.batteryOptimizationMessage =
+          'Battery use is restricted. Open Settings, tap Battery, and choose Unrestricted.';
+      } else if (result?.status === 'optimized') {
+        this.showBatteryOptimizationMessage = true;
+        this.batteryOptimizationMessage =
+          'Daily speed tests may be delayed or skipped while battery limits are on.';
+      } else {
+        this.showBatteryOptimizationMessage = false;
+        this.batteryOptimizationMessage = '';
+      }
+      this.ref.markForCheck();
+    } catch (error) {
+      console.error('Battery optimization check failed', error);
+    }
+  }
+
+  async openBatterySettings() {
+    try {
+      await this.gigaAppPlugin.openBatterySettings();
+    } catch (error) {
+      console.error('Unable to open battery settings', error);
+    }
+  }
+
   isNativeApp(): boolean {
     return Capacitor.getPlatform() === 'android';
   }
@@ -601,6 +638,7 @@ export class StarttestPage implements OnInit, OnDestroy {
       ({ isActive }) => {
         if (isActive) {
           this.checkLocationPermissionOnInit();
+          this.checkBatteryOptimizationNotice();
         }
       },
     );
@@ -810,6 +848,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.loadLatestMeasurement();
     this.loadLatestPingResult();
     this.checkLocationPermissionOnInit();
+    this.checkBatteryOptimizationNotice();
   }
 
   /**
@@ -1365,6 +1404,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     }
     if (Capacitor.getPlatform() === 'android') {
       this.checkLocationPermissionOnInit();
+      this.checkBatteryOptimizationNotice();
       this.ref.markForCheck();
     }
   }

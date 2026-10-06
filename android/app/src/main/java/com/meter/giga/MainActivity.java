@@ -144,7 +144,7 @@ public class MainActivity extends BridgeActivity {
   public void onResume() {
     super.onResume();
     if (permissionChainDone) {
-      checkBatteryAfterLocationPermission();
+      checkBatteryAfterLocationPermission(false);
     }
   }
 
@@ -252,20 +252,30 @@ public class MainActivity extends BridgeActivity {
   }
 
   /**
-   * Asks new installs once, as the app resumes from the location permission prompt
-   * during onboarding. No school is registered yet, so no speed test can be running.
+   * Asks new installs once, after the location permission request finishes.
+   * No school is registered yet, so no speed test can be running.
+   *
+   * @param locationRequestFinished true when the location prompt has just closed.
+   * The resume check still waits until location is granted or denied.
    */
-  private void checkBatteryAfterLocationPermission() {
+  private void checkBatteryAfterLocationPermission(boolean locationRequestFinished) {
     AlarmSharedPref prefs = new AlarmSharedPref(this);
     BatteryStatus status = BatteryOptimizationHelper.INSTANCE.refreshStatus(this, prefs);
     if (status == BatteryStatus.UNRESTRICTED
       || !prefs.getSchoolId().isEmpty()
       || prefs.getBatteryPromptCount() > 0
-      || !isLocationPermissionDecided()) {
+      || (!locationRequestFinished && !isLocationPermissionDecided())) {
       return;
     }
     BatteryOptimizationHelper.INSTANCE.recordPrompt(prefs, status, "onboarding");
     launchBatteryRequest(status);
+  }
+
+  /**
+   * Shows the onboarding battery request once the location prompt has closed.
+   */
+  public void showOnboardingBatteryPrompt() {
+    checkBatteryAfterLocationPermission(true);
   }
 
   /**
@@ -280,6 +290,18 @@ public class MainActivity extends BridgeActivity {
         == PackageManager.PERMISSION_GRANTED;
     return granted
       || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION);
+  }
+
+  /**
+   * Opens the system battery request from the home-page notice.
+   * This does not count toward the automatic prompt limit.
+   */
+  public void openBatterySettingsFromHome() {
+    BatteryStatus status = BatteryOptimizationHelper.INSTANCE.refreshStatus(this);
+    if (status == BatteryStatus.UNRESTRICTED) {
+      return;
+    }
+    launchBatteryRequest(status);
   }
 
   private void launchBatteryRequest(BatteryStatus status) {

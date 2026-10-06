@@ -25,6 +25,7 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.gson.GsonBuilder
+import com.meter.giga.MainActivity
 import com.meter.giga.alarm_scheduler.AlarmHelper
 import com.meter.giga.alarm_scheduler.AlarmHelper.getNextSlotRange
 import com.meter.giga.alarm_scheduler.AlarmHelper.getSlotStartHour
@@ -34,6 +35,7 @@ import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.AppUpdateCheckEventBus
+import com.meter.giga.utils.BatteryOptimizationHelper
 import com.meter.giga.utils.Constants.BASE_URL
 import com.meter.giga.utils.Constants.ENV_TYPE
 import com.meter.giga.utils.Constants.FIRST_15_MIN
@@ -302,6 +304,46 @@ open class GigaAppPlugin : Plugin() {
       return
     }
     call.resolve(ret)
+  }
+
+  /**
+   * Current battery usage setting, so the home page can show a notice while
+   * daily tests may be delayed or skipped.
+   */
+  @PluginMethod
+  fun getBatteryOptimizationStatus(call: PluginCall) {
+    val status = BatteryOptimizationHelper.refreshStatus(context)
+    val ret = JSObject()
+    ret.put("status", status.name.lowercase())
+    call.resolve(ret)
+  }
+
+  /**
+   * Shows the onboarding battery request after the location permission prompt closes.
+   */
+  @PluginMethod
+  fun requestOnboardingBatteryPrompt(call: PluginCall) {
+    val host = activity
+    if (host !is MainActivity) {
+      call.reject("Battery settings are unavailable")
+      return
+    }
+    host.runOnUiThread { host.showOnboardingBatteryPrompt() }
+    call.resolve()
+  }
+
+  /**
+   * Opens the system request for unrestricted battery usage from the home-page notice.
+   */
+  @PluginMethod
+  fun openBatterySettings(call: PluginCall) {
+    val host = activity
+    if (host !is MainActivity) {
+      call.reject("Battery settings are unavailable")
+      return
+    }
+    host.openBatterySettingsFromHome()
+    call.resolve()
   }
 
   /**

@@ -9,6 +9,7 @@ import { Capacitor } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
 import { Geolocation } from '@capacitor/geolocation';
 import { LocationService } from 'src/app/services/location.service';
+import { GigaAppPlugin } from 'src/app/android/giga-app-android-plugin';
 
 @Component({
   selector: 'app-register-school-page',
@@ -90,6 +91,12 @@ export class RegisterSchoolPageComponent implements OnInit {
       }
     } catch (error) {
       console.error('Location permission check/request failed', error);
+    }
+
+    try {
+      await GigaAppPlugin.requestOnboardingBatteryPrompt();
+    } catch (error) {
+      console.error('Onboarding battery prompt failed', error);
     }
   }
 
