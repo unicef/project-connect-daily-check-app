@@ -64,5 +64,10 @@ export const environment = {
       label: 'Монгол',
       code: 'mn',
     },
+    {
+      name: 'Tg',
+      label: 'Тоҷикӣ',
+      code: 'tg',
+    },
   ],
 };
