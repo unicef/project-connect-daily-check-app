@@ -115,26 +115,40 @@
     <text
       *ngIf="error"
       x="51"
-      y="46"
-      [attr.font-size]="12"
+      [attr.y]="46 - (getTryAgainLines().length - 1) * 6"
+      [attr.font-size]="getTryAgainFontSize()"
       text-anchor="middle"
       alignment-baseline="top"
       [attr.font-weight]="400"
       [ngClass]="getTextClass()"
     >
-      {{ "startTest.tryAgain" | translate }}
+      <tspan
+        *ngFor="let line of getTryAgainLines(); let i = index"
+        x="51"
+        [attr.dy]="i === 0 ? 0 : 12"
+        alignment-baseline="top"
+      >
+        {{ line }}
+      </tspan>
     </text>
     <text
       *ngIf="completed"
       x="50"
-      y="50"
-      [attr.font-size]="12"
+      [attr.y]="50 - (getTryAgainLines().length - 1) * 6"
+      [attr.font-size]="getTryAgainFontSize()"
       text-anchor="middle"
       alignment-baseline="middle"
       [attr.font-weight]="400"
       [ngClass]="getTextClass()"
     >
-      {{ "startTest.tryAgain" | translate }}
+      <tspan
+        *ngFor="let line of getTryAgainLines(); let i = index"
+        x="50"
+        [attr.dy]="i === 0 ? 0 : 12"
+        alignment-baseline="middle"
+      >
+        {{ line }}
+      </tspan>
     </text>
 
     <!-- <text x="57" y="50" [attr.font-size]="10" text-anchor="middle" alignment-baseline="top"

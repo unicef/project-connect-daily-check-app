@@ -1,4 +1,5 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
 @Component({
   selector: 'app-circular-progress-bar',
@@ -18,6 +19,8 @@ export class CircularProgressBarComponent {
 
   @Output() startTest = new EventEmitter<void>();
   @Output() showError = new EventEmitter<boolean>();
+
+  constructor(private translate: TranslateService) {}
 
   handleClick() {
     if (
@@ -58,29 +61,46 @@ export class CircularProgressBarComponent {
   // Method to split status message into lines for better display
   getStatusMessageLines(): string[] {
     if (!this.statusMessage) return [];
+    // Limit to maximum 2 lines to fit in circle
+    return this.splitIntoLines(this.statusMessage, 12).slice(0, 2);
+  }
 
-    // Split long messages into multiple lines
-    const maxCharsPerLine = 12; // Adjust based on circle size
-    const words = this.statusMessage.split(' ');
+  /**
+   * "Try again" label, wrapped so long translations stay inside the circle.
+   * A single line keeps the original size; two lines use a smaller font.
+   */
+  getTryAgainLines(): string[] {
+    const label = this.translate.instant('startTest.tryAgain') as string;
+    return this.splitIntoLines(label, 12);
+  }
+
+  getTryAgainFontSize(): number {
+    return this.getTryAgainLines().length > 1 ? 10 : 12;
+  }
+
+  // Greedy word wrap; a line break in the text always starts a new line.
+  private splitIntoLines(text: string, maxCharsPerLine: number): string[] {
     const lines: string[] = [];
-    let currentLine = '';
 
-    for (const word of words) {
-      if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
-        currentLine = (currentLine + ' ' + word).trim();
-      } else {
-        if (currentLine) {
-          lines.push(currentLine);
+    for (const paragraph of text.split('\n')) {
+      const words = paragraph.split(/\s+/).filter((w) => w);
+      let currentLine = '';
+
+      for (const word of words) {
+        if ((currentLine + ' ' + word).trim().length <= maxCharsPerLine) {
+          currentLine = (currentLine + ' ' + word).trim();
+        } else {
+          if (currentLine) {
+            lines.push(currentLine);
+          }
+          currentLine = word;
         }
-        currentLine = word;
+      }
+
+      if (currentLine) {
+        lines.push(currentLine);
       }
     }
-
-    if (currentLine) {
-      lines.push(currentLine);
-    }
-
-    // Limit to maximum 2 lines to fit in circle
-    return lines.slice(0, 2);
+    return lines;
   }
 }

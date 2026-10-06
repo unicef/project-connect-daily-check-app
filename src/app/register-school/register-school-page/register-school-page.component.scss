@@ -160,7 +160,8 @@ ion-label {
   text-align: left;
   background-color: #ffffff;
   display: flex;
-  bottom: 120px;
+  // Sits just above the pagination dots, leaving the heading as much room as possible.
+  bottom: 106px;
   align-items: flex-start;
   gap: 8px;
   padding: 0 0;
@@ -247,3 +248,9 @@ ion-label {
 .last-slide-active {
     height: 63% !important;
   }
+
+// Tajik needs five lines for this heading at 20px; a slightly smaller size
+// keeps it clear of the privacy text. <html lang> follows the UI language.
+.successInfo-slide3 .last-step:lang(tg) {
+  font-size: 17px;
+}
