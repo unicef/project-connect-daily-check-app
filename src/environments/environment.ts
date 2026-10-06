@@ -85,5 +85,10 @@ export const environment = {
       label: "O'zbekcha",
       code: 'uz',
     },
+    {
+      name: 'Tg',
+      label: 'Тоҷикӣ',
+      code: 'tg',
+    },
   ],
 };
