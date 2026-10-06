@@ -3,6 +3,7 @@ package com.meter.giga;
 import android.Manifest;
 import android.app.AlarmManager;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -37,8 +38,12 @@ import com.google.android.play.core.install.model.InstallStatus;
 import com.google.android.play.core.install.model.UpdateAvailability;
 import com.meter.giga.app.BuildConfig;
 import com.meter.giga.ionic_plugin.GigaAppPlugin;
+import com.meter.giga.prefrences.AlarmSharedPref;
 import com.meter.giga.utils.AppLogger;
 import com.meter.giga.utils.AppUpdateCheckEventBus;
+import com.meter.giga.utils.BatteryOptimizationHelper;
+import com.meter.giga.utils.BatteryStatus;
+import com.meter.giga.utils.Constants;
 import com.meter.giga.utils.PluginEvent;
 import com.meter.giga.utils.WebViewHistoryRepair;
 import com.meter.giga.worker.UpdateCheckWorker;
@@ -51,6 +56,8 @@ import io.sentry.Sentry;
 public class MainActivity extends BridgeActivity {
   private AppUpdateManager appUpdateManager;
   private static final int REQ_NOTIF_PERMISSION = 101;
+  private boolean permissionChainDone = false;
+  private boolean batteryRequestPending = false;
 
   private final AppUpdateCheckEventBus.EventListener pluginEventListener = event ->
     runOnUiThread(() -> handlePluginEvent(event));
@@ -74,6 +81,10 @@ public class MainActivity extends BridgeActivity {
           showNotificationMandatoryDialog();
         }
       });
+
+  private final ActivityResultLauncher<Intent> batteryPermissionLauncher =
+    registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+      result -> BatteryOptimizationHelper.INSTANCE.recordPromptResult(this));
 
   private final ActivityResultLauncher<IntentSenderRequest> updateFlowLauncher =
     registerForActivityResult(new ActivityResultContracts.StartIntentSenderForResult(),
@@ -127,6 +138,14 @@ public class MainActivity extends BridgeActivity {
     super.onStart();
     AppUpdateCheckEventBus.setListener(pluginEventListener);
     AppLogger.INSTANCE.d("MAIN Activity", "AppEventBus listener registered");
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    if (permissionChainDone) {
+      checkBatteryAfterLocationPermission();
+    }
   }
 
   @Override
@@ -190,7 +209,93 @@ public class MainActivity extends BridgeActivity {
   }
 
   private void onAllRequiredPermissionsGranted() {
+    permissionChainDone = true;
     initAppUpdateCheck();
+    checkBatteryOptimization("app_open");
+  }
+
+  /**
+   * Optional step for registered devices. Opens the system request for
+   * unrestricted battery usage within the prompt limits, or straight away when
+   * opened from the reminder notification, which already counted the request.
+   * New installs are asked in checkBatteryAfterLocationPermission.
+   *
+   * @param source where the request comes from: app_open or notification.
+   */
+  private void checkBatteryOptimization(String source) {
+    boolean fromReminder = batteryRequestPending;
+    batteryRequestPending = false;
+
+    AlarmSharedPref prefs = new AlarmSharedPref(this);
+    BatteryStatus status = BatteryOptimizationHelper.INSTANCE.refreshStatus(this, prefs);
+    if (status == BatteryStatus.UNRESTRICTED) {
+      return;
+    }
+
+    if (!fromReminder) {
+      if (prefs.getSchoolId().isEmpty()) {
+        return;
+      }
+      boolean shouldPrompt = BatteryOptimizationHelper.INSTANCE.shouldPrompt(
+        status,
+        prefs.getBatteryPromptCount(),
+        prefs.getBatteryLastPromptAt(),
+        System.currentTimeMillis(),
+        false
+      );
+      if (!shouldPrompt) {
+        return;
+      }
+      BatteryOptimizationHelper.INSTANCE.recordPrompt(prefs, status, source);
+    }
+    launchBatteryRequest(status);
+  }
+
+  /**
+   * Asks new installs once, as the app resumes from the location permission prompt
+   * during onboarding. No school is registered yet, so no speed test can be running.
+   */
+  private void checkBatteryAfterLocationPermission() {
+    AlarmSharedPref prefs = new AlarmSharedPref(this);
+    BatteryStatus status = BatteryOptimizationHelper.INSTANCE.refreshStatus(this, prefs);
+    if (status == BatteryStatus.UNRESTRICTED
+      || !prefs.getSchoolId().isEmpty()
+      || prefs.getBatteryPromptCount() > 0
+      || !isLocationPermissionDecided()) {
+      return;
+    }
+    BatteryOptimizationHelper.INSTANCE.recordPrompt(prefs, status, "onboarding");
+    launchBatteryRequest(status);
+  }
+
+  /**
+   * True once the user has answered the location prompt: location is granted, or was
+   * denied once. Android only shows the rationale state after a first denial.
+   */
+  private boolean isLocationPermissionDecided() {
+    boolean granted =
+      ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+        == PackageManager.PERMISSION_GRANTED
+        || ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
+        == PackageManager.PERMISSION_GRANTED;
+    return granted
+      || ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.ACCESS_FINE_LOCATION);
+  }
+
+  private void launchBatteryRequest(BatteryStatus status) {
+    if (status == BatteryStatus.RESTRICTED) {
+      Toast.makeText(this, "To run daily speed tests, tap Battery and choose Unrestricted.", Toast.LENGTH_LONG).show();
+    }
+    try {
+      batteryPermissionLauncher.launch(BatteryOptimizationHelper.INSTANCE.requestIntent(this, status));
+    } catch (ActivityNotFoundException e) {
+      try {
+        batteryPermissionLauncher.launch(BatteryOptimizationHelper.INSTANCE.settingsListIntent());
+      } catch (ActivityNotFoundException fallbackError) {
+        AppLogger.INSTANCE.d("MAIN Activity", "No battery settings screen available");
+        Sentry.captureException(fallbackError);
+      }
+    }
   }
 
   private void navigateToAlarmSettings() {
@@ -256,6 +361,13 @@ public class MainActivity extends BridgeActivity {
   private void handleIntent(Intent intent) {
     if (intent != null && intent.getBooleanExtra("START_UPDATE", false)) {
       startUpdateFlow();
+    }
+    if (intent != null && intent.getBooleanExtra(Constants.EXTRA_REQUEST_BATTERY_UNRESTRICTED, false)) {
+      intent.removeExtra(Constants.EXTRA_REQUEST_BATTERY_UNRESTRICTED);
+      batteryRequestPending = true;
+      if (permissionChainDone) {
+        checkBatteryOptimization("notification");
+      }
     }
   }
 

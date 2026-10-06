@@ -4,6 +4,9 @@ package com.meter.giga.prefrences
 import android.content.Context
 import androidx.core.content.edit
 import com.meter.giga.utils.Constants.ENVIRONMENT
+import com.meter.giga.utils.Constants.KEY_BATTERY_LAST_PROMPT_AT
+import com.meter.giga.utils.Constants.KEY_BATTERY_LAST_STATUS
+import com.meter.giga.utils.Constants.KEY_BATTERY_PROMPT_COUNT
 import com.meter.giga.utils.Constants.GIGA_APP_PREFERENCES
 import com.meter.giga.utils.Constants.KEY_BASE_URL
 import com.meter.giga.utils.Constants.KEY_BROWSER_ID
@@ -215,6 +218,28 @@ class AlarmSharedPref(context: Context) {
     get() = prefs.getInt(KEY_LAST_UPDATE_CHECK_DATE, -1)
     set(value) = prefs.edit() { putInt(KEY_LAST_UPDATE_CHECK_DATE, value) }
 
+
+  /**
+   * Number of times the user has been asked to allow
+   * unrestricted battery usage
+   */
+  var batteryPromptCount: Int
+    get() = prefs.getInt(KEY_BATTERY_PROMPT_COUNT, 0)
+    set(value) = prefs.edit() { putInt(KEY_BATTERY_PROMPT_COUNT, value) }
+
+  /**
+   * Time stamp of the last unrestricted battery request, else 0
+   */
+  var batteryLastPromptAt: Long
+    get() = prefs.getLong(KEY_BATTERY_LAST_PROMPT_AT, 0L)
+    set(value) = prefs.edit() { putLong(KEY_BATTERY_LAST_PROMPT_AT, value) }
+
+  /**
+   * Last battery status seen by the app, else empty
+   */
+  var batteryLastStatus: String
+    get() = prefs.getString(KEY_BATTERY_LAST_STATUS, "").toString()
+    set(value) = prefs.edit() { putString(KEY_BATTERY_LAST_STATUS, value) }
 
   /**
    * This provides environment

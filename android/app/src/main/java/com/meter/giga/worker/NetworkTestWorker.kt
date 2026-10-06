@@ -7,9 +7,12 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.PowerManager
+import android.os.SystemClock
 import androidx.core.app.ActivityCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
@@ -30,6 +33,7 @@ import com.meter.giga.ionic_plugin.GigaAppPlugin
 import com.meter.giga.network.util.NetworkCheckerImpl
 import com.meter.giga.prefrences.AlarmSharedPref
 import com.meter.giga.utils.AppLogger
+import com.meter.giga.utils.BatteryOptimizationHelper
 import com.meter.giga.utils.Constants.DEVICE_TYPE_ANDROID
 import com.meter.giga.utils.Constants.DEVICE_TYPE_CHROMEBOOK
 import com.meter.giga.utils.Constants.BACKGROUND_RETRY_DELAY_MIN
@@ -60,6 +64,7 @@ import java.util.Locale
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import java.util.concurrent.atomic.AtomicReference
 import kotlin.concurrent.thread
 
@@ -140,6 +145,8 @@ class NetworkTestWorker(
 
     prefs.isTestRunning = true
     var activeCallbacks: GoClientCallbacks? = null
+    val wifiLock = acquireWifiLock()
+    val networkMonitor = TestNetworkMonitor().also { it.start() }
 
     try {
       val appVersion = GigaUtil.getAppVersionName(context)
@@ -148,7 +155,7 @@ class NetworkTestWorker(
 
       GigaAppPlugin.sendSpeedTestStarted()
 
-      val callbacks = GoClientCallbacks().also { activeCallbacks = it }
+      val callbacks = GoClientCallbacks(networkMonitor).also { activeCallbacks = it }
       // Ndt7client.run blocks until the test ends. Running it on its own thread
       // keeps this coroutine free to time out or be cancelled.
       thread(name = "ndt7-go-client", isDaemon = true) {
@@ -173,7 +180,16 @@ class NetworkTestWorker(
         return@withContext Result.failure()
       }
 
-      if (callbacks.serverLookupFailed.get()) {
+      val failureKind = callbacks.failureKind.get()
+      if (failureKind == Ndt7FailureKind.RATE_LIMITED) {
+        AppLogger.d("GIGA NetworkTestWorker", "Server lookup rate limited, not retrying")
+        prefs.isTestRunning = false
+        updateNotification("Too many speed tests from this network, please try again later.")
+        GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
+        return@withContext Result.failure()
+      }
+
+      if (failureKind == Ndt7FailureKind.LOCATE) {
         val willRetry = isBackground && canRetryInSlot()
         AppLogger.d("GIGA NetworkTestWorker", "Server lookup failed, retry: $willRetry")
         prefs.isTestRunning = false
@@ -184,14 +200,16 @@ class NetworkTestWorker(
 
       val downloadCompleteJson = callbacks.downloadComplete.get()
       val uploadCompleteJson = callbacks.uploadComplete.get()
-      if (callbacks.error.get() != null ||
+      if (failureKind != null ||
         downloadCompleteJson == null ||
         uploadCompleteJson == null
       ) {
+        val willRetry = isBackground && failureKind?.isRetryable == true && canRetryInSlot()
+        AppLogger.d("GIGA NetworkTestWorker", "Speed test failed (${failureKind?.tag}), retry: $willRetry")
         prefs.isTestRunning = false
         updateNotification("Speed test measurements not available, please try again.")
         GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
-        return@withContext Result.failure()
+        return@withContext if (willRetry) Result.retry() else Result.failure()
       }
 
       publishAndUpload(
@@ -219,6 +237,15 @@ class NetworkTestWorker(
         scope.setTag("stop_reason", reason)
         scope.setTag("run_attempt", "$runAttemptCount")
       }
+      if (stopReason == WorkInfo.STOP_REASON_BACKGROUND_RESTRICTION ||
+        stopReason == WorkInfo.STOP_REASON_APP_STANDBY
+      ) {
+        try {
+          BatteryOptimizationHelper.remindIfNeeded(context, systemStopped = true)
+        } catch (reminderError: Exception) {
+          AppLogger.d("GIGA NetworkTestWorker", "Battery reminder failed: ${reminderError.message}")
+        }
+      }
       if (!isBackground) {
         prefs.stoppedTestWorkId = id.toString()
         GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
@@ -231,6 +258,92 @@ class NetworkTestWorker(
       Sentry.captureException(e)
       GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
       Result.failure()
+    } finally {
+      networkMonitor.stop()
+      releaseWifiLock(wifiLock)
+    }
+  }
+
+  /**
+   * Keeps Wi-Fi out of power save for the test, including the gap between the
+   * download and the upload. Low-latency mode applies only while the app is in
+   * the foreground with the screen on; otherwise the lock keeps Wi-Fi awake.
+   */
+  @Suppress("DEPRECATION")
+  private fun acquireWifiLock(): WifiManager.WifiLock? = try {
+    val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      WifiManager.WIFI_MODE_FULL_LOW_LATENCY
+    } else {
+      WifiManager.WIFI_MODE_FULL_HIGH_PERF
+    }
+    context.applicationContext.getSystemService(WifiManager::class.java)
+      ?.createWifiLock(mode, "GigaMeter:SpeedTest")
+      ?.apply {
+        setReferenceCounted(false)
+        acquire()
+      }
+  } catch (e: Exception) {
+    AppLogger.d("GIGA NetworkTestWorker", "Failed to acquire Wi-Fi lock: ${e.message}")
+    null
+  }
+
+  private fun releaseWifiLock(lock: WifiManager.WifiLock?) {
+    try {
+      if (lock?.isHeld == true) lock.release()
+    } catch (e: Exception) {
+      AppLogger.d("GIGA NetworkTestWorker", "Failed to release Wi-Fi lock: ${e.message}")
+    }
+  }
+
+  /**
+   * Records whether the default network was lost or replaced while the test
+   * ran, so a failure can be told apart from a Wi-Fi drop or network switch.
+   */
+  private inner class TestNetworkMonitor {
+    private val connectivityManager = context.getSystemService(ConnectivityManager::class.java)
+    private val initialNetwork = AtomicReference<Network>()
+    private val changed = AtomicBoolean(false)
+    private val change = AtomicReference<String>()
+    private var registered = false
+
+    private val callback = object : ConnectivityManager.NetworkCallback() {
+      override fun onAvailable(network: Network) {
+        if (!initialNetwork.compareAndSet(null, network) && network != initialNetwork.get()) {
+          record("switched")
+        }
+      }
+
+      override fun onLost(network: Network) = record("lost")
+    }
+
+    val networkChanged: Boolean
+      get() = changed.get()
+
+    val lastChange: String?
+      get() = change.get()
+
+    fun start() {
+      try {
+        connectivityManager?.registerDefaultNetworkCallback(callback)
+        registered = connectivityManager != null
+      } catch (e: Exception) {
+        AppLogger.d("GIGA NetworkTestWorker", "Failed to watch the network: ${e.message}")
+      }
+    }
+
+    fun stop() {
+      if (!registered) return
+      registered = false
+      try {
+        connectivityManager?.unregisterNetworkCallback(callback)
+      } catch (e: Exception) {
+        AppLogger.d("GIGA NetworkTestWorker", "Failed to stop watching the network: ${e.message}")
+      }
+    }
+
+    private fun record(event: String) {
+      changed.set(true)
+      change.set(event)
     }
   }
 
@@ -251,6 +364,7 @@ class NetworkTestWorker(
       scope.setTag("has_network", "${capabilities != null}")
       scope.setTag("network_validated", "${capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED) == true}")
       scope.setTag("network_transport", networkTransport(capabilities))
+      scope.setTag("network_vpn", "${capabilities?.hasTransport(NetworkCapabilities.TRANSPORT_VPN) == true}")
       scope.setTag("network_suspended", "${capabilities?.let { !it.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_SUSPENDED) }}")
       scope.setTag("background_restricted", "${isBackgroundRestricted()}")
       scope.setTag("ignoring_battery_optimizations", "${powerManager?.isIgnoringBatteryOptimizations(context.packageName)}")
@@ -562,13 +676,15 @@ class NetworkTestWorker(
    * exception thrown back into Go crashes the process, so each one is guarded.
    * After [stop], late events from a test that is shutting down are ignored.
    */
-  private inner class GoClientCallbacks : Callbacks {
+  private inner class GoClientCallbacks(
+    private val networkMonitor: TestNetworkMonitor
+  ) : Callbacks {
     val done = CountDownLatch(1)
     val downloadComplete = AtomicReference<String>()
     val uploadComplete = AtomicReference<String>()
     val serverChosen = AtomicReference<String>()
-    val error = AtomicReference<String>()
-    val serverLookupFailed = AtomicBoolean(false)
+    val failureKind = AtomicReference<Ndt7FailureKind>()
+    private val downloadCompletedAt = AtomicLong(0L)
     val s2cRate: MutableList<Double> = Collections.synchronizedList(ArrayList())
     val c2sRate: MutableList<Double> = Collections.synchronizedList(ArrayList())
 
@@ -612,6 +728,7 @@ class NetworkTestWorker(
     override fun onDownloadComplete(summaryJSON: String) = guard("onDownloadComplete") {
       AppLogger.d("GIGA NetworkTestWorker", "Download complete")
       downloadComplete.set(summaryJSON)
+      downloadCompletedAt.set(SystemClock.elapsedRealtime())
     }
 
     override fun onUploadComplete(summaryJSON: String) {
@@ -623,14 +740,28 @@ class NetworkTestWorker(
     }
 
     override fun onError(direction: String, message: String) {
-      error.set("$direction: $message")
-      if (direction == "locate") serverLookupFailed.set(true)
+      val kind = Ndt7FailureKind.of(direction, message)
+      failureKind.set(kind)
       done.countDown()
       guard("onError") {
         AppLogger.d("GIGA NetworkTestWorker", "ndt7 error $direction: $message")
-        Sentry.captureMessage("ndt7 $direction failed: $message", SentryLevel.ERROR) { scope ->
+        val level = if (kind == Ndt7FailureKind.RATE_LIMITED) SentryLevel.WARNING else SentryLevel.ERROR
+        Sentry.captureMessage("ndt7 $direction failed: $message", level) { scope ->
           applyConnectionContext(scope)
+          scope.fingerprint = listOf("ndt7", kind.tag)
           scope.setTag("test_type", direction)
+          scope.setTag("error_kind", kind.tag)
+          scope.setTag("network_changed", "${networkMonitor.networkChanged}")
+          networkMonitor.lastChange?.let { scope.setTag("network_change", it) }
+          serverChosen.get()
+            ?.let { GigaUtil.serverInfoFromLocate(it)?.fQDN }
+            ?.let { scope.setTag("mlab_server", it) }
+          scope.setExtra("download_progress_updates", "${s2cRate.size}")
+          scope.setExtra("upload_progress_updates", "${c2sRate.size}")
+          val downloadAt = downloadCompletedAt.get()
+          if (downloadAt > 0) {
+            scope.setExtra("ms_since_download_complete", "${SystemClock.elapsedRealtime() - downloadAt}")
+          }
         }
       }
     }

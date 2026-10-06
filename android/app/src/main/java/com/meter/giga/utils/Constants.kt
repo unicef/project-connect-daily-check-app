@@ -15,7 +15,9 @@ object Constants {
   const val SPEED_TEST_CHANNEL_ID = "speed_test_channel"
   const val FOREGROUND_SERVICE_TAG = "GIGA_SPEED_TEST_SERVICE"
   const val APP_UPDATE_CHANNEL_ID = "app_update_channel"
+  const val BATTERY_CHANNEL_ID = "battery_optimization_channel"
   const val WORKER_TAG = "APP_UPDATE_CHECK_WORKER"
+  const val EXTRA_REQUEST_BATTERY_UNRESTRICTED = "REQUEST_BATTERY_UNRESTRICTED"
 
   const val FIRST_15_MIN = "FIRST_15_MIN"
   const val NEXT_SLOT = "NEXT_SLOT"
@@ -43,6 +45,9 @@ object Constants {
   const val KEY_NEXT_EXECUTION_TIME = "KEY_NEXT_EXECUTION_TIME"
   const val KEY_LAST_SLOT_EXECUTION_HOUR = "KEY_LAST_SLOT_EXECUTION_HOUR"
   const val KEY_HISTORY_DATA_INDEX = "KEY_HISTORY_DATA_INDEX"
+  const val KEY_BATTERY_PROMPT_COUNT = "KEY_BATTERY_PROMPT_COUNT"
+  const val KEY_BATTERY_LAST_PROMPT_AT = "KEY_BATTERY_LAST_PROMPT_AT"
+  const val KEY_BATTERY_LAST_STATUS = "KEY_BATTERY_LAST_STATUS"
   const val CLIENT_INFO_FALLBACK_END_URL = "https://ipv4.geojs.io/v1/"
   const val CLIENT_INFO_END_URL = "https://ipinfo.io/"
   const val CLIENT_LITE_INFO_END_URL = "https://api.ipinfo.io/"
@@ -59,6 +64,12 @@ object Constants {
   const val REQ_NOTIF_PERMISSION: Int = 102
   const val REQ_STORAGE_PERMISSION: Int = 103
   const val APP_UPGRADE_NOTIFICATION_ID = 104
+  const val BATTERY_NOTIFICATION_ID = 105
+
+  // Requests to allow unrestricted battery usage
+  const val BATTERY_PROMPT_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000L
+  const val BATTERY_STOPPED_PROMPT_INTERVAL_MS = 24 * 60 * 60 * 1000L
+  const val MAX_BATTERY_PROMPTS = 5
 
   // Speed test run limits
   const val TEST_RUNNING_STALE_MS = 5 * 60 * 1000L
