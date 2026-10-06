@@ -206,11 +206,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Smarter scheduled tests and Uzbek language support",
+      "title": "Smarter scheduled tests and Uzbek and Tajik language support",
       "date": "Friday, 18th September 2026",
       "items": [
         "Smarter scheduled tests: If a test fails, the app continues retrying until it succeeds or the test window ends.",
         "Uzbek language support: Added Uzbek to the language selector, along with revised translations.",
+        "Tajik language support: Added Tajik to the language selector.",
         "Bug fixes: Various bug fixes and improvements."
       ]
     },
