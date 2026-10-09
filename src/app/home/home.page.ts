@@ -163,13 +163,9 @@ export class HomePage {
             this.router.navigate(['/starttest']);
           } else {
             this.loading.dismiss();
-            this.router.navigate([
-              'schoolnotfound',
-              schoolId,
-              0,
-              0,
-              NotFound.notRegister,
-            ]);
+            this.router.navigate(['schoolnotfound', schoolId, 0, 0, 0], {
+              queryParams: { reason: NotFound.notRegister },
+            });
           }
         });
       } catch (e) {

@@ -5,6 +5,7 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
+import { classifyRequestError } from '../schoolnotfound/types';
 @Component({
   selector: 'app-schooldetails',
   templateUrl: 'schooldetails.page.html',
@@ -21,6 +22,8 @@ export class SchooldetailsPage {
   selectedCountry: any;
   selectedCountryName: any;
   detectedCountry: any;
+  /** The last search errored (as opposed to finding nothing). */
+  private searchFailed = false;
   private sub: any;
   private translatedText = this.translate.instant('schoolDetails.searchSchool');
 
@@ -83,6 +86,7 @@ export class SchooldetailsPage {
    */
   searchSchoolBySchooIdAndCountryCode() {
     if (this.schoolId && this.selectedCountry) {
+      this.searchFailed = false;
       this.translate.get('schoolDetails.searchSchool').subscribe((translatedText) => {
         const loadingMsg = `
           <div class="loadContent">
@@ -101,19 +105,22 @@ export class SchooldetailsPage {
             (err) => {
               console.log('ERROR: ' + err);
               this.loading.dismiss();
-              this.router.navigate([
-                'schoolnotfound',
-                this.schoolId,
-                this.selectedCountry,
-                this.detectedCountry,
-                this.selectedCountryName
-
-              ]);
-              /* Redirect to no result found page */
+              this.searchFailed = true;
+              /* The search itself failed: say why instead of "not found" */
+              this.router.navigate(
+                [
+                  'schoolnotfound',
+                  this.schoolId,
+                  this.selectedCountry,
+                  this.detectedCountry,
+                  this.selectedCountryName
+                ],
+                { queryParams: { reason: classifyRequestError(err) } }
+              );
             },
             () => {
               this.loading.dismiss();
-              if (this.schools.length > 0) {
+              if (Array.isArray(this.schools) && this.schools.length > 0) {
                 this.router.navigate([
                   'schooldetails',
                   this.schoolId,
@@ -136,6 +143,16 @@ export class SchooldetailsPage {
           );
       })
 
+    }
+  }
+
+  /**
+   * "Try again" on the error page goes back here. Ionic reuses this instance
+   * and the route params have not changed, so re-run the search that failed.
+   */
+  ionViewWillEnter() {
+    if (this.searchFailed) {
+      this.searchSchoolBySchooIdAndCountryCode();
     }
   }
 
