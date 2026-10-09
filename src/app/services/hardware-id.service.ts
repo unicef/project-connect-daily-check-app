@@ -22,6 +22,12 @@ interface HardwareError {
 })
 export class HardwareIdService {
   private readonly STORAGE_KEY = 'system_hardware_id';
+  /**
+   * Returned by the main process when the system probe answered but had no
+   * UUID or serial to give. It is stored like a real ID but matches no
+   * registration, so treat it as "not available yet".
+   */
+  private readonly UNUSABLE_HARDWARE_ID = 'NO_UUID_AVAILABLE';
   private hardwareIdPromise: Promise<HardwareData | null> | null = null;
   private hardwareIdResolve: ((data: HardwareData | null) => void) | null =
     null;
@@ -257,6 +263,89 @@ export class HardwareIdService {
         // Don't resolve on error, let timeout handle it
       });
     });
+  }
+
+  /**
+   * Whether an ID is real, rather than the main process's placeholder
+   */
+  isUsableHardwareId(hardwareId: string | null | undefined): boolean {
+    return !!hardwareId && hardwareId !== this.UNUSABLE_HARDWARE_ID;
+  }
+
+  /**
+   * Keep asking the main process until a usable hardware ID turns up.
+   *
+   * ensureHardwareId() polls localStorage only, so when the first IPC probe
+   * comes back empty - common when Windows starts the app from the logon Run
+   * key, before WMI is answering - nothing refreshes it for the rest of the
+   * session. This re-invokes the IPC with exponential backoff (2s, 4s, 8s, ...
+   * capped at `maxDelayMs`), and picks the value up from localStorage as soon
+   * as the main process pushes it, without waiting out the current delay.
+   *
+   * @param shouldContinue checked between attempts; return false to give up
+   * @param timeoutMs How long to keep trying (default: 1 hour)
+   * @param initialDelayMs First gap between attempts, doubled each time
+   * @param maxDelayMs Upper bound for the gap
+   * @returns Promise that resolves to a usable hardware ID, or null when the
+   *   time runs out or `shouldContinue` says stop
+   */
+  async waitForUsableHardwareId(
+    shouldContinue: () => boolean = () => true,
+    timeoutMs: number = 60 * 60 * 1000,
+    initialDelayMs: number = 2000,
+    maxDelayMs: number = 5 * 60 * 1000
+  ): Promise<string | null> {
+    const existingId = this.getHardwareId();
+    if (this.isUsableHardwareId(existingId)) {
+      return existingId;
+    }
+
+    if (!this.isElectron()) {
+      return null;
+    }
+
+    console.log(
+      `⏳ [HardwareID] Retrying in the background for up to ${timeoutMs}ms...`
+    );
+
+    const deadline = Date.now() + timeoutMs;
+    let delayMs = initialDelayMs;
+    let attempt = 0;
+    while (Date.now() < deadline && shouldContinue()) {
+      // Wait out the backoff, but wake early for a push or a stop request.
+      const wakeAt = Math.min(Date.now() + delayMs, deadline);
+      while (Date.now() < wakeAt && shouldContinue()) {
+        const storedId = this.getHardwareId();
+        if (this.isUsableHardwareId(storedId)) {
+          console.log('✅ [HardwareID] Hardware ID arrived from main process:', storedId);
+          return storedId;
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.min(1000, wakeAt - Date.now()))
+        );
+      }
+      if (!shouldContinue()) {
+        break;
+      }
+
+      attempt++;
+      const data = await this.fetchHardwareId();
+      if (data && this.isUsableHardwareId(data.hardwareId)) {
+        console.log(
+          `✅ [HardwareID] Hardware ID resolved on retry ${attempt}:`,
+          data.hardwareId
+        );
+        return data.hardwareId;
+      }
+      delayMs = Math.min(delayMs * 2, maxDelayMs);
+    }
+
+    console.warn(
+      shouldContinue()
+        ? '⚠️ [HardwareID] No usable hardware ID after background retries'
+        : 'ℹ️ [HardwareID] Background retries stopped by caller'
+    );
+    return null;
   }
 
   /**

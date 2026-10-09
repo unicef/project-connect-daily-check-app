@@ -1,5 +1,7 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../../app/services/settings.service';
 import { NotFound } from '../schoolnotfound/types';
@@ -10,6 +12,13 @@ import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { PosthogService } from '../services/posthog.service';
+
+/**
+ * Screens before the country step. While the user is on one of these, an
+ * existing registration found for this machine still takes them to the
+ * dashboard.
+ */
+const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
 
 @Component({
   selector: 'app-home',
@@ -24,6 +33,14 @@ export class HomePage {
   privacyUrl2 = 'https://www.measurementlab.net/privacy/';
   targetUrl = '_blank';
   isPrivacyChecked = false;
+  /**
+   * True while the app is still working out whether this machine already has a
+   * registration, so the welcome screen can say so instead of looking idle.
+   */
+  isCheckingRegistration = false;
+  /** Set once the user reaches the country step; auto-registration stops. */
+  private reachedCountryStep = false;
+  private routerSub: Subscription;
   constructor(
     public router: Router,
     public translate: TranslateService,
@@ -53,6 +70,22 @@ export class HomePage {
       // eslint-disable-next-line max-len
       '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="white" [translate]="\'loading\'">Loading...</p></div>';
     this.loading.present(loadingMsg, 6000, 'pdcaLoaderClass', 'null');
+
+    this.routerSub = this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        if (
+          !this.reachedCountryStep &&
+          !AUTO_REGISTRATION_ROUTES.some((route) =>
+            event.urlAfterRedirects.startsWith(route)
+          )
+        ) {
+          console.log(
+            'ℹ️ [HomePage] User reached the country step, stopping registration check'
+          );
+          this.reachedCountryStep = true;
+        }
+      });
 
     if (this.storage.get('schoolId')) {
       // User has local registration - check if device is still active
@@ -186,16 +219,20 @@ export class HomePage {
   private async checkHardwareRegistration() {
     try {
       console.log('🔍 [HomePage] Starting hardware registration check...');
+      this.isCheckingRegistration = true;
 
       // Wait for hardware ID to be available (with 10 second timeout)
       const hardwareId = await this.hardwareIdService.ensureHardwareId(10000);
 
-      if (hardwareId) {
+      // The main process stores a placeholder when the probe had no UUID; it
+      // matches no registration, so treat it like no ID and keep retrying.
+      if (this.hardwareIdService.isUsableHardwareId(hardwareId)) {
         console.log(
           '🔍 [HomePage] Checking for existing registration with hardware ID:',
           hardwareId
         );
         await this.checkMachineRegistration(hardwareId);
+        this.isCheckingRegistration = false;
       } else {
         // No hardware ID available after timeout - proceed normally
         console.warn(
@@ -203,20 +240,79 @@ export class HomePage {
         );
         console.log('   User will need to manually register the device');
         this.loading.dismiss();
+        this.retryHardwareRegistrationInBackground();
       }
     } catch (error) {
       console.error(
         '❌ [HomePage] Error in hardware registration check:',
         error
       );
+      this.isCheckingRegistration = false;
       this.loading.dismiss();
     }
   }
 
   /**
+   * Keep looking for the hardware ID after the initial wait gave up.
+   *
+   * When Windows starts the app from the logon Run key, WMI is often not
+   * answering yet, so the early probes return nothing and an existing
+   * registration for this machine is never claimed until someone restarts the
+   * app by hand. Retry with backoff for up to an hour, and if an ID turns up
+   * run the lookup that was skipped - but only while the user is still before
+   * the country step, so a late answer never interrupts a registration they
+   * are actually filling in.
+   */
+  private async retryHardwareRegistrationInBackground() {
+    try {
+      const hardwareId = await this.hardwareIdService.waitForUsableHardwareId(
+        () => this.canAutoRegister()
+      );
+
+      if (!hardwareId || !this.canAutoRegister()) {
+        return;
+      }
+
+      console.log(
+        '🔁 [HomePage] Hardware ID arrived late, retrying registration lookup:',
+        hardwareId
+      );
+      await this.checkMachineRegistration(hardwareId, () =>
+        this.canAutoRegister()
+      );
+    } catch (error) {
+      console.error(
+        '❌ [HomePage] Background hardware ID retry failed:',
+        error
+      );
+    } finally {
+      this.isCheckingRegistration = false;
+    }
+  }
+
+  /**
+   * Whether a late hardware-ID match may still take the user to the dashboard:
+   * nothing registered yet, and the user has not reached the country step
+   * ("Detecting your country"). Reaching it ends the check for this session.
+   */
+  private canAutoRegister(): boolean {
+    if (this.storage.get('schoolId')) {
+      return false;
+    }
+    if (this.reachedCountryStep) {
+      return false;
+    }
+    const url = this.router.url;
+    return AUTO_REGISTRATION_ROUTES.some((route) => url.startsWith(route));
+  }
+
+  /**
    * Check if this machine is already registered using hardware ID
    */
-  private async checkMachineRegistration(hardwareId: string) {
+  private async checkMachineRegistration(
+    hardwareId: string,
+    stillWanted: () => boolean = () => true
+  ) {
     try {
       console.log(
         '🌐 [HomePage] Querying backend for existing registration...'
@@ -229,6 +325,12 @@ export class HomePage {
 
       // Backend returns: { success: true, data: { exists: true/false, ... }, timestamp, message }
       // Note: Backend only returns active registrations, so if exists=true, it's active
+      if (!stillWanted()) {
+        console.log(
+          'ℹ️ [HomePage] User moved on during the lookup, ignoring the answer'
+        );
+        return;
+      }
       if (response?.success && response?.data?.exists === true) {
         // Found existing registration - populate localStorage
         console.log(
@@ -316,6 +418,10 @@ export class HomePage {
     console.log(
       '✅ [HomePage] Registration data successfully loaded from hardware ID'
     );
+  }
+
+  ngOnDestroy() {
+    this.routerSub?.unsubscribe();
   }
 
   openExternalUrl(href) {
