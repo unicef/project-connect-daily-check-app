@@ -9,6 +9,7 @@ import { StorageService } from '../services/storage.service';
 import { NetworkService } from '../services/network.service';
 
 import { School } from '../models/models';
+import { NotFound, classifyRequestError } from '../schoolnotfound/types';
 import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
 import { environment } from 'src/environments/environment';
@@ -188,14 +189,22 @@ export class ConfirmschoolPage implements OnInit{
          Either way the screen must not hang: dismiss and route out so the user
          can retry. */
       console.error('❌ [ConfirmSchool] Registration failed:', err);
-      this.router.navigate([
-        'schoolnotfound',
-        this.schoolId,
-        this.selectedCountry,
-        this.detectedCountry,
-        this.selectedCountryName,
-      ]);
-      /* Redirect to no result found page */
+      /* The school was found; registering it failed. Say why, and let
+         "Try again" bring the user back here. */
+      this.router.navigate(
+        [
+          'schoolnotfound',
+          this.schoolId,
+          this.selectedCountry,
+          this.detectedCountry,
+          this.selectedCountryName,
+        ],
+        {
+          queryParams: {
+            reason: classifyRequestError(err, NotFound.registrationFailed),
+          },
+        }
+      );
     } finally {
       this.dismissLoader();
       this.isRegistering = false;

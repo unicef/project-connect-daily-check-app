@@ -102,6 +102,34 @@
     "title1": "You're about to register your school",
     "title2": "To ensure a good registration process make sure the computers are:"
   },
+  "registrationError": {
+    "countryCheckFailed": "We couldn't check if {{appName}} is available in this country. Check your internet connection.",
+    "network": {
+      "message": "We couldn't reach {{appName}}. Check that this computer is connected to the internet and try again.",
+      "title": "No internet connection"
+    },
+    "notRegister": {
+      "message": "This computer's registration was removed from {{appName}}. Please register your school again.",
+      "title": "Your school is no longer registered"
+    },
+    "registerAgain": "Register again",
+    "registrationFailed": {
+      "message": "Something went wrong while registering your school. Please try again.",
+      "title": "We couldn't register this computer"
+    },
+    "server": {
+      "message": "{{appName}} is having trouble right now. Please try again in a few minutes.",
+      "title": "Something went wrong on our side"
+    },
+    "timeout": {
+      "message": "{{appName}} took too long to respond. Check your internet connection and try again.",
+      "title": "The connection is too slow"
+    },
+    "unknown": {
+      "message": "Please try again.",
+      "title": "Something went wrong"
+    }
+  },
   "resultSchool": "RESULTS FOR SCHOOL ID",
   "saveEmail": {
     "emailFormat": "Please enter a valid email with a domain and dot (e.g., info@school.com).",

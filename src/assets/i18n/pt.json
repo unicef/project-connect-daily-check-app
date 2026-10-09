@@ -102,6 +102,34 @@
     "title1": "Você está prestes a registrar sua escola",
     "title2": "Para garantir um bom processo de registro, certifique-se de que os computadores estejam:"
   },
+  "registrationError": {
+    "countryCheckFailed": "Não foi possível verificar se o {{appName}} está disponível neste país. Verifique sua conexão com a internet.",
+    "network": {
+      "message": "Não foi possível acessar o {{appName}}. Verifique se este computador está conectado à internet e tente novamente.",
+      "title": "Sem conexão com a internet"
+    },
+    "notRegister": {
+      "message": "O registro deste computador foi removido do {{appName}}. Registre sua escola novamente.",
+      "title": "Sua escola não está mais registrada"
+    },
+    "registerAgain": "Registrar novamente",
+    "registrationFailed": {
+      "message": "Algo deu errado ao registrar sua escola. Tente novamente.",
+      "title": "Não foi possível registrar este computador"
+    },
+    "server": {
+      "message": "O {{appName}} está com problemas no momento. Tente novamente em alguns minutos.",
+      "title": "Algo deu errado do nosso lado"
+    },
+    "timeout": {
+      "message": "O {{appName}} demorou muito para responder. Verifique sua conexão com a internet e tente novamente.",
+      "title": "A conexão está muito lenta"
+    },
+    "unknown": {
+      "message": "Tente novamente.",
+      "title": "Algo deu errado"
+    }
+  },
   "resultSchool": "RESULTADOS PARA O ID DA ESCOLA",
   "saveEmail": {
     "emailFormat": "Insira um e-mail válido com domínio e ponto (por exemplo, info@school.com).",

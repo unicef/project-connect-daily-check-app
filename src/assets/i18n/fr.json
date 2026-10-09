@@ -102,6 +102,34 @@
     "title1": "Vous êtes sur le point d’inscrire votre école",
     "title2": "Pour garantir un bon processus d'inscription, assurez-vous que les directives suivantes sont respectées :"
   },
+  "registrationError": {
+    "countryCheckFailed": "Impossible de vérifier si {{appName}} est disponible dans ce pays. Vérifiez votre connexion Internet.",
+    "network": {
+      "message": "Impossible de joindre {{appName}}. Vérifiez que cet ordinateur est connecté à Internet, puis réessayez.",
+      "title": "Pas de connexion Internet"
+    },
+    "notRegister": {
+      "message": "L'enregistrement de cet ordinateur a été supprimé de {{appName}}. Veuillez enregistrer à nouveau votre école.",
+      "title": "Votre école n'est plus enregistrée"
+    },
+    "registerAgain": "S'enregistrer à nouveau",
+    "registrationFailed": {
+      "message": "Un problème est survenu lors de l'enregistrement de votre école. Veuillez réessayer.",
+      "title": "Impossible d'enregistrer cet ordinateur"
+    },
+    "server": {
+      "message": "{{appName}} rencontre actuellement des difficultés. Veuillez réessayer dans quelques minutes.",
+      "title": "Un problème est survenu de notre côté"
+    },
+    "timeout": {
+      "message": "{{appName}} a mis trop de temps à répondre. Vérifiez votre connexion Internet, puis réessayez.",
+      "title": "La connexion est trop lente"
+    },
+    "unknown": {
+      "message": "Veuillez réessayer.",
+      "title": "Un problème est survenu"
+    }
+  },
   "resultSchool": "RÉSULTATS POUR L'IDENTIFICATION DE L'ÉCOLE",
   "saveEmail": {
     "emailFormat": "Veuillez saisir une adresse e-mail valide avec un domaine et un point (par exemple, info@school.com).",

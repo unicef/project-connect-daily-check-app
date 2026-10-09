@@ -102,6 +102,34 @@
     "title1": "Maktabingizni ro‘yxatdan o‘tkazmoqchisiz",
     "title2": "Yaxshi ro‘yxatdan o‘tish jarayoni uchun kompyuterlar quyidagicha bo‘lishiga ishonch hosil qiling:"
   },
+  "registrationError": {
+    "countryCheckFailed": "{{appName}} bu mamlakatda mavjudligini tekshirib bo‘lmadi. Internet aloqasini tekshiring.",
+    "network": {
+      "message": "{{appName}} bilan bog‘lanib bo‘lmadi. Kompyuter internetga ulanganini tekshiring va qayta urinib ko‘ring.",
+      "title": "Internet aloqasi yo‘q"
+    },
+    "notRegister": {
+      "message": "Bu kompyuterning ro‘yxati {{appName}}dan o‘chirildi. Maktabingizni qayta ro‘yxatdan o‘tkazing.",
+      "title": "Maktabingiz endi ro‘yxatda emas"
+    },
+    "registerAgain": "Qayta ro‘yxatdan o‘tish",
+    "registrationFailed": {
+      "message": "Maktabingizni ro‘yxatdan o‘tkazishda xatolik yuz berdi. Qayta urinib ko‘ring.",
+      "title": "Bu kompyuterni ro‘yxatdan o‘tkazib bo‘lmadi"
+    },
+    "server": {
+      "message": "{{appName}} hozir nosozlikka uchradi. Bir necha daqiqadan so‘ng qayta urinib ko‘ring.",
+      "title": "Biz tomonda xatolik yuz berdi"
+    },
+    "timeout": {
+      "message": "{{appName}} juda uzoq javob bermadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
+      "title": "Aloqa juda sekin"
+    },
+    "unknown": {
+      "message": "Qayta urinib ko‘ring.",
+      "title": "Xatolik yuz berdi"
+    }
+  },
   "resultSchool": "MAKTAB IDsi UCHUN NATIJALAR",
   "saveEmail": {
     "emailFormat": "Iltimos, to‘g‘ri formatdagi emailni kiriting (masalan, info@school.com).",

@@ -5,7 +5,7 @@
     <ion-img src="assets/images/back_button.svg" name="arrow-back-outline" class="backIcon"></ion-img>
   </ion-button>
   <div class="container">
-    <app-selected-detail></app-selected-detail>
+    <app-selected-detail *ngIf="reason !== NotFound.notRegister"></app-selected-detail>
 
     <div class="top-layout wrap_content">
       <!-- <div class="label-txt">
@@ -14,18 +14,21 @@
       </div> -->
       <!-- <div class="h-line"></div> -->
       <div class="noschool">
-        <ion-img src="assets/images/school_not_found.svg" class="noschool-icon"></ion-img>
-        <div class="unabletolocate-txt" [innerHtml]="'schoolNotFound.unableToLocate' | translate:{ schoolId }"></div>
-        <!-- <div *ngIf="notFound" class="noschool-txt" [translate]="'schoolNotFound.notFound'"></div> -->
-        <!-- <ng-template #notRegister>
-          <div class="noschool-txt" [translate]="'schoolNotFound.notRegister' | translate:{ appName }"></div>
-        </ng-template> -->
-        <div class="try_again"  [translate]="'schoolNotFound.tryAgainPlaceholder'"></div>
+        <ng-container *ngIf="isNotFound; else requestError">
+          <ion-img src="assets/images/school_not_found.svg" class="noschool-icon"></ion-img>
+          <div class="unabletolocate-txt" [innerHtml]="'schoolNotFound.unableToLocate' | translate:{ schoolId }"></div>
+          <div class="try_again"  [translate]="'schoolNotFound.tryAgainPlaceholder'"></div>
+        </ng-container>
+        <ng-template #requestError>
+          <ion-img src="assets/images/error_country.svg" class="noschool-icon"></ion-img>
+          <div class="unabletolocate-txt" [innerHtml]="'registrationError.' + reason + '.title' | translate"></div>
+          <div class="try_again" [innerHtml]="'registrationError.' + reason + '.message' | translate:{ appName }"></div>
+        </ng-template>
       </div>
     </div>
     <div class="bottom-layout">
-      <ion-button color="primary" (click)="backToSearchDetail()" block class="dailycheck_btn submit_button_size"
-        [translate]="'tryAgain'"></ion-button>
+      <ion-button color="primary" (click)="tryAgain()" block class="dailycheck_btn submit_button_size"
+        [translate]="reason === NotFound.notRegister ? 'registrationError.registerAgain' : 'tryAgain'"></ion-button>
     </div>
   </div>
 </ion-content>
