@@ -2,7 +2,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { StorageService } from '../services/storage.service';
@@ -18,6 +18,13 @@ import { TranslateService } from '@ngx-translate/core';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
 import { PosthogService } from '../services/posthog.service';
+import { withTimeout } from '../utils/with-timeout.utils';
+
+/** Cap for each optional lookup (IP, Windows username, install path, WiFi). */
+const LOOKUP_TIMEOUT_MS = 10000;
+/** Cap for the registration request itself. */
+const REGISTER_TIMEOUT_MS = 30000;
+
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -115,15 +122,20 @@ export class ConfirmschoolPage implements OnInit{
     this.loading.present(loadingMsg, undefined, 'pdcaLoaderClass', 'null');
 
     try {
-      const ipAddress = await this.getIPAddress();
       const deviceInfo = await this.getDeviceInfo();
       const deviceId = await this.getDeviceId();
       // Get hardware ID for machine-level registration
       const hardwareId = this.hardwareIdService.getHardwareId();
-      // Get Windows username, installed path, and WiFi connections
-      const windowsUsername = await this.getWindowsUsername();
-      const installedPath = await this.getInstalledPath();
-      const wifiConnections = await this.getWifiConnections();
+      /* The loader has no duration, so none of these optional lookups may hang
+         it: each one is capped and falls back to null, and they run together
+         so the worst case is one cap rather than the sum. */
+      const [ipAddress, windowsUsername, installedPath, wifiConnections] =
+        await Promise.all([
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getIPAddress(), null),
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getWindowsUsername(), null),
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getInstalledPath(), null),
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getWifiConnections(), null),
+        ]);
 
       const schoolData = {
         giga_id_school: this.school.giga_id_school,
@@ -149,7 +161,9 @@ export class ConfirmschoolPage implements OnInit{
       }
 
       const response = await firstValueFrom(
-        this.schoolService.registerSchoolDevice(schoolData)
+        this.schoolService
+          .registerSchoolDevice(schoolData)
+          .pipe(timeout(REGISTER_TIMEOUT_MS))
       );
 
       this.storage.set('deviceType', deviceInfo.operatingSystem);
