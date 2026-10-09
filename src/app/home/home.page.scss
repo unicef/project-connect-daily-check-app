@@ -77,3 +77,19 @@
   width: 100%;
   text-align: center;
 }
+.registration_check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 0 16px;
+  line-height: 1.35;
+  font-size: 14px;
+  font-weight: 400;
+  color: #5b5b5b;
+  ion-spinner {
+    width: 16px;
+    height: 16px;
+  }
+}
