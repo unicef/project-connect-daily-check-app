@@ -160,7 +160,7 @@ describe('ConfirmschoolPage', () => {
     expect(component.isRegistering).toBeFalse();
   });
 
-  it('dismisses the loader and re-arms the button when a pre-registration lookup fails', async () => {
+  it('registers with null when an optional pre-registration lookup fails', async () => {
     (component.getWifiConnections as jasmine.Spy).and.rejectWith(
       new Error('ipc down')
     );
@@ -168,9 +168,50 @@ describe('ConfirmschoolPage', () => {
 
     await component.confirmSchool();
 
-    expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
-    expect(loading.dismiss).toHaveBeenCalled();
+    expect(schoolService.registerSchoolDevice).toHaveBeenCalledWith(
+      jasmine.objectContaining({ wifi_connections: null })
+    );
+    expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
     expect(component.isRegistering).toBeFalse();
+  });
+
+  describe('with a mocked clock', () => {
+    beforeEach(() => jasmine.clock().install());
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('does not let a hanging lookup hold the loader up', async () => {
+      // Never settles, like an IP service that accepts the connection and stalls.
+      (component.getIPAddress as jasmine.Spy).and.returnValue(
+        new Promise(() => undefined)
+      );
+      schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+
+      const done = component.confirmSchool();
+      await flushMicrotasks();
+      expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
+
+      jasmine.clock().tick(10000);
+      await done;
+
+      expect(schoolService.registerSchoolDevice).toHaveBeenCalledWith(
+        jasmine.objectContaining({ ip_address: null })
+      );
+      expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
+      expect(loading.dismiss).toHaveBeenCalled();
+    });
+
+    it('gives up on a registration request that never answers', async () => {
+      schoolService.registerSchoolDevice.and.returnValue(new Subject<any>());
+
+      const done = component.confirmSchool();
+      await flushMicrotasks();
+      jasmine.clock().tick(30000);
+      await done;
+
+      expect(router.navigate).not.toHaveBeenCalledWith(['/starttest']);
+      expect(loading.dismiss).toHaveBeenCalled();
+      expect(component.isRegistering).toBeFalse();
+    });
   });
 
   it('records a flagged school only when the selected country differs', async () => {
