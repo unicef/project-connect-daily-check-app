@@ -87,6 +87,11 @@ export class AppComponent {
     this.languageSearch =
       this.languages.find((l) => l?.code === this.selectedLanguage)?.label ??
       '';
+    // Keep <html lang> in sync with the UI language so screen readers use the
+    // right voice and styles can target a language with :lang().
+    this.translate.onLangChange.subscribe(({ lang }) => {
+      document.documentElement.lang = lang;
+    });
     translate.setDefaultLang('en');
     const appLang = this.settingsService.get('applicationLanguage') ?? {
       code: 'en',

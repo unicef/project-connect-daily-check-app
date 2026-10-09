@@ -587,7 +587,9 @@ ion-breadcrumb::part(separator) {
     }
 
     .border_top ion-accordion-group ion-accordion ion-icon {
-    margin-inline: -15px !important;
+    // Pull the chevron into the item's end padding, but keep a gap on its
+    // start side so a long question wraps before reaching it.
+    margin-inline: 8px -15px !important;
 }
 
 
