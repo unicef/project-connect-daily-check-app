@@ -12,6 +12,11 @@ declare global {
 /**
  * Lightweight Matomo integration.
  *
+ * RETIRED in 2.0.4: PostHog replaced it, and nothing calls init() any more, so
+ * no tracker script is loaded and no events are sent. The service and its
+ * environment.matomo config are kept for one release in case the switch has to
+ * be reversed quickly; remove both once PostHog is confirmed in production.
+ *
  * All operations are wrapped in try/catch so any failure here
  * (script load failure, misconfiguration, etc.) will never break the app.
  */
