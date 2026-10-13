@@ -122,6 +122,7 @@ class NetworkTestWorker(
       AppLogger.d("GIGA NetworkTestWorker", "Device is offline, retry: $willRetry")
       Sentry.captureMessage("Device is offline, speed test skipped", SentryLevel.WARNING) { scope ->
         applyConnectionContext(scope)
+        TestFailureReason.NO_INTERNET.applyTo(scope)
         scope.setTag("run_attempt", "$runAttemptCount")
         scope.setTag("will_retry", "$willRetry")
       }
@@ -135,7 +136,10 @@ class NetworkTestWorker(
 
     if (prefs.isTestInProgress()) {
       AppLogger.d("GIGA NetworkTestWorker", "Speed test already running, skipping")
-      Sentry.captureMessage("Speed test skipped, another test is running", SentryLevel.INFO)
+      Sentry.captureMessage("Speed test skipped, another test is running", SentryLevel.INFO) { scope ->
+        scope.setTag("schedule_type", scheduleType)
+        TestFailureReason.ALREADY_RUNNING.applyTo(scope)
+      }
       // A background daily or startup run must not replace the test already on screen.
       if (scheduleType == SCHEDULE_TYPE_MANUAL || scheduleType == SCHEDULE_TYPE_FIRST) {
         GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
@@ -174,6 +178,7 @@ class NetworkTestWorker(
         prefs.isTestRunning = false
         Sentry.captureMessage("Speed test timed out", SentryLevel.ERROR) { scope ->
           applyConnectionContext(scope)
+          TestFailureReason.CONNECTION_TOO_SLOW.applyTo(scope)
         }
         updateNotification("Speed test timed out, please try again.")
         GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
@@ -206,6 +211,15 @@ class NetworkTestWorker(
       ) {
         val willRetry = isBackground && failureKind?.isRetryable == true && canRetryInSlot()
         AppLogger.d("GIGA NetworkTestWorker", "Speed test failed (${failureKind?.tag}), retry: $willRetry")
+        // A failure kind means onError already reported this test.
+        if (failureKind == null) {
+          Sentry.captureMessage("Speed test ended without results", SentryLevel.ERROR) { scope ->
+            applyConnectionContext(scope)
+            TestFailureReason.UNKNOWN.applyTo(scope)
+            scope.setTag("download_complete", "${downloadCompleteJson != null}")
+            scope.setTag("upload_complete", "${uploadCompleteJson != null}")
+          }
+        }
         prefs.isTestRunning = false
         updateNotification("Speed test measurements not available, please try again.")
         GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
@@ -234,6 +248,7 @@ class NetworkTestWorker(
       AppLogger.d("GIGA NetworkTestWorker", "Speed test stopped by the system: $reason")
       Sentry.captureMessage("Speed test stopped by the system", SentryLevel.WARNING) { scope ->
         applyConnectionContext(scope)
+        TestFailureReason.SYSTEM_STOPPED.applyTo(scope)
         scope.setTag("stop_reason", reason)
         scope.setTag("run_attempt", "$runAttemptCount")
       }
@@ -255,7 +270,10 @@ class NetworkTestWorker(
       activeCallbacks?.stop()
       Ndt7client.cancel()
       prefs.isTestRunning = false
-      Sentry.captureException(e)
+      Sentry.captureException(e) { scope ->
+        applyConnectionContext(scope)
+        TestFailureReason.UNKNOWN.applyTo(scope)
+      }
       GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
       Result.failure()
     } finally {
@@ -594,7 +612,10 @@ class NetworkTestWorker(
                 existingSpeedTestData,
                 Gson().toJson(measurementsItem)
               )
-              Sentry.captureMessage("Failed to sync speed test data", SentryLevel.ERROR)
+              Sentry.captureMessage("Failed to sync speed test data", SentryLevel.ERROR) { scope ->
+                applyConnectionContext(scope)
+                TestFailureReason.NOT_SYNCED.applyTo(scope)
+              }
               updateNotification("Failed to sync speed test data.")
               GigaAppPlugin.sendSpeedTestCompletedWithError(
                 speedTestResultRequestEntity,
@@ -634,7 +655,10 @@ class NetworkTestWorker(
             measurementsItem
           )
           updateNotification("Failed to sync speed test data.")
-          Sentry.captureException(e)
+          Sentry.captureException(e) { scope ->
+            applyConnectionContext(scope)
+            TestFailureReason.NOT_SYNCED.applyTo(scope)
+          }
         }
       } else {
         measurementsItem.uploaded = false
@@ -651,14 +675,14 @@ class NetworkTestWorker(
         Sentry.captureMessage(
           "Failed to generate the speed test upload payload",
           SentryLevel.ERROR
-        )
+        ) { scope -> TestFailureReason.UNKNOWN.applyTo(scope) }
       }
 
       prefs.isTestRunning = false
       delay(5000)
       AppLogger.d("GIGA NetworkTestWorker", "Speed Test Completed")
     } catch (e: Exception) {
-      Sentry.captureException(e)
+      Sentry.captureException(e) { scope -> TestFailureReason.UNKNOWN.applyTo(scope) }
       updateNotification("Speed test measurements not available, please try again.")
       GigaAppPlugin.sendSpeedTestCompletedWithError(null, null)
       prefs.isTestRunning = false
@@ -749,6 +773,7 @@ class NetworkTestWorker(
         Sentry.captureMessage("ndt7 $direction failed: $message", level) { scope ->
           applyConnectionContext(scope)
           scope.fingerprint = listOf("ndt7", kind.tag)
+          TestFailureReason.of(kind, networkMonitor.networkChanged).applyTo(scope)
           scope.setTag("test_type", direction)
           scope.setTag("error_kind", kind.tag)
           scope.setTag("network_changed", "${networkMonitor.networkChanged}")

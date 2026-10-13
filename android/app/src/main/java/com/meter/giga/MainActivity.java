@@ -46,6 +46,7 @@ import com.meter.giga.utils.BatteryStatus;
 import com.meter.giga.utils.Constants;
 import com.meter.giga.utils.PluginEvent;
 import com.meter.giga.utils.WebViewHistoryRepair;
+import com.meter.giga.worker.PingScheduler;
 import com.meter.giga.worker.UpdateCheckWorker;
 
 import java.util.Objects;
@@ -121,6 +122,11 @@ public class MainActivity extends BridgeActivity {
       return;
     }
 
+    // Installs updated from a version without the ping worker are registered
+    // already and never call storeAndScheduleSpeedTest again.
+    if (isSchoolRegistered()) {
+      PingScheduler.schedule(this);
+    }
     checkNotificationPermission();
   }
 
@@ -138,6 +144,13 @@ public class MainActivity extends BridgeActivity {
     super.onStart();
     AppUpdateCheckEventBus.setListener(pluginEventListener);
     AppLogger.INSTANCE.d("MAIN Activity", "AppEventBus listener registered");
+    if (!isUiTest() && isSchoolRegistered()) {
+      PingScheduler.checkNowIfNoneToday(this);
+    }
+  }
+
+  private boolean isSchoolRegistered() {
+    return !new AlarmSharedPref(this).getGigaSchoolId().trim().isEmpty();
   }
 
   @Override

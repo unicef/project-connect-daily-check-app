@@ -940,20 +940,25 @@ export class StarttestPage implements OnInit, OnDestroy {
   }
 
   /**
-   * Load the latest ping result from IndexedDB to display in the dashboard
+   * Load the latest ping result to display in the dashboard: from the native
+   * PingWorker on Android, else from IndexedDB
    */
   async loadLatestPingResult() {
     try {
-      const pingResults = await this.indexedDBService.getPingResults();
-
-      if (pingResults && pingResults.length > 0) {
+      let latest = null;
+      if (this.isNative) {
+        latest = (await this.gigaAppPlugin.getLatestPingResult())?.result;
+      } else {
+        const pingResults = await this.indexedDBService.getPingResults();
         // Sort by timestamp to get the latest result
-        const sortedResults = pingResults.sort(
+        latest = pingResults?.sort(
           (a, b) =>
             new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-        );
+        )[0];
+      }
 
-        this.lastPingResult = sortedResults[0];
+      if (latest) {
+        this.lastPingResult = latest;
         this.pingStatus = this.lastPingResult.isConnected
           ? 'Success'
           : 'Failed';
@@ -1364,12 +1369,16 @@ export class StarttestPage implements OnInit, OnDestroy {
       // Run ping test first, then start the NDT test
       try {
         console.log('Running ping test before first NDT test...');
-        const pingResult = await this.pingService.performCheck();
+        const pingResult = this.isNative
+          ? (await this.gigaAppPlugin.runPingCheck())?.result
+          : await this.pingService.performCheck();
 
         if (pingResult) {
           console.log('Ping test completed successfully:', pingResult);
-          // Save the ping result
-          await this.indexedDBService.savePingResult(pingResult);
+          // The native PingWorker stores its own results
+          if (!this.isNative) {
+            await this.indexedDBService.savePingResult(pingResult);
+          }
           // Update the ping display
           await this.loadLatestPingResult();
         } else {

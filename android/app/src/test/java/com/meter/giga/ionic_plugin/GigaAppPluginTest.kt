@@ -3,14 +3,22 @@ package com.meter.giga.ionic_plugin
 import android.content.Context
 import android.os.Build
 import androidx.test.core.app.ApplicationProvider
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import androidx.work.testing.WorkManagerTestInitHelper
 import com.getcapacitor.Bridge
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
+import com.meter.giga.data.models.requests.ConnectivityRecordRequestModel
+import com.meter.giga.data.models.requests.PendingPingModel
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
+import com.meter.giga.prefrences.PingStore
 import com.meter.giga.utils.Constants.ENV_TYPE
+import com.meter.giga.utils.Constants.PING_WORK_NAME
+import com.meter.giga.worker.PingScheduler
 import io.mockk.*
 import org.junit.Assert.*
 import org.junit.Before
@@ -63,6 +71,7 @@ class GigaAppPluginTest {
   fun setup() {
 
     context = ApplicationProvider.getApplicationContext()
+    WorkManagerTestInitHelper.initializeTestWorkManager(context)
 
     mockCall = mockk(relaxed = true)
 
@@ -297,6 +306,58 @@ class GigaAppPluginTest {
     }
 
     unmockkConstructor(AlarmSharedPref::class)
+  }
+
+  @Test
+  fun `clearStoredData cancels the ping worker`() {
+    PingScheduler.schedule(context)
+
+    plugin.clearStoredData(mockCall)
+
+    val infos = WorkManager.getInstance(context)
+      .getWorkInfosForUniqueWork(PING_WORK_NAME).get()
+    assertTrue(infos.all { it.state == WorkInfo.State.CANCELLED })
+  }
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // getLatestPingResult
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  @Test
+  fun `getLatestPingResult resolves an empty object before any check`() {
+    val captured = slot<JSObject>()
+    every { mockCall.resolve(capture(captured)) } just Runs
+
+    plugin.getLatestPingResult(mockCall)
+
+    assertFalse(captured.captured.has("result"))
+  }
+
+  @Test
+  fun `getLatestPingResult resolves the latest stored check`() {
+    PingStore(context).add(
+      PendingPingModel(
+        gigaIdSchool = "giga-1",
+        createdAt = 0L,
+        record = ConnectivityRecordRequestModel(
+          timestamp = "2026-10-09T10:00:00.000Z",
+          isConnected = true,
+          errorMessage = null,
+          browserId = "user-1",
+          appLocalUuid = "uuid-1",
+          latency = 28.41
+        )
+      )
+    )
+    val captured = slot<JSObject>()
+    every { mockCall.resolve(capture(captured)) } just Runs
+
+    plugin.getLatestPingResult(mockCall)
+
+    val result = captured.captured.getJSObject("result")!!
+    assertEquals("2026-10-09T10:00:00.000Z", result.getString("timestamp"))
+    assertTrue(result.getBoolean("isConnected"))
+    assertEquals(28.41, result.getDouble("latency"), 0.0)
   }
 
   // ═══════════════════════════════════════════════════════════════════════════

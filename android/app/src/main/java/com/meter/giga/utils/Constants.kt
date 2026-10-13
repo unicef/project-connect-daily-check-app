@@ -79,6 +79,29 @@ object Constants {
   const val BACKGROUND_RETRY_DELAY_MIN = 15L
   const val MAX_BACKGROUND_RETRIES = 3
 
+  // Ping (connectivity) checks, matching the web PingService
+  const val PING_WORK_NAME = "ping_check"
+  const val PING_ON_OPEN_WORK_NAME = "ping_check_on_open"
+  const val KEY_PING_LAST_CHECK_AT = "KEY_PING_LAST_CHECK_AT"
+  const val PING_PREFERENCES = "GIGA_PING_PREFERENCES"
+  const val KEY_PENDING_PINGS = "KEY_PENDING_PINGS"
+  const val KEY_LAST_PING_RESULT = "KEY_LAST_PING_RESULT"
+  const val KEY_PING_SERVICE_ENABLED = "KEY_PING_SERVICE_ENABLED"
+  const val KEY_PING_FLAGS_FETCHED_AT = "KEY_PING_FLAGS_FETCHED_AT"
+  const val KEY_PING_LAST_SYNC_AT = "KEY_PING_LAST_SYNC_AT"
+  const val PING_LATENCY_URL = "https://speed.cloudflare.com/__down?bytes=0"
+  const val PING_LATENCY_SAMPLES = 10
+  const val PING_REQUEST_TIMEOUT_MS = 3000L
+  const val PING_INTERVAL_MIN = 15L
+  const val PING_REUSE_WINDOW_MS = 5 * 60 * 1000L
+  const val PING_ACTIVE_START_HOUR = 8
+  const val PING_ACTIVE_END_HOUR = 20
+  const val PING_SYNC_BATCH_SIZE = 5
+  const val PING_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000L
+  const val PING_MAX_PENDING = 3000
+  const val PING_RETENTION_MS = 30 * 24 * 60 * 60 * 1000L
+  const val PING_FLAGS_REFRESH_MS = 6 * 60 * 60 * 1000L
+
 
   // Date Format
   const val M_D_YYYY_H_MM_SS_A = "M/d/yyyy, h:mm:ss a"
