@@ -1,22 +1,34 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
-
-import { RegisterSchoolPageComponent } from './register-school-page.component';
+import { RouterTestingModule } from '@angular/router/testing';
+import { TranslateModule } from '@ngx-translate/core';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
-import { SettingsService } from '../../services/settings.service';
-import { TranslateModule } from '@ngx-translate/core';
+
+import { RegisterSchoolPageComponent } from './register-school-page.component';
 
 describe('RegisterSchoolPageComponent', () => {
   let component: RegisterSchoolPageComponent;
   let fixture: ComponentFixture<RegisterSchoolPageComponent>;
 
   beforeEach(waitForAsync(() => {
+    // The constructor reads the application language out of saved settings.
+    localStorage.setItem(
+      'savedSettings',
+      JSON.stringify({ applicationLanguage: { code: 'en' } })
+    );
+
     TestBed.configureTestingModule({
+      declarations: [RegisterSchoolPageComponent],
+      imports: [
+        IonicModule.forRoot(),
+        RouterTestingModule,
+        TranslateModule.forRoot(),
+      ],
       providers: [
-        { provide: SettingsService, useValue: { get: () => ({ code: 'en' }), setSetting: () => {}, getFeatureFlags: async () => ({}), currentSettings: { scheduledTesting: false, scheduleInterval: 'daily' }, availableSettings: {} } },provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()],
-      declarations: [ RegisterSchoolPageComponent ],
-      imports: [IonicModule.forRoot(), TranslateModule.forRoot()]
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(RegisterSchoolPageComponent);
@@ -26,5 +38,10 @@ describe('RegisterSchoolPageComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    TestBed.resetTestingModule();
   });
 });

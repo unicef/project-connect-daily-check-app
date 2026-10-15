@@ -4,7 +4,7 @@ import { environment } from '../environments/environment'; // './esrc/environmen
 
 export function initSentry() {
   Sentry.init({
-    dsn: 'https://e52e97fc558344bc80a218fc22a9a6a9@excubo.unicef.io/47', // Replace with your actual DSN
+    dsn: 'https://f5e5a831e50ea526ab38e9e699a6eab3@excubo.unicef.org/47',
     environment: environment.mode === 'dev' ? 'development' : 'production',
     integrations: [
       new Sentry.Integrations.GlobalHandlers(),

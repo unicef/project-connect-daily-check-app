@@ -1,0 +1,116 @@
+# Backend stack for the Playwright e2e suite: Postgres (PostGIS) + Redis +
+# giga-meter-backend built from the sibling repo checkout.
+#
+# Layout requirement: this repo and giga-meter-backend must be checked out as
+# sibling directories under the same parent.
+#
+# Started automatically by playwright.config.ts (webServer). Manual usage:
+#   docker compose -f e2e/docker-compose.e2e.yml up --build
+#   npm run e2e:down          # tears it down and drops the DB
+#
+# On every start the backend container applies migrations and re-runs the
+# idempotent Spain seed (country ES + school ES-TEST-SCHOOL-01), so the suite
+# always finds its fixture data.
+name: giga-meter-e2e
+
+services:
+  e2e-db:
+    # PostGIS build: the backend migrations/seeds use the postgis extension
+    # and ST_MakePoint (the same image the backend uses for local development).
+    image: postgis/postgis:15-3.3
+    environment:
+      POSTGRES_USER: giga
+      POSTGRES_PASSWORD: giga
+      POSTGRES_DB: giga_e2e
+    ports:
+      - '55432:5432' # offset so it never clashes with a dev postgres on 5432
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U giga -d giga_e2e']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  e2e-redis:
+    image: redis:7
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  e2e-auth-mock:
+    # Stand-in for the Project Connect service the AuthGuard calls to validate
+    # bearer tokens (GET /api/v1/validate_api_key/DAILY_CHECK_APP). Accepts any
+    # token and grants write access with category giga_meter, so the backend
+    # can run with USE_AUTH=true without reaching Azure.
+    image: node:22-alpine
+    command:
+      - node
+      - -e
+      - |
+        const http = require('http');
+        const body = JSON.stringify({
+          success: true,
+          message: 'ok',
+          timestamp: new Date().toISOString(),
+          data: {
+            has_write_access: true,
+            countries: [],
+            apiCategory: { code: 'giga_meter' },
+          },
+        });
+        http.createServer((req, res) => {
+          res.setHeader('content-type', 'application/json');
+          res.end(body);
+        }).listen(80, () => console.log('e2e auth mock listening on :80'));
+
+  e2e-backend:
+    build:
+      context: ../../giga-meter-backend
+      args:
+        # The backend Dockerfile pipes this into chpasswd (ssh access for the
+        # Azure deployment) and fails on an empty value. Never exposed here:
+        # the e2e container doesn't publish the ssh port.
+        SSH_PASSWD: 'root:e2e-local-only'
+    depends_on:
+      e2e-db:
+        condition: service_healthy
+      e2e-redis:
+        condition: service_healthy
+      e2e-auth-mock:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql://giga:giga@e2e-db:5432/giga_e2e?schema=public
+      # Some backend branches declare `directUrl = env("DIRECT_DATABASE_URL")`
+      # in the Prisma datasource, and without the variable startup dies with
+      # P1012. There is no pooler here, so it points at the same DB; it is
+      # harmless on branches whose schema does not use it.
+      DIRECT_DATABASE_URL: postgresql://giga:giga@e2e-db:5432/giga_e2e?schema=public
+      REDIS_URL: redis://e2e-redis:6379
+      NODE_ENV: development # dev mode => CORS allows the ng serve origin
+      # Real auth path, fake validator: several endpoints gate on the
+      # write_access/category that only AuthGuard.validateToken sets, so
+      # USE_AUTH=false is not enough — validate against the local mock instead.
+      USE_AUTH: 'true'
+      PROJECT_CONNECT_SERVICE_URL: http://e2e-auth-mock
+      DAILY_CHECK_APP_API_CODE: DAILY_CHECK_APP
+      PCDC_APP_DOWNLOAD_URL: http://unused.invalid
+      CACHE_EXPIRE: '60'
+    ports:
+      - '3000:3000'
+    volumes:
+      # Fixtures and loader live in THIS repo, not in the backend: the backend's
+      # seed runner and Spain seed only exist on the `develop` line (added by the
+      # health-entity work), so depending on them tied the suite to that branch.
+      # Mounted here, it works with any backend branch.
+      - ./seed:/APP/e2e-seed:ro
+    # The image starts with start.sh by default (ssh + prod boot); it is
+    # replaced by migrate -> seed -> serve. `node` and `pg` come from /APP.
+    entrypoint:
+      - /bin/sh
+      - -c
+      - >
+        npx prisma migrate deploy &&
+        node /APP/e2e-seed/seed.js
+        /APP/e2e-seed/seed-spain.sql /APP/e2e-seed/e2e-category-config.sql &&
+        npm run start:prod

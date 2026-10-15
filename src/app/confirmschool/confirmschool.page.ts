@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-expressions */
 /* eslint-disable @typescript-eslint/naming-convention */
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
+import { firstValueFrom } from 'rxjs';
 import { SchoolService } from '../services/school.service';
 import { RegistrationService } from '../services/registration.service';
 import { IdentityService } from '../services/identity.service';
@@ -20,6 +20,7 @@ import { SharedService } from '../services/shared-service.service';
 import { TranslateService } from '@ngx-translate/core';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
+import { PosthogService } from '../services/posthog.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -38,6 +39,12 @@ export class ConfirmschoolPage implements OnInit{
   sub: any;
   appName = environment.appName;
   facilityLabelKey = 'facilityType.school';
+  /**
+   * Registration in flight. Guards `confirmSchool()` against repeat taps: every
+   * extra tap used to start an independent registration chain, and each one
+   * inserted another `dailycheckapp_school` row with a fresh `user_id`.
+   */
+  isRegistering = false;
   constructor(
     private activatedroute: ActivatedRoute,
     public router: Router,
@@ -52,7 +59,8 @@ export class ConfirmschoolPage implements OnInit{
     private translate: TranslateService,
     private sharedService: SharedService,
     private hardwareIdService: HardwareIdService,
-    private locationService: LocationService
+    private locationService: LocationService,
+    private posthog: PosthogService
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -92,10 +100,15 @@ export class ConfirmschoolPage implements OnInit{
     }
   }
 
-  confirmSchool() {
+  async confirmSchool() {
+    /* One registration per confirmation: repeat taps are ignored while the
+       previous one is still in flight. */
+    if (this.isRegistering) {
+      return;
+    }
+    this.isRegistering = true;
+
     /* Store school id and giga id inside storage */
-    let schoolData = {};
-    let flaggedSchoolData = {};
     const today = this.datePipe.transform(
       new Date(),
       'yyyy-MM-ddah:mm:ssZZZZZ'
@@ -103,132 +116,145 @@ export class ConfirmschoolPage implements OnInit{
     const translatedText = this.translate.instant('searchCountry.loading');
 
     const loadingMsg = `<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="green_loader">${translatedText}</p></div>`;
-    this.loading.present(loadingMsg, 4000, 'pdcaLoaderClass', 'null');
+    /* No duration: the loader stays up until the registration settles. With a
+       fixed duration it vanished after 4s while the flow was still running, and
+       the seemingly idle screen invited another tap. */
+    this.loading.present(loadingMsg, undefined, 'pdcaLoaderClass', 'null');
 
-    // this.networkService.getAccessInformation().subscribe(c => {
-    this.getIPAddress().then((c) => {
-      this.getDeviceInfo().then((a) => {
-        this.getDeviceId().then(async(b) => {
-          // Get hardware ID for machine-level registration
-          const hardwareId = this.hardwareIdService.getHardwareId();
+    const facilityType =
+      this.school?.facilityType ?? this.identityService.getFacilityType();
 
-          // Get Windows username, installed path, and WiFi connections
-          this.getWindowsUsername().then((windowsUsername) => {
-            this.getInstalledPath().then((installedPath) => {
-              this.getWifiConnections().then((wifiConnections) => {
-                const facilityType =
-                  this.school?.facilityType ??
-                  this.identityService.getFacilityType();
-                const gigaId =
-                  facilityType === 'health'
-                    ? this.school.giga_id_health
-                    : this.school.giga_id_school;
+    try {
+      const ipAddress = await this.getIPAddress();
+      const deviceInfo = await this.getDeviceInfo();
+      const deviceId = await this.getDeviceId();
+      // Get hardware ID for machine-level registration
+      const hardwareId = this.hardwareIdService.getHardwareId();
+      // Get Windows username, installed path, and WiFi connections
+      const windowsUsername = await this.getWindowsUsername();
+      const installedPath = await this.getInstalledPath();
+      const wifiConnections = await this.getWifiConnections();
 
-                schoolData = {
-                  [facilityType === 'health'
-                    ? 'giga_id_health'
-                    : 'giga_id_school']: gigaId,
-                  mac_address: b.identifier,
-                  os: a.operatingSystem,
-                  app_version: environment.app_version,
-                  ip_address: c, // c.ip,
-                  country_code: this.selectedCountry,
-                  installation_id: this.identityService.getInstallationId(),
-                  device_hardware_id: hardwareId || null,
-                  windows_username: windowsUsername || null,
-                  installed_path: installedPath || null,
-                  wifi_connections: wifiConnections || null,
-                };
+      const gigaId =
+        facilityType === 'health'
+          ? this.school.giga_id_health
+          : this.school.giga_id_school;
 
-                this.registrationService
-                  .register(schoolData as any)
-                  .subscribe(async (response) => {
-                    // New keys only — legacy keys stay untouched
-                    await this.registrationService.persistRegistration(
-                      response,
-                      this.school,
-                      this.schoolId
-                    );
-                    // Shared device-metadata keys (same on both vintages)
-                    this.storage.set('deviceType', a.operatingSystem);
-                    this.storage.set('macAddress', b.identifier);
-                    this.storage.set('ip_address', c?.ip);
-                    this.storage.set('version', environment.app_version);
-                    this.storage.set('country_code', this.selectedCountry);
+      const registrationData = {
+        [facilityType === 'health' ? 'giga_id_health' : 'giga_id_school']:
+          gigaId,
+        mac_address: deviceId.identifier,
+        os: deviceInfo.operatingSystem,
+        app_version: environment.app_version,
+        ip_address: ipAddress,
+        country_code: this.selectedCountry,
+        installation_id: this.identityService.getInstallationId(),
+        device_hardware_id: hardwareId || null,
+        windows_username: windowsUsername || null,
+        installed_path: installedPath || null,
+        wifi_connections: wifiConnections || null,
+      };
 
-                    // Set first-time visit flags for new registration flow
-                    this.storage.setFirstTimeVisit(true);
-                    this.storage.setRegistrationCompleted(Date.now());
+      /* Fire-and-forget, as before: the flagged record is independent of the
+         registration outcome and does not gate navigation. Schools only: the
+         flagged table is keyed on giga_id_school. */
+      if (
+        facilityType === 'school' &&
+        this.selectedCountry !== this.detectedCountry
+      ) {
+        this.registerFlaggedSchool(today);
+      }
 
-                    this.loading.dismiss();
+      const response = await firstValueFrom(
+        this.registrationService.register(registrationData as any)
+      );
 
-                    // Navigate to starttest page normally
-                    this.router.navigate(['/starttest']).then(() => {
-                      // Broadcast registration completion event after navigation
-                      // This will trigger the first-time flow in StartTest component
-                      this.sharedService.broadcast('registration:completed');
-                    });
+      // New keys only — legacy keys stay untouched
+      await this.registrationService.persistRegistration(
+        response,
+        this.school,
+        this.schoolId
+      );
+      // Shared device-metadata keys (same on both vintages)
+      this.storage.set('deviceType', deviceInfo.operatingSystem);
+      this.storage.set('macAddress', deviceId.identifier);
+      this.posthog.setSchool(response.giga_id);
+      this.storage.set('ip_address', ipAddress?.ip);
+      this.storage.set('version', environment.app_version);
+      this.storage.set('country_code', this.selectedCountry);
 
-                    this.settings.setSetting('scheduledTesting', true);
-                  }),
-                  (err) => {
-                    this.loading.dismiss();
-                    this.router.navigate([
-                      getFacilityConfig(facilityType as any).notFoundRoute,
-                      this.schoolId,
-                      this.selectedCountry,
-                      this.detectedCountry,
-                      this.selectedCountryName,
-                    ]);
-                    /* Redirect to no result found page */
-                  };
+      // Set first-time visit flags for new registration flow
+      this.storage.setFirstTimeVisit(true);
+      this.storage.setRegistrationCompleted(Date.now());
 
-                if (
-                  facilityType === 'school' &&
-                  this.selectedCountry !== this.detectedCountry
-                ) {
-                  flaggedSchoolData = {
-                    detected_country: this.detectedCountry,
-                    selected_country: this.selectedCountry,
-                    school_id: this.school.school_id,
-                    created: today,
-                    giga_id_school: this.school.giga_id_school,
-                  };
-                  console.log('flagged', flaggedSchoolData);
-                  this.schoolService
-                    .registerFlaggedSchool(flaggedSchoolData)
-                    .subscribe((response) => {
-                      this.storage.set('detectedCountry', this.detectedCountry);
-                      this.storage.set('selectedCountry', this.selectedCountry);
-                      this.storage.set('schoolId', this.schoolId);
-                      //this.loading.dismiss();
-                      // this.router.navigate(['/schoolsuccess']);
-                    }),
-                    (err) => {
-                      this.loading.dismiss();
-                      //this.router.navigate(['schoolnotfound', this.schoolId, this.selectedCountry, this.detectedCountry]);
-                      /* Redirect to no result found page */
-                    };
-                }
-
-                //}
-                //else{
-
-                //   this.loading.dismiss();
-                //   this.router.navigate(['invalidlocation',
-                //   this.schoolId,
-                //      this.school.country,
-                //      c.country + " (" +c.city + ")"
-
-                //  ]);
-
-                //}
-              }); // Close getWifiConnections().then()
-            }); // Close getInstalledPath().then()
-          }); // Close getWindowsUsername().then()
-        });
+      // From here on, events belong to this facility.
+      this.posthog.identify(response.giga_id, {
+        country_code: this.selectedCountry,
+        facility_type: response.facility_type,
       });
+      this.posthog.capture('registration_completed', {
+        country_code: this.selectedCountry,
+        facility_type: response.facility_type,
+      });
+
+      // Navigate to starttest page normally
+      await this.router.navigate(['/starttest']);
+      // Broadcast registration completion event after navigation
+      // This will trigger the first-time flow in StartTest component
+      this.sharedService.broadcast('registration:completed');
+
+      this.settings.setSetting('scheduledTesting', true);
+    } catch (err) {
+      /* Registration failed, or the device/network lookups that precede it did.
+         Either way the screen must not hang: dismiss and route out so the user
+         can retry. */
+      console.error('❌ [ConfirmSchool] Registration failed:', err);
+      this.router.navigate([
+        getFacilityConfig(facilityType as any).notFoundRoute,
+        this.schoolId,
+        this.selectedCountry,
+        this.detectedCountry,
+        this.selectedCountryName,
+      ]);
+      /* Redirect to no result found page */
+    } finally {
+      this.dismissLoader();
+      this.isRegistering = false;
+    }
+  }
+
+  /**
+   * Record a country mismatch (detected vs selected). Independent of the school
+   * registration: it never gates navigation.
+   */
+  private registerFlaggedSchool(today: string) {
+    const flaggedSchoolData = {
+      detected_country: this.detectedCountry,
+      selected_country: this.selectedCountry,
+      school_id: this.school.school_id,
+      created: today,
+      giga_id_school: this.school.giga_id_school,
+    };
+    console.log('flagged', flaggedSchoolData);
+    this.schoolService.registerFlaggedSchool(flaggedSchoolData).subscribe({
+      next: () => {
+        this.storage.set('detectedCountry', this.detectedCountry);
+        this.storage.set('selectedCountry', this.selectedCountry);
+        this.storage.set('schoolId', this.schoolId);
+      },
+      error: (err) => {
+        console.error('❌ [ConfirmSchool] Flagged school failed:', err);
+      },
     });
+  }
+
+  /**
+   * Close the loader. The controller rejects when there is no overlay to
+   * dismiss (e.g. the flow finished before `present()` resolved), which is
+   * harmless here but would surface as an unhandled rejection.
+   */
+  private dismissLoader() {
+    this.loading.dismiss().catch(() => undefined);
   }
 
   backToSaved(schoolObj) {

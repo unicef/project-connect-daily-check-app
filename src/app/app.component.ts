@@ -18,7 +18,7 @@ import { HardwareIdService } from './services/hardware-id.service';
 import { IdentityService } from './services/identity.service';
 import { RegistrationService } from './services/registration.service';
 import { SchoolService } from './services/school.service';
-import { MatomoService } from './services/matomo.service';
+import { PosthogService } from './services/posthog.service';
 
 // const shell = require('electron').shell;
 @Component({
@@ -77,12 +77,13 @@ export class AppComponent {
     private registrationService: RegistrationService,
     private router: Router,
     private schoolService: SchoolService,
-    private matomoService: MatomoService,
+    private posthogService: PosthogService,
   ) {
     try {
-      this.matomoService.init();
+      this.posthogService.init();
+      this.posthogService.capture('app_started');
     } catch (error) {
-      console.warn('Matomo init failed:', error);
+      console.warn('PostHog init failed:', error);
     }
     this.identityService
       .reconcileOnLaunch()
@@ -97,6 +98,11 @@ export class AppComponent {
     this.languageSearch =
       this.languages.find((l) => l?.code === this.selectedLanguage)?.label ??
       '';
+    // Keep <html lang> in sync with the UI language so screen readers use the
+    // right voice and styles can target a language with :lang().
+    this.translate.onLangChange.subscribe(({ lang }) => {
+      document.documentElement.lang = lang;
+    });
     translate.setDefaultLang('en');
     const appLang = this.settingsService.get('applicationLanguage') ?? {
       code: 'en',

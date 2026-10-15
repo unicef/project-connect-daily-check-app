@@ -1,25 +1,35 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
-import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { IonicModule } from '@ionic/angular';
-import { RouterTestingModule } from "@angular/router/testing";
+import { RouterTestingModule } from '@angular/router/testing';
 import { TranslateModule } from '@ngx-translate/core';
-import { SchooldetailsPage } from './schooldetails.page';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { SettingsService } from '../services/settings.service';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+
+import { SchooldetailsPage } from './schooldetails.page';
 
 describe('SchooldetailsPage', () => {
   let component: SchooldetailsPage;
   let fixture: ComponentFixture<SchooldetailsPage>;
 
   beforeEach(waitForAsync(() => {
+    // The constructor reads the application language out of saved settings.
+    localStorage.setItem(
+      'savedSettings',
+      JSON.stringify({ applicationLanguage: { code: 'en' } })
+    );
+
     TestBed.configureTestingModule({
-    declarations: [SchooldetailsPage],
-    imports: [IonicModule.forRoot(),
+      declarations: [SchooldetailsPage],
+      imports: [
+        IonicModule.forRoot(),
         RouterTestingModule,
-        TranslateModule.forRoot()],
-    providers: [
-        { provide: SettingsService, useValue: { get: () => ({ code: 'en' }), setSetting: () => {}, getFeatureFlags: async () => ({}), currentSettings: { scheduledTesting: false, scheduleInterval: 'daily' }, availableSettings: {} } },provideHttpClient(withInterceptorsFromDi()), provideHttpClientTesting()]
-}).compileComponents();
+        TranslateModule.forRoot(),
+      ],
+      providers: [
+        provideHttpClient(withInterceptorsFromDi()),
+        provideHttpClientTesting(),
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(SchooldetailsPage);
     component = fixture.componentInstance;
@@ -28,5 +38,10 @@ describe('SchooldetailsPage', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    TestBed.resetTestingModule();
   });
 });

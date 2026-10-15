@@ -8,3 +8,6 @@ dist
 logs
 out
 *.env
+
+# Generated before each Electron build by scripts/generate-build-mode.js
+src/build-mode.ts

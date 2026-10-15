@@ -62,8 +62,14 @@
     color: $light-text2;
     font-size: 12px;
   }
+// The button sits in the page flow at the bottom of the container instead of
+// being fixed to the window, so a longer message pushes it down (and the page
+// scrolls) rather than ending up underneath it.
 .bottom-layout{
-  margin-bottom: 105px;
+  position: static;
+  transform: none;
+  margin-top: auto;
+  padding: 16px 0 129px;
 }
 .try_again{
   display: flex;
@@ -79,4 +85,7 @@
 }
 .container {
   margin: 24px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100% - 72px);
 }

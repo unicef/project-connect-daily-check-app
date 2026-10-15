@@ -5,5 +5,5 @@ export const environment = {
   restAPIv2: 'https://uni-connect-services.azurewebsites.net/api/v2/',
   //restAPI: 'http://localhost:3000/api/v1/',
   token: env.token,
-  app_version: '2.0.3',
+  app_version: '2.0.4',
 };

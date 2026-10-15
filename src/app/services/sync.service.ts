@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { IndexedDBService } from './indexed-db.service';
 import { StorageService } from './storage.service';
 import { IdentityService } from './identity.service';
+import { PosthogService } from './posthog.service';
 import { environment } from 'src/environments/environment';
 
 @Injectable({
@@ -15,7 +16,8 @@ export class SyncService {
     private http: HttpClient,
     private indexedDBService: IndexedDBService,
     private storage: StorageService,
-    private identityService: IdentityService
+    private identityService: IdentityService,
+    private posthog: PosthogService
   ) { }
 
   async syncPendingMeasurements(): Promise<void> {
@@ -42,11 +44,20 @@ export class SyncService {
           }
 
           console.log(`Successfully synced measurements batch ${index / batchSize + 1}`);
+          // Measurements that failed in realtime and are recovered now: the
+          // other end of measurement_queued_offline.
+          this.posthog.capture('measurements_synced', {
+            batch_size: batch.length,
+          });
         } catch (error) {
           console.error(
             `Failed to sync measurement batch ${index / batchSize + 1} after retry:`,
             error
           );
+          this.posthog.capture('measurements_sync_failed', {
+            batch_size: batch.length,
+            status: (error as any)?.status ?? null,
+          });
           break; // Stop further sync until next cycle
         }
 
@@ -63,7 +74,10 @@ export class SyncService {
   private async postMeasurementsWithRetry(batch: any[]): Promise<void> {
     // v2 batch — records already carry facility_type/registration_id from
     // capture time; tolerant per-record handling happens server-side.
-    const payload = batch.map(({ isSynced, id, ...rest }) => rest);
+    // Strip IndexedDB-local bookkeeping fields before posting.
+    const payload = batch.map(
+      ({ id, status, createdAt, isSynced, ...rest }) => rest
+    );
 
     try {
       await this.http
