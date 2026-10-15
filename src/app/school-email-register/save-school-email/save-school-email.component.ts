@@ -6,18 +6,25 @@ import {
   ValidationErrors,
   Validators
 } from '@angular/forms';
+import { IdentityService } from '../../services/identity.service';
 
 @Component({
   selector: 'app-save-school-email',
   templateUrl: './save-school-email.component.html',
   styleUrls: ['./save-school-email.component.scss'],
+  standalone: false,
 })
 export class SaveSchoolEmailComponent implements OnInit {
   emailControl = new FormControl('');
+  facilityLabelKey = 'facilityType.school';
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private identityService: IdentityService
+  ) {}
 
   ngOnInit() {
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
     this.emailControl.valueChanges.subscribe((value: string) => {
       if (value && value.length >= 1) {
         this.emailControl.setValidators([this.emailDomainValidator]);

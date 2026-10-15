@@ -19,11 +19,9 @@ export class TokenInterceptor implements HttpInterceptor {
 //   request.url.indexOf('some APIs path') === 0
 
     isHeaderNeeded(url: string) {
-        console.log(url.indexOf(environment.restAPI));
-        if (url.indexOf(environment.restAPI) === -1) { // this condition is up to you, it could be an exact match or how ever you like
-            return false;
-        } else {
-            return true;
-        }
+        return (
+            url.indexOf(environment.restAPI) !== -1 ||
+            url.indexOf(environment.restAPIv2) !== -1
+        );
     }
 }

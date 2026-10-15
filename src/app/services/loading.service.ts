@@ -48,7 +48,13 @@ export class LoadingService {
    */
   async dismiss() {
     this.isLoading = false;
-    return await this.loadingController.dismiss().then(() => console.log('dismissed'));
+    try {
+      return await this.loadingController.dismiss().then(() => console.log('dismissed'));
+    } catch {
+      // No overlay to dismiss: present() may not have resolved yet (its
+      // isLoading guard aborts it on arrival) or the duration auto-closed it.
+      return false;
+    }
   }
 
   /**

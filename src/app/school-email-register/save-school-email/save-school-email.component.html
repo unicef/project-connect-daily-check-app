@@ -3,7 +3,7 @@
   <div class="container">
 
     <ion-item lines="none" class="label_top">
-      <ion-label class="font_size" [translate]="'schoolDetails.saveEmail'"></ion-label>
+      <ion-label class="font_size" [translate]="'schoolDetails.saveEmail'" [translateParams]="{ facility: (facilityLabelKey | translate) }"></ion-label>
     </ion-item>
 
     <div class="optional" [translate]="'saveEmail.optional'"></div>

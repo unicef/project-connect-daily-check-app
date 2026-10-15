@@ -2,10 +2,13 @@ import { Component, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { Router, NavigationExtras, ActivatedRoute } from '@angular/router';
 import { SchoolService } from '../services/school.service';
+import { FacilityService } from '../services/facility.service';
+import { IdentityService } from '../services/identity.service';
 import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
+import { getFacilityConfig } from '../models/facility';
 @Component({
     selector: 'app-searchschool',
     templateUrl: 'searchschool.page.html',
@@ -28,22 +31,56 @@ export class SearchschoolPage {
     // eslint-disable-next-line max-len
     '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="white" [translate]="\'searchSchool.search\'"></p></div>';
 
+  facilityType = 'school';
+  facilityLabelKey = 'facilityType.school';
+  lookupIdLabelKey = 'idLabel.school';
+  provideIdKey = 'searchSchool.provide-school-id';
+  placeholderIdKey = 'searchSchool.placeholder-school-id';
+
   constructor(
     private router: Router,
     private activatedroute: ActivatedRoute,
     private translate: TranslateService,
     private routeParams: ActivatedRoute,
     private schoolService: SchoolService,
+    private facilityService: FacilityService,
+    private identityService: IdentityService,
     private settingsService: SettingsService,
     public loading: LoadingService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
+    this.lookupIdLabelKey = getFacilityConfig(
+      this.facilityType as any
+    ).lookupIdLabelKey;
+    if (this.facilityType === 'health') {
+      this.provideIdKey = 'searchSchool.provide-govt-id';
+      this.placeholderIdKey = 'searchSchool.placeholder-govt-id';
+    }
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;
       this.selectedCountryName = params.selectedCountryName;
     });
+  }
+
+  ionViewWillEnter() {
+    // Re-read on every entry — Ionic caches page instances in the nav stack,
+    // so a constructor-time read can be stale after switching facility type.
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
+    this.lookupIdLabelKey = getFacilityConfig(
+      this.facilityType as any
+    ).lookupIdLabelKey;
+    if (this.facilityType === 'health') {
+      this.provideIdKey = 'searchSchool.provide-govt-id';
+      this.placeholderIdKey = 'searchSchool.placeholder-govt-id';
+    } else {
+      this.provideIdKey = 'searchSchool.provide-school-id';
+      this.placeholderIdKey = 'searchSchool.placeholder-school-id';
+    }
   }
 
   /**
@@ -91,15 +128,11 @@ export class SearchschoolPage {
    */
   searchSchoolBySchooIdAndCountryCode() {
     if (this.schoolId && this.selectedCountry) {
-      const loadingMsg =
-      // eslint-disable-next-line max-len
-    //   '<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="green_loader">Searching School IDs</p></div>';
-    // this.loading.present(loadingMsg, 40000000, 'pdcaLoaderClass', 'null'); 
-         this.schoolService
-        .getBySchoolIdAndCountryCode(this.schoolId, this.selectedCountry)
+      this.facilityService
+        .lookup(this.facilityType as any, this.selectedCountry, this.schoolId)
         .subscribe(
-          (response) => {
-            this.schoolData = response;
+          (facilities) => {
+            this.schoolData = facilities;
             console.log(this.schoolData);
           },
           (err) => {

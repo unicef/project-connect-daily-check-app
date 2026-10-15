@@ -1,6 +1,7 @@
 import { ScheduleService } from './schedule.service';
 
 describe('ScheduleService', () => {
+  let identityService: any;
   let service: ScheduleService;
   let store: Record<string, string>;
   let storageService: any;
@@ -57,8 +58,13 @@ describe('ScheduleService', () => {
       getNetInfo: jasmine.createSpy('getNetInfo').and.resolveTo({ ip: '1.2.3.4' }),
     };
 
+    identityService = {
+      isRegistered: jasmine.createSpy('isRegistered').and.returnValue(true),
+    };
+
     service = new ScheduleService(
       storageService,
+      identityService,
       measurementClientService,
       settingsService,
       sharedService,

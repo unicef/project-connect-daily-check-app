@@ -3,7 +3,7 @@
     <div class="app-info">
       <div class="app-title">{{ "GigaMeter" }}</div>
       <div class="country-school">{{ selectedCountry }} - {{ schoolId }}</div>
-      <div class="school-name">{{ schoolInfo?.name || "School Name" }}</div>
+      <div class="school-name">{{ schoolInfo?.name || (facilityLabelKey | translate) }}</div>
     </div>
     <div class="header-actions">
       <!-- Subtle close button inside modal -->
@@ -31,7 +31,8 @@
             <ion-icon name="home-outline" class="success-icon"></ion-icon>
           </div>
           <span class="success-text">{{
-            "startTest.schoolRegistered" | translate
+            "startTest.schoolRegistered"
+              | translate : { facility: facilityLabelKey | translate }
           }}</span>
         </div>
 

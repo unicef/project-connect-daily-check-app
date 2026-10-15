@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { IndexedDBService } from './indexed-db.service';
 import { StorageService } from './storage.service';
+import { IdentityService } from './identity.service';
 import { PosthogService } from './posthog.service';
 import { environment } from 'src/environments/environment';
 
@@ -15,6 +16,7 @@ export class SyncService {
     private http: HttpClient,
     private indexedDBService: IndexedDBService,
     private storage: StorageService,
+    private identityService: IdentityService,
     private posthog: PosthogService
   ) { }
 
@@ -70,18 +72,22 @@ export class SyncService {
   }
 
   private async postMeasurementsWithRetry(batch: any[]): Promise<void> {
-    // Strip IndexedDB-local bookkeeping fields before posting
-    const payload = batch.map(({ id, status, createdAt, ...rest }) => rest);
+    // v2 batch — records already carry facility_type/registration_id from
+    // capture time; tolerant per-record handling happens server-side.
+    // Strip IndexedDB-local bookkeeping fields before posting.
+    const payload = batch.map(
+      ({ id, status, createdAt, isSynced, ...rest }) => rest
+    );
 
     try {
       await this.http
-        .post(`${environment.restAPI}measurements/multiple`, payload)
+        .post(`${environment.restAPIv2}measurements/batch`, payload)
         .toPromise();
     } catch (error) {
       console.warn('Initial measurement sync failed. Retrying once...');
       try {
         await this.http
-          .post(`${environment.restAPI}measurements/multiple`, payload)
+          .post(`${environment.restAPIv2}measurements/batch`, payload)
           .toPromise();
       } catch (retryError) {
         console.error('Retry for measurements failed:', retryError);
@@ -126,23 +132,33 @@ export class SyncService {
 
   private async postWithRetry(batch: any[]): Promise<void> {
     const updatedUsers = batch.map(({ isSynced, ...rest }) => rest);
-    const payload = updatedUsers.map(({ createdAt, ...rest }) => rest);
+    // v2 connectivity: identifier in the body, no client browserId.
+    const payload = updatedUsers.map(
+      ({ createdAt, browserId, id, ...rest }) => rest
+    );
+    const facilityType = this.identityService.getFacilityType();
+    const gigaId = this.identityService.getGigaId();
+    const body: any = {
+      facility_type: facilityType,
+      registration_id: this.identityService.getRegistrationId() || undefined,
+      installation_id: this.identityService.getInstallationId(),
+      records: payload,
+    };
+    if (facilityType === 'health') {
+      body.giga_id_health = gigaId;
+    } else {
+      body.giga_id_school = gigaId;
+    }
 
     try {
       await this.http
-        .post(
-          `${environment.restAPI}connectivity/${this.storage.get('gigaId')}`,
-          { records: payload }
-        )
+        .post(`${environment.restAPIv2}connectivity`, body)
         .toPromise();
     } catch (error) {
       console.warn('Initial sync attempt failed. Retrying...');
       try {
         await this.http
-          .post(
-            `${environment.restAPI}connectivity/${this.storage.get('gigaId')}`,
-            { records: payload }
-          )
+          .post(`${environment.restAPIv2}connectivity`, body)
           .toPromise();
       } catch (retryError) {
         console.error('Retry failed:', retryError);
