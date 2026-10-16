@@ -14,6 +14,7 @@ import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
 import { LocationService } from './location.service';
 import { PosthogService } from './posthog.service';
+import { averageLatencyMs } from '../utils/ndt-results.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -38,21 +39,17 @@ export class UploadService {
   makeMeasurement(record) {
     console.log('record we get', record);
     this.ts = new Date(record.timestamp);
+    // Null when neither leg got a server measurement before the ndt7 timeout.
+    const latencyMs = averageLatencyMs(record.results);
     let measurement = {
       UUID: record.uuid,
       Download:
-        record.results['NDTResult.S2C'].LastClientMeasurement.MeanClientMbps *
+        record.results['NDTResult.S2C']?.LastClientMeasurement?.MeanClientMbps *
         1000,
       Upload:
-        record.results['NDTResult.C2S'].LastClientMeasurement.MeanClientMbps *
+        record.results['NDTResult.C2S']?.LastClientMeasurement?.MeanClientMbps *
         1000,
-      Latency: (
-        (record.results['NDTResult.S2C'].LastServerMeasurement.BBRInfo.MinRTT +
-          record.results['NDTResult.C2S'].LastServerMeasurement.BBRInfo
-            .MinRTT) /
-        2 /
-        1000
-      ).toFixed(0),
+      Latency: latencyMs === null ? null : latencyMs.toFixed(0),
       // TODO: Uncomment when new backend is ready
       // DataUsage: record.dataUsage.total,
       // DataUploaded: record.dataUsage.upload,

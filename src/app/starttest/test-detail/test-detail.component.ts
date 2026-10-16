@@ -6,6 +6,7 @@ import { StorageService } from 'src/app/services/storage.service';
 import { Router, NavigationEnd } from '@angular/router';
 import { LocationService } from 'src/app/services/location.service';
 import { SettingsService } from 'src/app/services/settings.service';
+import { averageLatencyMs } from 'src/app/utils/ndt-results.utils';
 
 @Component({
   selector: 'app-test-detail',
@@ -107,6 +108,14 @@ export class TestDetailComponent implements OnInit {
    * @param notes The Notes value from measurement data
    * @returns Mapped display text
    */
+  /**
+   * Latency in ms for a stored measurement; null when no leg has a server
+   * measurement, which the number pipe renders as an empty cell.
+   */
+  latencyMs(measurement: any): number | null {
+    return averageLatencyMs(measurement?.results);
+  }
+
   getTestTriggerDisplayText(notes: string): string {
     const triggerMapping = {
       startup: 'Startup',
