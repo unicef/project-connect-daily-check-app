@@ -7,6 +7,11 @@ import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
 import { DeviceContextService } from './device-context.service';
+import {
+  DOWNLOAD_LEG,
+  UPLOAD_LEG,
+  hasClientResult,
+} from '../utils/ndt-results.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -158,7 +163,12 @@ export class MeasurementClientService {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return this.runTestWithRetry(notes, scheduleContext);
       } else {
-        this.broadcastMeasurementStatus('onError', { error: error.message });
+        // 'error' is the status the test page resets itself on.
+        this.broadcastMeasurementStatus('error', {
+          error: error.message,
+          errorType: 'test_error',
+          originalError: error.message,
+        });
       }
     }
   }
@@ -249,17 +259,27 @@ export class MeasurementClientService {
   };
 
   private onDownloadComplete = (data: any, measurementRecord: any): void => {
-    const serverBw = (data.LastServerMeasurement.BBRInfo.BW * 8) / 1000000;
-    const clientGoodput = data.LastClientMeasurement.MeanClientMbps;
+    // LastServerMeasurement is undefined when the server sent nothing before
+    // ndt7's 12 s worker timeout (slow or filtered links). The download speed
+    // is measured on the client, so the leg is still usable without it.
+    const server = data?.LastServerMeasurement;
+    const client = data?.LastClientMeasurement;
+    if (!server) {
+      console.warn(
+        'Download finished without a server measurement; keeping the client-side result'
+      );
+    }
+    const bw = server?.BBRInfo?.BW;
+    const serverBw = typeof bw === 'number' ? (bw * 8) / 1000000 : 'n/a';
     console.log(`Download test is complete:
     Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
-    Mean client goodput: ${clientGoodput} Mbps`);
-    measurementRecord.results['NDTResult.S2C'] = data;
+    Mean client goodput: ${client?.MeanClientMbps ?? 'n/a'} Mbps`);
+    measurementRecord.results[DOWNLOAD_LEG] = data;
     this.downloadComplete$.next(data); // Emit event
     this.updateProgress(
       'finished_s2c',
       data,
-      data.LastClientMeasurement.ElapsedTime
+      client?.ElapsedTime ?? this.TIME_EXPECTED
     );
   };
 
@@ -278,36 +298,52 @@ export class MeasurementClientService {
   };
 
   private onUploadComplete = (data: any, measurementRecord: any): void => {
-    const bytesReceived = data.LastServerMeasurement.TCPInfo.BytesReceived;
-    const elapsed = data.LastServerMeasurement.TCPInfo.ElapsedTimex;
-    const throughput = (bytesReceived * 8) / elapsed;
-    console.log(`Upload test completed in ${(elapsed / 1000000).toFixed(2)}s
-      Mean server throughput: ${throughput} Mbps`);
-    measurementRecord.results['NDTResult.C2S'] = data;
+    // Same as the download leg: fall back to the client's own figures when the
+    // server sent no measurement before the timeout.
+    const tcpInfo = data?.LastServerMeasurement?.TCPInfo;
+    const client = data?.LastClientMeasurement;
+    if (!tcpInfo) {
+      console.warn(
+        'Upload finished without a server measurement; keeping the client-side result'
+      );
+    }
+    // TCPInfo.ElapsedTime is in microseconds, the client's ElapsedTime in seconds.
+    const hasServerTiming = tcpInfo?.ElapsedTime > 0;
+    const elapsedSeconds = hasServerTiming
+      ? tcpInfo.ElapsedTime / 1000000
+      : client?.ElapsedTime ?? this.TIME_EXPECTED;
+    const throughput = hasServerTiming
+      ? (tcpInfo.BytesReceived * 8) / tcpInfo.ElapsedTime
+      : client?.MeanClientMbps;
+    console.log(`Upload test completed in ${elapsedSeconds.toFixed(2)}s
+      Mean ${hasServerTiming ? 'server' : 'client'} throughput: ${throughput ?? 'n/a'} Mbps`);
+    measurementRecord.results[UPLOAD_LEG] = data;
     this.uploadComplete$.next(data); // Emit event
-    this.updateProgress('finished_c2s', data, elapsed / 1000000);
+    this.updateProgress('finished_c2s', data, elapsedSeconds);
   };
 
-  private onError = (err: Error): void => {
-    console.error('Error while running the test:', err.message);
+  private onError = (err: Error | string): void => {
+    // ndt7 passes worker errors through as plain strings.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Error while running the test:', message);
 
     // Check if this is a locate server error
     const isLocateServerError =
-      err.message.includes('locate.measurementlab.net') ||
-      err.message.includes('Could not understand response') ||
-      err.message.includes('fetch');
+      message.includes('locate.measurementlab.net') ||
+      message.includes('Could not understand response') ||
+      message.includes('fetch');
 
     const errorType = isLocateServerError
       ? 'locate_server_error'
       : 'test_error';
     const errorMessage = isLocateServerError
       ? 'Failed to discover test servers. Please check your internet connection and try again.'
-      : err.message;
+      : message;
 
     this.broadcastMeasurementStatus('error', {
       error: errorMessage,
       errorType: errorType,
-      originalError: err.message,
+      originalError: message,
     });
   };
 
@@ -328,9 +364,25 @@ export class MeasurementClientService {
   }
 
   private async finalizeMeasurement(measurementRecord: any): Promise<void> {
+    // A leg without a server measurement is still saved from its client-side
+    // speed. A leg without any result (it never completed, or produced no
+    // client measurement) makes the whole test a failure: report it instead
+    // of saving a record with no speed in it.
+    const missingLegs = [
+      [DOWNLOAD_LEG, 'download'],
+      [UPLOAD_LEG, 'upload'],
+    ]
+      .filter(([leg]) => !hasClientResult(measurementRecord.results[leg]))
+      .map(([, name]) => name);
+    if (missingLegs.length) {
+      throw new Error(
+        `The ${missingLegs.join(' and ')} test did not produce a result`
+      );
+    }
+
     measurementRecord.uuid =
-      measurementRecord.results['NDTResult.S2C'].LastServerMeasurement
-        .ConnectionInfo.UUID || '';
+      measurementRecord.results[DOWNLOAD_LEG].LastServerMeasurement
+        ?.ConnectionInfo?.UUID || '';
     measurementRecord.version = 1;
 
     // `timestamp` above comes from Date.now(), so it is only as good as the
@@ -384,20 +436,16 @@ export class MeasurementClientService {
     upload: number;
     total: number;
   } {
+    // Counted per leg, so a leg without a server measurement adds 0 instead
+    // of turning the sum into NaN.
+    const tcpCounter = (leg: string, field: string): number =>
+      Number(passedResults[leg]?.LastServerMeasurement?.TCPInfo?.[field]) || 0;
     const bytesSent =
-      Number(
-        passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
-          .BytesAcked +
-          passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo
-            .BytesAcked
-      ) || 0;
+      tcpCounter(DOWNLOAD_LEG, 'BytesAcked') +
+      tcpCounter(UPLOAD_LEG, 'BytesAcked');
     const bytesReceived =
-      Number(
-        passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
-          .BytesReceived +
-          passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo
-            .BytesReceived
-      ) || 0;
+      tcpCounter(DOWNLOAD_LEG, 'BytesReceived') +
+      tcpCounter(UPLOAD_LEG, 'BytesReceived');
 
     const totalBytes = bytesSent + bytesReceived;
 

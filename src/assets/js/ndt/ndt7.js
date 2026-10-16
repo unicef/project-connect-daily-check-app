@@ -200,15 +200,22 @@
       // non-zero for failure.
       const workerPromise = new Promise((resolve) => {
         worker.resolve = function (returnCode) {
-          if (returnCode == 0) {
-            callbacks.complete({
-              LastClientMeasurement: clientMeasurement,
-              LastServerMeasurement: serverMeasurement,
-              ServerTime: serverTime,
-            });
+          try {
+            if (returnCode == 0) {
+              // serverMeasurement is still undefined here when the server sent
+              // nothing before the timeout; the complete callback has to cope.
+              callbacks.complete({
+                LastClientMeasurement: clientMeasurement,
+                LastServerMeasurement: serverMeasurement,
+                ServerTime: serverTime,
+              });
+            }
+          } finally {
+            // Settle even if the complete callback throws, otherwise the test
+            // promise never resolves and the caller waits forever.
+            worker.terminate();
+            resolve(returnCode);
           }
-          worker.terminate();
-          resolve(returnCode);
         };
       });
 
