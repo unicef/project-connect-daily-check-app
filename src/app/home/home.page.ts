@@ -13,6 +13,7 @@ import { Browser } from '@capacitor/browser';
 import { GigaAppPlugin } from '../android/giga-app-android-plugin';
 import { HistoryService } from '../services/history.service';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { PosthogService } from '../services/posthog.service';
 import { isAndroid } from '../android/android_util';
 
 @Component({
@@ -39,6 +40,7 @@ export class HomePage {
     private historyService: HistoryService,
     private readonly schoolService: SchoolService,
     private hardwareIdService: HardwareIdService,
+    private posthogService: PosthogService,
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
@@ -318,6 +320,7 @@ export class HomePage {
     if (registrationData.giga_id_school != null) {
       await this.storage.set('gigaId', registrationData.giga_id_school);
       console.log('   ✓ Set gigaId:', registrationData.giga_id_school);
+      this.posthogService.setSchool(registrationData.giga_id_school);
     }
     if (registrationData.mac_address != null) {
       await this.storage.set('macAddress', registrationData.mac_address);

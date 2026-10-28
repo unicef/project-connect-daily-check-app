@@ -21,6 +21,7 @@ import { Capacitor, registerPlugin } from '@capacitor/core';
 import { HistoryService } from '../services/history.service';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
+import { PosthogService } from '../services/posthog.service';
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -53,6 +54,7 @@ export class ConfirmschoolPage implements OnInit {
     private sharedService: SharedService,
     private hardwareIdService: HardwareIdService,
     private locationService: LocationService,
+    private posthog: PosthogService,
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -216,6 +218,7 @@ export class ConfirmschoolPage implements OnInit {
                     this.storage.set('schoolUserId', response);
                     this.storage.set('schoolId', this.schoolId);
                     this.storage.set('gigaId', this.school.giga_id_school);
+                    this.posthog.setSchool(this.school.giga_id_school);
                     this.storage.set('ip_address', c?.ip);
                     this.storage.set('version', environment.app_version);
                     //this.storage.set('country_code', c.country);
@@ -226,6 +229,14 @@ export class ConfirmschoolPage implements OnInit {
                     // Set first-time visit flags for new registration flow
                     this.storage.setFirstTimeVisit(true);
                     this.storage.setRegistrationCompleted(Date.now());
+
+                    // From here on, events belong to this school.
+                    this.posthog.identify(this.school.giga_id_school, {
+                      country_code: this.selectedCountry,
+                    });
+                    this.posthog.capture('registration_completed', {
+                      country_code: this.selectedCountry,
+                    });
 
                     if (this.isNative) {
                       //This we need to pass to native background servie to execute the
