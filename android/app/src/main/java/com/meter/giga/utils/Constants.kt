@@ -15,7 +15,9 @@ object Constants {
   const val SPEED_TEST_CHANNEL_ID = "speed_test_channel"
   const val FOREGROUND_SERVICE_TAG = "GIGA_SPEED_TEST_SERVICE"
   const val APP_UPDATE_CHANNEL_ID = "app_update_channel"
+  const val BATTERY_CHANNEL_ID = "battery_optimization_channel"
   const val WORKER_TAG = "APP_UPDATE_CHECK_WORKER"
+  const val EXTRA_REQUEST_BATTERY_UNRESTRICTED = "REQUEST_BATTERY_UNRESTRICTED"
 
   const val FIRST_15_MIN = "FIRST_15_MIN"
   const val NEXT_SLOT = "NEXT_SLOT"
@@ -43,6 +45,9 @@ object Constants {
   const val KEY_NEXT_EXECUTION_TIME = "KEY_NEXT_EXECUTION_TIME"
   const val KEY_LAST_SLOT_EXECUTION_HOUR = "KEY_LAST_SLOT_EXECUTION_HOUR"
   const val KEY_HISTORY_DATA_INDEX = "KEY_HISTORY_DATA_INDEX"
+  const val KEY_BATTERY_PROMPT_COUNT = "KEY_BATTERY_PROMPT_COUNT"
+  const val KEY_BATTERY_LAST_PROMPT_AT = "KEY_BATTERY_LAST_PROMPT_AT"
+  const val KEY_BATTERY_LAST_STATUS = "KEY_BATTERY_LAST_STATUS"
   const val CLIENT_INFO_FALLBACK_END_URL = "https://ipv4.geojs.io/v1/"
   const val CLIENT_INFO_END_URL = "https://ipinfo.io/"
   const val CLIENT_LITE_INFO_END_URL = "https://api.ipinfo.io/"
@@ -59,6 +64,12 @@ object Constants {
   const val REQ_NOTIF_PERMISSION: Int = 102
   const val REQ_STORAGE_PERMISSION: Int = 103
   const val APP_UPGRADE_NOTIFICATION_ID = 104
+  const val BATTERY_NOTIFICATION_ID = 105
+
+  // Requests to allow unrestricted battery usage
+  const val BATTERY_PROMPT_INTERVAL_MS = 3 * 24 * 60 * 60 * 1000L
+  const val BATTERY_STOPPED_PROMPT_INTERVAL_MS = 24 * 60 * 60 * 1000L
+  const val MAX_BATTERY_PROMPTS = 5
 
   // Speed test run limits
   const val TEST_RUNNING_STALE_MS = 5 * 60 * 1000L
@@ -67,6 +78,29 @@ object Constants {
   const val SLOT_DURATION_MS = 4 * 60 * 60 * 1000L
   const val BACKGROUND_RETRY_DELAY_MIN = 15L
   const val MAX_BACKGROUND_RETRIES = 3
+
+  // Ping (connectivity) checks, matching the web PingService
+  const val PING_WORK_NAME = "ping_check"
+  const val PING_ON_OPEN_WORK_NAME = "ping_check_on_open"
+  const val KEY_PING_LAST_CHECK_AT = "KEY_PING_LAST_CHECK_AT"
+  const val PING_PREFERENCES = "GIGA_PING_PREFERENCES"
+  const val KEY_PENDING_PINGS = "KEY_PENDING_PINGS"
+  const val KEY_LAST_PING_RESULT = "KEY_LAST_PING_RESULT"
+  const val KEY_PING_SERVICE_ENABLED = "KEY_PING_SERVICE_ENABLED"
+  const val KEY_PING_FLAGS_FETCHED_AT = "KEY_PING_FLAGS_FETCHED_AT"
+  const val KEY_PING_LAST_SYNC_AT = "KEY_PING_LAST_SYNC_AT"
+  const val PING_LATENCY_URL = "https://speed.cloudflare.com/__down?bytes=0"
+  const val PING_LATENCY_SAMPLES = 10
+  const val PING_REQUEST_TIMEOUT_MS = 3000L
+  const val PING_INTERVAL_MIN = 15L
+  const val PING_REUSE_WINDOW_MS = 5 * 60 * 1000L
+  const val PING_ACTIVE_START_HOUR = 8
+  const val PING_ACTIVE_END_HOUR = 20
+  const val PING_SYNC_BATCH_SIZE = 5
+  const val PING_SYNC_INTERVAL_MS = 2 * 60 * 60 * 1000L
+  const val PING_MAX_PENDING = 3000
+  const val PING_RETENTION_MS = 30 * 24 * 60 * 60 * 1000L
+  const val PING_FLAGS_REFRESH_MS = 6 * 60 * 60 * 1000L
 
 
   // Date Format

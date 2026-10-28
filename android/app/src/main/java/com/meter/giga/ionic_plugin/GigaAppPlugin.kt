@@ -25,15 +25,19 @@ import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.install.model.AppUpdateType
 import com.google.android.play.core.install.model.UpdateAvailability
 import com.google.gson.GsonBuilder
+import com.meter.giga.MainActivity
 import com.meter.giga.alarm_scheduler.AlarmHelper
 import com.meter.giga.alarm_scheduler.AlarmHelper.getNextSlotRange
 import com.meter.giga.alarm_scheduler.AlarmHelper.getSlotStartHour
+import com.meter.giga.data.models.requests.ConnectivityRecordRequestModel
 import com.meter.giga.domain.entity.SpeedTestResultEntity
 import com.meter.giga.domain.entity.history.MeasurementsItem
 import com.meter.giga.domain.entity.request.SpeedTestResultRequestEntity
 import com.meter.giga.prefrences.AlarmSharedPref
+import com.meter.giga.prefrences.PingStore
 import com.meter.giga.utils.AppLogger
 import com.meter.giga.utils.AppUpdateCheckEventBus
+import com.meter.giga.utils.BatteryOptimizationHelper
 import com.meter.giga.utils.Constants.BASE_URL
 import com.meter.giga.utils.Constants.ENV_TYPE
 import com.meter.giga.utils.Constants.FIRST_15_MIN
@@ -53,8 +57,13 @@ import com.meter.giga.utils.GigaUtil
 import com.meter.giga.worker.NetworkTestWorker
 import com.meter.giga.utils.NotificationHelper
 import com.meter.giga.utils.PluginEvent
+import com.meter.giga.worker.CloudflareLatencyProbe
+import com.meter.giga.worker.PingRunner
+import com.meter.giga.worker.PingScheduler
+import com.meter.giga.worker.TestFailureReason
 import com.meter.giga.worker.await
 import io.sentry.Sentry
+import io.sentry.SentryLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -305,6 +314,46 @@ open class GigaAppPlugin : Plugin() {
   }
 
   /**
+   * Current battery usage setting, so the home page can show a notice while
+   * daily tests may be delayed or skipped.
+   */
+  @PluginMethod
+  fun getBatteryOptimizationStatus(call: PluginCall) {
+    val status = BatteryOptimizationHelper.refreshStatus(context)
+    val ret = JSObject()
+    ret.put("status", status.name.lowercase())
+    call.resolve(ret)
+  }
+
+  /**
+   * Shows the onboarding battery request after the location permission prompt closes.
+   */
+  @PluginMethod
+  fun requestOnboardingBatteryPrompt(call: PluginCall) {
+    val host = activity
+    if (host !is MainActivity) {
+      call.reject("Battery settings are unavailable")
+      return
+    }
+    host.runOnUiThread { host.showOnboardingBatteryPrompt() }
+    call.resolve()
+  }
+
+  /**
+   * Opens the system request for unrestricted battery usage from the home-page notice.
+   */
+  @PluginMethod
+  fun openBatterySettings(call: PluginCall) {
+    val host = activity
+    if (host !is MainActivity) {
+      call.reject("Battery settings are unavailable")
+      return
+    }
+    host.openBatterySettingsFromHome()
+    call.resolve()
+  }
+
+  /**
    * Starts a manual speed test execution initiated
    * by the user from the Ionic UI.
    *
@@ -358,6 +407,13 @@ open class GigaAppPlugin : Plugin() {
         "GIGA GigaAppPlugin",
         "Notification permission denied, skipping manual speed test worker"
       )
+      Sentry.captureMessage(
+        "Speed test skipped, notification permission missing",
+        SentryLevel.WARNING
+      ) { scope ->
+        scope.setTag("schedule_type", scheduleType)
+        TestFailureReason.NOTIFICATIONS_NEEDED.applyTo(scope)
+      }
       sendSpeedTestCompletedWithError(null, null)
     }
     call.resolve()
@@ -442,6 +498,8 @@ open class GigaAppPlugin : Plugin() {
     alarmPrefs.browserId = browserId ?: ""
     alarmPrefs.mlabUploadKey = mlabUploadKey ?: ""
     scheduleAlarm(context, alarmPrefs)
+    PingStore(context).resetSchoolState()
+    PingScheduler.schedule(context)
     Sentry.configureScope { scope ->
       scope.setTag(
         "School ID", schoolId
@@ -568,11 +626,62 @@ open class GigaAppPlugin : Plugin() {
     tags.forEach { tag ->
       AlarmHelper.cancelExactAlarm(context, tag)
     }
+    PingScheduler.cancel(context)
+    PingStore(context).resetSchoolState()
     Sentry.removeTag("School ID")
     Sentry.removeTag("School GIGA ID")
     call.resolve()
   }
 
+
+  /**
+   * Returns the latest ping check for the dashboard, as
+   * { result: { timestamp, isConnected, latency, errorMessage } },
+   * or an empty object if no check was taken yet.
+   *
+   * @param call Capacitor plugin call instance.
+   */
+  @PluginMethod
+  fun getLatestPingResult(call: PluginCall) {
+    call.resolve(pingResultToJs(PingStore(context).lastResult))
+  }
+
+  /**
+   * Runs one ping cycle now, used before the first speed test, and
+   * resolves like [getLatestPingResult] with the check it took or reused.
+   *
+   * @param call Capacitor plugin call instance.
+   */
+  @PluginMethod
+  fun runPingCheck(call: PluginCall) {
+    val context = context
+    CoroutineScope(Dispatchers.IO).launch {
+      try {
+        val record = PingRunner(
+          prefs = AlarmSharedPref(context),
+          store = PingStore(context),
+          probe = CloudflareLatencyProbe()
+        ).run()
+        call.resolve(pingResultToJs(record))
+      } catch (e: Exception) {
+        Sentry.captureException(e)
+        call.reject("Ping check failed: ${e.message}")
+      }
+    }
+  }
+
+  private fun pingResultToJs(record: ConnectivityRecordRequestModel?): JSObject {
+    val ret = JSObject()
+    if (record != null) {
+      ret.put("result", JSObject().apply {
+        put("timestamp", record.timestamp)
+        put("isConnected", record.isConnected)
+        put("latency", record.latency)
+        put("errorMessage", record.errorMessage)
+      })
+    }
+    return ret
+  }
 
   @PluginMethod
   fun createNotification(call: PluginCall) {

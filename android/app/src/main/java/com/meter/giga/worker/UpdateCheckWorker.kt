@@ -20,6 +20,7 @@ import com.google.android.play.core.install.model.UpdateAvailability
 import com.meter.giga.MainActivity
 import com.meter.giga.app.R
 import com.meter.giga.utils.AppLogger
+import com.meter.giga.utils.BatteryOptimizationHelper
 import com.meter.giga.utils.Constants.APP_UPDATE_CHANNEL_ID
 import com.meter.giga.utils.Constants.APP_UPGRADE_NOTIFICATION_ID
 import com.meter.giga.utils.Constants.WORKER_TAG
@@ -72,6 +73,12 @@ open class UpdateCheckWorker(
    */
   override suspend fun doWork(): Result {
     logger.d("Daily Schedule Interval", "Worker executed")
+
+    try {
+      BatteryOptimizationHelper.remindIfNeeded(applicationContext)
+    } catch (e: Exception) {
+      logger.d("Battery", "Battery reminder failed: ${e.message}")
+    }
 
     return try {
       Sentry.captureMessage("Updated Checker executed before play store check")

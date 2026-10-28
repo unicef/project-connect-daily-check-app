@@ -78,6 +78,18 @@
   </ion-card>
 </ng-container>
 
+<ng-container *ngIf="isNativeApp() && showBatteryOptimizationMessage">
+  <ion-card class="location-permission-card">
+    <ion-card-content>
+      <p>{{ batteryOptimizationMessage }}</p>
+
+      <ion-button expand="block" (click)="openBatterySettings()">
+        Remove battery limits
+      </ion-button>
+    </ion-card-content>
+  </ion-card>
+</ng-container>
+
 <ion-content [ngClass]="isNativeApp() ? 'native_scrollable_content' : 'scrollable_content'">
   <ion-card class="card_margin">
     <div class="container centerPos">

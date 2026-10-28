@@ -213,6 +213,13 @@ export class AppComponent {
   }
 
   startSyncingPeriodicProcess() {
+    // On Android the native PingWorker takes and posts ping checks, even
+    // while the app is closed. The sync below still drains checks the
+    // WebView stored before the worker existed.
+    if (this.isNative) {
+      this.syncService.startPeriodicSync();
+      return;
+    }
     // Start periodic checks every 15 minutes (15 * 60 * 1000 ms)
     this.pingService.startPeriodicChecks(
       15 * 60 * 1000,
