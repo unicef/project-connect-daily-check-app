@@ -68,6 +68,36 @@ describe('UploadService', () => {
     });
   });
 
+  describe('when the upload fails', () => {
+    afterEach(() => httpMock.verify());
+
+    it('queues the measurement for the offline sync and still reports the failure', async () => {
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+      spyOn(service['posthog'], 'capture').and.stub();
+      const saveMeasurement = spyOn(service['indexedDB'], 'saveMeasurement').and.resolveTo();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return { UUID: 'ndt-1', ClientInfo: {}, Notes: 'manual' } as any;
+      });
+
+      const result = service
+        .uploadMeasurement({ Notes: 'manual', timestamp: Date.now() })
+        .toPromise();
+      httpMock
+        .expectOne((r) => r.url.endsWith('measurements'))
+        .error(new ProgressEvent('error'));
+
+      await expectAsync(result).toBeRejected();
+      expect(saveMeasurement).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ UUID: 'ndt-1', offline_synced: true })
+      );
+    });
+  });
+
   describe('geolocation that never answers', () => {
     let originalElectronAPI: any;
 

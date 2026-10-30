@@ -132,6 +132,42 @@ export class HistoryService {
   }
 
   /**
+   * Mark measurements as synced once the offline queue has delivered them
+   * @param uuids test UUIDs of the delivered measurements
+   */
+  markSynced(uuids: string[]) {
+    const delivered = new Set(uuids.filter((uuid) => !!uuid));
+    if (!delivered.size) {
+      return;
+    }
+    const flip = (data) => {
+      let changed = false;
+      data.measurements.forEach((measurement) => {
+        if (delivered.has(measurement.uuid) && !measurement.synced) {
+          measurement.uploaded = true;
+          measurement.synced = true;
+          changed = true;
+        }
+      });
+      return changed;
+    };
+
+    const historicalData = this.get();
+    const allHistoricalData = this.getAll();
+    const changed = flip(historicalData);
+    if (flip(allHistoricalData)) {
+      this.setAll(allHistoricalData);
+    }
+    if (changed) {
+      this.set(historicalData);
+      this.sharedService.broadcast(
+        'history:measurement:change',
+        'history:measurement:change'
+      );
+    }
+  }
+
+  /**
    * Retry upload measurement data into server
    * @param index
    */
