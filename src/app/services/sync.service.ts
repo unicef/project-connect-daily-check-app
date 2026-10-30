@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { IndexedDBService } from './indexed-db.service';
 import { StorageService } from './storage.service';
 import { PosthogService } from './posthog.service';
+import { HistoryService } from './history.service';
 import { environment } from 'src/environments/environment';
 
 @Injectable({
@@ -15,7 +16,8 @@ export class SyncService {
     private http: HttpClient,
     private indexedDBService: IndexedDBService,
     private storage: StorageService,
-    private posthog: PosthogService
+    private posthog: PosthogService,
+    private historyService: HistoryService
   ) { }
 
   async syncPendingMeasurements(): Promise<void> {
@@ -40,6 +42,9 @@ export class SyncService {
           for (const record of batch) {
             await this.indexedDBService.markMeasurementSynced(record.id);
           }
+          // The history row was left "Not Synced" when the realtime upload
+          // failed; it is delivered now.
+          this.historyService.markSynced(batch.map((record) => record.UUID));
 
           console.log(`Successfully synced measurements batch ${index / batchSize + 1}`);
           // Measurements that failed in realtime and are recovered now: the

@@ -2,6 +2,7 @@ import { HttpTestingController, provideHttpClientTesting } from '@angular/common
 import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
+import { of } from 'rxjs';
 import ndt7 from '../../assets/js/ndt/ndt7.js';
 import { MeasurementClientService } from './measurement-client.service';
 
@@ -86,6 +87,55 @@ describe('MeasurementClientService', () => {
       const record: any = service['initializeMeasurementRecord']('manual');
 
       expect(record.serverTimestamp).toBeNull();
+    });
+  });
+
+  describe('sync status', () => {
+    /**
+     * Runs finalizeMeasurement through the real UploadService, with only
+     * makeMeasurement and geolocation stubbed, so the history row's status
+     * comes from what the POST actually did.
+     */
+    beforeEach(() => {
+      httpMock = TestBed.inject(HttpTestingController);
+      (service['settingsService'].get as jasmine.Spy).and.callFake((key: string) =>
+        key === 'uploadEnabled' ? true : ''
+      );
+      const upload = service['uploadService'];
+      upload['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(upload['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(upload['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+      spyOn(upload['posthog'], 'capture').and.stub();
+      spyOn(upload['indexedDB'], 'saveMeasurement').and.resolveTo();
+      spyOn(upload, 'makeMeasurement').and.callFake((r: any) => {
+        upload.ts = new Date(r.timestamp);
+        return { ClientInfo: {}, Notes: 'manual' } as any;
+      });
+    });
+
+    afterEach(() => httpMock.verify());
+
+    it('is synced when the backend accepts the upload', async () => {
+      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+
+      const done = service['finalizeMeasurement'](record);
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
+      await done;
+
+      expect(record.synced).toBeTrue();
+    });
+
+    it('is not synced when the upload never reaches the backend', async () => {
+      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+
+      const done = service['finalizeMeasurement'](record);
+      httpMock
+        .expectOne((r) => r.url.endsWith('measurements'))
+        .error(new ProgressEvent('error'));
+      await done;
+
+      expect(record.synced).toBeFalse();
+      expect(record.uploaded).toBeFalse();
     });
   });
 });
