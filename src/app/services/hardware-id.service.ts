@@ -278,16 +278,22 @@ export class HardwareIdService {
    * ensureHardwareId() polls localStorage only, so when the first IPC probe
    * comes back empty - common when Windows starts the app from the logon Run
    * key, before WMI is answering - nothing refreshes it for the rest of the
-   * session. This re-invokes the IPC on an interval, and also picks the value
-   * up from localStorage if the main process pushes it first.
+   * session. This re-invokes the IPC with exponential backoff (2s, 4s, 8s, ...
+   * capped at `maxDelayMs`), and picks the value up from localStorage as soon
+   * as the main process pushes it, without waiting out the current delay.
    *
-   * @param timeoutMs How long to keep trying (default: 180000ms)
-   * @param intervalMs Gap between attempts (default: 10000ms)
-   * @returns Promise that resolves to a usable hardware ID or null
+   * @param shouldContinue checked between attempts; return false to give up
+   * @param timeoutMs How long to keep trying (default: 1 hour)
+   * @param initialDelayMs First gap between attempts, doubled each time
+   * @param maxDelayMs Upper bound for the gap
+   * @returns Promise that resolves to a usable hardware ID, or null when the
+   *   time runs out or `shouldContinue` says stop
    */
   async waitForUsableHardwareId(
-    timeoutMs: number = 180000,
-    intervalMs: number = 10000
+    shouldContinue: () => boolean = () => true,
+    timeoutMs: number = 60 * 60 * 1000,
+    initialDelayMs: number = 2000,
+    maxDelayMs: number = 5 * 60 * 1000
   ): Promise<string | null> {
     const existingId = this.getHardwareId();
     if (this.isUsableHardwareId(existingId)) {
@@ -303,25 +309,41 @@ export class HardwareIdService {
     );
 
     const deadline = Date.now() + timeoutMs;
-    while (Date.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, intervalMs));
-
-      // The constructor's listeners save any push from the main process here.
-      const storedId = this.getHardwareId();
-      if (this.isUsableHardwareId(storedId)) {
-        console.log('✅ [HardwareID] Hardware ID arrived from main process:', storedId);
-        return storedId;
+    let delayMs = initialDelayMs;
+    let attempt = 0;
+    while (Date.now() < deadline && shouldContinue()) {
+      // Wait out the backoff, but wake early for a push or a stop request.
+      const wakeAt = Math.min(Date.now() + delayMs, deadline);
+      while (Date.now() < wakeAt && shouldContinue()) {
+        const storedId = this.getHardwareId();
+        if (this.isUsableHardwareId(storedId)) {
+          console.log('✅ [HardwareID] Hardware ID arrived from main process:', storedId);
+          return storedId;
+        }
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.min(1000, wakeAt - Date.now()))
+        );
+      }
+      if (!shouldContinue()) {
+        break;
       }
 
+      attempt++;
       const data = await this.fetchHardwareId();
       if (data && this.isUsableHardwareId(data.hardwareId)) {
-        console.log('✅ [HardwareID] Hardware ID resolved on retry:', data.hardwareId);
+        console.log(
+          `✅ [HardwareID] Hardware ID resolved on retry ${attempt}:`,
+          data.hardwareId
+        );
         return data.hardwareId;
       }
+      delayMs = Math.min(delayMs * 2, maxDelayMs);
     }
 
     console.warn(
-      '⚠️ [HardwareID] No usable hardware ID after background retries'
+      shouldContinue()
+        ? '⚠️ [HardwareID] No usable hardware ID after background retries'
+        : 'ℹ️ [HardwareID] Background retries stopped by caller'
     );
     return null;
   }

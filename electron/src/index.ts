@@ -684,21 +684,10 @@ ipcMain.handle('get-hardware-id', async () => {
       );
       return cachedHardwareData;
     }
-    const systemData = await si.system();
-    const osData = await si.osInfo();
-    const hardwareId =
-      systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
-
-    const hardwareData = {
-      hardwareId,
-      uuid: systemData.uuid,
-      serial: systemData.serial,
-      sku: systemData.sku,
-      manufacturer: systemData.manufacturer,
-      model: systemData.model,
-      osSerial: osData.serial,
-      timestamp: new Date().toISOString(),
-    };
+    // Same probe as the background retry, so the renderer's own retries also
+    // get the si.uuid() fallback when si.system() comes back blank.
+    const hardwareData = await probeHardwareData();
+    const hardwareId = hardwareData.hardwareId;
 
     if (isUsableHardwareId(hardwareId)) {
       cachedHardwareData = hardwareData;
