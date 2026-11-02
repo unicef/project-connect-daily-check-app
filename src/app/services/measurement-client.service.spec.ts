@@ -3,7 +3,8 @@ import { TestBed } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { of } from 'rxjs';
-import ndt7 from '../../assets/js/ndt/ndt7.js';
+import ndt7 from '@m-lab/ndt7';
+import { environment } from '../../environments/environment';
 import { MeasurementClientService } from './measurement-client.service';
 
 /**
@@ -195,13 +196,17 @@ describe('MeasurementClientService ndt7 integration', () => {
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
   });
 
-  it('runs the test through the vendored ndt7 with the worker files', async () => {
+  it('runs the test through the ndt7 package with the giga-meter metadata', async () => {
     await service.runTest('manual');
 
     expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
     const config = ndt7TestSpy.calls.mostRecent().args[0];
-    // No `metadata` here on purpose: the vendored ndt7.js hardcodes the client
-    // name and version, unlike the npm package this reverted away from.
+    expect(config.metadata).toEqual(
+      jasmine.objectContaining({
+        client_name: 'giga-meter',
+        client_version: environment.app_version,
+      })
+    );
     expect(config.userAcceptedDataPolicy).toBeTrue();
     expect(config.downloadworkerfile).toBe(
       'assets/js/ndt/ndt7-download-worker.js'
@@ -219,6 +224,29 @@ describe('MeasurementClientService ndt7 integration', () => {
 
     // one initial attempt + one retry, then it gives up
     expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+  });
+
+  it('never lets a complete callback throw into ndt7', async () => {
+    // ndt7 resolves a test that never connected with no server data; a throw
+    // from our callback there would leave the test unresolved for ever.
+    let callbacks: any;
+    ndt7TestSpy.and.callFake(async (_config: any, cbs: any) => {
+      callbacks = cbs;
+      return 0;
+    });
+    const logged = spyOn(console, 'error');
+    await service.runTest('manual');
+
+    const noServerData = {
+      LastClientMeasurement: { MeanClientMbps: 1, ElapsedTime: 10 },
+      LastServerMeasurement: undefined,
+    };
+    expect(() => callbacks.downloadComplete(noServerData)).not.toThrow();
+    expect(() => callbacks.uploadComplete(noServerData)).not.toThrow();
+    expect(logged).toHaveBeenCalledWith(
+      '[ndt7] downloadComplete callback failed:',
+      jasmine.any(TypeError)
+    );
   });
 
   it('does not retry non-locate test failures', async () => {

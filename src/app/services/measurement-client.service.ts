@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import ndt7 from '../../assets/js/ndt/ndt7.js';
+import ndt7 from '@m-lab/ndt7';
+import { environment } from '../../environments/environment';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { HistoryService } from './history.service';
 import { SettingsService } from './settings.service';
@@ -26,8 +27,15 @@ export class MeasurementClientService {
   ).asObservable();
   private readonly testConfig = {
     userAcceptedDataPolicy: true,
+    // Copied from node_modules/@m-lab/ndt7 by the angular.json assets glob
     downloadworkerfile: 'assets/js/ndt/ndt7-download-worker.js',
     uploadworkerfile: 'assets/js/ndt/ndt7-upload-worker.js',
+    // Identifies our tests in M-Lab's data. ndt7-js adds its own
+    // client_library_name and client_library_version.
+    metadata: {
+      client_name: 'giga-meter',
+      client_version: environment.app_version,
+    },
   };
 
   mlabInformation = {
@@ -198,12 +206,31 @@ export class MeasurementClientService {
       serverChosen: (server) => this.onServerChosen(server, measurementRecord),
       downloadMeasurement: (data) =>
         this.onDownloadMeasurement(data, measurementRecord),
-      downloadComplete: (data) =>
-        this.onDownloadComplete(data, measurementRecord),
+      downloadComplete: this.settleSafely('downloadComplete', (data) =>
+        this.onDownloadComplete(data, measurementRecord)
+      ),
       uploadMeasurement: (data) =>
         this.onUploadMeasurement(data, measurementRecord),
-      uploadComplete: (data) => this.onUploadComplete(data, measurementRecord),
+      uploadComplete: this.settleSafely('uploadComplete', (data) =>
+        this.onUploadComplete(data, measurementRecord)
+      ),
       error: this.onError,
+    };
+  }
+
+  /**
+   * ndt7 calls the complete callbacks while it settles the test. If one
+   * throws, the library never resolves the test and the app waits for ever, so
+   * the error is logged instead: the missing result then fails the test the
+   * normal way.
+   */
+  private settleSafely(name: string, callback: (data: any) => void) {
+    return (data: any): void => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`[ndt7] ${name} callback failed:`, error);
+      }
     };
   }
 
