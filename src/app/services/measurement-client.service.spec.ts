@@ -9,8 +9,9 @@ import { MeasurementClientService } from './measurement-client.service';
 
 /**
  * Minimal shape of a finished ndt7 run: just the fields finalizeMeasurement
- * and calculateDataUsage read. `ServerTime` is what ndt7.js now reports from
- * the Date header of the locate response.
+ * and calculateDataUsage read. ndt7-js does not report `ServerTime` (M-Lab's
+ * locate response does not let browsers read its Date header), so real runs
+ * leave serverTimestamp null; the cases that pass one keep the reading covered.
  */
 const resultsWith = (s2cServerTime: any, c2sServerTime: any) => ({
   'NDTResult.S2C': {
@@ -185,13 +186,18 @@ describe('MeasurementClientService ndt7 integration', () => {
         }),
     };
 
+    const sentryService: any = {
+      captureException: jasmine.createSpy('captureException'),
+    };
+
     service = new MeasurementClientService(
       historyService,
       settingsService,
       networkService,
       uploadService,
       sharedService,
-      deviceContext
+      deviceContext,
+      sentryService
     );
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
   });
@@ -226,27 +232,46 @@ describe('MeasurementClientService ndt7 integration', () => {
     expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
   });
 
-  it('never lets a complete callback throw into ndt7', async () => {
-    // ndt7 resolves a test that never connected with no server data; a throw
-    // from our callback there would leave the test unresolved for ever.
-    let callbacks: any;
-    ndt7TestSpy.and.callFake(async (_config: any, cbs: any) => {
-      callbacks = cbs;
-      return 0;
-    });
-    const logged = spyOn(console, 'error');
-    await service.runTest('manual');
-
+  it('ends the test as a failure, reported to Sentry, when ndt7 settles with no server data', async () => {
+    // A leg whose connection never opens settles with no server measurement.
+    // ndt7-js settles a leg by calling the complete callback and only then
+    // resolving, so a throw from our callback would leave the test pending for
+    // ever. settleLeg does the same.
     const noServerData = {
       LastClientMeasurement: { MeanClientMbps: 1, ElapsedTime: 10 },
       LastServerMeasurement: undefined,
     };
-    expect(() => callbacks.downloadComplete(noServerData)).not.toThrow();
-    expect(() => callbacks.uploadComplete(noServerData)).not.toThrow();
-    expect(logged).toHaveBeenCalledWith(
-      '[ndt7] downloadComplete callback failed:',
-      jasmine.any(TypeError)
-    );
+    const settleLeg = (complete: (data: any) => void) =>
+      new Promise<number>((resolve) =>
+        setTimeout(() => {
+          complete(noServerData);
+          resolve(0);
+        })
+      );
+    ndt7TestSpy.and.callFake(async (_config: any, cbs: any) => {
+      await settleLeg(cbs.downloadComplete);
+      await settleLeg(cbs.uploadComplete);
+      return 0;
+    });
+    (service['finalizeMeasurement'] as jasmine.Spy).and.callThrough();
+    spyOn(console, 'error');
+
+    await service.runTest('manual');
+
+    const sentry = service['sentryService'].captureException as jasmine.Spy;
+    expect(sentry).toHaveBeenCalledWith(jasmine.any(TypeError), {
+      ndt7Callback: 'downloadComplete',
+    });
+    expect(sentry).toHaveBeenCalledWith(jasmine.any(TypeError), {
+      ndt7Callback: 'uploadComplete',
+    });
+    // Nothing is saved, and the test is never reported as complete.
+    expect(service['historyService'].add).not.toHaveBeenCalled();
+    const statuses = (service['sharedService'].broadcast as jasmine.Spy).calls
+      .allArgs()
+      .filter(([event]) => event === 'measurement:status')
+      .map(([, , data]) => data.testStatus);
+    expect(statuses).not.toContain('complete');
   });
 
   it('does not retry non-locate test failures', async () => {

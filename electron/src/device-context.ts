@@ -261,8 +261,8 @@ function shapeToPayload(shape: CachedNetworkShape): Partial<DeviceContext> {
  * The two values are not equally trustworthy. The uptime is measured by the
  * kernel and is immune to a wrong clock; the start time is derived from it as
  * `now - uptime`, so on the many school machines whose clock is off — the same
- * reason a measurement carries `server_timestamp` at all — it is off by exactly
- * the same amount. Prefer the uptime for anything analytical, and treat the start
+ * reason a measurement has a `server_timestamp` field, though that is always
+ * null for now — it is off by exactly the same amount. Prefer the uptime for anything analytical, and treat the start
  * time as a convenience for reading a row.
  *
  * A caveat for whoever queries this: on Windows, fast startup and hibernation

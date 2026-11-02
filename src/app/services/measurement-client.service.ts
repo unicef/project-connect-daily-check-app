@@ -8,6 +8,7 @@ import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
 import { DeviceContextService } from './device-context.service';
+import { SentryService } from './sentry.service';
 
 @Injectable({
   providedIn: 'root',
@@ -85,7 +86,8 @@ export class MeasurementClientService {
     private networkService: NetworkService,
     private uploadService: UploadService,
     private sharedService: SharedService,
-    private deviceContext: DeviceContextService
+    private deviceContext: DeviceContextService,
+    private sentryService: SentryService
   ) {}
 
   async runTest(
@@ -194,8 +196,8 @@ export class MeasurementClientService {
       wifiDiagnostics: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
-      // Wall clock reported by M-Lab, filled in by finalizeMeasurement. Null
-      // when the locate service did not return a usable Date header.
+      // M-Lab's clock, set by finalizeMeasurement. Always null for now: ndt7-js
+      // does not report it (see finalizeMeasurement).
       serverTimestamp: null,
     };
   }
@@ -220,9 +222,10 @@ export class MeasurementClientService {
 
   /**
    * ndt7 calls the complete callbacks while it settles the test. If one
-   * throws, the library never resolves the test and the app waits for ever, so
-   * the error is logged instead: the missing result then fails the test the
-   * normal way.
+   * throws, the library never resolves the test and the app waits for ever.
+   * So the error is reported to Sentry and logged instead, and that leg is left
+   * without a result: finalizeMeasurement then fails on the missing result and
+   * runTest broadcasts the failure.
    */
   private settleSafely(name: string, callback: (data: any) => void) {
     return (data: any): void => {
@@ -230,6 +233,7 @@ export class MeasurementClientService {
         callback(data);
       } catch (error) {
         console.error(`[ndt7] ${name} callback failed:`, error);
+        this.sentryService.captureException(error, { ndt7Callback: name });
       }
     };
   }
@@ -361,10 +365,11 @@ export class MeasurementClientService {
     measurementRecord.version = 1;
 
     // `timestamp` above comes from Date.now(), so it is only as good as the
-    // clock of the machine running the test. ndt7 reports the locate service's
-    // own clock alongside each completed leg; keep it so the backend can tell
-    // the two apart. Both legs carry the same value - fall back to the upload
-    // leg only in case the download one is missing.
+    // clock of the machine running the test. The backend also wants M-Lab's
+    // clock to tell the two apart, but ndt7-js does not report one: M-Lab's
+    // locate response does not let browsers read its Date header. So this is
+    // null for now, and is read from either leg's `ServerTime` for when one
+    // carries it.
     measurementRecord.serverTimestamp =
       measurementRecord.results['NDTResult.S2C']?.ServerTime ??
       measurementRecord.results['NDTResult.C2S']?.ServerTime ??
