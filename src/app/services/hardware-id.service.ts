@@ -22,6 +22,12 @@ interface HardwareError {
 })
 export class HardwareIdService {
   private readonly STORAGE_KEY = 'system_hardware_id';
+  /**
+   * Returned by the main process when the system probe answered but had no
+   * UUID or serial to give. It is stored like a real ID but matches no
+   * registration, so treat it as "not available yet".
+   */
+  private readonly UNUSABLE_HARDWARE_ID = 'NO_UUID_AVAILABLE';
   private hardwareIdPromise: Promise<HardwareData | null> | null = null;
   private hardwareIdResolve: ((data: HardwareData | null) => void) | null =
     null;
@@ -257,6 +263,67 @@ export class HardwareIdService {
         // Don't resolve on error, let timeout handle it
       });
     });
+  }
+
+  /**
+   * Whether an ID is real, rather than the main process's placeholder
+   */
+  isUsableHardwareId(hardwareId: string | null | undefined): boolean {
+    return !!hardwareId && hardwareId !== this.UNUSABLE_HARDWARE_ID;
+  }
+
+  /**
+   * Keep asking the main process until a usable hardware ID turns up.
+   *
+   * ensureHardwareId() polls localStorage only, so when the first IPC probe
+   * comes back empty - common when Windows starts the app from the logon Run
+   * key, before WMI is answering - nothing refreshes it for the rest of the
+   * session. This re-invokes the IPC on an interval, and also picks the value
+   * up from localStorage if the main process pushes it first.
+   *
+   * @param timeoutMs How long to keep trying (default: 180000ms)
+   * @param intervalMs Gap between attempts (default: 10000ms)
+   * @returns Promise that resolves to a usable hardware ID or null
+   */
+  async waitForUsableHardwareId(
+    timeoutMs: number = 180000,
+    intervalMs: number = 10000
+  ): Promise<string | null> {
+    const existingId = this.getHardwareId();
+    if (this.isUsableHardwareId(existingId)) {
+      return existingId;
+    }
+
+    if (!this.isElectron()) {
+      return null;
+    }
+
+    console.log(
+      `⏳ [HardwareID] Retrying in the background for up to ${timeoutMs}ms...`
+    );
+
+    const deadline = Date.now() + timeoutMs;
+    while (Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+
+      // The constructor's listeners save any push from the main process here.
+      const storedId = this.getHardwareId();
+      if (this.isUsableHardwareId(storedId)) {
+        console.log('✅ [HardwareID] Hardware ID arrived from main process:', storedId);
+        return storedId;
+      }
+
+      const data = await this.fetchHardwareId();
+      if (data && this.isUsableHardwareId(data.hardwareId)) {
+        console.log('✅ [HardwareID] Hardware ID resolved on retry:', data.hardwareId);
+        return data.hardwareId;
+      }
+    }
+
+    console.warn(
+      '⚠️ [HardwareID] No usable hardware ID after background retries'
+    );
+    return null;
   }
 
   /**

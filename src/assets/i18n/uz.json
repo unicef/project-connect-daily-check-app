@@ -59,6 +59,7 @@
   "home": {
     "andText": "va M-Lab tomonidan",
     "checkboxText": "GigaMeter’dan ro‘yxatdan o‘tib foydalanish orqali men Giga tomonidan o‘lchov va boshqa yordamchi ma’lumotlarimni yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
+    "checkingRegistration": "Bu kompyuter allaqachon ro‘yxatdan o‘tganmi, tekshirilmoqda...",
     "learn-more": "{{appName}} HAQIDA KO‘PROQ BILISH",
     "learnMore": "Giga Meter haqida ko‘proq ma’lumot",
     "licenseLink": "Ochiq ma’lumotlar bazasi litsenziyasi (ODBL)",

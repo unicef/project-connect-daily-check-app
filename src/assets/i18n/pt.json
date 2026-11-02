@@ -59,6 +59,7 @@
   "home": {
     "andText": "e pelo M-Lab sob a",
     "checkboxText": "Ao me registrar e utilizar o GigaMeter, concordo com a coleta, o processamento e a publicação da minha medição e de outros dados de apoio por parte da Giga sob a",
+    "checkingRegistration": "Verificando se este computador já está registrado...",
     "learn-more": "SAIBA MAIS SOBRE O {{appName}}",
     "learnMore": "Saiba mais sobre o Giga Meter",
     "licenseLink": "Licença de Banco de Dados Aberta (ODbL)",
