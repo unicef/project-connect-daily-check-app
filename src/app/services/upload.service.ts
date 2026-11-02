@@ -259,7 +259,11 @@ export class UploadService {
               scheduled_slot: measurementWithGeo['scheduled_slot'],
               status: error?.status ?? null,
             });
-            return of({ savedLocally: true, error });
+            // Still a failure for the caller: returning a value here made every
+            // failed upload look delivered, so the history showed "Synced" for
+            // tests the backend never received. SyncService flips the history
+            // row once the queued copy goes through.
+            throw error;
           })
         )
       )
