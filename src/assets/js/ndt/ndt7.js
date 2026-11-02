@@ -9,62 +9,50 @@
 
 // Wrap everything in a closure to ensure that local definitions don't
 // permanently shadow global definitions.
-(function () {
-  "use strict";
+(function() {
+  'use strict';
 
   /**
    * @name ndt7
    * @namespace ndt7
    */
-  const ndt7 = (function () {
+  const ndt7 = (function() {
     const staticMetadata = {
-      client_library_name: "ndt7-js",
-      client_library_version: "0.0.6",
-      client_name: "giga-meter",
+      'client_library_name': 'ndt7-js',
+      'client_library_version': '0.1.5',
+      // Giga Meter: identifies our tests in M-Lab's data.
+      'client_name': 'giga-meter',
     };
     // cb creates a default-empty callback function, allowing library users to
     // only need to specify callback functions for the events they care about.
     //
     // This function is not exported.
-    const cb = function (name, callbacks, defaultFn) {
-      if (typeof callbacks !== "undefined" && name in callbacks) {
+    const cb = function(name, callbacks, defaultFn) {
+      if (typeof(callbacks) !== 'undefined' && name in callbacks) {
         return callbacks[name];
-      } else if (typeof defaultFn !== "undefined") {
+      } else if (typeof defaultFn !== 'undefined') {
         return defaultFn;
       } else {
         // If no default function is provided, use the empty function.
-        return function () {};
+        return function() {};
       }
     };
 
     // The default response to an error is to throw an exception.
-    const defaultErrCallback = function (err) {
+    const defaultErrCallback = function(err) {
       throw new Error(err);
     };
 
-    /**
-     * serverTimeFromResponse reads the server's wall-clock time out of the
-     * Date header of a fetch response, as epoch milliseconds.
-     *
-     * The ndt7 protocol itself carries no wall clock: the measurement messages
-     * the server sends during the test only have ElapsedTime, which is
-     * relative to the start of the test, and the browser WebSocket API does
-     * not expose the headers of the handshake response. The locate service
-     * request is the one place a real server clock is reachable, and Date is a
-     * CORS-safelisted response header, so it can be read cross-origin without
-     * the service having to opt in via Access-Control-Expose-Headers.
-     *
-     * @param {Response} response - The fetch response to read the header from.
-     * @return {?number} Epoch milliseconds, or null when the header is absent
-     *   or unparseable.
-     *
-     * This function is not exported.
-     */
-    const serverTimeFromResponse = function (response) {
+    // Giga Meter: M-Lab's own clock, from the Date header of the locate
+    // response (CORS-safelisted). The device clock on school PCs is often
+    // wrong, so the app sends this alongside its own timestamp. It is the time
+    // of server discovery, a few seconds before the test, at 1 s resolution.
+    // Null when the header is missing or unparseable.
+    const serverTimeFromResponse = function(response) {
       if (!response || !response.headers) {
         return null;
       }
-      const header = response.headers.get("Date");
+      const header = response.headers.get('Date');
       if (!header) {
         return null;
       }
@@ -79,10 +67,34 @@
      * which is useful for clients served from the webserver of an NDT server.
      *
      * @param {Object} config - An associative array of configuration options.
+     * @param {string} [config.server] - Optional server hostname to connect to
+     *     directly, bypassing the locate service. Useful for testing against a
+     *     specific NDT server.
+     * @param {string} [config.protocol='wss'] - WebSocket protocol to use.
+     *     Either 'wss' (secure WebSocket) or 'ws' (insecure). Defaults to 'wss'.
+     * @param {Object} [config.metadata] - Optional metadata to identify your
+     *     application. Recommended fields: `client_name` (your application name,
+     *     e.g., 'my-speed-test') and `client_version` (your application version,
+     *     e.g., '2.1.0'). These are sent as query parameters to help distinguish
+     *     different integrations. The library automatically includes
+     *     `client_library_name` ('ndt7-js') and `client_library_version`.
+     * @param {string} [config.loadbalancer] - Optional custom locate service
+     *     URL to use instead of the default M-Lab locate service.
+     * @param {string} [config.clientRegistrationToken] - Optional JWT token for
+     *     registered integrator access. When provided, identifies that tests are
+     *     being run through a registered client integration, enabling access to
+     *     the priority endpoint (v2/priority/nearest) with higher rate limits.
+     *     The token should be obtained from your integrator backend that securely
+     *     manages API credentials with the M-Lab token exchange service. This
+     *     registers your client implementation, not individual end users.
      * @param {Object} userCallbacks - An associative array of user callbacks.
-     *
-     * It uses the callback functions `error`, `serverDiscovery`, and
-     * `serverChosen`.
+     * @param {Function} [userCallbacks.error] - Called when an error occurs.
+     *     Receives an error message string. If not provided, errors throw.
+     * @param {Function} [userCallbacks.serverDiscovery] - Called when server
+     *     discovery starts. Receives `{loadbalancer: URL}` where URL is the
+     *     locate service URL being queried.
+     * @param {Function} [userCallbacks.serverChosen] - Called when a server
+     *     is selected. Receives the server object from locate results.
      *
      * @name ndt7.discoverServerURLS
      * @public
@@ -91,50 +103,66 @@
       config.metadata = Object.assign({}, config.metadata);
       config.metadata = Object.assign(config.metadata, staticMetadata);
       const callbacks = {
-        error: cb("error", userCallbacks, defaultErrCallback),
-        serverDiscovery: cb("serverDiscovery", userCallbacks),
-        serverChosen: cb("serverChosen", userCallbacks),
+        error: cb('error', userCallbacks, defaultErrCallback),
+        serverDiscovery: cb('serverDiscovery', userCallbacks),
+        serverChosen: cb('serverChosen', userCallbacks),
       };
-      let protocol = "wss";
-      if (config && "protocol" in config) {
+      let protocol = 'wss';
+      if (config && config.protocol) {
         protocol = config.protocol;
       }
 
       const metadata = new URLSearchParams(config.metadata);
       // If a server was specified, use it.
-      if (config && "server" in config) {
+      if (config && config.server) {
         // Add metadata as querystring parameters.
-        const downloadURL = new URL(
-          protocol + "://" + config.server + "/ndt/v7/download"
-        );
-        const uploadURL = new URL(
-          protocol + "://" + config.server + "/ndt/v7/upload"
-        );
+        const downloadURL = new URL(protocol + '://' + config.server + '/ndt/v7/download');
+        const uploadURL = new URL(protocol + '://' + config.server + '/ndt/v7/upload');
         downloadURL.search = metadata;
         uploadURL.search = metadata;
         return {
-          "///ndt/v7/download": downloadURL.toString(),
-          "///ndt/v7/upload": uploadURL.toString(),
-          // No locate request happens on this path, so there is no server
-          // clock to report.
+          '///ndt/v7/download': downloadURL.toString(),
+          '///ndt/v7/upload': uploadURL.toString(),
+          // Giga Meter: no locate round trip on this path, so no server clock.
           ServerTime: null,
         };
       }
 
       // If no server was specified then use a loadbalancer. If no loadbalancer
       // is specified, use the locate service from Measurement Lab.
-      const lbURL =
-        config && "loadbalancer" in config
-          ? new URL(config.loadbalancer)
-          : new URL("https://locate.measurementlab.net/v2/nearest/ndt/ndt7");
+      //
+      // When a clientRegistrationToken is provided and no custom loadbalancer
+      // is specified, use the priority endpoint.
+      let lbURL;
+      if (config && config.loadbalancer) {
+        // Use custom loadbalancer if specified
+        lbURL = new URL(config.loadbalancer);
+      } else if (config && config.clientRegistrationToken) {
+        // Use priority endpoint for authenticated requests
+        lbURL = new URL('https://locate.measurementlab.net/v2/priority/nearest/ndt/ndt7');
+      } else {
+        // Use regular endpoint for unauthenticated requests
+        lbURL = new URL('https://locate.measurementlab.net/v2/nearest/ndt/ndt7');
+      }
       lbURL.search = metadata;
-      callbacks.serverDiscovery({ loadbalancer: lbURL });
-      const response = await fetch(lbURL).catch((err) => {
+      callbacks.serverDiscovery({loadbalancer: lbURL});
+
+      // Prepare fetch options with Authorization header if token is present
+      const fetchOptions = {};
+      if (config && config.clientRegistrationToken) {
+        fetchOptions.headers = {
+          'Authorization': `Bearer ${config.clientRegistrationToken}`,
+        };
+      }
+
+      // Perform the HTTP round trip with the load balancer
+      const response = await fetch(lbURL, fetchOptions).catch((err) => {
         throw new Error(err);
       });
+      // Giga Meter: read the server clock before the body is consumed.
       const serverTime = serverTimeFromResponse(response);
       const js = await response.json();
-      if (!("results" in js)) {
+      if (! ('results' in js) ) {
         callbacks.error(`Could not understand response from ${lbURL}: ${js}`);
         return {};
       }
@@ -150,11 +178,9 @@
       callbacks.serverChosen(choice);
 
       return {
-        "///ndt/v7/download": choice.urls[protocol + ":///ndt/v7/download"],
-        "///ndt/v7/upload": choice.urls[protocol + ":///ndt/v7/upload"],
-        // Wall-clock time reported by the locate service, taken a few seconds
-        // before the test starts. The workers ignore this key; it is read back
-        // in runNDT7Worker.
+        '///ndt/v7/download': choice.urls[protocol + ':///ndt/v7/download'],
+        '///ndt/v7/upload': choice.urls[protocol + ':///ndt/v7/upload'],
+        // Giga Meter: passed on to the complete callbacks.
         ServerTime: serverTime,
       };
     }
@@ -167,28 +193,18 @@
      *
      * @private
      */
-    const runNDT7Worker = async function (
-      config,
-      callbacks,
-      urlPromise,
-      filename,
-      testType
-    ) {
-      if (
-        config.userAcceptedDataPolicy !== true &&
-        config.mlabDataPolicyInapplicable !== true
-      ) {
-        callbacks.error(
-          "The M-Lab data policy is applicable and the user " +
-            "has not explicitly accepted that data policy."
-        );
+    const runNDT7Worker = async function(
+        config, callbacks, urlPromise, filename, testType) {
+      if (config.userAcceptedDataPolicy !== true &&
+          config.mlabDataPolicyInapplicable !== true) {
+        callbacks.error('The M-Lab data policy is applicable and the user ' +
+                        'has not explicitly accepted that data policy.');
         return 1;
       }
 
       let clientMeasurement;
       let serverMeasurement;
-      // Stays null if server discovery never resolves (e.g. the worker times
-      // out first), so callers always get an explicit value.
+      // Giga Meter: M-Lab's clock from server discovery, set once urls resolve.
       let serverTime = null;
 
       // This makes the worker. The worker won't actually start until it
@@ -199,11 +215,12 @@
       // Workers are resolved with c-style return codes. 0 for success,
       // non-zero for failure.
       const workerPromise = new Promise((resolve) => {
-        worker.resolve = function (returnCode) {
+        worker.resolve = function(returnCode) {
           if (returnCode == 0) {
             callbacks.complete({
               LastClientMeasurement: clientMeasurement,
               LastServerMeasurement: serverMeasurement,
+              // Giga Meter: see serverTimeFromResponse.
               ServerTime: serverTime,
             });
           }
@@ -212,28 +229,37 @@
         };
       });
 
-      // If the worker takes 12 seconds, kill it and return an error code.
-      // Most clients take longer than 10 seconds to complete the upload and
-      // finish sending the buffer's content, sometimes hitting the socket's
-      // timeout of 15 seconds. This makes sure uploads terminate on time and
-      // get a chance to send one last measurement after 10s.
-      const workerTimeout = setTimeout(() => worker.resolve(0), 12000);
+      // Connection timeout: if the WebSocket never opens (and never
+      // fires onerror/onclose), resolve after 10s to prevent the
+      // promise from hanging indefinitely.
+      const connTimeout = setTimeout(() => worker.resolve(0), 10000);
+
+      // The test duration timeout is set when the worker reports
+      // 'start' (i.e. sock.onopen), so that WS+TLS handshake time
+      // does not eat into the test duration.
+      let workerTimeout;
 
       // This is how the worker communicates back to the main thread of
       // execution.  The MsgTpe of `ev` determines which callback the message
       // gets forwarded to.
-      worker.onmessage = function (ev) {
-        if (!ev.data || !ev.data.MsgType || ev.data.MsgType === "error") {
+      worker.onmessage = function(ev) {
+        if (!ev.data || !ev.data.MsgType || ev.data.MsgType === 'error') {
+          clearTimeout(connTimeout);
           clearTimeout(workerTimeout);
           worker.resolve(1);
-          const msg = !ev.data ? `${testType} error` : ev.data.Error;
+          const msg = (!ev.data) ? `${testType} error` : ev.data.Error;
           callbacks.error(msg);
-        } else if (ev.data.MsgType === "start") {
+        } else if (ev.data.MsgType === 'start') {
+          clearTimeout(connTimeout);
+          // Safety timeout anchored to connect, not worker creation.
+          // 12s gives the server's 10s duration time to finish plus
+          // margin for the upload buffer to drain.
+          workerTimeout = setTimeout(() => worker.resolve(0), 12000);
           callbacks.start(ev.data.Data);
-        } else if (ev.data.MsgType == "measurement") {
+        } else if (ev.data.MsgType == 'measurement') {
           // For performance reasons, we parse the JSON outside of the thread
           // doing the downloading or uploading.
-          if (ev.data.Source == "server") {
+          if (ev.data.Source == 'server') {
             serverMeasurement = JSON.parse(ev.data.ServerMessage);
             callbacks.measurement({
               Source: ev.data.Source,
@@ -246,7 +272,7 @@
               Data: ev.data.ClientData,
             });
           }
-        } else if (ev.data.MsgType == "complete") {
+        } else if (ev.data.MsgType == 'complete') {
           clearTimeout(workerTimeout);
           worker.resolve(0);
         }
@@ -255,13 +281,15 @@
       // We can't start the worker until we know the right server, so we wait
       // here to find that out.
       const urls = await urlPromise.catch((err) => {
-        // Clear timer, terminate the worker and rethrow the error.
+        // Clear timers, terminate the worker and rethrow the error.
+        clearTimeout(connTimeout);
         clearTimeout(workerTimeout);
         worker.resolve(2);
         throw err;
       });
 
-      serverTime = typeof urls.ServerTime === "number" ? urls.ServerTime : null;
+      // Giga Meter: keep the server clock for the complete callback.
+      serverTime = typeof urls.ServerTime === 'number' ? urls.ServerTime : null;
 
       // Start the worker.
       worker.postMessage(urls);
@@ -287,21 +315,17 @@
      */
     async function downloadTest(config, userCallbacks, urlPromise) {
       const callbacks = {
-        error: cb("error", userCallbacks, defaultErrCallback),
-        start: cb("downloadStart", userCallbacks),
-        measurement: cb("downloadMeasurement", userCallbacks),
-        complete: cb("downloadComplete", userCallbacks),
+        error: cb('error', userCallbacks, defaultErrCallback),
+        start: cb('downloadStart', userCallbacks),
+        measurement: cb('downloadMeasurement', userCallbacks),
+        complete: cb('downloadComplete', userCallbacks),
       };
-      const workerfile = config.downloadworkerfile || "ndt7-download-worker.js";
+      const workerfile = config.downloadworkerfile || 'ndt7-download-worker.js';
       return await runNDT7Worker(
-        config,
-        callbacks,
-        urlPromise,
-        workerfile,
-        "download"
-      ).catch((err) => {
-        callbacks.error(err);
-      });
+          config, callbacks, urlPromise, workerfile, 'download')
+          .catch((err) => {
+            callbacks.error(err);
+          });
     }
 
     /**
@@ -317,21 +341,17 @@
      */
     async function uploadTest(config, userCallbacks, urlPromise) {
       const callbacks = {
-        error: cb("error", userCallbacks, defaultErrCallback),
-        start: cb("uploadStart", userCallbacks),
-        measurement: cb("uploadMeasurement", userCallbacks),
-        complete: cb("uploadComplete", userCallbacks),
+        error: cb('error', userCallbacks, defaultErrCallback),
+        start: cb('uploadStart', userCallbacks),
+        measurement: cb('uploadMeasurement', userCallbacks),
+        complete: cb('uploadComplete', userCallbacks),
       };
-      const workerfile = config.uploadworkerfile || "ndt7-upload-worker.js";
+      const workerfile = config.uploadworkerfile || 'ndt7-upload-worker.js';
       const rv = await runNDT7Worker(
-        config,
-        callbacks,
-        urlPromise,
-        workerfile,
-        "upload"
-      ).catch((err) => {
-        callbacks.error(err);
-      });
+          config, callbacks, urlPromise, workerfile, 'upload')
+          .catch((err) => {
+            callbacks.error(err);
+          });
       return rv << 4;
     }
 
@@ -339,10 +359,56 @@
      * test discovers a server to run against and then runs a download test
      * followed by an upload test.
      *
-     * @param {Object} config - An associative array of configuration strings
-     * @param {Object} userCallbacks
+     * @param {Object} config - An associative array of configuration options.
+     * @param {string} [config.server] - Optional server hostname to connect to
+     *     directly, bypassing the locate service. Useful for testing against a
+     *     specific NDT server.
+     * @param {string} [config.protocol='wss'] - WebSocket protocol to use.
+     *     Either 'wss' (secure WebSocket) or 'ws' (insecure). Defaults to 'wss'.
+     * @param {Object} [config.metadata] - Optional metadata to identify your
+     *     application. Recommended fields: `client_name` (your application name,
+     *     e.g., 'my-speed-test') and `client_version` (your application version,
+     *     e.g., '2.1.0'). These are sent as query parameters to help distinguish
+     *     different integrations. The library automatically includes
+     *     `client_library_name` ('ndt7-js') and `client_library_version`.
+     * @param {string} [config.loadbalancer] - Optional custom locate service
+     *     URL to use instead of the default M-Lab locate service.
+     * @param {string} [config.clientRegistrationToken] - Optional JWT token for
+     *     registered integrator access. When provided, identifies that tests are
+     *     being run through a registered client integration, enabling access to
+     *     the priority endpoint (v2/priority/nearest) with higher rate limits.
+     *     The token should be obtained from your integrator backend that securely
+     *     manages API credentials with the M-Lab token exchange service. This
+     *     registers your client implementation, not individual end users.
+     * @param {boolean} [config.userAcceptedDataPolicy] - Must be set to true
+     *     to indicate the user has accepted M-Lab's data policy. Required unless
+     *     mlabDataPolicyInapplicable is true.
+     * @param {boolean} [config.mlabDataPolicyInapplicable] - Set to true if
+     *     M-Lab's data policy does not apply to your use case.
+     * @param {Object} userCallbacks - An associative array of user callbacks.
+     * @param {Function} [userCallbacks.error] - Called when an error occurs.
+     *     Receives an error message string. If not provided, errors throw.
+     * @param {Function} [userCallbacks.serverDiscovery] - Called when server
+     *     discovery starts. Receives `{loadbalancer: URL}` where URL is the
+     *     locate service URL being queried.
+     * @param {Function} [userCallbacks.serverChosen] - Called when a server
+     *     is selected. Receives the server object from locate results.
+     * @param {Function} [userCallbacks.downloadStart] - Called when download
+     *     test starts. Receives start event data.
+     * @param {Function} [userCallbacks.downloadMeasurement] - Called during
+     *     download test. Receives `{Source, Data}` where Source is 'client'
+     *     or 'server' and Data contains measurement values.
+     * @param {Function} [userCallbacks.downloadComplete] - Called when download
+     *     completes. Receives `{LastClientMeasurement, LastServerMeasurement}`.
+     * @param {Function} [userCallbacks.uploadStart] - Called when upload
+     *     test starts. Receives start event data.
+     * @param {Function} [userCallbacks.uploadMeasurement] - Called during
+     *     upload test. Receives `{Source, Data}` where Source is 'client'
+     *     or 'server' and Data contains measurement values.
+     * @param {Function} [userCallbacks.uploadComplete] - Called when upload
+     *     completes. Receives `{LastClientMeasurement, LastServerMeasurement}`.
      *
-     * @return {number} Zero on success, and non-zero error code on failure.
+     * @return {number} Zero on success, non-zero on failure.
      *
      * @name ndt7.test
      * @public
@@ -352,11 +418,9 @@
       // stuff to proceed in the background.
       const urlPromise = discoverServerURLs(config, userCallbacks);
       const downloadSuccess = await downloadTest(
-        config,
-        userCallbacks,
-        urlPromise
-      );
-      const uploadSuccess = await uploadTest(config, userCallbacks, urlPromise);
+          config, userCallbacks, urlPromise);
+      const uploadSuccess = await uploadTest(
+          config, userCallbacks, urlPromise);
       return downloadSuccess + uploadSuccess;
     }
 
@@ -370,12 +434,12 @@
 
   // Modules are used by `require`, if this file is included on a web page, then
   // module will be undefined and we use the window.ndt7 piece.
-  if (typeof module !== "undefined" && typeof module.exports !== "undefined") {
+  if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
     module.exports = ndt7;
   } else {
     window.ndt7 = ndt7;
   }
 })();
 
-// Export the ndt7 object as a default export
+// Giga Meter: the app imports this file as an ES module.
 export default ndt7;
