@@ -150,13 +150,10 @@ describe('ConfirmschoolPage', () => {
     await component.confirmSchool();
 
     expect(loading.dismiss).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith([
-      'schoolnotfound',
-      'ext-1',
-      'ES',
-      'ES',
-      'Spain',
-    ]);
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['schoolnotfound', 'ext-1', 'ES', 'ES', 'Spain'],
+      { queryParams: { reason: 'registrationFailed' } }
+    );
     expect(component.isRegistering).toBeFalse();
   });
 

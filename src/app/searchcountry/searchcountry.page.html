@@ -21,7 +21,7 @@
         <ion-item
           lines="none"
           class="searchCountry"
-          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && isPcdcCountry !== false) ? 'warning_color' : this.isPcdcCountry === false ? 'error_color' : ''"
+          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && isPcdcCountry !== false) ? 'warning_color' : (this.isPcdcCountry === false || countryCheckFailed) ? 'error_color' : ''"
         >
           <ion-label
             class="label"
@@ -81,6 +81,23 @@
         </span>
         <span
           class="error_message"
+          *ngIf="countryCheckFailed && !isCheckingEligibility"
+        >
+          <ion-img class="error_icon" src="assets/images/error_country.svg"></ion-img>
+          <div class="search-label-error">
+            <span
+              [translate]="'registrationError.countryCheckFailed'"
+              [translateParams]="{ appName }"
+            ></span>
+            <a
+              class="retry_link"
+              (click)="retryCountryCheck()"
+              [translate]="'tryAgain'"
+            ></a>
+          </div>
+        </span>
+        <span
+          class="error_message"
           *ngIf="this.selectedCountry !=='' && this.selectedCountry !== this.detectedCountry && this.isPcdcCountry !== false"
         >
           <ion-img class="error_icon" src="assets/images/Warning.svg"></ion-img>
@@ -112,7 +129,7 @@
           tabindex="0"
           block
           class="dailycheck_btn btn_margin"
-          [disabled]="isCheckingEligibility || (!selectedFromList && !automaticSearched) || this.isPcdcCountry === false || !searchTerm.length"
+          [disabled]="isCheckingEligibility || (!selectedFromList && !automaticSearched) || this.isPcdcCountry === false || countryCheckFailed || !searchTerm.length"
           (click)="confirmCountry()"
           ><span
             class="submit_button_size"

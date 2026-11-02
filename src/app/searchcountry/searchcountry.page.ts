@@ -1034,6 +1034,9 @@ export class SearchcountryPage {
   searchTerm: string = '';
   filteredCountries: Country[] = [];
   isCheckingEligibility: boolean = false;
+  /** The eligibility check could not run (network/server), as opposed to "not available". */
+  countryCheckFailed = false;
+  private lastCheckedCountry: Country;
 
   constructor(
     private storage: StorageService,
@@ -1077,6 +1080,8 @@ export class SearchcountryPage {
     // if (!this.selectedCountry) return;
 
     this.isCheckingEligibility = true;
+    this.countryCheckFailed = false;
+    this.lastCheckedCountry = country;
     this.countryService
       .getPcdcCountryByCode(country.code)
       .pipe(
@@ -1097,10 +1102,18 @@ export class SearchcountryPage {
         },
         (err) => {
           console.log('Validation error:', err);
-          this.isPcdcCountry = false;
-          // this.selectedCountry = country.code;
+          /* We don't know whether the country is supported, so don't say it
+             isn't: show a retryable error instead. */
+          this.isPcdcCountry = undefined;
+          this.countryCheckFailed = true;
         }
       );
+  }
+
+  retryCountryCheck() {
+    if (this.lastCheckedCountry && !this.isCheckingEligibility) {
+      this.validateSelectedCountry(this.lastCheckedCountry);
+    }
   }
 
   confirmCountry() {
@@ -1225,6 +1238,7 @@ export class SearchcountryPage {
   onSearchInput(event: any): void {
     const value = event.target.value?.trim();
 
+    this.countryCheckFailed = false;
     if (!value) {
       // Reset everything if input is empty
       this.isPcdcCountry = true;
