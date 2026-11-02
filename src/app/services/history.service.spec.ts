@@ -58,5 +58,14 @@ describe('HistoryService', () => {
       expect(service.get()).toEqual(rows());
       expect(broadcast).not.toHaveBeenCalled();
     });
+
+    it('never throws when the stored history is unreadable', () => {
+      localStorage.setItem('historicalData', '{not json');
+      const warn = spyOn(console, 'warn');
+
+      expect(() => service.markSynced(['ndt-a'])).not.toThrow();
+      expect(warn).toHaveBeenCalled();
+      expect(broadcast).not.toHaveBeenCalled();
+    });
   });
 });
