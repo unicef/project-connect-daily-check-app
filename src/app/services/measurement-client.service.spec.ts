@@ -287,9 +287,10 @@ describe('MeasurementClientService without a server measurement', () => {
   });
 
   describe('when the ndt7 worker times out', () => {
-    // Stands in for the download/upload web worker: it only ever reports a
-    // client measurement, as on a link where the server's messages never
-    // arrive.
+    // Stand-ins for the download/upload web worker, run through the real
+    // ndt7-js. It gives a leg 10 s to connect, then 12 s from the worker's
+    // 'start' message. SilentServerWorker connects and reports a client
+    // measurement, but the server's messages never arrive.
     class SilentServerWorker {
       static instances: SilentServerWorker[] = [];
       onmessage: (ev: any) => void;
@@ -298,6 +299,7 @@ describe('MeasurementClientService without a server measurement', () => {
         SilentServerWorker.instances.push(this);
       }
       postMessage() {
+        this.onmessage({ data: { MsgType: 'start', Data: {} } });
         this.onmessage({
           data: {
             MsgType: 'measurement',
@@ -311,10 +313,14 @@ describe('MeasurementClientService without a server measurement', () => {
       }
     }
 
+    // Never opens its connection, so it never reports anything.
+    class NeverConnectsWorker extends SilentServerWorker {
+      postMessage() {}
+    }
+
     const urls = Promise.resolve({
       '///ndt/v7/download': 'wss://example/download',
       '///ndt/v7/upload': 'wss://example/upload',
-      ServerTime: null,
     });
     const config = {
       userAcceptedDataPolicy: true,
@@ -366,23 +372,42 @@ describe('MeasurementClientService without a server measurement', () => {
       expect(statuses.pop().testStatus).toBe('complete');
     });
 
-    it('still settles the test when the complete callback throws', async () => {
-      const download = ndt7.downloadTest(
-        config,
-        {
-          downloadComplete: () => {
-            throw new TypeError('boom');
-          },
-        },
-        urls
-      );
-      await flushMicrotasks();
+    it('fails the test when a leg never connects', async () => {
+      (window as any).Worker = NeverConnectsWorker;
+      const record: any = service['initializeMeasurementRecord']('manual');
+      const callbacks = service['getTestCallbacks'](record);
 
-      // The error still surfaces (so it is reported), but the worker is
-      // terminated and the promise resolves instead of hanging.
-      expect(() => jasmine.clock().tick(12000)).toThrowError(TypeError, 'boom');
+      const download = ndt7.downloadTest(config, callbacks, urls);
+      await flushMicrotasks();
+      jasmine.clock().tick(10000);
       expect(await download).toBe(0);
       expect(SilentServerWorker.instances[0].terminated).toBeTrue();
+
+      await expectAsync(
+        service['finalizeMeasurement'](record)
+      ).toBeRejectedWithError(/download and upload test did not produce a result/);
+      expect(historyAdd).not.toHaveBeenCalled();
+    });
+
+    it('still settles the test, and reports to Sentry, when a complete callback throws', async () => {
+      const record: any = service['initializeMeasurementRecord']('manual');
+      const callbacks = service['getTestCallbacks'](record);
+      const boom = new TypeError('boom');
+      spyOn(service.downloadComplete$, 'next').and.throwError(boom);
+      const reported = spyOn(service['sentryService'], 'captureException');
+      spyOn(console, 'error');
+
+      const download = ndt7.downloadTest(config, callbacks, urls);
+      await flushMicrotasks();
+
+      // ndt7-js calls the callback before it resolves: without the guard the
+      // throw escapes here and the test never settles.
+      expect(() => jasmine.clock().tick(12000)).not.toThrow();
+      expect(await download).toBe(0);
+      expect(SilentServerWorker.instances[0].terminated).toBeTrue();
+      expect(reported).toHaveBeenCalledWith(boom, {
+        ndt7Callback: 'downloadComplete',
+      });
     });
   });
 });
@@ -475,48 +500,6 @@ describe('MeasurementClientService ndt7 integration', () => {
 
     // one initial attempt + one retry, then it gives up
     expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
-  });
-
-  it('ends the test as a failure, reported to Sentry, when ndt7 settles with no server data', async () => {
-    // A leg whose connection never opens settles with no server measurement.
-    // ndt7-js settles a leg by calling the complete callback and only then
-    // resolving, so a throw from our callback would leave the test pending for
-    // ever. settleLeg does the same.
-    const noServerData = {
-      LastClientMeasurement: { MeanClientMbps: 1, ElapsedTime: 10 },
-      LastServerMeasurement: undefined,
-    };
-    const settleLeg = (complete: (data: any) => void) =>
-      new Promise<number>((resolve) =>
-        setTimeout(() => {
-          complete(noServerData);
-          resolve(0);
-        })
-      );
-    ndt7TestSpy.and.callFake(async (_config: any, cbs: any) => {
-      await settleLeg(cbs.downloadComplete);
-      await settleLeg(cbs.uploadComplete);
-      return 0;
-    });
-    (service['finalizeMeasurement'] as jasmine.Spy).and.callThrough();
-    spyOn(console, 'error');
-
-    await service.runTest('manual');
-
-    const sentry = service['sentryService'].captureException as jasmine.Spy;
-    expect(sentry).toHaveBeenCalledWith(jasmine.any(TypeError), {
-      ndt7Callback: 'downloadComplete',
-    });
-    expect(sentry).toHaveBeenCalledWith(jasmine.any(TypeError), {
-      ndt7Callback: 'uploadComplete',
-    });
-    // Nothing is saved, and the test is never reported as complete.
-    expect(service['historyService'].add).not.toHaveBeenCalled();
-    const statuses = (service['sharedService'].broadcast as jasmine.Spy).calls
-      .allArgs()
-      .filter(([event]) => event === 'measurement:status')
-      .map(([, , data]) => data.testStatus);
-    expect(statuses).not.toContain('complete');
   });
 
   it('does not retry non-locate test failures', async () => {

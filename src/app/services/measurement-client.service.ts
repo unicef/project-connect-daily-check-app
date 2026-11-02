@@ -233,9 +233,9 @@ export class MeasurementClientService {
   /**
    * ndt7 calls the complete callbacks while it settles the test. If one
    * throws, the library never resolves the test and the app waits for ever.
-   * So the error is reported to Sentry and logged instead, and that leg is left
-   * without a result: finalizeMeasurement then fails on the missing result and
-   * runTest broadcasts the failure.
+   * The callbacks already cope with a missing server measurement, so this only
+   * catches the unexpected: the error is reported to Sentry and logged, and the
+   * test carries on with whatever that leg recorded.
    */
   private settleSafely(name: string, callback: (data: any) => void) {
     return (data: any): void => {
@@ -291,8 +291,9 @@ export class MeasurementClientService {
 
   private onDownloadComplete = (data: any, measurementRecord: any): void => {
     // LastServerMeasurement is undefined when the server sent nothing before
-    // ndt7's 12 s worker timeout (slow or filtered links). The download speed
-    // is measured on the client, so the leg is still usable without it.
+    // ndt7's time limit (slow or filtered links): 10 s to connect, then 12 s
+    // for the test. The download speed is measured on the client, so the leg
+    // is still usable without it.
     const server = data?.LastServerMeasurement;
     const client = data?.LastClientMeasurement;
     if (!server) {
