@@ -25,7 +25,6 @@ import { mlabInformation, accessInformation } from '../models/models';
 import { FirstTestSuccessModalComponent } from '../components/first-test-success-modal/first-test-success-modal.component';
 import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
-import { PingService } from '../services/ping.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
 
 @Component({
@@ -135,8 +134,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     private storage: StorageService,
     private countryService: CountryService,
     private confettiService: ConfettiService,
-    private indexedDBService: IndexedDBService,
-    private pingService: PingService
+    private indexedDBService: IndexedDBService
   ) {
     if (this.storage.get('schoolId')) {
       this.school = JSON.parse(this.storage.get('schoolInfo'));
@@ -846,26 +844,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         );
       }
 
-      // Run ping test first, then start the NDT test
-      try {
-        console.log('Running ping test before first NDT test...');
-        const pingResult = await this.pingService.performCheck();
-
-        if (pingResult) {
-          console.log('Ping test completed successfully:', pingResult);
-          // Save the ping result
-          await this.indexedDBService.savePingResult(pingResult);
-          // Update the ping display
-          await this.loadLatestPingResult();
-        } else {
-          console.log('Ping test skipped (outside active hours or failed)');
-        }
-      } catch (error) {
-        console.error('Error during ping test:', error);
-        // Continue with NDT test even if ping fails
-      }
-
-      // Start the NDT test
+      // Start the NDT test (it pings first, like every test)
       this.startNDT('first');
     } else {
       console.log('Auto-trigger conditions not met:', {
