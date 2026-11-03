@@ -235,6 +235,29 @@ describe('ScheduleService', () => {
     });
   });
 
+  describe('startup test', () => {
+    const runStartupTest = () => (service as any).runStartupTest();
+
+    it('counts a test that passed as the window test and as the startup test', async () => {
+      await runStartupTest();
+
+      expect(store.lastMeasurement).toBe(NOW.getTime().toString());
+      expect(store.lastStartupTest).toBe(NOW.getTime().toString());
+    });
+
+    it('does not count a test that failed as the window test', async () => {
+      measurementClientService.runTest.and.rejectWith(new Error('test broke'));
+
+      await runStartupTest();
+
+      // The window's scheduled test still runs, with its own retries.
+      expect(store.lastMeasurement).toBeUndefined();
+      // But it is today's startup test, so no new one is planned every few
+      // minutes for the rest of the day.
+      expect(store.lastStartupTest).toBe(NOW.getTime().toString());
+    });
+  });
+
   describe('createSlotSemaphore via scheduleInitializers', () => {
     it('creates semaphores with retry fields initialised', async () => {
       store.lastMeasurement = '0';
