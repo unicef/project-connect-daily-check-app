@@ -11,8 +11,12 @@ describe('CircularProgressBarComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      declarations: [ CircularProgressBarComponent ],
-      imports: [IonicModule.forRoot(), TranslateModule.forRoot()]
+      // Standalone component: it is imported, not declared.
+      imports: [
+        IonicModule.forRoot(),
+        TranslateModule.forRoot(),
+        CircularProgressBarComponent,
+      ],
     }).compileComponents();
 
     translate = TestBed.inject(TranslateService);
