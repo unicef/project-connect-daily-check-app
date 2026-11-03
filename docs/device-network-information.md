@@ -47,9 +47,9 @@ Why they were added: on Windows 11 24H2+ the WLAN stack sits behind the Location
 
 ## timing
 
-*   `server_timestamp` — the measurement server's own clock, read at server discovery
+*   `server_timestamp` — meant to hold the measurement server's own clock. **Always null for now**: it was to come from the `Date` header of M-Lab's server lookup, but that response does not let browsers read the header (no `Access-Control-Expose-Headers`)
 
-Added because these machines frequently have a clock that is wrong by hours or days. It sits next to the existing `timestamp` rather than replacing it. Read a few seconds before the test starts, at one-second resolution: good for detecting a bad clock, not a precise start time.
+Added because these machines frequently have a clock that is wrong by hours or days. It sits next to the existing `timestamp` rather than replacing it. Filling it needs another source of server time.
 
 # newly populated: device identity
 
@@ -88,7 +88,7 @@ Considered and rejected:
 
 # status
 
-*   `device_network_information`, `wifi_unavailable_reason`, `ssid_source` and `server_timestamp` are **implemented in the 2.0.4 client**; their backend columns are still in open pull requests, not yet on staging
+*   `device_network_information`, `wifi_unavailable_reason` and `ssid_source` are **implemented in the 2.0.4 client**; `server_timestamp` is sent but always null (see timing above). Their backend columns are still in open pull requests, not yet on staging
 *   The client fills them regardless — the API ignores fields it does not know, so client and backend can ship in either order
 
 # gaps

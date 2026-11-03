@@ -26,6 +26,7 @@ import { FirstTestSuccessModalComponent } from '../components/first-test-success
 import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
 import { PingService } from '../services/ping.service';
+import { averageLatencyMs } from '../utils/ndt-results.utils';
 
 @Component({
   selector: 'app-starttest',
@@ -434,15 +435,9 @@ export class StarttestPage implements OnInit, OnDestroy {
             : undefined;
 
           // Calculate latency
-          const s2cMinRTT =
-            latestMeasurement.results['NDTResult.S2C'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-          const c2sMinRTT =
-            latestMeasurement.results['NDTResult.C2S'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-
-          if (s2cMinRTT && c2sMinRTT) {
-            this.latency = ((s2cMinRTT + c2sMinRTT) / 2 / 1000).toFixed(0);
+          const latencyMs = averageLatencyMs(latestMeasurement.results);
+          if (latencyMs !== null) {
+            this.latency = latencyMs.toFixed(0);
           }
 
           // Set the date from the stored timestamp
@@ -710,24 +705,18 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.currentRate =
           data.passedResults[
             'NDTResult.S2C'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+          ]?.LastClientMeasurement?.MeanClientMbps?.toFixed(2);
         this.currentRateUpload =
           data.passedResults[
             'NDTResult.C2S'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+          ]?.LastClientMeasurement?.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults[
             'NDTResult.S2C'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+          ]?.LastClientMeasurement?.MeanClientMbps?.toFixed(2);
         this.progressGaugeState.current = this.progressGaugeState.maximum;
-        this.latency = (
-          (data.passedResults['NDTResult.S2C'].LastServerMeasurement.BBRInfo
-            .MinRTT +
-            data.passedResults['NDTResult.C2S'].LastServerMeasurement.BBRInfo
-              .MinRTT) /
-          2 /
-          1000
-        ).toFixed(0);
+        // Undefined when no leg got a server measurement before the timeout.
+        this.latency = averageLatencyMs(data.passedResults)?.toFixed(0);
         let historicalData = this.historyService.get();
         if (
           historicalData !== null &&
