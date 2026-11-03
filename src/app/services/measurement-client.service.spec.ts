@@ -6,6 +6,7 @@ import { of } from 'rxjs';
 import ndt7 from '@m-lab/ndt7';
 import { environment } from '../../environments/environment';
 import { MeasurementClientService } from './measurement-client.service';
+import { ScheduleService } from './schedule.service';
 
 /**
  * Minimal shape of a finished ndt7 run: just the fields finalizeMeasurement
@@ -263,7 +264,7 @@ describe('MeasurementClientService without a server measurement', () => {
     expect(historyAdd).not.toHaveBeenCalled();
   });
 
-  it('reports a failed test as an error status the test page handles', async () => {
+  it('reports a failed test to the test page and to its caller', async () => {
     spyOn(service['networkService'], 'getNetInfo').and.resolveTo({} as any);
     spyOn(ndt7, 'test').and.callFake(async (_config, callbacks) => {
       callbacks.downloadComplete(clientOnlyLeg(3.2));
@@ -271,12 +272,60 @@ describe('MeasurementClientService without a server measurement', () => {
       return 0;
     });
 
-    await service.runTest('manual');
+    await expectAsync(service.runTest('manual')).toBeRejectedWithError(
+      /upload test did not produce a result/
+    );
 
     expect(historyAdd).not.toHaveBeenCalled();
     const last = statuses.pop();
     expect(last.testStatus).toBe('error');
     expect(last.error).toMatch(/upload test did not produce a result/);
+  });
+
+  it('lets the scheduler retry a scheduled test that failed', async () => {
+    spyOn(service['networkService'], 'getNetInfo').and.resolveTo({} as any);
+    spyOn(ndt7, 'test').and.callFake(async (_config, callbacks) => {
+      callbacks.downloadComplete(clientOnlyLeg(3.2));
+      return 0; // the upload leg never completed
+    });
+    const store: Record<string, string> = {};
+    const storage: any = {
+      get: (key: string) => store[key],
+      set: async (key: string, value: string) => {
+        store[key] = value;
+      },
+    };
+    const scheduler = new ScheduleService(
+      storage,
+      service,
+      { get: async () => true } as any,
+      { broadcast: () => undefined } as any,
+      { getNetInfo: async () => ({ ip: '1.2.3.4' }) } as any
+    );
+    const now = Date.now();
+    const semaphore = {
+      start: now - 60 * 60 * 1000,
+      end: now + 60 * 60 * 1000,
+      choice: now - 1000,
+      scheduledAt: now - 1000,
+      slot: 'morning',
+      intervalType: 'daily',
+      retryAttempts: 0,
+      backoffLevel: 0,
+    };
+
+    await scheduler.decide(semaphore);
+
+    // The failed test is not counted as the window's test...
+    expect(store.lastMeasurement).toBeUndefined();
+    // ...and is planned again, a minute later, inside the same window.
+    const retry = JSON.parse(store.scheduleSemaphore);
+    expect(retry.lastFailReason).toBe('test-failed');
+    expect(retry.retryAttempts).toBe(1);
+    expect(retry.backoffLevel).toBe(1);
+    expect(retry.choice).toBeGreaterThan(now);
+    expect(retry.choice).toBeLessThan(semaphore.end);
+    expect(retry.scheduledAt).toBe(semaphore.scheduledAt);
   });
 
   it('accepts plain-string errors from ndt7', () => {
@@ -496,7 +545,9 @@ describe('MeasurementClientService ndt7 integration', () => {
       new Error('TypeError: Failed to fetch locate.measurementlab.net')
     );
 
-    await service.runTest('manual');
+    await expectAsync(service.runTest('manual')).toBeRejectedWithError(
+      /locate\.measurementlab\.net/
+    );
 
     // one initial attempt + one retry, then it gives up
     expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
@@ -505,7 +556,9 @@ describe('MeasurementClientService ndt7 integration', () => {
   it('does not retry non-locate test failures', async () => {
     ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
 
-    await service.runTest('manual');
+    await expectAsync(service.runTest('manual')).toBeRejectedWithError(
+      'websocket closed unexpectedly'
+    );
 
     expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
   });

@@ -414,6 +414,10 @@ export class ScheduleService {
       this.storageService.set(this.STARTUP_TEST_KEY, Date.now().toString());
     } catch (error) {
       console.error('Startup test failed:', error);
+      // Still counts as today's startup test, or initiate() would schedule
+      // another one every few minutes at any hour. lastMeasurement stays as
+      // it was, so the current window's scheduled test runs, with its retries.
+      this.storageService.set(this.STARTUP_TEST_KEY, Date.now().toString());
     }
   }
 }

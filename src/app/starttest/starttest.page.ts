@@ -583,7 +583,9 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.currentRate = undefined; // Reset current rate
       this.isErrorClosed = false; // Reset error closed state
       this.uploadProgressStarted = false;
-      this.measurementClientService.runTest(notes);
+      // A failed test reaches this page as the 'error' status, which resets
+      // the screen; nothing retries a manual test, so the rejection is dropped.
+      this.measurementClientService.runTest(notes).catch(() => undefined);
     } catch (e) {
       console.log(e);
     }

@@ -95,6 +95,12 @@ export class MeasurementClientService {
     private sentryService: SentryService
   ) {}
 
+  /**
+   * Runs one speed test. Resolves once the result is saved. Rejects when the
+   * test fails (after the retries for an unreachable locate server), so the
+   * scheduler can try again later in the window; the 'error' status has
+   * already told the test page by then.
+   */
   async runTest(
     notes = 'manual',
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
@@ -150,12 +156,13 @@ export class MeasurementClientService {
       await this.finalizeMeasurement(measurementRecord);
     } catch (error) {
       console.error('Error running ndt7 test:', error);
+      const message = error instanceof Error ? error.message : String(error);
 
       // Check if this is a locate server error and we can retry
       const isLocateServerError =
-        error.message.includes('locate.measurementlab.net') ||
-        error.message.includes('Could not understand response') ||
-        error.message.includes('fetch');
+        message.includes('locate.measurementlab.net') ||
+        message.includes('Could not understand response') ||
+        message.includes('fetch');
 
       if (isLocateServerError && this.retryAttempts < this.maxRetries) {
         this.retryAttempts++;
@@ -175,10 +182,13 @@ export class MeasurementClientService {
       } else {
         // 'error' is the status the test page resets itself on.
         this.broadcastMeasurementStatus('error', {
-          error: error.message,
+          error: message,
           errorType: 'test_error',
-          originalError: error.message,
+          originalError: message,
         });
+        // Without this the scheduler counts the failed test as done and
+        // never retries it.
+        throw error;
       }
     }
   }
