@@ -201,11 +201,13 @@ if (!gotTheLock) {
       });
   
       */
-  autoUpdater.autoDownload = true;
-
-  setInterval(() => {
-    autoUpdater.checkForUpdates();
-  }, 3600000);
+  // LOCAL TEST BUILD ONLY - do not commit.
+  // This 2.0.3 branch has no build-mode guard (that arrived in 2.0.4), so the
+  // updater would otherwise poll GitHub releases, download a newer published
+  // version and offer to restart into it - replacing this staging test build.
+  // Disabling auto-download and removing the periodic check means no update is
+  // ever initiated, so the "update-downloaded" dialog can never be reached.
+  autoUpdater.autoDownload = false;
 
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
     const dialogOpts = {
