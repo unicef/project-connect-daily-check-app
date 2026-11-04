@@ -21,6 +21,8 @@ export interface PingResult {
 })
 export class PingService {
   private activeHours = { start: 8, end: 20 }; // Active hours: 8 AM to 8 PM
+  // Same as the regular ping interval.
+  private readonly SPEED_TEST_PING_GAP = 15 * 60 * 1000;
   private isElectron: boolean;
   private dns: any;
   private net: any;
@@ -100,6 +102,44 @@ export class PingService {
     }
 
     return await this.checkConnectivity();
+  }
+
+  /**
+   * Saves a ping just before a speed test, so a PC that is only on for a few
+   * minutes still has one for that day. It runs at any hour, because the
+   * test does, and is skipped when there was a ping in the last 15 minutes,
+   * so a test that is retried doesn't add a ping for every try.
+   * Never throws: the speed test runs whatever happens here.
+   */
+  async pingBeforeSpeedTest(): Promise<void> {
+    try {
+      if (!this.storage.get('schoolId')) {
+        return;
+      }
+      const featureFlags = await this.settingsService.getFeatureFlags();
+      if (!featureFlags?.pingService) {
+        return;
+      }
+      if (await this.pingedInLast(this.SPEED_TEST_PING_GAP)) {
+        console.log('Ping before speed test skipped: pinged recently.');
+        return;
+      }
+      const result = await this.checkConnectivity();
+      console.log('Ping before speed test:', result);
+      await this.indexedDBService.savePingResult(result);
+    } catch (error) {
+      console.error('Ping before speed test failed:', error);
+    }
+  }
+
+  private async pingedInLast(period: number): Promise<boolean> {
+    const pings = await this.indexedDBService.getPingResults();
+    const now = Date.now();
+    return pings.some((ping) => {
+      const age = now - new Date(ping.timestamp).getTime();
+      // A ping dated in the future (the PC's clock went back) doesn't count.
+      return age >= 0 && age < period;
+    });
   }
 
   async startPeriodicChecks(
@@ -191,6 +231,9 @@ export class PingService {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => {
           controller.abort();
+          // Otherwise the check keeps running, and this ping now comes just
+          // before a speed test.
+          speedTest.pause();
           console.error('SpeedTest timeout');
           resolve(false); // Ensure the function does not hang indefinitely
         }, 5000);

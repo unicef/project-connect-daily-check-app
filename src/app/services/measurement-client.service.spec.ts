@@ -50,6 +50,8 @@ describe('MeasurementClientService', () => {
     spyOn(service['settingsService'], 'get').and.returnValue(false);
     spyOn(service['historyService'], 'add').and.stub();
     spyOn(service['sharedService'], 'broadcast').and.stub();
+    spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
+    spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
   });
 
   it('should be created', () => {
@@ -170,6 +172,8 @@ describe('MeasurementClientService without a server measurement', () => {
     spyOn(service['settingsService'], 'get').and.returnValue(false);
     historyAdd = spyOn(service['historyService'], 'add').and.stub();
     spyOn(service['sharedService'], 'broadcast').and.stub();
+    spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
+    spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
     statuses = [];
     service.measurementStatus.subscribe((status) => statuses.push(status));
   });
@@ -464,6 +468,8 @@ describe('MeasurementClientService without a server measurement', () => {
 describe('MeasurementClientService ndt7 integration', () => {
   let service: MeasurementClientService;
   let ndt7TestSpy: jasmine.Spy;
+  let pingService: any;
+  let syncService: any;
 
   beforeEach(() => {
     ndt7TestSpy = spyOn(ndt7, 'test').and.resolveTo(0);
@@ -509,6 +515,15 @@ describe('MeasurementClientService ndt7 integration', () => {
       captureException: jasmine.createSpy('captureException'),
     };
 
+    pingService = {
+      pingBeforeSpeedTest: jasmine
+        .createSpy('pingBeforeSpeedTest')
+        .and.resolveTo(),
+    };
+    syncService = {
+      syncPingResults: jasmine.createSpy('syncPingResults').and.resolveTo(),
+    };
+
     service = new MeasurementClientService(
       historyService,
       settingsService,
@@ -516,7 +531,9 @@ describe('MeasurementClientService ndt7 integration', () => {
       uploadService,
       sharedService,
       deviceContext,
-      sentryService
+      sentryService,
+      pingService,
+      syncService
     );
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
   });
@@ -561,5 +578,52 @@ describe('MeasurementClientService ndt7 integration', () => {
     );
 
     expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+  });
+
+  describe('ping with every test', () => {
+    it('pings before the test starts, and sends the pings once it is over', async () => {
+      const order: string[] = [];
+      pingService.pingBeforeSpeedTest.and.callFake(async () => {
+        order.push('ping');
+      });
+      ndt7TestSpy.and.callFake(async () => {
+        order.push('test');
+        return 0;
+      });
+      syncService.syncPingResults.and.callFake(async () => {
+        order.push('send pings');
+      });
+
+      await service.runTest('manual');
+
+      expect(order).toEqual(['ping', 'test', 'send pings']);
+    });
+
+    it('still sends the pings when the test fails', async () => {
+      ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
+
+      await expectAsync(service.runTest('scheduled')).toBeRejected();
+
+      expect(pingService.pingBeforeSpeedTest).toHaveBeenCalledTimes(1);
+      expect(syncService.syncPingResults).toHaveBeenCalledTimes(1);
+    });
+
+    it('pings once per test, not once per locate retry', async () => {
+      (service as any).maxRetries = 1;
+      ndt7TestSpy.and.rejectWith(
+        new Error('TypeError: Failed to fetch locate.measurementlab.net')
+      );
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+      expect(pingService.pingBeforeSpeedTest).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not fail the test when sending the pings fails', async () => {
+      syncService.syncPingResults.and.rejectWith(new Error('offline'));
+
+      await expectAsync(service.runTest('manual')).toBeResolved();
+    });
   });
 });

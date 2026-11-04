@@ -9,6 +9,8 @@ import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
 import { DeviceContextService } from './device-context.service';
 import { SentryService } from './sentry.service';
+import { PingService } from './ping.service';
+import { SyncService } from './sync.service';
 import {
   DOWNLOAD_LEG,
   UPLOAD_LEG,
@@ -92,7 +94,9 @@ export class MeasurementClientService {
     private uploadService: UploadService,
     private sharedService: SharedService,
     private deviceContext: DeviceContextService,
-    private sentryService: SentryService
+    private sentryService: SentryService,
+    private pingService: PingService,
+    private syncService: SyncService
   ) {}
 
   /**
@@ -100,14 +104,26 @@ export class MeasurementClientService {
    * test fails (after the retries for an unreachable locate server), so the
    * scheduler can try again later in the window; the 'error' status has
    * already told the test page by then.
+   *
+   * Every test also gets a ping just before it, sent once the test is over.
    */
   async runTest(
     notes = 'manual',
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
   ): Promise<void> {
+    // Before the test, not alongside it, so neither slows the other down.
+    await this.pingService.pingBeforeSpeedTest();
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
-    await this.runTestWithRetry(notes, scheduleContext);
+    try {
+      await this.runTestWithRetry(notes, scheduleContext);
+    } finally {
+      // Pings are otherwise only sent every 2 hours the app stays open, so a
+      // PC that is on for a few minutes would never send them.
+      this.syncService
+        .syncPingResults()
+        .catch((error) => console.error('Sending pings failed:', error));
+    }
   }
 
   private async runTestWithRetry(
