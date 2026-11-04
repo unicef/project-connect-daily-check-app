@@ -6,8 +6,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
-import { HttpErrorResponse } from '@angular/common/http';
-import { of, throwError } from 'rxjs';
+import { of } from 'rxjs';
 
 import { HomePage } from './home.page';
 import { LoadingService } from '../services/loading.service';
@@ -36,14 +35,7 @@ describe('HomePage', () => {
       'ensureHardwareId',
       'waitForUsableHardwareId',
       'isUsableHardwareId',
-      'getDeviceIdentifiers',
     ]);
-    hardwareIdService.getDeviceIdentifiers.and.returnValue({
-      device_hardware_id: 'UUID-1',
-      baseboard_serial: 'BOARD-1',
-      disk_serial: 'DISK-1',
-      machine_guid: 'GUID-1',
-    });
     hardwareIdService.ensureHardwareId.and.resolveTo(null);
     hardwareIdService.waitForUsableHardwareId.and.resolveTo(null);
     hardwareIdService.isUsableHardwareId.and.callFake(
@@ -52,9 +44,6 @@ describe('HomePage', () => {
 
     schoolService = jasmine.createSpyObj('SchoolService', [
       'checkRegistrationByHardwareId',
-      'autoRegister',
-      'checkRegistrationStatus',
-      'checkDeviceStatus',
     ]);
 
     TestBed.configureTestingModule({
@@ -114,7 +103,7 @@ describe('HomePage', () => {
     });
 
     it('ignores a late lookup answer if the user moved on meanwhile', async () => {
-      schoolService.autoRegister.and.returnValue(
+      schoolService.checkRegistrationByHardwareId.and.returnValue(
         of({ success: true, data: { exists: true, school_id: '9' } })
       );
       const navigate = spyOn(router, 'navigate').and.resolveTo(true);
@@ -123,14 +112,12 @@ describe('HomePage', () => {
 
       expect(localStorage.getItem('schoolId')).toBeNull();
       expect(navigate).not.toHaveBeenCalled();
-      // Nothing is registered for a user who moved on.
-      expect(schoolService.autoRegister).not.toHaveBeenCalled();
     });
 
     it('takes the user to the dashboard when the late lookup finds a registration', async () => {
       await router.navigateByUrl('/register-school');
       hardwareIdService.waitForUsableHardwareId.and.resolveTo('UUID-1');
-      schoolService.autoRegister.and.returnValue(
+      schoolService.checkRegistrationByHardwareId.and.returnValue(
         of({ success: true, data: { exists: true, school_id: '9' } })
       );
       const navigate = spyOn(router, 'navigate').and.resolveTo(true);
@@ -140,143 +127,6 @@ describe('HomePage', () => {
       expect(localStorage.getItem('schoolId')).toBe('9');
       expect(navigate).toHaveBeenCalledWith(['/starttest']);
       expect(component.isCheckingRegistration).toBeFalse();
-    });
-  });
-
-  describe('automatic registration (TECH-8828)', () => {
-    const found = {
-      success: true,
-      data: {
-        exists: true,
-        user_id: 'NEW-REGISTRATION',
-        school_id: '9',
-        giga_id_school: 'giga-9',
-      },
-    };
-
-    it('sends the hardware values and stores the registration it gets back', async () => {
-      schoolService.autoRegister.and.returnValue(of(found));
-      const navigate = spyOn(router, 'navigate').and.resolveTo(true);
-
-      await (component as any).checkMachineRegistration('UUID-1');
-
-      expect(schoolService.autoRegister).toHaveBeenCalledWith(
-        jasmine.objectContaining({
-          device_hardware_id: 'UUID-1',
-          baseboard_serial: 'BOARD-1',
-          disk_serial: 'DISK-1',
-          machine_guid: 'GUID-1',
-        })
-      );
-      expect(schoolService.checkRegistrationByHardwareId).not.toHaveBeenCalled();
-      expect(localStorage.getItem('schoolUserId')).toBe('NEW-REGISTRATION');
-      expect(localStorage.getItem('schoolId')).toBe('9');
-      expect(navigate).toHaveBeenCalledWith(['/starttest']);
-    });
-
-    it('reuses the existing registration when the backend has no automatic registration yet', async () => {
-      schoolService.autoRegister.and.returnValue(
-        throwError(() => new HttpErrorResponse({ status: 404 }))
-      );
-      schoolService.checkRegistrationByHardwareId.and.returnValue(of(found));
-      spyOn(router, 'navigate').and.resolveTo(true);
-
-      await (component as any).checkMachineRegistration('UUID-1');
-
-      expect(schoolService.checkRegistrationByHardwareId).toHaveBeenCalledWith(
-        'UUID-1'
-      );
-      expect(localStorage.getItem('schoolId')).toBe('9');
-    });
-
-    it('leaves the user on registration when the backend fails', async () => {
-      schoolService.autoRegister.and.returnValue(
-        throwError(() => new HttpErrorResponse({ status: 500 }))
-      );
-      const navigate = spyOn(router, 'navigate').and.resolveTo(true);
-
-      await (component as any).checkMachineRegistration('UUID-1');
-
-      expect(schoolService.checkRegistrationByHardwareId).not.toHaveBeenCalled();
-      expect(localStorage.getItem('schoolId')).toBeNull();
-      expect(navigate).not.toHaveBeenCalled();
-    });
-
-    it('stays on registration when there is nothing to register from', async () => {
-      schoolService.autoRegister.and.returnValue(
-        of({ success: true, data: { exists: false } })
-      );
-      const navigate = spyOn(router, 'navigate').and.resolveTo(true);
-
-      await (component as any).checkMachineRegistration('UUID-1');
-
-      expect(localStorage.getItem('schoolId')).toBeNull();
-      expect(navigate).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('start-up check of the existing registration (TECH-8828)', () => {
-    beforeEach(() => {
-      localStorage.setItem('schoolUserId', 'MY-REGISTRATION');
-      localStorage.setItem('gigaId', 'giga-9');
-      // Forget the page's own start-up lookups from before the test.
-      hardwareIdService.ensureHardwareId.calls.reset();
-    });
-
-    it("checks the app's own registration, without a hardware ID", async () => {
-      schoolService.checkRegistrationStatus.and.returnValue(
-        of({ success: true, data: { exists: true, is_active: true } })
-      );
-      const proceed = spyOn(
-        component as any,
-        'proceedWithExistingRegistration'
-      );
-
-      await (component as any).checkDeviceStatusAndProceed();
-
-      expect(schoolService.checkRegistrationStatus).toHaveBeenCalledWith(
-        'MY-REGISTRATION'
-      );
-      expect(schoolService.checkDeviceStatus).not.toHaveBeenCalled();
-      expect(hardwareIdService.ensureHardwareId).not.toHaveBeenCalled();
-      expect(proceed).toHaveBeenCalled();
-    });
-
-    it('clears the registration when it was logged out', async () => {
-      schoolService.checkRegistrationStatus.and.returnValue(
-        of({ success: true, data: { exists: true, is_active: false } })
-      );
-      hardwareIdService.ensureHardwareId.and.resolveTo('UUID-1');
-      schoolService.autoRegister.and.returnValue(
-        of({ success: true, data: { exists: false } })
-      );
-
-      await (component as any).checkDeviceStatusAndProceed();
-
-      expect(localStorage.getItem('schoolUserId')).toBeNull();
-      expect(schoolService.autoRegister).toHaveBeenCalled();
-    });
-
-    it('falls back to the hardware ID check on an older backend', async () => {
-      schoolService.checkRegistrationStatus.and.returnValue(
-        throwError(() => new HttpErrorResponse({ status: 404 }))
-      );
-      hardwareIdService.ensureHardwareId.and.resolveTo('UUID-1');
-      schoolService.checkDeviceStatus.and.returnValue(
-        of({ success: true, data: { exists: true, is_active: true } })
-      );
-      const proceed = spyOn(
-        component as any,
-        'proceedWithExistingRegistration'
-      );
-
-      await (component as any).checkDeviceStatusAndProceed();
-
-      expect(schoolService.checkDeviceStatus).toHaveBeenCalledWith(
-        'UUID-1',
-        'giga-9'
-      );
-      expect(proceed).toHaveBeenCalled();
     });
   });
 

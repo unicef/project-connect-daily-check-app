@@ -123,7 +123,7 @@ describe('HardwareIdService.getDeviceIdentifiers', () => {
 
   afterEach(() => localStorage.removeItem(STORAGE_KEY));
 
-  it('returns the four values the main process read', () => {
+  it('returns the serials and the Windows install ID the main process read', () => {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
@@ -135,21 +135,19 @@ describe('HardwareIdService.getDeviceIdentifiers', () => {
     );
 
     expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
-      device_hardware_id: 'UUID-1',
       baseboard_serial: 'BOARD-1',
       disk_serial: 'DISK-1',
       machine_guid: 'GUID-1',
     });
   });
 
-  it('sends no firmware UUID when the main process had none', () => {
+  it('returns null for each value the main process could not read', () => {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify({ hardwareId: 'NO_UUID_AVAILABLE', disk_serial: 'DISK-1' })
+      JSON.stringify({ hardwareId: 'UUID-1', disk_serial: 'DISK-1' })
     );
 
     expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
-      device_hardware_id: null,
       baseboard_serial: null,
       disk_serial: 'DISK-1',
       machine_guid: null,
@@ -158,7 +156,6 @@ describe('HardwareIdService.getDeviceIdentifiers', () => {
 
   it('returns nulls before anything was read', () => {
     expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
-      device_hardware_id: null,
       baseboard_serial: null,
       disk_serial: null,
       machine_guid: null,

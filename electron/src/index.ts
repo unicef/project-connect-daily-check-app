@@ -24,9 +24,9 @@ import { captureException } from '@sentry/node';
 import { AUTO_UPDATE_ENABLED, BUILD_COMMIT, BUILD_MODE } from './build-mode';
 import {
   classifyWifiUnavailable,
-  cleanHardwareId,
   getDeviceContext,
   getHardwareIdentifiers,
+  HardwareIdentifiers,
   getSsidFromNlm,
 } from './device-context';
 
@@ -184,6 +184,9 @@ if (!gotTheLock) {
 
       // Send hardware ID to renderer process when ready
       if (mainWindow && mainWindow.webContents) {
+        // The renderer stores what arrives last, so this copy carries the
+        // serials too, or a registration could go out without them (TECH-8828).
+        const hardwareIds = await hardwareIdentifiersInTime();
         const hardwareData = {
           hardwareId,
           uuid: systemData.uuid,
@@ -192,6 +195,9 @@ if (!gotTheLock) {
           manufacturer: systemData.manufacturer,
           model: systemData.model,
           osSerial: osData.serial,
+          baseboard_serial: hardwareIds.baseboard_serial,
+          disk_serial: hardwareIds.disk_serial,
+          machine_guid: hardwareIds.machine_guid,
           timestamp: new Date().toISOString(),
         };
 
@@ -575,37 +581,48 @@ function isUsableHardwareId(hardwareId?: string): boolean {
   return !!hardwareId && hardwareId !== HARDWARE_ID_UNAVAILABLE;
 }
 
+// How long the hardware ID waits for the serials (TECH-8828). They are read
+// together with the rest; this only keeps a slow WMI read from holding up the
+// hardware ID, which never depended on them. They are left out on a timeout.
+const HARDWARE_IDENTIFIERS_TIMEOUT_MS = 5000;
+
+function hardwareIdentifiersInTime(): Promise<HardwareIdentifiers> {
+  return Promise.race([
+    getHardwareIdentifiers(),
+    new Promise<HardwareIdentifiers>((resolve) =>
+      setTimeout(() => resolve({}), HARDWARE_IDENTIFIERS_TIMEOUT_MS)
+    ),
+  ]);
+}
+
 async function probeHardwareData(): Promise<any> {
   const [systemData, osData, hardwareIds] = await Promise.all([
     si.system(),
     si.osInfo(),
-    getHardwareIdentifiers(),
+    hardwareIdentifiersInTime(),
   ]);
 
-  // The hardware ID is the firmware UUID and nothing else (TECH-8828). si.uuid()
-  // asks again in a separate query, so it can still answer when si.system()
-  // comes back blank. The Windows install ID (MachineGuid) and the PC serial are
-  // no longer used in its place: the install ID is sent separately below, and
-  // the backend uses it only when none of the hardware values can be read.
-  let uuid = cleanHardwareId(systemData.uuid);
+  // si.uuid() reads the hardware/OS UUIDs through a different code path, so it
+  // can still answer when si.system() comes back blank.
+  let uuid = systemData.uuid;
   if (!uuid) {
     try {
       const uuidData = await si.uuid();
-      uuid = cleanHardwareId(uuidData?.hardware);
+      uuid = uuidData?.hardware || uuidData?.os || '';
     } catch (error) {
       console.warn('⚠️ [Electron] si.uuid() fallback failed:', error?.message);
     }
   }
 
   return {
-    hardwareId: uuid || HARDWARE_ID_UNAVAILABLE,
+    hardwareId: uuid || systemData.serial || HARDWARE_ID_UNAVAILABLE,
     uuid,
     serial: systemData.serial,
     sku: systemData.sku,
     manufacturer: systemData.manufacturer,
     model: systemData.model,
     osSerial: osData.serial,
-    // Sent with every registration; the backend works out the device ID.
+    // Sent with the registration; the backend works out the device ID.
     baseboard_serial: hardwareIds.baseboard_serial,
     disk_serial: hardwareIds.disk_serial,
     machine_guid: hardwareIds.machine_guid,

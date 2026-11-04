@@ -16,9 +16,8 @@ interface HardwareData {
   timestamp: string;
 }
 
-/** The hardware values a registration sends. */
+/** The hardware values a registration sends besides the hardware ID. */
 export interface DeviceIdentifiers {
-  device_hardware_id: string | null;
   baseboard_serial: string | null;
   disk_serial: string | null;
   machine_guid: string | null;
@@ -175,15 +174,13 @@ export class HardwareIdService {
   }
 
   /**
-   * The hardware values a registration sends: the firmware UUID (null when the
-   * main process had none) and the serials and Windows install ID it read.
+   * The hardware values a registration sends besides the hardware ID: the
+   * serials and the Windows install ID the main process read, null when it
+   * couldn't. The backend works out the device ID from them (TECH-8828).
    */
   getDeviceIdentifiers(): DeviceIdentifiers {
     const data = this.getHardwareData();
     return {
-      device_hardware_id: this.isUsableHardwareId(data?.hardwareId)
-        ? data.hardwareId
-        : null,
       baseboard_serial: data?.baseboard_serial || null,
       disk_serial: data?.disk_serial || null,
       machine_guid: data?.machine_guid || null,

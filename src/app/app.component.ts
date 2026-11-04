@@ -533,25 +533,14 @@ export class AppComponent {
       // Get hardware ID and giga ID before clearing storage
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
-      const schoolUserId = this.storage.get('schoolUserId');
       await this.localStorageService.deleteAllDatabases();
 
-      // With a firmware UUID, every registration on this PC is logged out, as
-      // before: the other Windows users are registered automatically again
-      // once someone registers the PC again. Without one, the registration
-      // carries no hardware ID (TECH-8828), so the app logs out its own
-      // registration; nothing links the other Windows users on such a PC.
-      const hasFirmwareUuid =
-        this.hardwareIdService.isUsableHardwareId(hardwareId);
-      if (gigaId && (hasFirmwareUuid || schoolUserId)) {
+      // Deactivate device on backend if we have the required IDs
+      if (hardwareId && gigaId) {
         console.log('Deactivating device:', { hardwareId, gigaId });
         try {
           await this.schoolService
-            .deactivateDevice(
-              hasFirmwareUuid ? hardwareId : null,
-              gigaId,
-              hasFirmwareUuid ? null : schoolUserId
-            )
+            .deactivateDevice(hardwareId, gigaId)
             .toPromise();
           console.log('✅ Device marked as inactive on backend');
         } catch (deactivateError) {

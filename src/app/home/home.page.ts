@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { firstValueFrom, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../../app/services/settings.service';
@@ -12,8 +12,6 @@ import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { PosthogService } from '../services/posthog.service';
-import { Device } from '@capacitor/device';
-import { withTimeout } from '../utils/with-timeout.utils';
 
 /**
  * Screens before the country step. While the user is on one of these, an
@@ -21,9 +19,6 @@ import { withTimeout } from '../utils/with-timeout.utils';
  * dashboard.
  */
 const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
-
-/** Cap for each Electron lookup an automatic registration sends. */
-const LOOKUP_TIMEOUT_MS = 5000;
 
 @Component({
   selector: 'app-home',
@@ -111,32 +106,22 @@ export class HomePage {
 
     const gigaId = this.storage.get('gigaId');
 
-    // Ask about this app's own registration first (TECH-8828): it needs no
-    // hardware ID, and another Windows user logging out doesn't affect it.
-    let status = await this.ownRegistrationStatus();
-    let hardwareId: string | null = null;
+    // Need hardware ID to check status
+    const hardwareId = await this.hardwareIdService.ensureHardwareId(10000);
 
-    if (!status) {
-      // No schoolUserId, or a backend without that check: check by hardware
-      // ID as before.
-      hardwareId = await this.hardwareIdService.ensureHardwareId(10000);
-
-      if (!hardwareId || !gigaId) {
-        // Can't check status without hardware ID or gigaId, proceed with existing registration
-        console.warn(
-          '⚠️ [HomePage] Missing hardwareId or gigaId, proceeding with existing registration'
-        );
-        this.proceedWithExistingRegistration();
-        return;
-      }
+    if (!hardwareId || !gigaId) {
+      // Can't check status without hardware ID or gigaId, proceed with existing registration
+      console.warn(
+        '⚠️ [HomePage] Missing hardwareId or gigaId, proceeding with existing registration'
+      );
+      this.proceedWithExistingRegistration();
+      return;
     }
 
     try {
-      if (!status) {
-        status = await this.schoolService
-          .checkDeviceStatus(hardwareId, gigaId)
-          .toPromise();
-      }
+      const status = await this.schoolService
+        .checkDeviceStatus(hardwareId, gigaId)
+        .toPromise();
 
       console.log('📊 [HomePage] Device status:', status);
 
@@ -159,13 +144,7 @@ export class HomePage {
         );
         // Check if device registration still exists in backend
         // This handles the case where User A logs out, but User B can claim the registration
-        hardwareId =
-          hardwareId ?? (await this.hardwareIdService.ensureHardwareId(10000));
-        if (this.hardwareIdService.isUsableHardwareId(hardwareId)) {
-          await this.checkMachineRegistration(hardwareId);
-        } else {
-          this.loading.dismiss();
-        }
+        await this.checkMachineRegistration(hardwareId);
       } else if (status.data.exists && status.data.is_active === true) {
         // Device is active, proceed normally
         console.log(
@@ -189,30 +168,6 @@ export class HomePage {
       // This prevents blocking users if backend is temporarily down
       console.log('   Proceeding with existing registration (fail open)...');
       this.proceedWithExistingRegistration();
-    }
-  }
-
-  /**
-   * The status of this app's own registration, or null when there is no
-   * schoolUserId or the backend can't answer (an older backend, or an error),
-   * so the caller falls back to the hardware ID check.
-   */
-  private async ownRegistrationStatus(): Promise<any | null> {
-    const schoolUserId = this.storage.get('schoolUserId');
-    if (!schoolUserId) {
-      return null;
-    }
-    try {
-      const status = await firstValueFrom(
-        this.schoolService.checkRegistrationStatus(schoolUserId)
-      );
-      return status?.data ? status : null;
-    } catch (error) {
-      console.warn(
-        '⚠️ [HomePage] Registration status check unavailable, checking by hardware ID:',
-        error?.status
-      );
-      return null;
     }
   }
 
@@ -358,10 +313,9 @@ export class HomePage {
       console.log(
         '🌐 [HomePage] Querying backend for existing registration...'
       );
-      if (!stillWanted()) {
-        return;
-      }
-      const response = await this.registerAutomatically(hardwareId);
+      const response = await this.schoolService
+        .checkRegistrationByHardwareId(hardwareId)
+        .toPromise();
 
       console.log('📥 [HomePage] Backend response:', response);
 
@@ -400,61 +354,6 @@ export class HomePage {
       console.log('   Falling back to normal registration flow');
       this.loading.dismiss();
     }
-  }
-
-  /**
-   * Registers this PC automatically when its firmware UUID is already
-   * registered (TECH-8828): the backend adds a registration for this Windows
-   * user at the same school and returns it. A backend without that endpoint
-   * gets the old lookup, which reuses the existing registration.
-   */
-  private async registerAutomatically(hardwareId: string): Promise<any> {
-    try {
-      return await firstValueFrom(
-        this.schoolService.autoRegister(
-          await this.autoRegistrationRequest(hardwareId)
-        )
-      );
-    } catch (error) {
-      if (error?.status !== 403 && error?.status !== 404) {
-        throw error;
-      }
-      console.warn(
-        '⚠️ [HomePage] Automatic registration unavailable, reusing the existing registration'
-      );
-      return firstValueFrom(
-        this.schoolService.checkRegistrationByHardwareId(hardwareId)
-      );
-    }
-  }
-
-  /** What an automatic registration sends: the hardware values and this install. */
-  private async autoRegistrationRequest(hardwareId: string) {
-    const electronAPI = (window as any).electronAPI;
-    const [deviceInfo, deviceId, usernameInfo, pathInfo] = await Promise.all([
-      Device.getInfo().catch(() => null),
-      Device.getId().catch(() => null),
-      withTimeout(
-        LOOKUP_TIMEOUT_MS,
-        electronAPI?.getWindowsUsername?.() ?? Promise.resolve(null),
-        null
-      ),
-      withTimeout(
-        LOOKUP_TIMEOUT_MS,
-        electronAPI?.getInstalledPath?.() ?? Promise.resolve(null),
-        null
-      ),
-    ]);
-    return {
-      ...this.hardwareIdService.getDeviceIdentifiers(),
-      device_hardware_id: hardwareId,
-      mac_address: deviceId?.identifier ?? null,
-      os: deviceInfo?.operatingSystem ?? null,
-      app_version: environment.app_version,
-      created: new Date().toISOString(),
-      windows_username: usernameInfo?.username ?? null,
-      installed_path: pathInfo?.installedPath ?? null,
-    };
   }
 
   /**
