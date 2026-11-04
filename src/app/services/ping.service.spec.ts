@@ -138,3 +138,119 @@ describe('PingService before a speed test', () => {
     await expectAsync(service.pingBeforeSpeedTest()).toBeResolved();
   });
 });
+
+describe('PingService connectivity check', () => {
+  let service: PingService;
+  let fake: any;
+  let created: Promise<void>;
+  let replies: number[];
+
+  // Stands in for the Cloudflare check, with the replies it has had so far.
+  const median = (values: number[]) => {
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = (sorted.length - 1) / 2;
+    return (sorted[Math.floor(mid)] + sorted[Math.ceil(mid)]) / 2;
+  };
+
+  beforeEach(() => {
+    jasmine.clock().install();
+    replies = [];
+    const storage: any = { get: () => 'school-user-1' };
+    service = new PingService(null, null, null, storage);
+
+    let markCreated: () => void;
+    created = new Promise((resolve) => (markCreated = resolve));
+    spyOn<any>(service, 'createSpeedTest').and.callFake(() => {
+      fake = {
+        onFinish: null,
+        pause: jasmine.createSpy('pause'),
+        results: {
+          getUnloadedLatencyPoints: () => {
+            if (!replies.length) {
+              // What the library does before its first reply.
+              throw new TypeError("Cannot read properties of undefined (reading 'map')");
+            }
+            return replies;
+          },
+          getUnloadedLatency: () => median(replies),
+        },
+      };
+      markCreated();
+      return fake;
+    });
+  });
+
+  afterEach(() => {
+    jasmine.clock().uninstall();
+  });
+
+  it('is connected when all replies come back in time', async () => {
+    const result = service.checkConnectivity();
+    await created;
+    replies = [40.5, 42.123, 50];
+    fake.onFinish(fake.results);
+
+    expect((await result).isConnected).toBeTrue();
+    expect((await result).latency).toBe(42.12);
+  });
+
+  it('is not connected when the check gives up without a reply', async () => {
+    // Cloudflare can't be reached: the library retries, gives up and
+    // still calls onFinish.
+    const result = service.checkConnectivity();
+    await created;
+    fake.results.getUnloadedLatencyPoints = () => [];
+    fake.results.getUnloadedLatency = () => 0;
+    fake.onFinish(fake.results);
+
+    expect((await result).isConnected).toBeFalse();
+    expect((await result).latency).toBeNull();
+  });
+
+  it("empties the browser's request timings before the check", async () => {
+    // Otherwise, once that list is full, every reply looks like a failure.
+    const clear = spyOn(performance, 'clearResourceTimings');
+    const result = service.checkConnectivity();
+    await created;
+
+    expect(clear).toHaveBeenCalledBefore(service['createSpeedTest'] as jasmine.Spy);
+    fake.onFinish(fake.results);
+    await result;
+  });
+
+  it('is connected on a slow link, when only some replies come back in 5 seconds', async () => {
+    const result = service.checkConnectivity();
+    await created;
+    replies = [650.4, 702.25, 690.1];
+    jasmine.clock().tick(5000);
+
+    expect((await result).isConnected).toBeTrue();
+    expect((await result).latency).toBe(690.1);
+    expect(fake.pause).toHaveBeenCalled();
+  });
+
+  it('is not connected when no reply comes back in 5 seconds', async () => {
+    const result = service.checkConnectivity();
+    await created;
+    jasmine.clock().tick(5000);
+
+    expect((await result).isConnected).toBeFalse();
+    expect((await result).latency).toBeNull();
+    expect(fake.pause).toHaveBeenCalled();
+  });
+
+  it('waits the full 5 seconds before deciding', async () => {
+    const result = service.checkConnectivity();
+    await created;
+    replies = [650.4];
+    let settled = false;
+    result.then(() => (settled = true));
+
+    jasmine.clock().tick(4999);
+    await Promise.resolve();
+    expect(settled).toBeFalse();
+
+    jasmine.clock().tick(1);
+    expect((await result).isConnected).toBeTrue();
+  });
+});
