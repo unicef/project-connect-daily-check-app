@@ -125,8 +125,9 @@ export class ConfirmschoolPage implements OnInit{
     try {
       const deviceInfo = await this.getDeviceInfo();
       const deviceId = await this.getDeviceId();
-      // Get hardware ID for machine-level registration
-      const hardwareId = this.hardwareIdService.getHardwareId();
+      // The PC's hardware values; the backend works out the device ID from
+      // them (TECH-8828).
+      const deviceIdentifiers = this.hardwareIdService.getDeviceIdentifiers();
       /* The loader has no duration, so none of these optional lookups may hang
          it: each one is capped and falls back to null, and they run together
          so the worst case is one cap rather than the sum. */
@@ -147,7 +148,7 @@ export class ConfirmschoolPage implements OnInit{
         ip_address: ipAddress,
         //country_code: c.country,
         country_code: this.selectedCountry,
-        device_hardware_id: hardwareId || null, // Add hardware ID
+        ...deviceIdentifiers,
         windows_username: windowsUsername || null, // Add Windows username
         installed_path: installedPath || null, // Add installed path
         wifi_connections: wifiConnections || null, // Add WiFi connections

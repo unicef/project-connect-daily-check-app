@@ -533,14 +533,17 @@ export class AppComponent {
       // Get hardware ID and giga ID before clearing storage
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
+      // This app's own registration: only it is logged out, so other Windows
+      // users on the PC stay registered (TECH-8828).
+      const schoolUserId = this.storage.get('schoolUserId');
       await this.localStorageService.deleteAllDatabases();
 
       // Deactivate device on backend if we have the required IDs
-      if (hardwareId && gigaId) {
+      if ((hardwareId || schoolUserId) && gigaId) {
         console.log('Deactivating device:', { hardwareId, gigaId });
         try {
           await this.schoolService
-            .deactivateDevice(hardwareId, gigaId)
+            .deactivateDevice(hardwareId, gigaId, schoolUserId)
             .toPromise();
           console.log('✅ Device marked as inactive on backend');
         } catch (deactivateError) {

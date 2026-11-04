@@ -337,7 +337,7 @@ export function cleanHardwareId(value: unknown): string | undefined {
   return trimmed;
 }
 
-interface HardwareIdentifiers {
+export interface HardwareIdentifiers {
   baseboard_serial?: string;
   disk_serial?: string;
   machine_guid?: string;
@@ -357,7 +357,7 @@ let hardwareIdsPromise: Promise<HardwareIdentifiers> | null = null;
  * shared pseudo-identifier. Every read fails soft — a blocked WMI/registry call
  * yields an absent field, never a thrown error.
  */
-async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
+export async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
   if (cachedHardwareIds) return cachedHardwareIds;
   if (hardwareIdsPromise) return hardwareIdsPromise;
 
@@ -385,12 +385,18 @@ async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
         )
       ) ?? usableSerial(diskList);
 
-    cachedHardwareIds = {
+    const hardwareIds: HardwareIdentifiers = {
       baseboard_serial: cleanHardwareId(baseboard?.serial),
       disk_serial: diskSerial,
       machine_guid: cleanHardwareId(ids?.os),
     };
-    return cachedHardwareIds;
+    // When WMI isn't answering yet (the app was started at Windows logon),
+    // every read comes back empty. Don't keep that for the whole run: the next
+    // call reads again. The registration sends these values (TECH-8828).
+    if (Object.values(hardwareIds).some((value) => value !== undefined)) {
+      cachedHardwareIds = hardwareIds;
+    }
+    return hardwareIds;
   })();
 
   try {

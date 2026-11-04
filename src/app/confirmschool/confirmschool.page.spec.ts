@@ -172,6 +172,31 @@ describe('ConfirmschoolPage', () => {
     expect(component.isRegistering).toBeFalse();
   });
 
+  it('sends the hardware values the backend works out the device ID from', async () => {
+    localStorage.setItem(
+      'system_hardware_id',
+      JSON.stringify({
+        hardwareId: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      })
+    );
+    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+
+    await component.confirmSchool();
+
+    expect(schoolService.registerSchoolDevice).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        device_hardware_id: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      })
+    );
+    localStorage.removeItem('system_hardware_id');
+  });
+
   describe('with a mocked clock', () => {
     beforeEach(() => jasmine.clock().install());
     afterEach(() => jasmine.clock().uninstall());

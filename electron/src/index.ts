@@ -24,7 +24,9 @@ import { captureException } from '@sentry/node';
 import { AUTO_UPDATE_ENABLED, BUILD_COMMIT, BUILD_MODE } from './build-mode';
 import {
   classifyWifiUnavailable,
+  cleanHardwareId,
   getDeviceContext,
+  getHardwareIdentifiers,
   getSsidFromNlm,
 } from './device-context';
 
@@ -574,29 +576,39 @@ function isUsableHardwareId(hardwareId?: string): boolean {
 }
 
 async function probeHardwareData(): Promise<any> {
-  const systemData = await si.system();
-  const osData = await si.osInfo();
+  const [systemData, osData, hardwareIds] = await Promise.all([
+    si.system(),
+    si.osInfo(),
+    getHardwareIdentifiers(),
+  ]);
 
-  // si.uuid() reads the hardware/OS UUIDs through a different code path, so it
-  // can still answer when si.system() comes back blank.
-  let uuid = systemData.uuid;
+  // The hardware ID is the firmware UUID and nothing else (TECH-8828). si.uuid()
+  // asks again in a separate query, so it can still answer when si.system()
+  // comes back blank. The Windows install ID (MachineGuid) and the PC serial are
+  // no longer used in its place: the install ID is sent separately below, and
+  // the backend uses it only when none of the hardware values can be read.
+  let uuid = cleanHardwareId(systemData.uuid);
   if (!uuid) {
     try {
       const uuidData = await si.uuid();
-      uuid = uuidData?.hardware || uuidData?.os || '';
+      uuid = cleanHardwareId(uuidData?.hardware);
     } catch (error) {
       console.warn('⚠️ [Electron] si.uuid() fallback failed:', error?.message);
     }
   }
 
   return {
-    hardwareId: uuid || systemData.serial || HARDWARE_ID_UNAVAILABLE,
+    hardwareId: uuid || HARDWARE_ID_UNAVAILABLE,
     uuid,
     serial: systemData.serial,
     sku: systemData.sku,
     manufacturer: systemData.manufacturer,
     model: systemData.model,
     osSerial: osData.serial,
+    // Sent with every registration; the backend works out the device ID.
+    baseboard_serial: hardwareIds.baseboard_serial,
+    disk_serial: hardwareIds.disk_serial,
+    machine_guid: hardwareIds.machine_guid,
     timestamp: new Date().toISOString(),
   };
 }

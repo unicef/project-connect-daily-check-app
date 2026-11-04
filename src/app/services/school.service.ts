@@ -113,6 +113,42 @@ export class SchoolService {
   }
 
   /**
+   * Automatic registration (TECH-8828): when this PC's firmware UUID already
+   * has an active registration, the backend adds one for this Windows user at
+   * the same school and returns it in the checkExistingInstallation shape.
+   */
+  autoRegister(data: any): Observable<any> {
+    return this.http
+      .post(
+        `${environment.restAPI}dailycheckapp_schools/autoRegister`,
+        data,
+        this.options
+      )
+      .pipe(
+        tap((response) => console.log('Auto-registration response:', response)),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
+   * Whether this app's own registration (its schoolUserId) is still active.
+   * Another Windows user logging out doesn't affect it.
+   */
+  checkRegistrationStatus(userId: string): Observable<any> {
+    return this.http
+      .get(
+        `${environment.restAPI}dailycheckapp_schools/checkRegistrationStatus/${encodeURIComponent(userId)}`,
+        this.options
+      )
+      .pipe(
+        tap((response) =>
+          console.log('Registration status response:', response)
+        ),
+        catchError(this.handleError)
+      );
+  }
+
+  /**
    * Check if a device is still active (not deactivated/logged out)
    * @param hardwareId - Device hardware ID
    * @param gigaId - School giga ID
@@ -165,10 +201,17 @@ export class SchoolService {
    * @param gigaId - School giga ID
    * @returns Observable
    */
-  deactivateDevice(hardwareId: string, gigaId: string): Observable<any> {
+  deactivateDevice(
+    hardwareId: string | null,
+    gigaId: string,
+    userId?: string | null
+  ): Observable<any> {
+    // With user_id, a backend that has device IDs (TECH-8828) logs out only
+    // this registration; an older one ignores it and uses the hardware ID.
     const data = {
       device_hardware_id: hardwareId,
       giga_id_school: gigaId,
+      ...(userId ? { user_id: userId } : {}),
     };
     return this.http
       .put(

@@ -117,3 +117,51 @@ describe('HardwareIdService.waitForUsableHardwareId', () => {
     expect(callTimes.length).toBe(calls);
   });
 });
+
+describe('HardwareIdService.getDeviceIdentifiers', () => {
+  const STORAGE_KEY = 'system_hardware_id';
+
+  afterEach(() => localStorage.removeItem(STORAGE_KEY));
+
+  it('returns the four values the main process read', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        hardwareId: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      })
+    );
+
+    expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
+      device_hardware_id: 'UUID-1',
+      baseboard_serial: 'BOARD-1',
+      disk_serial: 'DISK-1',
+      machine_guid: 'GUID-1',
+    });
+  });
+
+  it('sends no firmware UUID when the main process had none', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ hardwareId: 'NO_UUID_AVAILABLE', disk_serial: 'DISK-1' })
+    );
+
+    expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
+      device_hardware_id: null,
+      baseboard_serial: null,
+      disk_serial: 'DISK-1',
+      machine_guid: null,
+    });
+  });
+
+  it('returns nulls before anything was read', () => {
+    expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
+      device_hardware_id: null,
+      baseboard_serial: null,
+      disk_serial: null,
+      machine_guid: null,
+    });
+  });
+});
