@@ -225,7 +225,12 @@ export class PingService {
       const configOptions = {
         measurements: [{ type: 'latency', numPackets: 10 }],
       };
-      const speedTest = new SpeedTest(configOptions as any);
+      // The check reads each reply's timing from the browser's list of
+      // request timings. That list holds 250 requests, and the library only
+      // empties it after a check that finishes, so once it is full every
+      // reply looks like a failure. Start each check with an empty list.
+      performance.clearResourceTimings();
+      const speedTest = this.createSpeedTest(configOptions);
 
       return new Promise((resolve) => {
         const controller = new AbortController();
@@ -234,23 +239,55 @@ export class PingService {
           // Otherwise the check keeps running, and this ping now comes just
           // before a speed test.
           speedTest.pause();
+          // The 10 requests run one after another, so on a slow link, such as
+          // satellite, they take longer than 5 seconds. Any reply means the
+          // PC is online, so it counts, with the latency of the replies so far.
+          const replies = this.repliesSoFar(speedTest);
+          if (replies.count > 0) {
+            this.latency = replies.latency;
+            console.warn(
+              `SpeedTest timeout after ${replies.count} replies: connected`
+            );
+            resolve(true);
+            return;
+          }
           console.error('SpeedTest timeout');
           resolve(false); // Ensure the function does not hang indefinitely
         }, 5000);
 
-        speedTest.onFinish = (results) => {
-          // console.log('SpeedTest Summary:', results.getSummary().latency);
-          const summary = results?.getSummary();
-          this.latency = summary?.latency
-            ? Number(summary.latency.toFixed(2))
-            : null;
+        speedTest.onFinish = () => {
           clearTimeout(timeoutId);
-          resolve(true);
+          // The check also finishes when it gives up because Cloudflare can't
+          // be reached (the PC is offline, or a firewall blocks it), so only
+          // a reply means the PC is online.
+          const replies = this.repliesSoFar(speedTest);
+          this.latency = replies.latency;
+          resolve(replies.count > 0);
         };
       });
     } catch (error) {
       console.error('SpeedTest error:', error);
       return false;
+    }
+  }
+
+  // A method of its own so tests can use a fake.
+  protected createSpeedTest(configOptions: any): SpeedTest {
+    return new SpeedTest(configOptions);
+  }
+
+  private repliesSoFar(speedTest: SpeedTest): {
+    count: number;
+    latency: number | null;
+  } {
+    try {
+      const count = speedTest.results.getUnloadedLatencyPoints().length;
+      // The median, the same as the library's summary.
+      const latency = speedTest.results.getUnloadedLatency();
+      return { count, latency: latency ? Number(latency.toFixed(2)) : null };
+    } catch {
+      // Before the first reply the library has no timings to read.
+      return { count: 0, latency: null };
     }
   }
 }
