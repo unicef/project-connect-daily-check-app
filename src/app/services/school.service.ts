@@ -206,8 +206,8 @@ export class SchoolService {
     gigaId: string,
     userId?: string | null
   ): Observable<any> {
-    // With user_id, a backend that has device IDs (TECH-8828) logs out only
-    // this registration; an older one ignores it and uses the hardware ID.
+    // With user_id (sent when the PC has no firmware UUID), the backend logs
+    // out only that registration (TECH-8828).
     const data = {
       device_hardware_id: hardwareId,
       giga_id_school: gigaId,

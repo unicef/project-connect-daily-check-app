@@ -63,7 +63,7 @@ describe('AppComponent', () => {
       (TestBed.createComponent(AppComponent).componentInstance as any)
         .handleLogout();
 
-    it('logs out only its own registration', async () => {
+    it('logs out every registration on the PC when it has a firmware UUID', async () => {
       localStorage.setItem(
         'system_hardware_id',
         JSON.stringify({ hardwareId: 'UUID-1' })
@@ -71,15 +71,22 @@ describe('AppComponent', () => {
 
       await logOut();
 
-      expect(deactivate).toHaveBeenCalledWith(
-        'UUID-1',
-        'giga-9',
-        'MY-REGISTRATION'
-      );
+      expect(deactivate).toHaveBeenCalledWith('UUID-1', 'giga-9', null);
       expect(localStorage.getItem('schoolUserId')).toBeNull();
     });
 
-    it('logs out even on a PC without a firmware UUID', async () => {
+    it('logs out its own registration on a PC without a firmware UUID', async () => {
+      await logOut();
+
+      expect(deactivate).toHaveBeenCalledWith(null, 'giga-9', 'MY-REGISTRATION');
+    });
+
+    it("doesn't send the main process's placeholder as a hardware ID", async () => {
+      localStorage.setItem(
+        'system_hardware_id',
+        JSON.stringify({ hardwareId: 'NO_UUID_AVAILABLE' })
+      );
+
       await logOut();
 
       expect(deactivate).toHaveBeenCalledWith(null, 'giga-9', 'MY-REGISTRATION');
