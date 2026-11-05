@@ -1,4 +1,6 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
+import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { CountryService } from 'src/app/services/country.service';
 import { HistoryService } from 'src/app/services/history.service';
 import { NetworkService } from 'src/app/services/network.service';
@@ -7,6 +9,7 @@ import { Router, NavigationEnd } from '@angular/router';
 import { LocationService } from 'src/app/services/location.service';
 import { SettingsService } from 'src/app/services/settings.service';
 import { averageLatencyMs } from 'src/app/utils/ndt-results.utils';
+import { SharedService } from 'src/app/services/shared-service.service';
 
 @Component({
   selector: 'app-test-detail',
@@ -14,7 +17,7 @@ import { averageLatencyMs } from 'src/app/utils/ndt-results.utils';
   styleUrls: ['./test-detail.component.scss'],
   standalone: false,
 })
-export class TestDetailComponent implements OnInit {
+export class TestDetailComponent implements OnInit, OnDestroy {
   schoolId: string;
   school: any;
   historicalData: any;
@@ -39,21 +42,32 @@ export class TestDetailComponent implements OnInit {
   measurementnetworkServer: any;
   measurementISP: any;
   selectedCountry: any;
+  private historySub: Subscription;
   constructor(
     private storage: StorageService,
     private historyService: HistoryService,
     private countryService: CountryService,
     private router: Router,
     private locationService: LocationService,
-    private settingsService: SettingsService
+    private settingsService: SettingsService,
+    private sharedService: SharedService
   ) {
     this.router.events.subscribe((event) => {
       if (event instanceof NavigationEnd) {
         this.loadData();
       }
     });
+    // The offline sync marks rows Synced while this screen may be open; without
+    // this the table kept showing "Not Synced" until the user navigated away.
+    this.historySub = this.sharedService.events
+      .pipe(filter(({ name }) => name === 'history:measurement:change'))
+      .subscribe(() => this.loadData());
     this.locationDetail = this.locationService.getSavedGeolocation();
 
+  }
+
+  ngOnDestroy() {
+    this.historySub?.unsubscribe();
   }
 
   ngOnInit() {
