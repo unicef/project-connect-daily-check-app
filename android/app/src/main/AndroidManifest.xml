@@ -14,7 +14,7 @@
   <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
   <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
-  <!-- App doesn't use advertising/ad-attribution features; strip the permissions Firebase Analytics adds by default -->
+  <!-- App does not use advertising IDs; strip them if a Play Services merge reintroduces them -->
   <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
   <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />
   <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />

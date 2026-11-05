@@ -29,8 +29,6 @@
     "@awesome-cordova-plugins/core": "^5.38.0",
     "@awesome-cordova-plugins/network": "^5.38.0",
     "@capacitor-community/electron": "^5.0.0",
-    "@capacitor-firebase/analytics": "^7.3.1",
-    "@capacitor-firebase/crashlytics": "^7.3.1",
     "@capacitor/android": "^7.4.2",
     "@capacitor/app": "^7.0.2",
     "@capacitor/browser": "^7.0.2",

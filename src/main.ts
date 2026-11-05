@@ -4,17 +4,11 @@ import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 import { initSentry } from './app/sentry.config';
 import * as Sentry from '@sentry/browser';
-import { Capacitor } from '@capacitor/core';
-import { initCrashlytics } from './app/firebase.config';
 
 // Initialize Sentry
 initSentry();
 
 enableProdMode();
-
-if (Capacitor.getPlatform() === 'android') {
-  initCrashlytics();
-}
 
 // Only include Electron code when running in Electron
 if (window.require) {

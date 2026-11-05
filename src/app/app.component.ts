@@ -19,7 +19,6 @@ import { SchoolService } from './services/school.service';
 import { MatomoService } from './services/matomo.service';
 import { Capacitor, registerPlugin } from '@capacitor/core';
 import { Browser } from '@capacitor/browser';
-import { FirebaseCrashlytics } from '@capacitor-firebase/crashlytics';
 import { App } from '@capacitor/app';
 // const shell = require('electron').shell;
 @Component({

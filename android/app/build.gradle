@@ -1,22 +1,6 @@
 apply plugin: 'com.android.application'
 apply plugin: 'org.jetbrains.kotlin.android'
 
-// The Google Services plugin reads src/debug/google-services.json for debug builds,
-// and the debug file must contain a client for com.meter.giga.app.debug.
-def debugServicesJSON = file('google-services-debug.json')
-if (debugServicesJSON.exists()) {
-  copy {
-    from debugServicesJSON
-    into 'src/debug'
-    rename { 'google-services.json' }
-  }
-}
-
-if (new File("$projectDir/google-services.json").exists() || debugServicesJSON.exists()) {
-  apply plugin: 'com.google.gms.google-services'
-  apply plugin: 'com.google.firebase.crashlytics'
-}
-
 apply plugin: 'io.sentry.android.gradle'
 apply plugin: 'jacoco'
 
@@ -152,15 +136,6 @@ dependencies {
 
 apply from: 'capacitor.build.gradle'
 apply plugin: 'org.jetbrains.kotlin.android'
-
-try {
-  def servicesJSON = file('google-services.json')
-  if (servicesJSON.text) {
-    apply plugin: 'com.google.gms.google-services'
-  }
-} catch (Exception e) {
-  logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
-}
 
 tasks.register('jacocoTestReport', JacocoReport) {
   group = "Reporting"
