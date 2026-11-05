@@ -62,7 +62,7 @@ captures/
 .externalNativeBuild
 .cxx/
 
-# Google Services (e.g. APIs or Firebase)
+# local Google services config (unused)
 # google-services.json
 
 # Freeline
