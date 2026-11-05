@@ -161,4 +161,42 @@ describe('HardwareIdService.getDeviceIdentifiers', () => {
       machine_guid: null,
     });
   });
+
+  it('picks up serials the main process sends later in the session', async () => {
+    // At Windows logon the first answer has the install ID but no serials;
+    // the main process reads them again in the background and sends the copy.
+    let pushHardwareData: (data: any) => void = () => undefined;
+    (window as any).electronAPI = {
+      getHardwareId: () =>
+        Promise.resolve({ hardwareId: 'UUID-1', machine_guid: 'GUID-1' }),
+      onHardwareId: (callback: (data: any) => void) =>
+        (pushHardwareData = callback),
+      onHardwareIdError: () => undefined,
+    };
+    try {
+      const service = new HardwareIdService();
+      await service.fetchHardwareId();
+      expect(service.getDeviceIdentifiers()).toEqual({
+        baseboard_serial: null,
+        disk_serial: null,
+        machine_guid: 'GUID-1',
+      });
+
+      pushHardwareData({
+        hardwareId: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      });
+
+      expect(service.getDeviceIdentifiers()).toEqual({
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      });
+      expect(service.getHardwareId()).toBe('UUID-1');
+    } finally {
+      delete (window as any).electronAPI;
+    }
+  });
 });

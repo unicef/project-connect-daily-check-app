@@ -24,9 +24,12 @@ import { captureException } from '@sentry/node';
 import { AUTO_UPDATE_ENABLED, BUILD_COMMIT, BUILD_MODE } from './build-mode';
 import {
   classifyWifiUnavailable,
+  getCachedHardwareIdentifiers,
   getDeviceContext,
   getHardwareIdentifiers,
   HardwareIdentifiers,
+  hasHardwareSerials,
+  retryHardwareSerials,
   getSsidFromNlm,
 } from './device-context';
 
@@ -184,9 +187,6 @@ if (!gotTheLock) {
 
       // Send hardware ID to renderer process when ready
       if (mainWindow && mainWindow.webContents) {
-        // The renderer stores what arrives last, so this copy carries the
-        // serials too, or a registration could go out without them (TECH-8828).
-        const hardwareIds = await hardwareIdentifiersInTime();
         const hardwareData = {
           hardwareId,
           uuid: systemData.uuid,
@@ -195,9 +195,6 @@ if (!gotTheLock) {
           manufacturer: systemData.manufacturer,
           model: systemData.model,
           osSerial: osData.serial,
-          baseboard_serial: hardwareIds.baseboard_serial,
-          disk_serial: hardwareIds.disk_serial,
-          machine_guid: hardwareIds.machine_guid,
           timestamp: new Date().toISOString(),
         };
 
@@ -583,7 +580,8 @@ function isUsableHardwareId(hardwareId?: string): boolean {
 
 // How long the hardware ID waits for the serials (TECH-8828). They are read
 // together with the rest; this only keeps a slow WMI read from holding up the
-// hardware ID, which never depended on them. They are left out on a timeout.
+// hardware ID, which never depended on them. On a timeout they are read again
+// in the background (startSerialRetry).
 const HARDWARE_IDENTIFIERS_TIMEOUT_MS = 5000;
 
 function hardwareIdentifiersInTime(): Promise<HardwareIdentifiers> {
@@ -614,6 +612,17 @@ async function probeHardwareData(): Promise<any> {
     }
   }
 
+  // This probe may have stopped waiting before a background read found the
+  // serials; use those. Without serials, keep reading them in the background.
+  const known = getCachedHardwareIdentifiers();
+  const ids =
+    hasHardwareSerials(hardwareIds) || !hasHardwareSerials(known)
+      ? hardwareIds
+      : known;
+  if (!hasHardwareSerials(ids)) {
+    startSerialRetry();
+  }
+
   return {
     hardwareId: uuid || systemData.serial || HARDWARE_ID_UNAVAILABLE,
     uuid,
@@ -623,11 +632,34 @@ async function probeHardwareData(): Promise<any> {
     model: systemData.model,
     osSerial: osData.serial,
     // Sent with the registration; the backend works out the device ID.
-    baseboard_serial: hardwareIds.baseboard_serial,
-    disk_serial: hardwareIds.disk_serial,
-    machine_guid: hardwareIds.machine_guid,
+    baseboard_serial: ids.baseboard_serial,
+    disk_serial: ids.disk_serial,
+    machine_guid: ids.machine_guid,
     timestamp: new Date().toISOString(),
   };
+}
+
+/**
+ * The serials missed the 5 s wait, or WMI wasn't answering yet at Windows
+ * logon. Keep reading them in the background on the hardware ID's retry steps;
+ * once they're read, add them to the kept hardware copy and send it to the
+ * window, so a registration later in this session carries them (TECH-8828).
+ * Without a kept copy yet, the next probe picks them up instead.
+ */
+function startSerialRetry(): void {
+  retryHardwareSerials(HARDWARE_ID_RETRY_DELAYS_MS, (ids) => {
+    console.log('✅ [Electron] Hardware serials read in the background');
+    if (!cachedHardwareData || hasHardwareSerials(cachedHardwareData)) {
+      return;
+    }
+    cachedHardwareData = {
+      ...cachedHardwareData,
+      baseboard_serial: ids.baseboard_serial,
+      disk_serial: ids.disk_serial,
+      machine_guid: ids.machine_guid ?? cachedHardwareData.machine_guid,
+    };
+    pushHardwareDataToRenderer(cachedHardwareData);
+  });
 }
 
 // The module-level `mainWindow` is assigned from init(), which returns void, so
