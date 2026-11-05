@@ -117,3 +117,86 @@ describe('HardwareIdService.waitForUsableHardwareId', () => {
     expect(callTimes.length).toBe(calls);
   });
 });
+
+describe('HardwareIdService.getDeviceIdentifiers', () => {
+  const STORAGE_KEY = 'system_hardware_id';
+
+  afterEach(() => localStorage.removeItem(STORAGE_KEY));
+
+  it('returns the serials and the Windows install ID the main process read', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        hardwareId: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      })
+    );
+
+    expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
+      baseboard_serial: 'BOARD-1',
+      disk_serial: 'DISK-1',
+      machine_guid: 'GUID-1',
+    });
+  });
+
+  it('returns null for each value the main process could not read', () => {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ hardwareId: 'UUID-1', disk_serial: 'DISK-1' })
+    );
+
+    expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
+      baseboard_serial: null,
+      disk_serial: 'DISK-1',
+      machine_guid: null,
+    });
+  });
+
+  it('returns nulls before anything was read', () => {
+    expect(new HardwareIdService().getDeviceIdentifiers()).toEqual({
+      baseboard_serial: null,
+      disk_serial: null,
+      machine_guid: null,
+    });
+  });
+
+  it('picks up serials the main process sends later in the session', async () => {
+    // At Windows logon the first answer has the install ID but no serials;
+    // the main process reads them again in the background and sends the copy.
+    let pushHardwareData: (data: any) => void = () => undefined;
+    (window as any).electronAPI = {
+      getHardwareId: () =>
+        Promise.resolve({ hardwareId: 'UUID-1', machine_guid: 'GUID-1' }),
+      onHardwareId: (callback: (data: any) => void) =>
+        (pushHardwareData = callback),
+      onHardwareIdError: () => undefined,
+    };
+    try {
+      const service = new HardwareIdService();
+      await service.fetchHardwareId();
+      expect(service.getDeviceIdentifiers()).toEqual({
+        baseboard_serial: null,
+        disk_serial: null,
+        machine_guid: 'GUID-1',
+      });
+
+      pushHardwareData({
+        hardwareId: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      });
+
+      expect(service.getDeviceIdentifiers()).toEqual({
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      });
+      expect(service.getHardwareId()).toBe('UUID-1');
+    } finally {
+      delete (window as any).electronAPI;
+    }
+  });
+});

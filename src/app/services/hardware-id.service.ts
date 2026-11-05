@@ -8,7 +8,19 @@ interface HardwareData {
   manufacturer: string;
   model: string;
   osSerial: string;
+  // Sent with registrations so the backend can work out the device ID
+  // (TECH-8828). Missing when the PC couldn't read them.
+  baseboard_serial?: string;
+  disk_serial?: string;
+  machine_guid?: string;
   timestamp: string;
+}
+
+/** The hardware values a registration sends besides the hardware ID. */
+export interface DeviceIdentifiers {
+  baseboard_serial: string | null;
+  disk_serial: string | null;
+  machine_guid: string | null;
 }
 
 interface HardwareError {
@@ -159,6 +171,20 @@ export class HardwareIdService {
   getHardwareId(): string | null {
     const data = this.getHardwareData();
     return data?.hardwareId || null;
+  }
+
+  /**
+   * The hardware values a registration sends besides the hardware ID: the
+   * serials and the Windows install ID the main process read, null when it
+   * couldn't. The backend works out the device ID from them (TECH-8828).
+   */
+  getDeviceIdentifiers(): DeviceIdentifiers {
+    const data = this.getHardwareData();
+    return {
+      baseboard_serial: data?.baseboard_serial || null,
+      disk_serial: data?.disk_serial || null,
+      machine_guid: data?.machine_guid || null,
+    };
   }
 
   /**

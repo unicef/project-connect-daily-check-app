@@ -337,7 +337,7 @@ export function cleanHardwareId(value: unknown): string | undefined {
   return trimmed;
 }
 
-interface HardwareIdentifiers {
+export interface HardwareIdentifiers {
   baseboard_serial?: string;
   disk_serial?: string;
   machine_guid?: string;
@@ -345,6 +345,19 @@ interface HardwareIdentifiers {
 
 let cachedHardwareIds: HardwareIdentifiers | null = null;
 let hardwareIdsPromise: Promise<HardwareIdentifiers> | null = null;
+let serialRetryStarted = false;
+
+/** Whether a read has the motherboard or disk serial (both come from WMI). */
+export function hasHardwareSerials(
+  ids: HardwareIdentifiers | null | undefined
+): boolean {
+  return !!(ids?.baseboard_serial || ids?.disk_serial);
+}
+
+/** The values kept from an earlier read, without reading again. */
+export function getCachedHardwareIdentifiers(): HardwareIdentifiers | null {
+  return cachedHardwareIds;
+}
 
 /**
  * The stable per-unit identifiers: motherboard serial (`si.baseboard()`),
@@ -356,9 +369,14 @@ let hardwareIdsPromise: Promise<HardwareIdentifiers> | null = null;
  * cleanHardwareId(), so an OEM placeholder is dropped rather than stored as a
  * shared pseudo-identifier. Every read fails soft — a blocked WMI/registry call
  * yields an absent field, never a thrown error.
+ *
+ * `refresh` reads again even when a read is kept; retryHardwareSerials() uses
+ * it to pick up serials that were missing the first time.
  */
-async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
-  if (cachedHardwareIds) return cachedHardwareIds;
+export async function getHardwareIdentifiers(
+  options: { refresh?: boolean } = {}
+): Promise<HardwareIdentifiers> {
+  if (cachedHardwareIds && !options.refresh) return cachedHardwareIds;
   if (hardwareIdsPromise) return hardwareIdsPromise;
 
   hardwareIdsPromise = (async () => {
@@ -385,12 +403,25 @@ async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
         )
       ) ?? usableSerial(diskList);
 
-    cachedHardwareIds = {
+    const hardwareIds: HardwareIdentifiers = {
       baseboard_serial: cleanHardwareId(baseboard?.serial),
       disk_serial: diskSerial,
       machine_guid: cleanHardwareId(ids?.os),
     };
-    return cachedHardwareIds;
+    // When WMI isn't answering yet (the app was started at Windows logon),
+    // every read comes back empty. Don't keep that for the whole run: the next
+    // call reads again. Nor let a later read without serials replace one that
+    // had them. The registration sends these values (TECH-8828).
+    const readSomething = Object.values(hardwareIds).some(
+      (value) => value !== undefined
+    );
+    if (
+      readSomething &&
+      (hasHardwareSerials(hardwareIds) || !hasHardwareSerials(cachedHardwareIds))
+    ) {
+      cachedHardwareIds = hardwareIds;
+    }
+    return hardwareIds;
   })();
 
   try {
@@ -398,6 +429,58 @@ async function getHardwareIdentifiers(): Promise<HardwareIdentifiers> {
   } finally {
     hardwareIdsPromise = null;
   }
+}
+
+/**
+ * Reads the serials again in the background when a read came back without
+ * them: the hardware probe stopped waiting for them, or WMI wasn't answering
+ * yet at Windows logon while the registry (MachineGuid) was. Waits each delay
+ * in turn and reads again, like the hardware ID retry, then gives up. Starts
+ * at most once per app run. `onSerials` gets the first read that has them, so
+ * the caller can update its copy (TECH-8828).
+ */
+export function retryHardwareSerials(
+  delaysMs: number[],
+  onSerials: (ids: HardwareIdentifiers) => void
+): void {
+  if (serialRetryStarted) return;
+  serialRetryStarted = true;
+
+  const attempt = (index: number): void => {
+    if (index >= delaysMs.length) {
+      console.warn('[device-context] serials still unavailable after all retries');
+      return;
+    }
+    setTimeout(async () => {
+      let ids: HardwareIdentifiers | null = null;
+      try {
+        // A read still running when the probe stopped waiting may have kept
+        // them by now; only read again when it didn't.
+        ids = hasHardwareSerials(cachedHardwareIds)
+          ? cachedHardwareIds
+          : await getHardwareIdentifiers({ refresh: true });
+      } catch (error) {
+        console.warn(
+          '[device-context] serial retry failed:',
+          (error as Error)?.message ?? error
+        );
+      }
+      if (!hasHardwareSerials(ids)) {
+        attempt(index + 1);
+        return;
+      }
+      try {
+        onSerials(ids);
+      } catch (error) {
+        console.warn(
+          '[device-context] could not pass on the serials:',
+          (error as Error)?.message ?? error
+        );
+      }
+    }, delaysMs[index]);
+  };
+
+  attempt(0);
 }
 
 // ---------------------------------------------------------------------------
