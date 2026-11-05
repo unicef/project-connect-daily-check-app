@@ -235,13 +235,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Des tests programmés plus intelligents et la prise en charge de l'ouzbek et du tadjik",
-      "date": "Vendredi, 18 septembre 2026",
+      "title": "Des tests de vitesse plus fiables et la prise en charge du tadjik",
+      "date": "Lundi, 16 novembre 2026",
       "items": [
-        "Tests programmés plus intelligents : si un test échoue, l'application continue de réessayer jusqu'à ce qu'il réussisse ou que la plage horaire du test se termine.",
-        "Prise en charge de l'ouzbek : l'ouzbek a été ajouté au sélecteur de langue, avec des traductions révisées.",
-        "Prise en charge du tadjik : le tadjik a été ajouté au sélecteur de langue.",
-        "Corrections de bugs : diverses corrections de bugs et améliorations."
+        "Profitez de tests de vitesse et de contrôles Ping plus fiables",
+        "Enregistrez votre école plus facilement",
+        "Utilisez l'application en tadjik, avec des traductions en ouzbek améliorées"
       ]
     },
     "2.0.3": {

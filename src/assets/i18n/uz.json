@@ -235,13 +235,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Aqlliroq rejalashtirilgan testlar hamda o‘zbek va tojik tillarini qo‘llab-quvvatlash",
-      "date": "Juma, 2026-yil 18-sentabr",
+      "title": "Ishonchliroq tezlik testlari va tojik tilini qo‘llab-quvvatlash",
+      "date": "Dushanba, 2026-yil 16-noyabr",
       "items": [
-        "Aqlliroq rejalashtirilgan testlar: agar test muvaffaqiyatsiz tugasa, ilova test muvaffaqiyatli o‘tguncha yoki test vaqti tugaguncha qayta urinishda davom etadi.",
-        "O‘zbek tilini qo‘llab-quvvatlash: til tanlash menyusiga o‘zbek tili qo‘shildi, tarjimalar ham qayta ko‘rib chiqildi.",
-        "Tojik tilini qo‘llab-quvvatlash: til tanlash menyusiga tojik tili qo‘shildi.",
-        "Xatolarni tuzatish: turli xatolar tuzatildi va yaxshilanishlar kiritildi."
+        "Ishonchliroq tezlik testlari va Ping tekshiruvlaridan foydalaning",
+        "Maktabingizni osonroq ro‘yxatdan o‘tkazing",
+        "Ilovadan tojik tilida foydalaning, o‘zbekcha tarjimalar yaxshilandi"
       ]
     },
     "2.0.3": {
