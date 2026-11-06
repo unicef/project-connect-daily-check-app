@@ -235,13 +235,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Smarter scheduled tests and Uzbek and Tajik language support",
-      "date": "Friday, 18th September 2026",
+      "title": "More reliable speed tests and Tajik language support",
+      "date": "Monday, 16th November 2026",
       "items": [
-        "Smarter scheduled tests: If a test fails, the app continues retrying until it succeeds or the test window ends.",
-        "Uzbek language support: Added Uzbek to the language selector, along with revised translations.",
-        "Tajik language support: Added Tajik to the language selector.",
-        "Bug fixes: Various bug fixes and improvements."
+        "Get more reliable speed tests and Ping checks",
+        "Register your school more easily",
+        "Use the app in Tajik, with improved Uzbek translations"
       ]
     },
     "2.0.3": {
