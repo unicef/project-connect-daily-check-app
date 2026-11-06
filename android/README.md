@@ -43,12 +43,6 @@ This guide provides step-by-step setup and build instructions for a **Capacitor-
    PATH += $ANDROID_HOME/tools/bin
    ```
 
-6. **Add google-service.json (Optional)**
-
-   ```bash
-     Add google-service.json file before building the project in android/app directory
-   ```
-
 ---
 
 ## 2. Add Android Platform (Configured)
@@ -199,15 +193,9 @@ android {
 
 ---
 
-## 6. Firebase Integration (it's optional implementation)
+## 6. Crash reporting
 
-- if (new File("$projectDir/google-services.json").exists()) {
-  apply plugin: 'com.google.gms.google-services'
-  apply plugin: 'com.google.firebase.crashlytics'
-  }
-- It checks for google-services.json and if it's available then only it integrates firebase.
-- If new firebase config file google-services.json need to add, it should be added in app/src/release or app/src/debug path based on environment
-- For debug installs (`./gradlew installDebug` or Run in Android Studio), the debug Firebase config (containing the `com.meter.giga.app.debug` package) can instead be saved as `app/google-services-debug.json`. It is copied to `app/src/debug/google-services.json` at build time, overwriting any file already there, and is git-ignored like the other Firebase config files.
+Crash reporting is Sentry only.
 
 ---
 

@@ -1,6 +1,6 @@
 /build/*
 !/build/.npmkeep
-# Firebase config files
+# local Google services config (unused)
 **/google-services.json
 **/google-services-debug.json
 **/GoogleService-Info.plist
