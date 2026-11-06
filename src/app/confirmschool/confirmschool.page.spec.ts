@@ -59,7 +59,7 @@ describe('ConfirmschoolPage', () => {
         {
           provide: PosthogService,
           useValue: jasmine.createSpyObj('PosthogService', [
-            'identify',
+            'identifyDevice',
             'capture',
             'setSchool',
           ]),

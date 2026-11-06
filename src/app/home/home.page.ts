@@ -138,6 +138,7 @@ export class HomePage {
         // Device was deactivated by another user (logged out)
         console.warn('🚫 [HomePage] Device has been deactivated (logged out)');
         console.log('   Clearing localStorage...');
+        this.posthogService.reset();
         await this.storage.clear();
         console.log(
           '   Checking if registration still exists for this hardware ID...'
@@ -195,6 +196,8 @@ export class HomePage {
             this.loading.dismiss();
             this.router.navigate(['/starttest']);
           } else {
+            // The registration is gone and the local data was cleared.
+            this.posthogService.reset();
             this.loading.dismiss();
             this.router.navigate(['schoolnotfound', schoolId, 0, 0, 0], {
               queryParams: { reason: NotFound.notRegister },
@@ -378,6 +381,7 @@ export class HomePage {
     if (registrationData.giga_id_school != null) {
       await this.storage.set('gigaId', registrationData.giga_id_school);
       console.log('   ✓ Set gigaId:', registrationData.giga_id_school);
+      this.posthogService.identifyDevice();
       this.posthogService.setSchool(registrationData.giga_id_school);
     }
     if (registrationData.mac_address != null) {

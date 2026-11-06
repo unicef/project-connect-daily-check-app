@@ -556,6 +556,9 @@ export class AppComponent {
         );
       }
 
+      // Forget this PC's analytics identity, so a new registration can set it
+      this.posthogService.reset();
+
       // Clear all localStorage data
       await this.storage.clear();
 

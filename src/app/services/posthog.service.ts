@@ -3,6 +3,7 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import posthog from 'posthog-js';
 import { environment } from 'src/environments/environment';
+import { HardwareIdService } from './hardware-id.service';
 
 /**
  * PostHog product analytics (release v2.0.4).
@@ -19,9 +20,10 @@ import { environment } from 'src/environments/environment';
  *   CSP.
  * - In Electron `window.location` is `file://`, useless for analytics: the same
  *   virtual host as Matomo is used so the URLs stay readable.
- * - No PII: identification is by the school's giga id, which is the same value
- *   that already travels with every measurement. Never a school name, a Windows
- *   user, installation paths or an IP.
+ * - Each PC is one PostHog person, identified by its hardware ID when it has
+ *   a real one, else by its registration ID (`schoolUserId`, the BrowserID
+ *   sent with every measurement). Both already travel with the measurements.
+ *   Never a school name, a Windows user, installation paths or an IP.
  */
 @Injectable({
   providedIn: 'root',
@@ -38,7 +40,27 @@ export class PosthogService {
   // can be cross-referenced.
   private readonly electronVirtualOrigin = 'https://app.gigameter.local';
 
-  constructor(private router: Router) {}
+  // Hardware IDs that are not unique to one PC: the main process's "none
+  // read" value and the placeholders some boards ship with. PCs sharing one
+  // would become a single person, so they fall back to the registration ID.
+  private readonly PLACEHOLDER_HARDWARE_IDS = new Set([
+    'NO_UUID_AVAILABLE',
+    '03000200-0400-0500-0006-000700080009',
+    'TO BE FILLED BY O.E.M.',
+    'DEFAULT STRING',
+    'SYSTEM SERIAL NUMBER',
+    'NOT APPLICABLE',
+    'NOT SPECIFIED',
+    'NONE',
+    'N/A',
+    'UNDEFINED',
+    'NULL',
+  ]);
+
+  constructor(
+    private router: Router,
+    private hardwareIdService: HardwareIdService
+  ) {}
 
   /**
    * Starts PostHog. Safe to call more than once.
@@ -72,24 +94,14 @@ export class PosthogService {
         // The installation can spend hours without network; let the SDK retry
         // instead of dropping events.
         request_batching: true,
-        loaded: (ph) => {
-          try {
-            ph.register({
-              app_version: environment.app_version,
-              app_mode: environment.mode,
-              is_electron: !!environment.isElectron,
-            });
-          } catch (error) {
-            console.warn('[PostHog] register on load failed:', error);
-          }
-        },
+        loaded: () => this.registerAppProperties(),
       });
 
-      // Set before the calls below: identify(), setSchool() and
+      // Set before the calls below: identifyDevice(), setSchool() and
       // trackPageView() return early while `initialized` is false.
       this.initialized = true;
 
-      this.identifyFromStorage();
+      this.identifyDevice();
       this.applySchoolFromStorage();
       this.trackPageView();
       this.trackRouteChanges();
@@ -114,19 +126,49 @@ export class PosthogService {
   }
 
   /**
-   * Ties events to a school. Called at startup (when a registration already
-   * exists) and right after the registration completes.
+   * Identifies this PC: by its hardware ID when it has a real one, else by its
+   * registration ID. With neither (not registered, no hardware ID yet) the PC
+   * stays anonymous. Called at startup and right after a registration, manual
+   * or automatic. The school is a group (setSchool), never the identity.
    *
-   * The identifier is the giga id: it identifies the site, not the person.
+   * An identity, once set, is kept: identifying again with another ID would
+   * start a new person, because PostHog does not merge two identified people.
+   * So a PC that got its hardware ID only after registering stays on its
+   * registration ID. Logout calls reset(), which frees it.
    */
-  identify(gigaId: string, properties?: Record<string, any>): void {
+  identifyDevice(properties?: Record<string, any>): void {
     try {
-      if (!this.initialized || !gigaId) {
+      if (!this.initialized) {
         return;
       }
-      posthog.identify(gigaId, properties);
+      const deviceId = this.getDeviceDistinctId();
+      if (!deviceId) {
+        return;
+      }
+
+      if (posthog._isIdentified()) {
+        const currentId = posthog.get_distinct_id();
+        if (currentId === deviceId) {
+          if (properties) {
+            posthog.setPersonProperties(properties);
+          }
+          return;
+        }
+        // Earlier 2.0.4 test builds identified by the school's giga id, which
+        // made every PC at a school one person. Move those installs over;
+        // keep any other identity.
+        if (currentId !== localStorage.getItem('gigaId')) {
+          return;
+        }
+        this.reset();
+        posthog.identify(deviceId, properties);
+        this.applySchoolFromStorage(); // reset() dropped the school group
+        return;
+      }
+
+      posthog.identify(deviceId, properties);
     } catch (error) {
-      console.warn('[PostHog] identify failed:', error);
+      console.warn('[PostHog] identifyDevice failed:', error);
     }
   }
 
@@ -147,13 +189,19 @@ export class PosthogService {
     }
   }
 
-  /** Ends the session when the user logs out, so schools are not mixed. */
+  /**
+   * Forgets the PC's identity and school when the registration ends (logout,
+   * or the device or school no longer registered), so the next registration
+   * can identify it again.
+   */
   reset(): void {
     try {
       if (!this.initialized) {
         return;
       }
       posthog.reset();
+      // reset() also drops the properties sent with every event.
+      this.registerAppProperties();
     } catch (error) {
       console.warn('[PostHog] reset failed:', error);
     }
@@ -221,14 +269,39 @@ export class PosthogService {
     }
   }
 
-  private identifyFromStorage(): void {
+  /** The hardware ID when it is a real one, else the registration ID. */
+  private getDeviceDistinctId(): string | null {
+    const hardwareId = this.hardwareIdService.getHardwareId()?.trim();
+    if (hardwareId && !this.isPlaceholderId(hardwareId)) {
+      return hardwareId;
+    }
+    const registrationId = localStorage.getItem('schoolUserId')?.trim();
+    if (registrationId && !this.isPlaceholderId(registrationId)) {
+      return registrationId;
+    }
+    return null;
+  }
+
+  private isPlaceholderId(id: string): boolean {
+    const value = id.toUpperCase();
+    return (
+      this.PLACEHOLDER_HARDWARE_IDS.has(value) ||
+      // All zeros or all Fs, with or without dashes
+      /^[0-]+$/.test(value) ||
+      /^[F-]+$/.test(value)
+    );
+  }
+
+  /** Properties sent with every event. */
+  private registerAppProperties(): void {
     try {
-      const gigaId = localStorage.getItem('gigaId');
-      if (gigaId) {
-        this.identify(gigaId);
-      }
+      posthog.register({
+        app_version: environment.app_version,
+        app_mode: environment.mode,
+        is_electron: !!environment.isElectron,
+      });
     } catch (error) {
-      console.warn('[PostHog] identifyFromStorage failed:', error);
+      console.warn('[PostHog] register failed:', error);
     }
   }
 
