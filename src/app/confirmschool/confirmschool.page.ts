@@ -176,6 +176,10 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.set('schoolUserId', response);
       this.storage.set('schoolId', this.schoolId);
       this.storage.set('gigaId', this.school.giga_id_school);
+      // From here on, events belong to this PC, in this school's group.
+      this.posthog.identifyDevice({
+        country_code: this.selectedCountry,
+      });
       this.posthog.setSchool(this.school.giga_id_school);
       this.storage.set('ip_address', ipAddress?.ip);
       this.storage.set('version', environment.app_version);
@@ -187,10 +191,6 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.setFirstTimeVisit(true);
       this.storage.setRegistrationCompleted(Date.now());
 
-      // From here on, events belong to this school.
-      this.posthog.identify(this.school.giga_id_school, {
-        country_code: this.selectedCountry,
-      });
       this.posthog.capture('registration_completed', {
         country_code: this.selectedCountry,
       });

@@ -65,14 +65,37 @@ let isDownloaded = false;
  * neither the renderer nor the backend sees (a machine that fails to update
  * stops sending measurements and disappears from adoption queries).
  *
- * If the window is not alive the event is lost, and that is acceptable: update
+ * Events wait in `pendingTelemetry` until the renderer says its PostHog bridge
+ * is listening ('telemetry-ready'): a send to a page that is still loading, or
+ * has not subscribed yet, is dropped. Without PostHog configured the renderer
+ * never says so, and the queue stops growing at MAX_PENDING_TELEMETRY.
+ *
+ * If the window is gone the event is lost, and that is acceptable: update
  * failures already go to Sentry separately.
  */
+const MAX_PENDING_TELEMETRY = 50;
+const pendingTelemetry: { event: string; properties: Record<string, any> }[] =
+  [];
+let telemetryReady = false;
+
 function sendTelemetry(event: string, properties: Record<string, any> = {}) {
   try {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (!mainWindow.webContents || mainWindow.webContents.isDestroyed()) return;
-    mainWindow.webContents.send('telemetry-event', { event, properties });
+    // Look the window up each time: `mainWindow` stays undefined, because
+    // myCapacitorApp.init() returns nothing.
+    const win = myCapacitorApp.getMainWindow();
+    const canSend =
+      telemetryReady &&
+      win &&
+      !win.isDestroyed() &&
+      win.webContents &&
+      !win.webContents.isDestroyed();
+    if (!canSend) {
+      if (pendingTelemetry.length < MAX_PENDING_TELEMETRY) {
+        pendingTelemetry.push({ event, properties });
+      }
+      return;
+    }
+    win.webContents.send('telemetry-event', { event, properties });
   } catch (error) {
     console.warn('[telemetry] send failed:', error);
   }
@@ -175,14 +198,12 @@ if (!gotTheLock) {
         scheduleHardwareIdRetry();
       }
 
-      // hardwareId travels only as diagnostic metadata, never as an analytics
-      // identity: the distinct_id and the school group are set by the renderer,
-      // which is the side that talks to PostHog.
+      // The PC's identity (distinct_id) and school group are set by the
+      // renderer, which is the side that talks to PostHog.
       sendTelemetry('app_launched', {
         manufacturer: systemData.manufacturer,
         model: systemData.model,
         os: osData.distro,
-        hardware_id: hardwareId,
       });
 
       // Send hardware ID to renderer process when ready
@@ -396,6 +417,18 @@ app.on('before-quit', () => {
 });
 
 // Place all ipc or other electron api calls and custom functionality under this line
+
+// The renderer's PostHog bridge is listening: send what waited (sendTelemetry).
+ipcMain.on('telemetry-ready', (event) => {
+  telemetryReady = true;
+  for (const payload of pendingTelemetry.splice(0)) {
+    try {
+      event.sender.send('telemetry-event', payload);
+    } catch (error) {
+      console.warn('[telemetry] send failed:', error);
+    }
+  }
+});
 
 ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
