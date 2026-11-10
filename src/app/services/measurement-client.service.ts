@@ -16,6 +16,7 @@ import {
   UPLOAD_LEG,
   hasClientResult,
 } from '../utils/ndt-results.utils';
+import { locateServerTime } from '../utils/mlab-server-time.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -232,8 +233,8 @@ export class MeasurementClientService {
       wifiDiagnostics: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
-      // M-Lab's clock, set by finalizeMeasurement. Always null for now: ndt7-js
-      // does not report it (see finalizeMeasurement).
+      // M-Lab's clock, set by onServerChosen from the locate response. Stays
+      // null when the response carries no readable token.
       serverTimestamp: null,
     };
   }
@@ -299,6 +300,10 @@ export class MeasurementClientService {
     metro: '',
     }
     measurementRecord.mlabInformation = serverInformation;
+    // `timestamp` comes from Date.now(), so it is only as good as the clock of
+    // the machine running the test. This is M-Lab's, for the backend to tell
+    // the two apart.
+    measurementRecord.serverTimestamp = locateServerTime(server);
     console.log('Normalized server information:', serverInformation);
     this.broadcastMeasurementStatus('server_chosen', {
       server: server,
@@ -442,17 +447,6 @@ export class MeasurementClientService {
       measurementRecord.results[DOWNLOAD_LEG].LastServerMeasurement
         ?.ConnectionInfo?.UUID || '';
     measurementRecord.version = 1;
-
-    // `timestamp` above comes from Date.now(), so it is only as good as the
-    // clock of the machine running the test. The backend also wants M-Lab's
-    // clock to tell the two apart, but ndt7-js does not report one: M-Lab's
-    // locate response does not let browsers read its Date header. So this is
-    // null for now, and is read from either leg's `ServerTime` for when one
-    // carries it.
-    measurementRecord.serverTimestamp =
-      measurementRecord.results['NDTResult.S2C']?.ServerTime ??
-      measurementRecord.results['NDTResult.C2S']?.ServerTime ??
-      null;
 
     const dataUsage = this.calculateDataUsage(measurementRecord.results);
     measurementRecord.dataUsage = dataUsage;

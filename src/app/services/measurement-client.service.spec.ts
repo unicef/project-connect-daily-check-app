@@ -11,13 +11,10 @@ import { ScheduleService } from './schedule.service';
 /**
  * Minimal shape of a finished ndt7 run: just the fields finalizeMeasurement
  * and calculateDataUsage read. Each leg needs a client speed, or the run
- * counts as failed. ndt7-js does not report `ServerTime` (M-Lab's locate
- * response does not let browsers read its Date header), so real runs leave
- * serverTimestamp null; the cases that pass one keep the reading covered.
+ * counts as failed.
  */
-const resultsWith = (s2cServerTime: any, c2sServerTime: any) => ({
+const finishedRun = () => ({
   'NDTResult.S2C': {
-    ServerTime: s2cServerTime,
     LastClientMeasurement: { MeanClientMbps: 12.5, ElapsedTime: 10 },
     LastServerMeasurement: {
       ConnectionInfo: { UUID: 'ndt-abcde_1591240104_00000000000042C7' },
@@ -25,13 +22,40 @@ const resultsWith = (s2cServerTime: any, c2sServerTime: any) => ({
     },
   },
   'NDTResult.C2S': {
-    ServerTime: c2sServerTime,
     LastClientMeasurement: { MeanClientMbps: 4.2, ElapsedTime: 10 },
     LastServerMeasurement: {
       TCPInfo: { BytesAcked: 30, BytesReceived: 40 },
     },
   },
 });
+
+/** An unsigned JWT carrying `claims`, base64url-encoded like locate's. */
+const jwt = (claims: any) =>
+  [
+    'eyJhbGciOiJFZERTQSJ9',
+    btoa(JSON.stringify(claims))
+      .replace(/=+$/, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_'),
+    'signature',
+  ].join('.');
+
+/** One result of M-Lab's locate response, as ndt7-js passes it to serverChosen. */
+const locateResult = (claims: any) => {
+  const machine = 'mlab2-bcn01.mlab-oti.measurement-lab.org';
+  const host = `ndt-${machine}`;
+  const token = jwt(claims);
+  return {
+    machine,
+    location: { city: 'Barcelona', country: 'ES' },
+    urls: {
+      'ws:///ndt/v7/download': `ws://${host}/ndt/v7/download?access_token=${token}`,
+      'ws:///ndt/v7/upload': `ws://${host}/ndt/v7/upload?access_token=${token}`,
+      'wss:///ndt/v7/download': `wss://${host}/ndt/v7/download?access_token=${token}`,
+      'wss:///ndt/v7/upload': `wss://${host}/ndt/v7/upload?access_token=${token}`,
+    },
+  };
+};
 
 describe('MeasurementClientService', () => {
   let service: MeasurementClientService;
@@ -59,36 +83,39 @@ describe('MeasurementClientService', () => {
   });
 
   describe('serverTimestamp', () => {
-    it('takes the server clock reported by the download leg', async () => {
-      const serverTime = Date.UTC(2026, 7, 24, 10, 30, 0);
-      const record: any = {
-        timestamp: 1,
-        results: resultsWith(serverTime, serverTime),
-      };
+    // 2026-11-10T11:18:36Z, read off a real locate response whose Date
+    // header said the same.
+    const issuedAt = 1794309516;
 
-      await service['finalizeMeasurement'](record);
+    it("takes M-Lab's clock from the token of the chosen server", () => {
+      const record: any = service['initializeMeasurementRecord']('manual');
 
-      expect(record.serverTimestamp).toBe(serverTime);
+      service['getTestCallbacks'](record).serverChosen(
+        locateResult({ iss: 'locate', sub: 'ndt', exp: issuedAt + 60 })
+      );
+
+      expect(record.serverTimestamp).toBe(issuedAt * 1000);
     });
 
-    it('falls back to the upload leg when the download leg has none', async () => {
-      const serverTime = Date.UTC(2026, 7, 24, 10, 30, 0);
-      const record: any = {
-        timestamp: 1,
-        results: resultsWith(undefined, serverTime),
-      };
+    it('stays null when the chosen server carries no token', () => {
+      const record: any = service['initializeMeasurementRecord']('manual');
+      const server: any = locateResult({ exp: issuedAt + 60 });
+      Object.keys(server.urls).forEach(
+        (key) => (server.urls[key] = server.urls[key].split('?')[0])
+      );
 
-      await service['finalizeMeasurement'](record);
-
-      expect(record.serverTimestamp).toBe(serverTime);
-    });
-
-    it('stays null when neither leg reports one', async () => {
-      const record: any = { timestamp: 1, results: resultsWith(null, null) };
-
-      await service['finalizeMeasurement'](record);
+      service['getTestCallbacks'](record).serverChosen(server);
 
       expect(record.serverTimestamp).toBeNull();
+    });
+
+    it('is kept when the test is saved', async () => {
+      const record: any = { timestamp: 1, results: finishedRun() };
+      service['onServerChosen'](locateResult({ exp: issuedAt + 60 }), record);
+
+      await service['finalizeMeasurement'](record);
+
+      expect(record.serverTimestamp).toBe(issuedAt * 1000);
     });
 
     it('is initialized to null on a fresh record', () => {
@@ -124,7 +151,7 @@ describe('MeasurementClientService', () => {
     afterEach(() => httpMock.verify());
 
     it('is synced when the backend accepts the upload', async () => {
-      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+      const record: any = { timestamp: 1, results: finishedRun() };
 
       const done = service['finalizeMeasurement'](record);
       httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
@@ -134,7 +161,7 @@ describe('MeasurementClientService', () => {
     });
 
     it('is not synced when the upload never reaches the backend', async () => {
-      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+      const record: any = { timestamp: 1, results: finishedRun() };
 
       const done = service['finalizeMeasurement'](record);
       httpMock
@@ -152,7 +179,6 @@ describe('MeasurementClientService', () => {
 const clientOnlyLeg = (mbps: number) => ({
   LastClientMeasurement: { MeanClientMbps: mbps, ElapsedTime: 10.2 },
   LastServerMeasurement: undefined,
-  ServerTime: null,
 });
 
 describe('MeasurementClientService without a server measurement', () => {
@@ -208,7 +234,6 @@ describe('MeasurementClientService without a server measurement', () => {
     const leg = {
       LastClientMeasurement: undefined,
       LastServerMeasurement: undefined,
-      ServerTime: null,
     };
 
     expect(() => service['onDownloadComplete'](leg, record)).not.toThrow();

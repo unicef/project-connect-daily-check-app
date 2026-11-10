@@ -47,9 +47,9 @@ Why they were added: on Windows 11 24H2+ the WLAN stack sits behind the Location
 
 ## timing
 
-*   `server_timestamp` — meant to hold the measurement server's own clock. **Always null for now**: it was to come from the `Date` header of M-Lab's server lookup, but that response does not let browsers read the header (no `Access-Control-Expose-Headers`)
+*   `server_timestamp` — M-Lab's clock at the moment its locate service picked the test server, ISO 8601. Read from the access token in the test URLs: a JWT whose `exp` claim locate sets to its own clock plus one minute, so the value is `exp − 60 s`. The `Date` header of the same response would be simpler, but browsers cannot read it (M-Lab sends no `Access-Control-Expose-Headers`). Null when the response carries no readable token
 
-Added because these machines frequently have a clock that is wrong by hours or days. It sits next to the existing `timestamp` rather than replacing it. Filling it needs another source of server time.
+Added because these machines frequently have a clock that is wrong by hours or days. It sits next to the existing `timestamp` rather than replacing it. The reading is taken a few seconds before the test starts, at 1-second resolution: enough to spot a clock that is off by minutes or more, not for sub-second correlation.
 
 # newly populated: device identity
 
@@ -88,7 +88,7 @@ Considered and rejected:
 
 # status
 
-*   `device_network_information`, `wifi_unavailable_reason` and `ssid_source` are **implemented in the 2.0.4 client**; `server_timestamp` is sent but always null (see timing above). Their backend columns are still in open pull requests, not yet on staging
+*   `device_network_information`, `wifi_unavailable_reason` and `ssid_source` are **implemented in the 2.0.4 client**; so is `server_timestamp` (see timing above). Their backend columns are still in open pull requests, not yet on staging
 *   The client fills them regardless — the API ignores fields it does not know, so client and backend can ship in either order
 
 # gaps
