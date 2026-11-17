@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { TranslateModule } from '@ngx-translate/core';
 import { Subject, of, throwError } from 'rxjs';
@@ -12,6 +12,7 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { NetworkService } from '../services/network.service';
 import { PosthogService } from '../services/posthog.service';
+import { LocationService } from '../services/location.service';
 
 describe('ConfirmschoolPage', () => {
   let component: ConfirmschoolPage;
@@ -247,6 +248,41 @@ describe('ConfirmschoolPage', () => {
     component.detectedCountry = 'PT';
     await component.confirmSchool();
     expect(schoolService.registerFlaggedSchool).toHaveBeenCalledTimes(1);
+  });
+
+  it('saves the registration location with its access points and no network yet', async () => {
+    const location = TestBed.inject(LocationService);
+    const httpMock = TestBed.inject(HttpTestingController);
+    // A network saved with an earlier location must not stay paired with the
+    // location resolved here.
+    location.saveNetworkIdentity({ ssid: 'Old-School', asn: 'AS1', isp: null });
+    location.saveWifiAccessPoints(['00:00:00:00:00:01']);
+    const originalElectronAPI = (window as any).electronAPI;
+    (window as any).electronAPI = {
+      getWifiList: () =>
+        Promise.resolve([
+          { ssid: 'a', signal: -40, macAddress: 'AA:BB:CC:DD:EE:02' },
+          { ssid: 'b', signal: -50, macAddress: 'AA:BB:CC:DD:EE:01' },
+        ]),
+    };
+
+    try {
+      await component.ngOnInit();
+      httpMock
+        .expectOne((r) => r.url.endsWith('geolocation/geolocate'))
+        .flush({ latitude: 1, longitude: 2 });
+
+      expect(location.getSavedGeolocation()).toEqual(
+        jasmine.objectContaining({ latitude: 1, longitude: 2 })
+      );
+      expect(location.getSavedWifiAccessPoints()).toEqual([
+        'aa:bb:cc:dd:ee:01',
+        'aa:bb:cc:dd:ee:02',
+      ]);
+      expect(location.getSavedNetworkIdentity()).toBeNull();
+    } finally {
+      (window as any).electronAPI = originalElectronAPI;
+    }
   });
 
   afterEach(() => {

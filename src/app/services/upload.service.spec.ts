@@ -1,8 +1,8 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { of } from 'rxjs';
-import { GEOLOCATE_TIMEOUT_MS } from './location.service';
+import { of, throwError } from 'rxjs';
+import { GEOLOCATE_RETRY_DELAY_MS, GEOLOCATE_TIMEOUT_MS } from './location.service';
 import { UploadService } from './upload.service';
 
 describe('UploadService', () => {
@@ -147,6 +147,103 @@ describe('UploadService', () => {
       expect(upload.request.body['geolocation']).toBeNull();
       upload.flush({});
       expect(uploaded).toBeTrue();
+    }));
+  });
+
+  describe('geolocation saved on another network', () => {
+    let originalElectronAPI: any;
+    const SAVED_GEO = { latitude: 14.07, longitude: -87.19, timestamp: 1_700_000_000_000 };
+    const SCHOOL = { ssid: 'School-WiFi', asn: 'AS1001', isp: 'AS1001 Tigo' };
+
+    const keys = ['geolocation', 'wifiAccessPoints', 'geolocationNetwork'];
+
+    beforeEach(() => {
+      originalElectronAPI = (window as any).electronAPI;
+      keys.forEach((k) => localStorage.removeItem(k));
+      const location = service['locationService'];
+      location.saveGeolocation(SAVED_GEO as any);
+      location.saveWifiAccessPoints(['aa:bb:cc:dd:ee:01']);
+      location.saveNetworkIdentity(SCHOOL);
+
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['posthog'], 'capture').and.stub();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return {
+          ClientInfo: { Country: 'HN', IP: '10.0.0.1', ASN: r.asn, ISP: `${r.asn} Name` },
+          Notes: 'manual',
+        } as any;
+      });
+    });
+
+    afterEach(() => {
+      (window as any).electronAPI = originalElectronAPI;
+      keys.forEach((k) => localStorage.removeItem(k));
+      httpMock.verify();
+    });
+
+    const record = (ssid: string, asn: string) => ({
+      Notes: 'manual',
+      timestamp: Date.now(),
+      asn,
+      wifiConnections: [{ iface: 'Wi-Fi', ssid }],
+    });
+
+    it('passes the connected Wi-Fi name and the provider to the location lookup', () => {
+      const fetch = spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+
+      service.uploadMeasurement(record('Home-WiFi', 'AS2002')).subscribe();
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
+
+      expect(fetch).toHaveBeenCalledOnceWith({
+        ssid: 'Home-WiFi',
+        asn: 'AS2002',
+        isp: 'AS2002 Name',
+      });
+    });
+
+    it('sends no location from the catch path when the network changed', () => {
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(
+        throwError(() => new Error('boom'))
+      );
+
+      service.uploadMeasurement(record('Home-WiFi', 'AS1001')).subscribe();
+      const upload = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+      expect(upload.request.body['geolocation']).toBeNull();
+      upload.flush({});
+    });
+
+    it('still sends the saved location from the catch path on the same network', () => {
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(
+        throwError(() => new Error('boom'))
+      );
+
+      service.uploadMeasurement(record('School-WiFi', 'AS1001')).subscribe();
+      const upload = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+      expect(upload.request.body['geolocation']).toEqual(SAVED_GEO);
+      upload.flush({});
+    });
+
+    it('sends no location after a moved PC fails the lookup, end to end', fakeAsync(() => {
+      (window as any).electronAPI = {
+        getWifiList: () =>
+          Promise.resolve([{ ssid: 'x', signal: -40, macAddress: 'aa:bb:cc:dd:ee:99' }]),
+      };
+
+      service.uploadMeasurement(record('Home-WiFi', 'AS2002')).subscribe();
+      flushMicrotasks();
+      httpMock
+        .expectOne((r) => r.url.endsWith('geolocation/geolocate'))
+        .flush(null, { status: 422, statusText: 'Unprocessable Entity' });
+      tick(GEOLOCATE_RETRY_DELAY_MS);
+
+      const upload = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+      expect(upload.request.body['geolocation']).toBeNull();
+      upload.flush({});
+      expect(service['locationService'].getSavedGeolocation()).toEqual(SAVED_GEO as any);
     }));
   });
 });
