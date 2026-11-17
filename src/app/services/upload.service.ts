@@ -12,7 +12,7 @@ import { SettingsService } from '../services/settings.service';
 import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
-import { LocationService, NetworkIdentity } from './location.service';
+import { LocationService, normaliseBssid } from './location.service';
 import { PosthogService } from './posthog.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
 
@@ -214,11 +214,11 @@ export class UploadService {
       uploadURL = uploadURL + '?key=' + apiKey;
     }
 
-    // The network this test ran on, so a location saved on another network
-    // is not sent as this one.
-    const networkIdentity = this.getNetworkIdentity(record, measurement);
+    // The access point this test ran on, so a location saved at another
+    // place is not sent as this one.
+    const connectedBssid = this.getConnectedBssid(record);
 
-    return this.locationService.fetchAndSaveGeolocation(networkIdentity).pipe(
+    return this.locationService.fetchAndSaveGeolocation(connectedBssid).pipe(
       /* Geolocation is best effort: whatever happens, the measurement is still
          posted. fetchAndSaveGeolocation already falls back to the cached value
          and persists a fresh one, so nothing is written back here — the old
@@ -227,7 +227,7 @@ export class UploadService {
       catchError(err => {
         console.error('Geolocation fetch failed, continuing with POST', err);
         return of(
-          this.locationService.getSavedGeolocationForNetwork(networkIdentity)
+          this.locationService.getSavedGeolocationForNetwork(connectedBssid)
         );
       }),
       map(geo => {
@@ -274,32 +274,25 @@ export class UploadService {
   }
 
   /**
-   * The network the test ran on: the Wi-Fi name from the connection read at
-   * the start of the test, and the provider from the IP lookup made for the
-   * same test. The Wi-Fi name the main process recovers when Windows hides
-   * the connection is left out: it is a profile name, not always the Wi-Fi
-   * name, so comparing it with a saved Wi-Fi name could flag a move that did
-   * not happen.
+   * The BSSID of the access point the PC was connected to, from the
+   * connection read at the start of the test: the first entry with a usable
+   * address. Null on a cable, or when Windows hides the Wi-Fi details (the
+   * name the main process recovers then has no BSSID).
    */
-  private getNetworkIdentity(
-    record: any,
-    measurement: any
-  ): NetworkIdentity | null {
+  private getConnectedBssid(record: any): string | null {
     try {
       const connections = Array.isArray(record?.wifiConnections)
         ? record.wifiConnections
         : [];
-      const connected = connections.find(
-        (connection) =>
-          typeof connection?.ssid === 'string' && connection.ssid.trim() !== ''
-      );
-      return {
-        ssid: connected?.ssid ?? null,
-        asn: measurement?.ClientInfo?.ASN ?? null,
-        isp: measurement?.ClientInfo?.ISP ?? null,
-      };
+      for (const connection of connections) {
+        const bssid = normaliseBssid(connection?.bssid);
+        if (bssid) {
+          return bssid;
+        }
+      }
+      return null;
     } catch (err) {
-      console.warn('[Upload] Could not read the network identity:', err);
+      console.warn('[Upload] Could not read the connected BSSID:', err);
       return null;
     }
   }

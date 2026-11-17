@@ -250,12 +250,12 @@ describe('ConfirmschoolPage', () => {
     expect(schoolService.registerFlaggedSchool).toHaveBeenCalledTimes(1);
   });
 
-  it('saves the registration location with its access points and no network yet', async () => {
+  it('saves the registration location with its access points and no BSSID yet', async () => {
     const location = TestBed.inject(LocationService);
     const httpMock = TestBed.inject(HttpTestingController);
-    // A network saved with an earlier location must not stay paired with the
+    // A BSSID saved with an earlier location must not stay paired with the
     // location resolved here.
-    location.saveNetworkIdentity({ ssid: 'Old-School', asn: 'AS1', isp: null });
+    location.saveConnectedBssid('11:22:33:44:55:66');
     location.saveWifiAccessPoints(['00:00:00:00:00:01']);
     const originalElectronAPI = (window as any).electronAPI;
     (window as any).electronAPI = {
@@ -279,7 +279,7 @@ describe('ConfirmschoolPage', () => {
         'aa:bb:cc:dd:ee:01',
         'aa:bb:cc:dd:ee:02',
       ]);
-      expect(location.getSavedNetworkIdentity()).toBeNull();
+      expect(location.getSavedConnectedBssid()).toBeNull();
     } finally {
       (window as any).electronAPI = originalElectronAPI;
     }

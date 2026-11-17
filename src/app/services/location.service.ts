@@ -53,63 +53,45 @@ export function isRetryableGeolocateError(error: unknown): boolean {
 }
 
 /**
- * The network a location was worked out on: the Wi-Fi name the PC is
- * connected to and the internet provider (ASN, with the provider name for
- * when no ASN is known). Any part can be unknown.
+ * A BSSID (an access point's hardware address) written one way: lowercase,
+ * colon separated ("aa:bb:cc:dd:ee:ff"), so the address of the access point
+ * the PC is connected to and the addresses in a Wi-Fi scan compare equal
+ * whatever case or separator each source used. Anything that is not 12 hex
+ * digits, or is all zeros or all f, is not a usable address: null.
  */
-export interface NetworkIdentity {
-  ssid: string | null;
-  asn: string | null;
-  isp: string | null;
-}
-
-/**
- * Trims every part and turns empty values into "unknown". ASNs are written as
- * "AS1234" whatever form they came in, so two sources for the same provider
- * still match. Returns null when nothing is known at all.
- */
-export function normaliseNetworkIdentity(raw: any): NetworkIdentity | null {
-  try {
-    const clean = (value: unknown): string | null =>
-      typeof value === 'string' || typeof value === 'number'
-        ? String(value).trim() || null
-        : null;
-    const ssid = clean(raw?.ssid);
-    const isp = clean(raw?.isp);
-    let asn = clean(raw?.asn);
-    const asnNumber = asn?.match(/^(?:AS)?\s*(\d+)$/i);
-    if (asnNumber) {
-      asn = `AS${asnNumber[1]}`;
-    }
-    return ssid || asn || isp ? { ssid, asn, isp } : null;
-  } catch {
+export function normaliseBssid(raw: unknown): string | null {
+  if (typeof raw !== 'string') {
     return null;
   }
+  const hex = raw.trim().toLowerCase().replace(/[:\-.]/g, '');
+  if (!/^[0-9a-f]{12}$/.test(hex) || /^0+$/.test(hex) || /^f+$/.test(hex)) {
+    return null;
+  }
+  return hex.match(/.{2}/g)!.join(':');
 }
 
 /**
- * Whether the PC is now on a different network from the one the saved
- * location was worked out on. Only parts known on both sides are compared,
- * so when nothing can be compared the answer is "not changed", which keeps
- * the old behaviour.
+ * Whether the PC is now connected to an access point of a different place
+ * from the one the saved location was worked out at. When either BSSID is
+ * unknown the answer is "not changed", which keeps the old behaviour.
+ *
+ * A different BSSID alone is not a move: schools often run several access
+ * points under one name, and dual-band routers use one BSSID per band. An
+ * access point that was in the scan the saved location was worked out from
+ * is, by definition, at the same place, so roaming to it is not a change.
  */
 export function hasNetworkChanged(
-  saved: NetworkIdentity | null,
-  current: NetworkIdentity | null
+  savedBssid: string | null,
+  currentBssid: string | null,
+  savedAccessPoints: string[]
 ): boolean {
-  if (!saved || !current) {
+  const saved = normaliseBssid(savedBssid);
+  const current = normaliseBssid(currentBssid);
+  if (!saved || !current || saved === current) {
     return false;
   }
-  if (saved.ssid && current.ssid && saved.ssid !== current.ssid) {
-    return true;
-  }
-  if (saved.asn && current.asn) {
-    return saved.asn !== current.asn;
-  }
-  if (saved.isp && current.isp) {
-    return saved.isp.toLowerCase() !== current.isp.toLowerCase();
-  }
-  return false;
+  const accessPoints = Array.isArray(savedAccessPoints) ? savedAccessPoints : [];
+  return !accessPoints.some((mac) => normaliseBssid(mac) === current);
 }
 
 @Injectable({
@@ -211,63 +193,68 @@ export class LocationService {
   }
 
   /**
-   * Save the network the saved location was worked out on. Null removes it,
-   * which puts the saved location back in the "network not known yet" state.
+   * Save the BSSID of the access point the PC was connected to when the saved
+   * location was worked out. Null removes it, which puts the saved location
+   * back in the "network not known yet" state.
    */
-  saveNetworkIdentity(identity: NetworkIdentity | null): void {
+  saveConnectedBssid(bssid: string | null): void {
     try {
-      if (identity) {
-        localStorage.setItem(this.STORAGE_KEY_NETWORK, JSON.stringify(identity));
+      const normalised = normaliseBssid(bssid);
+      if (normalised) {
+        localStorage.setItem(this.STORAGE_KEY_NETWORK, normalised);
       } else {
         localStorage.removeItem(this.STORAGE_KEY_NETWORK);
       }
     } catch (err) {
-      console.warn('[Location] saveNetworkIdentity failed:', err);
+      console.warn('[Location] saveConnectedBssid failed:', err);
     }
   }
 
-  /** Get the network the saved location was worked out on, if known. */
-  getSavedNetworkIdentity(): NetworkIdentity | null {
+  /**
+   * The BSSID saved with the location, if known. A value that is not a usable
+   * address (including one saved in an older shape) counts as not known.
+   */
+  getSavedConnectedBssid(): string | null {
     try {
-      const data = localStorage.getItem(this.STORAGE_KEY_NETWORK);
-      return data ? normaliseNetworkIdentity(JSON.parse(data)) : null;
+      return normaliseBssid(localStorage.getItem(this.STORAGE_KEY_NETWORK));
     } catch (err) {
-      console.warn('[Location] getSavedNetworkIdentity failed:', err);
+      console.warn('[Location] getSavedConnectedBssid failed:', err);
       return null;
     }
   }
 
   /**
    * Save a freshly resolved location together with what it was worked out
-   * from: the access points it was resolved with and the network the PC was
-   * on. Pass a null identity when the network is not known; the next upload
+   * from: the access points it was resolved with and the BSSID the PC was
+   * connected to. Pass null when that BSSID is not known; the next upload
    * then adopts it once it sees the same access points.
    */
   saveResolvedGeolocation(
     geo: { latitude: number; longitude: number } | null,
     wifiList: { macAddress: string; signalStrength: number }[],
-    identity: NetworkIdentity | null
+    connectedBssid: string | null
   ): void {
     this.saveGeolocation(geo);
     this.saveWifiAccessPoints(this.extractSortedMacs(wifiList));
-    this.saveNetworkIdentity(normaliseNetworkIdentity(identity));
+    this.saveConnectedBssid(connectedBssid);
   }
 
   /**
-   * The saved location, unless the PC is now on a different network from the
-   * one it was worked out on. A location from another network is the old
-   * place, not this one, so nothing is better than sending it.
+   * The saved location, unless the PC is now connected to an access point of
+   * another place. A location from another place is the old place, not this
+   * one, so nothing is better than sending it.
    */
   getSavedGeolocationForNetwork(
-    identity: NetworkIdentity | null
+    connectedBssid: string | null
   ): { latitude: number; longitude: number } | null {
     try {
       const savedGeo = this.getSavedGeolocation();
       if (
         savedGeo &&
         hasNetworkChanged(
-          this.getSavedNetworkIdentity(),
-          normaliseNetworkIdentity(identity)
+          this.getSavedConnectedBssid(),
+          connectedBssid,
+          this.getSavedWifiAccessPoints()
         )
       ) {
         return null;
@@ -281,23 +268,24 @@ export class LocationService {
 
   /**
    * Fetch geolocation using a WiFi-based cache:
-   *  - If the PC is on a different network from the one the cached location
-   *    was worked out on → the cache is never used; only a fresh backend
-   *    answer is sent, otherwise null. The cache is kept for when the PC goes
-   *    back to that network.
+   *  - If the PC is connected to an access point of another place than the
+   *    one the cached location was worked out at → the cache is never used;
+   *    only a fresh backend answer is sent, otherwise null. The cache is kept
+   *    for when the PC goes back.
    *  - If no WiFi APs are available → return cached geolocation (or null). No backend call.
    *  - If current WiFi MACs match the cached list AND a cached geolocation exists → return cached. No backend call.
-   *  - Otherwise → call backend, cache the result + the new MAC list + the network.
+   *  - Otherwise → call backend, cache the result + the new MAC list + the connected BSSID.
    *
    * Never throws. On any failure it emits the cached value when it is still
    * valid for this network (or null).
    *
-   * @param identity the network the PC is on now (Wi-Fi name and provider)
+   * @param connectedBssid BSSID of the access point the PC is connected to
+   *   now; null when not known (cable, or Windows hides the Wi-Fi details)
    */
   fetchAndSaveGeolocation(
-    identity: NetworkIdentity | null = null
+    connectedBssid: string | null = null
   ): Observable<{ latitude: number; longitude: number } | null> {
-    const current = normaliseNetworkIdentity(identity);
+    const current = normaliseBssid(connectedBssid);
     const wifiPromise: Promise<{ macAddress: string; signalStrength: number }[]> =
       this.getWifiAccessPoints().catch((err) => {
         console.warn('[Location] getWifiAccessPoints failed:', err);
@@ -308,14 +296,15 @@ export class LocationService {
       switchMap((wifiList) => {
         const currentMacs = this.extractSortedMacs(wifiList);
         const savedGeo = this.getSavedGeolocation();
-        const savedIdentity = this.getSavedNetworkIdentity();
+        const savedBssid = this.getSavedConnectedBssid();
+        const savedMacs = this.getSavedWifiAccessPoints();
 
         // A PC that moved (school to home, or to another school) would
         // otherwise send the old place's location whenever the lookup fails,
         // which is common right after boot. On another network the cache is
         // never sent; it stays saved for when the PC comes back.
         const networkChanged =
-          !!savedGeo && hasNetworkChanged(savedIdentity, current);
+          !!savedGeo && hasNetworkChanged(savedBssid, current, savedMacs);
         const fallbackGeo = networkChanged ? null : savedGeo;
         if (networkChanged) {
           console.log(
@@ -331,19 +320,17 @@ export class LocationService {
           return of(fallbackGeo);
         }
 
-        const savedMacs = this.getSavedWifiAccessPoints();
-
         // WiFi environment unchanged and we already have a geolocation → reuse
         if (
           !networkChanged &&
           savedGeo &&
           this.areWifiListsEqual(currentMacs, savedMacs)
         ) {
-          // A location saved before the network was recorded (2.0.3 and
-          // earlier, or at registration) gets the current network only here,
+          // A location saved before the BSSID was recorded (2.0.3 and
+          // earlier, or at registration) gets the current BSSID only here,
           // where the same access points show the PC has not moved.
-          if (!savedIdentity && current) {
-            this.saveNetworkIdentity(current);
+          if (!savedBssid && current) {
+            this.saveConnectedBssid(current);
           }
           console.log(
             '[Location] WiFi unchanged; reusing cached geolocation.'
