@@ -27,7 +27,7 @@
  * Add-Type unavailable or the API refusing simply leaves the fields as they were.
  */
 
-import { execFile } from 'child_process';
+import { execFile, ExecFileException } from 'child_process';
 
 /** One connected interface as the native WLAN API reports it. */
 export interface NativeWlanConnection {
@@ -153,6 +153,8 @@ public static class GigaWlanReader {
 
 const WLAN_READER_PS = [
   "$ErrorActionPreference = 'Stop'",
+  // Keeps the "Preparing modules for first use" progress record out of stderr.
+  "$ProgressPreference = 'SilentlyContinue'",
   `Add-Type -TypeDefinition @'\n${WLAN_READER_CS}\n'@`,
   // @() keeps a single interface an array; -InputObject stops PowerShell from
   // unrolling it, so the output is always a JSON array.
@@ -208,6 +210,9 @@ const isMissing = (value: unknown): boolean =>
   value === '' ||
   (typeof value === 'number' && !Number.isFinite(value));
 
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
 /**
  * True when any connection lost a field the native API can fill. `channel` 0
  * counts as lost: that is what systeminformation stores when it cannot find
@@ -216,13 +221,14 @@ const isMissing = (value: unknown): boolean =>
 export function needsNativeFill(connections: WifiConnection[]): boolean {
   return connections.some(
     (c) =>
-      isMissing(c.quality) ||
-      isMissing(c.signalLevel) ||
-      isMissing(c.channel) ||
-      c.channel === 0 ||
-      isMissing(c.frequency) ||
-      isMissing(c.txRate) ||
-      isMissing(c.type)
+      isObject(c) &&
+      (isMissing(c.quality) ||
+        isMissing(c.signalLevel) ||
+        isMissing(c.channel) ||
+        c.channel === 0 ||
+        isMissing(c.frequency) ||
+        isMissing(c.txRate) ||
+        isMissing(c.type))
   );
 }
 
@@ -256,9 +262,13 @@ export function fillFromNative(
   connections: WifiConnection[],
   native: NativeWlanConnection[]
 ): WifiConnection[] {
-  if (!Array.isArray(native) || native.length === 0) return connections;
+  if (!Array.isArray(native)) return connections;
+  // Only objects can be matched; a stray null or scalar would throw on n.Id.
+  native = native.filter(isObject);
+  if (native.length === 0) return connections;
 
   for (const connection of connections) {
+    if (!isObject(connection)) continue;
     const n = matchNative(connection, native, connections.length === 1);
     if (!n) continue;
     const filled: string[] = [];
@@ -314,6 +324,44 @@ export function fillFromNative(
   return connections;
 }
 
+const MAX_FAILURE_DETAIL = 500;
+
+/**
+ * PowerShell started with -EncodedCommand writes its error stream to a
+ * redirected stderr as CLIXML. Returns the plain text of the error records, or
+ * the input unchanged when it is not CLIXML.
+ */
+export function stderrText(stderr: string): string {
+  const text = String(stderr ?? '');
+  if (!text.trimStart().startsWith('#< CLIXML')) return text;
+  const records: string[] = [];
+  const pattern = /<S S="Error">([\s\S]*?)<\/S>/g;
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(text)) !== null) records.push(match[1]);
+  return records
+    .join('')
+    .replace(/_x([0-9A-Fa-f]{4})_/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+/**
+ * A short reason for a failed native read. Never includes `error.message` for a
+ * non-zero exit: Node puts the whole command line there, which here is ~10 KB
+ * of base64 -EncodedCommand. The compiler or PowerShell error is on stderr.
+ */
+function describeFailure(error: ExecFileException, stderr: string): string {
+  if (error.killed) return `timed out after ${NATIVE_TIMEOUT_MS} ms`;
+  // Spawn failures (ENOENT, EACCES…) carry a string code and a short message.
+  if (typeof error.code === 'string') return error.message;
+  const detail = stderrText(stderr).replace(/\s+/g, ' ').trim();
+  if (detail) return detail.slice(0, MAX_FAILURE_DETAIL);
+  return `powershell.exe exited with code ${error.code}`;
+}
+
 /**
  * Reads the connected interfaces from wlanapi.dll through PowerShell.
  * Resolves to an empty list on any failure.
@@ -324,26 +372,33 @@ export function readNativeWlan(): Promise<NativeWlanConnection[]> {
   // -EncodedCommand (UTF-16LE base64) sidesteps quoting the C# source.
   const encoded = Buffer.from(WLAN_READER_PS, 'utf16le').toString('base64');
   return new Promise((resolve) => {
-    execFile(
-      'powershell.exe',
-      ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
-      { timeout: NATIVE_TIMEOUT_MS, windowsHide: true, maxBuffer: 1024 * 1024 },
-      (error, stdout) => {
-        if (error) {
-          console.warn('[wifi-native] WLAN API read unavailable:', error.message);
-          resolve([]);
-          return;
+    try {
+      execFile(
+        'powershell.exe',
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+        { timeout: NATIVE_TIMEOUT_MS, windowsHide: true, maxBuffer: 1024 * 1024 },
+        (error, stdout, stderr) => {
+          try {
+            if (error) {
+              console.warn('[wifi-native] WLAN API read unavailable:', describeFailure(error, stderr));
+              resolve([]);
+              return;
+            }
+            const text = String(stdout).trim();
+            const parsed: unknown = text ? JSON.parse(text) : [];
+            const list = Array.isArray(parsed) ? parsed : [parsed];
+            resolve(list.filter(isObject) as NativeWlanConnection[]);
+          } catch (parseError) {
+            console.warn('[wifi-native] WLAN API output unreadable:', parseError?.message);
+            resolve([]);
+          }
         }
-        try {
-          const text = String(stdout).trim();
-          const parsed = text ? JSON.parse(text) : [];
-          resolve(Array.isArray(parsed) ? parsed : [parsed]);
-        } catch (parseError) {
-          console.warn('[wifi-native] WLAN API output unreadable:', parseError?.message);
-          resolve([]);
-        }
-      }
-    );
+      );
+    } catch (spawnError) {
+      // execFile can throw synchronously (e.g. EPERM/EMFILE on spawn).
+      console.warn('[wifi-native] WLAN API read could not start:', spawnError?.message);
+      resolve([]);
+    }
   });
 }
 
@@ -351,14 +406,21 @@ export function readNativeWlan(): Promise<NativeWlanConnection[]> {
  * Completes `si.wifiConnections()` output with the native reading when a field
  * is missing. Returns the connections unchanged on a healthy (English) read or
  * when the native read fails.
+ *
+ * Never rejects: the caller would otherwise drop the whole Wi-Fi reading,
+ * including the SSID and BSSID systeminformation did parse.
  */
 export async function completeWifiConnections<T extends object>(
   connections: T[]
 ): Promise<T[]> {
-  if (!Array.isArray(connections) || connections.length === 0) return connections;
-  const entries = connections as unknown as WifiConnection[];
-  if (!needsNativeFill(entries)) return connections;
+  try {
+    if (!Array.isArray(connections) || connections.length === 0) return connections;
+    const entries = connections as unknown as WifiConnection[];
+    if (!needsNativeFill(entries)) return connections;
 
-  fillFromNative(entries, await readNativeWlan());
+    fillFromNative(entries, await readNativeWlan());
+  } catch (error) {
+    console.warn('[wifi-native] fill skipped:', error?.message);
+  }
   return connections;
 }
