@@ -21,7 +21,7 @@
         <ion-item
           lines="none"
           class="searchCountry"
-          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && facilitySupported !== false) ? 'warning_color' : facilitySupported === false ? 'error_color' : ''"
+          [ngClass]="(selectedCountry !== '' && selectedCountry !== detectedCountry && facilitySupported !== false) ? 'warning_color' : (facilitySupported === false || countryCheckFailed) ? 'error_color' : ''"
         >
           <ion-label
             class="label"
@@ -78,6 +78,23 @@
             [translate]="'searchCountry.facility-not-enabled'"
             [translateParams]="{ facility: (facilityLabelKey | translate), country: searchTerm, appName }"
           ></div>
+        </span>
+        <span
+          class="error_message"
+          *ngIf="countryCheckFailed && !isCheckingEligibility"
+        >
+          <ion-img class="error_icon" src="assets/images/error_country.svg"></ion-img>
+          <div class="search-label-error">
+            <span
+              [translate]="'registrationError.countryCheckFailed'"
+              [translateParams]="{ appName }"
+            ></span>
+            <a
+              class="retry_link"
+              (click)="retryCountryCheck()"
+              [translate]="'tryAgain'"
+            ></a>
+          </div>
         </span>
         <span
           class="error_message"

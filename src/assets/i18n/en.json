@@ -59,6 +59,7 @@
   "home": {
     "andText": "and by M-Lab under the",
     "checkboxText": "By registering and using GigaMeter, I agree to the collection, processing and publication of my measurement and other supporting data by Giga under the",
+    "checkingRegistration": "Checking if this computer is already registered...",
     "learn-more": "LEARN MORE ABOUT {{appName}}",
     "learnMore": "Learn more about Giga Meter",
     "licenseLink": "Open Database License (ODBL)",
@@ -101,6 +102,34 @@
     "tip3": "Connected only to the internet at your {{facility}}",
     "title1": "You're about to register your {{facility}}",
     "title2": "To ensure a good registration process make sure the computers are:"
+  },
+  "registrationError": {
+    "countryCheckFailed": "We couldn't check if {{appName}} is available in this country. Check your internet connection.",
+    "network": {
+      "message": "We couldn't reach {{appName}}. Check that this computer is connected to the internet and try again.",
+      "title": "No internet connection"
+    },
+    "notRegister": {
+      "message": "This computer's registration was removed from {{appName}}. Please register your school again.",
+      "title": "Your school is no longer registered"
+    },
+    "registerAgain": "Register again",
+    "registrationFailed": {
+      "message": "Something went wrong while registering your school. Please try again.",
+      "title": "We couldn't register this computer"
+    },
+    "server": {
+      "message": "{{appName}} is having trouble right now. Please try again in a few minutes.",
+      "title": "Something went wrong on our side"
+    },
+    "timeout": {
+      "message": "{{appName}} took too long to respond. Check your internet connection and try again.",
+      "title": "The connection is too slow"
+    },
+    "unknown": {
+      "message": "Please try again.",
+      "title": "Something went wrong"
+    }
   },
   "resultSchool": "Results for {{facility}} ID",
   "saveEmail": {
@@ -209,13 +238,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Smarter scheduled tests and Uzbek and Tajik language support",
-      "date": "Friday, 18th September 2026",
+      "title": "More reliable speed tests and Tajik language support",
+      "date": "Monday, 16th November 2026",
       "items": [
-        "Smarter scheduled tests: If a test fails, the app continues retrying until it succeeds or the test window ends.",
-        "Uzbek language support: Added Uzbek to the language selector, along with revised translations.",
-        "Tajik language support: Added Tajik to the language selector.",
-        "Bug fixes: Various bug fixes and improvements."
+        "Get more reliable speed tests and Ping checks",
+        "Register your school more easily",
+        "Use the app in Tajik, with improved Uzbek translations"
       ]
     },
     "2.0.3": {

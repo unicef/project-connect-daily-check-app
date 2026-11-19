@@ -5,6 +5,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { TestDetailComponent } from './test-detail.component';
+import { SharedService } from 'src/app/services/shared-service.service';
 
 describe('TestDetailComponent', () => {
   let component: TestDetailComponent;
@@ -35,6 +36,19 @@ describe('TestDetailComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('reloads the table when the history changes while it is open', () => {
+    const loadData = spyOn(component, 'loadData');
+    TestBed.inject(SharedService).broadcast('history:measurement:change');
+    expect(loadData).toHaveBeenCalled();
+  });
+
+  it('stops listening once destroyed', () => {
+    const loadData = spyOn(component, 'loadData');
+    fixture.destroy();
+    TestBed.inject(SharedService).broadcast('history:measurement:change');
+    expect(loadData).not.toHaveBeenCalled();
   });
 
   afterEach(() => {

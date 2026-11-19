@@ -80,7 +80,7 @@ describe('ConfirmschoolPage', () => {
         {
           provide: PosthogService,
           useValue: jasmine.createSpyObj('PosthogService', [
-            'identify',
+            'identifyDevice',
             'capture',
             'setSchool',
           ]),
@@ -203,17 +203,14 @@ describe('ConfirmschoolPage', () => {
     await component.confirmSchool();
 
     expect(loading.dismiss).toHaveBeenCalled();
-    expect(router.navigate).toHaveBeenCalledWith([
-      'schoolnotfound',
-      'ext-1',
-      'ES',
-      'ES',
-      'Spain',
-    ]);
+    expect(router.navigate).toHaveBeenCalledWith(
+      ['schoolnotfound', 'ext-1', 'ES', 'ES', 'Spain'],
+      { queryParams: { reason: 'registrationFailed' } }
+    );
     expect(component.isRegistering).toBeFalse();
   });
 
-  it('dismisses the loader and re-arms the button when a pre-registration lookup fails', async () => {
+  it('registers with null when an optional pre-registration lookup fails', async () => {
     (component.getWifiConnections as jasmine.Spy).and.rejectWith(
       new Error('ipc down')
     );
@@ -221,9 +218,72 @@ describe('ConfirmschoolPage', () => {
 
     await component.confirmSchool();
 
-    expect(registrationService.register).not.toHaveBeenCalled();
-    expect(loading.dismiss).toHaveBeenCalled();
+    expect(registrationService.register).toHaveBeenCalledWith(
+      jasmine.objectContaining({ wifi_connections: null })
+    );
+    expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
     expect(component.isRegistering).toBeFalse();
+  });
+
+  it('sends the hardware ID but not the serials the v2 endpoint does not take', async () => {
+    localStorage.setItem(
+      'system_hardware_id',
+      JSON.stringify({
+        hardwareId: 'UUID-1',
+        baseboard_serial: 'BOARD-1',
+        disk_serial: 'DISK-1',
+        machine_guid: 'GUID-1',
+      })
+    );
+    registrationService.register.and.returnValue(of(registered as any));
+
+    await component.confirmSchool();
+
+    const payload = registrationService.register.calls.mostRecent().args[0];
+    expect(payload['device_hardware_id']).toBe('UUID-1');
+    expect(payload['baseboard_serial']).toBeUndefined();
+    expect(payload['disk_serial']).toBeUndefined();
+    expect(payload['machine_guid']).toBeUndefined();
+    localStorage.removeItem('system_hardware_id');
+  });
+
+  describe('with a mocked clock', () => {
+    beforeEach(() => jasmine.clock().install());
+    afterEach(() => jasmine.clock().uninstall());
+
+    it('does not let a hanging lookup hold the loader up', async () => {
+      // Never settles, like an IP service that accepts the connection and stalls.
+      (component.getIPAddress as jasmine.Spy).and.returnValue(
+        new Promise(() => undefined)
+      );
+      registrationService.register.and.returnValue(of(registered as any));
+
+      const done = component.confirmSchool();
+      await flushMicrotasks();
+      expect(registrationService.register).not.toHaveBeenCalled();
+
+      jasmine.clock().tick(10000);
+      await done;
+
+      expect(registrationService.register).toHaveBeenCalledWith(
+        jasmine.objectContaining({ ip_address: null })
+      );
+      expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
+      expect(loading.dismiss).toHaveBeenCalled();
+    });
+
+    it('gives up on a registration request that never answers', async () => {
+      registrationService.register.and.returnValue(new Subject<any>());
+
+      const done = component.confirmSchool();
+      await flushMicrotasks();
+      jasmine.clock().tick(30000);
+      await done;
+
+      expect(router.navigate).not.toHaveBeenCalledWith(['/starttest']);
+      expect(loading.dismiss).toHaveBeenCalled();
+      expect(component.isRegistering).toBeFalse();
+    });
   });
 
   it('records a flagged school only when the selected country differs', async () => {

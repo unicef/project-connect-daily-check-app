@@ -26,7 +26,7 @@ import { mlabInformation, accessInformation } from '../models/models';
 import { FirstTestSuccessModalComponent } from '../components/first-test-success-modal/first-test-success-modal.component';
 import { ConfettiService } from '../services/confetti.service';
 import { IndexedDBService } from '../services/indexed-db.service';
-import { PingService } from '../services/ping.service';
+import { averageLatencyMs } from '../utils/ndt-results.utils';
 
 @Component({
   selector: 'app-starttest',
@@ -136,8 +136,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     private identityService: IdentityService,
     private countryService: CountryService,
     private confettiService: ConfettiService,
-    private indexedDBService: IndexedDBService,
-    private pingService: PingService
+    private indexedDBService: IndexedDBService
   ) {
     if (this.identityService.isRegistered()) {
       this.school = this.identityService.getFacilityInfo();
@@ -436,15 +435,9 @@ export class StarttestPage implements OnInit, OnDestroy {
             : undefined;
 
           // Calculate latency
-          const s2cMinRTT =
-            latestMeasurement.results['NDTResult.S2C'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-          const c2sMinRTT =
-            latestMeasurement.results['NDTResult.C2S'].LastServerMeasurement
-              ?.BBRInfo?.MinRTT;
-
-          if (s2cMinRTT && c2sMinRTT) {
-            this.latency = ((s2cMinRTT + c2sMinRTT) / 2 / 1000).toFixed(0);
+          const latencyMs = averageLatencyMs(latestMeasurement.results);
+          if (latencyMs !== null) {
+            this.latency = latencyMs.toFixed(0);
           }
 
           // Set the date from the stored timestamp
@@ -590,7 +583,9 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.currentRate = undefined; // Reset current rate
       this.isErrorClosed = false; // Reset error closed state
       this.uploadProgressStarted = false;
-      this.measurementClientService.runTest(notes);
+      // A failed test reaches this page as the 'error' status, which resets
+      // the screen; nothing retries a manual test, so the rejection is dropped.
+      this.measurementClientService.runTest(notes).catch(() => undefined);
     } catch (e) {
       console.log(e);
     }
@@ -712,24 +707,18 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.currentRate =
           data.passedResults[
             'NDTResult.S2C'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+          ]?.LastClientMeasurement?.MeanClientMbps?.toFixed(2);
         this.currentRateUpload =
           data.passedResults[
             'NDTResult.C2S'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+          ]?.LastClientMeasurement?.MeanClientMbps?.toFixed(2);
         this.currentRateDownload =
           data.passedResults[
             'NDTResult.S2C'
-          ].LastClientMeasurement.MeanClientMbps?.toFixed(2);
+          ]?.LastClientMeasurement?.MeanClientMbps?.toFixed(2);
         this.progressGaugeState.current = this.progressGaugeState.maximum;
-        this.latency = (
-          (data.passedResults['NDTResult.S2C'].LastServerMeasurement.BBRInfo
-            .MinRTT +
-            data.passedResults['NDTResult.C2S'].LastServerMeasurement.BBRInfo
-              .MinRTT) /
-          2 /
-          1000
-        ).toFixed(0);
+        // Undefined when no leg got a server measurement before the timeout.
+        this.latency = averageLatencyMs(data.passedResults)?.toFixed(0);
         let historicalData = this.historyService.get();
         if (
           historicalData !== null &&
@@ -857,26 +846,7 @@ export class StarttestPage implements OnInit, OnDestroy {
         );
       }
 
-      // Run ping test first, then start the NDT test
-      try {
-        console.log('Running ping test before first NDT test...');
-        const pingResult = await this.pingService.performCheck();
-
-        if (pingResult) {
-          console.log('Ping test completed successfully:', pingResult);
-          // Save the ping result
-          await this.indexedDBService.savePingResult(pingResult);
-          // Update the ping display
-          await this.loadLatestPingResult();
-        } else {
-          console.log('Ping test skipped (outside active hours or failed)');
-        }
-      } catch (error) {
-        console.error('Error during ping test:', error);
-        // Continue with NDT test even if ping fails
-      }
-
-      // Start the NDT test
+      // Start the NDT test (it pings first, like every test)
       this.startNDT('first');
     } else {
       console.log('Auto-trigger conditions not met:', {

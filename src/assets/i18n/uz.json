@@ -59,6 +59,7 @@
   "home": {
     "andText": "va M-Lab tomonidan",
     "checkboxText": "GigaMeter’dan ro‘yxatdan o‘tib foydalanish orqali men Giga tomonidan o‘lchov va boshqa yordamchi ma’lumotlarimni yig‘ish, qayta ishlash va e’lon qilishga rozilik bildiraman",
+    "checkingRegistration": "Bu kompyuter allaqachon ro‘yxatdan o‘tganmi, tekshirilmoqda...",
     "learn-more": "{{appName}} HAQIDA KO‘PROQ BILISH",
     "learnMore": "Giga Meter haqida ko‘proq ma’lumot",
     "licenseLink": "Ochiq ma’lumotlar bazasi litsenziyasi (ODBL)",
@@ -101,6 +102,34 @@
     "tip3": "Faqat {{facility}} internetiga ulangan bo‘lishi kerak",
     "title1": "{{facility}}ni ro‘yxatdan o‘tkazmoqchisiz",
     "title2": "Yaxshi ro‘yxatdan o‘tish jarayoni uchun kompyuterlar quyidagicha bo‘lishiga ishonch hosil qiling:"
+  },
+  "registrationError": {
+    "countryCheckFailed": "{{appName}} bu mamlakatda mavjudligini tekshirib bo‘lmadi. Internet aloqasini tekshiring.",
+    "network": {
+      "message": "{{appName}} bilan bog‘lanib bo‘lmadi. Kompyuter internetga ulanganini tekshiring va qayta urinib ko‘ring.",
+      "title": "Internet aloqasi yo‘q"
+    },
+    "notRegister": {
+      "message": "Bu kompyuterning ro‘yxati {{appName}}dan o‘chirildi. Maktabingizni qayta ro‘yxatdan o‘tkazing.",
+      "title": "Maktabingiz endi ro‘yxatda emas"
+    },
+    "registerAgain": "Qayta ro‘yxatdan o‘tish",
+    "registrationFailed": {
+      "message": "Maktabingizni ro‘yxatdan o‘tkazishda xatolik yuz berdi. Qayta urinib ko‘ring.",
+      "title": "Bu kompyuterni ro‘yxatdan o‘tkazib bo‘lmadi"
+    },
+    "server": {
+      "message": "{{appName}} hozir nosozlikka uchradi. Bir necha daqiqadan so‘ng qayta urinib ko‘ring.",
+      "title": "Biz tomonda xatolik yuz berdi"
+    },
+    "timeout": {
+      "message": "{{appName}} juda uzoq javob bermadi. Internet aloqasini tekshiring va qayta urinib ko‘ring.",
+      "title": "Aloqa juda sekin"
+    },
+    "unknown": {
+      "message": "Qayta urinib ko‘ring.",
+      "title": "Xatolik yuz berdi"
+    }
   },
   "resultSchool": "{{facility}} ID uchun natijalar",
   "saveEmail": {
@@ -209,13 +238,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Aqlliroq rejalashtirilgan testlar hamda o‘zbek va tojik tillarini qo‘llab-quvvatlash",
-      "date": "Juma, 2026-yil 18-sentabr",
+      "title": "Ishonchliroq tezlik testlari va tojik tilini qo‘llab-quvvatlash",
+      "date": "Dushanba, 2026-yil 16-noyabr",
       "items": [
-        "Aqlliroq rejalashtirilgan testlar: agar test muvaffaqiyatsiz tugasa, ilova test muvaffaqiyatli o‘tguncha yoki test vaqti tugaguncha qayta urinishda davom etadi.",
-        "O‘zbek tilini qo‘llab-quvvatlash: til tanlash menyusiga o‘zbek tili qo‘shildi, tarjimalar ham qayta ko‘rib chiqildi.",
-        "Tojik tilini qo‘llab-quvvatlash: til tanlash menyusiga tojik tili qo‘shildi.",
-        "Xatolarni tuzatish: turli xatolar tuzatildi va yaxshilanishlar kiritildi."
+        "Ishonchliroq tezlik testlari va Ping tekshiruvlaridan foydalaning",
+        "Maktabingizni osonroq ro‘yxatdan o‘tkazing",
+        "Ilovadan tojik tilida foydalaning, o‘zbekcha tarjimalar yaxshilandi"
       ]
     },
     "2.0.3": {

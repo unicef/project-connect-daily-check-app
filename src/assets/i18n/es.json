@@ -59,6 +59,7 @@
   "home": {
     "andText": "y por M-Lab bajo la",
     "checkboxText": "Al registrarme y utilizar GigaMeter, acepto la recopilación, el procesamiento y la publicación de mi medición y otros datos de apoyo por parte de Giga bajo la",
+    "checkingRegistration": "Comprobando si este equipo ya está registrado...",
     "learn-more": "APRENDE MÁS SOBRE {{appName}}",
     "learnMore": "Obtenga más información sobre Giga Meter",
     "licenseLink": "Licencia Abierta de Bases de Datos (ODbL)",
@@ -101,6 +102,34 @@
     "tip3": "Conectado únicamente a internet de su {{facility}}",
     "title1": "Estás a punto de registrar su {{facility}}",
     "title2": "Para garantizar un buen proceso de registro, asegúrese de que las computadoras estén:"
+  },
+  "registrationError": {
+    "countryCheckFailed": "No pudimos comprobar si {{appName}} está disponible en este país. Comprueba tu conexión a Internet.",
+    "network": {
+      "message": "No pudimos conectar con {{appName}}. Comprueba que este equipo esté conectado a Internet e inténtalo de nuevo.",
+      "title": "Sin conexión a Internet"
+    },
+    "notRegister": {
+      "message": "El registro de este equipo se eliminó de {{appName}}. Vuelve a registrar tu escuela.",
+      "title": "Tu escuela ya no está registrada"
+    },
+    "registerAgain": "Registrar de nuevo",
+    "registrationFailed": {
+      "message": "Algo salió mal al registrar tu escuela. Inténtalo de nuevo.",
+      "title": "No pudimos registrar este equipo"
+    },
+    "server": {
+      "message": "{{appName}} tiene problemas en este momento. Inténtalo de nuevo en unos minutos.",
+      "title": "Algo salió mal por nuestra parte"
+    },
+    "timeout": {
+      "message": "{{appName}} tardó demasiado en responder. Comprueba tu conexión a Internet e inténtalo de nuevo.",
+      "title": "La conexión es demasiado lenta"
+    },
+    "unknown": {
+      "message": "Inténtalo de nuevo.",
+      "title": "Algo salió mal"
+    }
   },
   "resultSchool": "Resultados para el identificador (ID) de {{facility}}",
   "saveEmail": {
@@ -209,13 +238,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Pruebas programadas más inteligentes y soporte para los idiomas uzbeko y tayiko",
-      "date": "Viernes, 18 de septiembre de 2026",
+      "title": "Pruebas de velocidad más fiables y soporte para el idioma tayiko",
+      "date": "Lunes, 16 de noviembre de 2026",
       "items": [
-        "Pruebas programadas más inteligentes: si una prueba falla, la aplicación sigue reintentándola hasta que se complete correctamente o termine la franja horaria de la prueba.",
-        "Soporte para el idioma uzbeko: se ha añadido el uzbeko al selector de idioma, junto con traducciones revisadas.",
-        "Soporte para el idioma tayiko: se ha añadido el tayiko al selector de idioma.",
-        "Correcciones de errores: diversas correcciones de errores y mejoras."
+        "Obtenga pruebas de velocidad y comprobaciones de Ping más fiables.",
+        "Registre su escuela más fácilmente.",
+        "Use la aplicación en tayiko, con traducciones al uzbeko mejoradas."
       ]
     },
     "2.0.3": {

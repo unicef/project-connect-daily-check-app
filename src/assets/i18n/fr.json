@@ -59,6 +59,7 @@
   "home": {
     "andText": "et par M-Lab sous la",
     "checkboxText": "En m'inscrivant et en utilisant GigaMeter, j'accepte la collecte, le traitement et la publication de mes mesures et autres données de support par Giga conformément à la",
+    "checkingRegistration": "Vérification si cet ordinateur est déjà enregistré...",
     "learn-more": "EN SAVOIR PLUS SUR {{appName}}",
     "learnMore": "En savoir plus sur Giga Meter",
     "licenseLink": "Licence de base de données ouverte (ODBL)",
@@ -101,6 +102,34 @@
     "tip3": "Connecté uniquement à l'internet de votre {{facility}}",
     "title1": "Vous êtes sur le point d’inscrire votre {{facility}}",
     "title2": "Pour garantir un bon processus d'inscription, assurez-vous que les directives suivantes sont respectées :"
+  },
+  "registrationError": {
+    "countryCheckFailed": "Impossible de vérifier si {{appName}} est disponible dans ce pays. Vérifiez votre connexion Internet.",
+    "network": {
+      "message": "Impossible de joindre {{appName}}. Vérifiez que cet ordinateur est connecté à Internet, puis réessayez.",
+      "title": "Pas de connexion Internet"
+    },
+    "notRegister": {
+      "message": "L'enregistrement de cet ordinateur a été supprimé de {{appName}}. Veuillez enregistrer à nouveau votre école.",
+      "title": "Votre école n'est plus enregistrée"
+    },
+    "registerAgain": "S'enregistrer à nouveau",
+    "registrationFailed": {
+      "message": "Un problème est survenu lors de l'enregistrement de votre école. Veuillez réessayer.",
+      "title": "Impossible d'enregistrer cet ordinateur"
+    },
+    "server": {
+      "message": "{{appName}} rencontre actuellement des difficultés. Veuillez réessayer dans quelques minutes.",
+      "title": "Un problème est survenu de notre côté"
+    },
+    "timeout": {
+      "message": "{{appName}} a mis trop de temps à répondre. Vérifiez votre connexion Internet, puis réessayez.",
+      "title": "La connexion est trop lente"
+    },
+    "unknown": {
+      "message": "Veuillez réessayer.",
+      "title": "Un problème est survenu"
+    }
   },
   "resultSchool": "Résultats pour l'identifiant de {{facility}}",
   "saveEmail": {
@@ -209,13 +238,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Des tests programmés plus intelligents et la prise en charge de l'ouzbek et du tadjik",
-      "date": "Vendredi, 18 septembre 2026",
+      "title": "Des tests de vitesse plus fiables et la prise en charge du tadjik",
+      "date": "Lundi, 16 novembre 2026",
       "items": [
-        "Tests programmés plus intelligents : si un test échoue, l'application continue de réessayer jusqu'à ce qu'il réussisse ou que la plage horaire du test se termine.",
-        "Prise en charge de l'ouzbek : l'ouzbek a été ajouté au sélecteur de langue, avec des traductions révisées.",
-        "Prise en charge du tadjik : le tadjik a été ajouté au sélecteur de langue.",
-        "Corrections de bugs : diverses corrections de bugs et améliorations."
+        "Profitez de tests de vitesse et de contrôles Ping plus fiables",
+        "Enregistrez votre école plus facilement",
+        "Utilisez l'application en tadjik, avec des traductions en ouzbek améliorées"
       ]
     },
     "2.0.3": {

@@ -59,6 +59,7 @@
   "home": {
     "andText": "e pelo M-Lab sob a",
     "checkboxText": "Ao me registrar e utilizar o GigaMeter, concordo com a coleta, o processamento e a publicação da minha medição e de outros dados de apoio por parte da Giga sob a",
+    "checkingRegistration": "Verificando se este computador já está registrado...",
     "learn-more": "SAIBA MAIS SOBRE O {{appName}}",
     "learnMore": "Saiba mais sobre o Giga Meter",
     "licenseLink": "Licença de Banco de Dados Aberta (ODbL)",
@@ -101,6 +102,34 @@
     "tip3": "Conectado apenas à internet da sua {{facility}}",
     "title1": "Você está prestes a registrar sua {{facility}}",
     "title2": "Para garantir um bom processo de registro, certifique-se de que os computadores estejam:"
+  },
+  "registrationError": {
+    "countryCheckFailed": "Não foi possível verificar se o {{appName}} está disponível neste país. Verifique sua conexão com a internet.",
+    "network": {
+      "message": "Não foi possível acessar o {{appName}}. Verifique se este computador está conectado à internet e tente novamente.",
+      "title": "Sem conexão com a internet"
+    },
+    "notRegister": {
+      "message": "O registro deste computador foi removido do {{appName}}. Registre sua escola novamente.",
+      "title": "Sua escola não está mais registrada"
+    },
+    "registerAgain": "Registrar novamente",
+    "registrationFailed": {
+      "message": "Algo deu errado ao registrar sua escola. Tente novamente.",
+      "title": "Não foi possível registrar este computador"
+    },
+    "server": {
+      "message": "O {{appName}} está com problemas no momento. Tente novamente em alguns minutos.",
+      "title": "Algo deu errado do nosso lado"
+    },
+    "timeout": {
+      "message": "O {{appName}} demorou muito para responder. Verifique sua conexão com a internet e tente novamente.",
+      "title": "A conexão está muito lenta"
+    },
+    "unknown": {
+      "message": "Tente novamente.",
+      "title": "Algo deu errado"
+    }
   },
   "resultSchool": "Resultados para o ID de {{facility}}",
   "saveEmail": {
@@ -209,13 +238,12 @@
   },
   "releaseNotes": {
     "2.0.4": {
-      "title": "Testes agendados mais inteligentes e suporte aos idiomas uzbeque e tadjique",
-      "date": "Sexta-feira, 18 de setembro de 2026",
+      "title": "Testes de velocidade mais confiáveis e suporte ao idioma tadjique",
+      "date": "Segunda-feira, 16 de novembro de 2026",
       "items": [
-        "Testes agendados mais inteligentes: se um teste falhar, o aplicativo continua tentando novamente até que ele seja concluído com sucesso ou o período do teste termine.",
-        "Suporte ao idioma uzbeque: o uzbeque foi adicionado ao seletor de idioma, junto com traduções revisadas.",
-        "Suporte ao idioma tadjique: o tadjique foi adicionado ao seletor de idioma.",
-        "Correções de erros: diversas correções de erros e melhorias."
+        "Obtenha testes de velocidade e verificações de Ping mais confiáveis.",
+        "Registre sua escola com mais facilidade.",
+        "Use o aplicativo em tadjique, com traduções em uzbeque aprimoradas."
       ]
     },
     "2.0.3": {

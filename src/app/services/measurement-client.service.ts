@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
-import ndt7 from '../../assets/js/ndt/ndt7.js';
+import ndt7 from '@m-lab/ndt7';
+import { environment } from '../../environments/environment';
 import { BehaviorSubject, Subject } from 'rxjs';
 import { HistoryService } from './history.service';
 import { SettingsService } from './settings.service';
@@ -7,6 +8,14 @@ import { NetworkService } from './network.service';
 import { UploadService } from './upload.service';
 import { SharedService } from './shared-service.service';
 import { DeviceContextService } from './device-context.service';
+import { SentryService } from './sentry.service';
+import { PingService } from './ping.service';
+import { SyncService } from './sync.service';
+import {
+  DOWNLOAD_LEG,
+  UPLOAD_LEG,
+  hasClientResult,
+} from '../utils/ndt-results.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -26,8 +35,15 @@ export class MeasurementClientService {
   ).asObservable();
   private readonly testConfig = {
     userAcceptedDataPolicy: true,
+    // Copied from node_modules/@m-lab/ndt7 by the angular.json assets glob
     downloadworkerfile: 'assets/js/ndt/ndt7-download-worker.js',
     uploadworkerfile: 'assets/js/ndt/ndt7-upload-worker.js',
+    // Identifies our tests in M-Lab's data. ndt7-js adds its own
+    // client_library_name and client_library_version.
+    metadata: {
+      client_name: 'giga-meter',
+      client_version: environment.app_version,
+    },
   };
 
   mlabInformation = {
@@ -77,16 +93,37 @@ export class MeasurementClientService {
     private networkService: NetworkService,
     private uploadService: UploadService,
     private sharedService: SharedService,
-    private deviceContext: DeviceContextService
+    private deviceContext: DeviceContextService,
+    private sentryService: SentryService,
+    private pingService: PingService,
+    private syncService: SyncService
   ) {}
 
+  /**
+   * Runs one speed test. Resolves once the result is saved. Rejects when the
+   * test fails (after the retries for an unreachable locate server), so the
+   * scheduler can try again later in the window; the 'error' status has
+   * already told the test page by then.
+   *
+   * Every test also gets a ping just before it, sent once the test is over.
+   */
   async runTest(
     notes = 'manual',
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
   ): Promise<void> {
+    // Before the test, not alongside it, so neither slows the other down.
+    await this.pingService.pingBeforeSpeedTest();
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
-    await this.runTestWithRetry(notes, scheduleContext);
+    try {
+      await this.runTestWithRetry(notes, scheduleContext);
+    } finally {
+      // Pings are otherwise only sent every 2 hours the app stays open, so a
+      // PC that is on for a few minutes would never send them.
+      this.syncService
+        .syncPingResults()
+        .catch((error) => console.error('Sending pings failed:', error));
+    }
   }
 
   private async runTestWithRetry(
@@ -135,12 +172,13 @@ export class MeasurementClientService {
       await this.finalizeMeasurement(measurementRecord);
     } catch (error) {
       console.error('Error running ndt7 test:', error);
+      const message = error instanceof Error ? error.message : String(error);
 
       // Check if this is a locate server error and we can retry
       const isLocateServerError =
-        error.message.includes('locate.measurementlab.net') ||
-        error.message.includes('Could not understand response') ||
-        error.message.includes('fetch');
+        message.includes('locate.measurementlab.net') ||
+        message.includes('Could not understand response') ||
+        message.includes('fetch');
 
       if (isLocateServerError && this.retryAttempts < this.maxRetries) {
         this.retryAttempts++;
@@ -158,7 +196,15 @@ export class MeasurementClientService {
         await new Promise((resolve) => setTimeout(resolve, 2000));
         return this.runTestWithRetry(notes, scheduleContext);
       } else {
-        this.broadcastMeasurementStatus('onError', { error: error.message });
+        // 'error' is the status the test page resets itself on.
+        this.broadcastMeasurementStatus('error', {
+          error: message,
+          errorType: 'test_error',
+          originalError: message,
+        });
+        // Without this the scheduler counts the failed test as done and
+        // never retries it.
+        throw error;
       }
     }
   }
@@ -186,8 +232,8 @@ export class MeasurementClientService {
       wifiDiagnostics: null,
       scheduledSlot: scheduleContext?.slot ?? null,
       scheduledAt: scheduleContext?.scheduledAt ?? null,
-      // Wall clock reported by M-Lab, filled in by finalizeMeasurement. Null
-      // when the locate service did not return a usable Date header.
+      // M-Lab's clock, set by finalizeMeasurement. Always null for now: ndt7-js
+      // does not report it (see finalizeMeasurement).
       serverTimestamp: null,
     };
   }
@@ -198,12 +244,33 @@ export class MeasurementClientService {
       serverChosen: (server) => this.onServerChosen(server, measurementRecord),
       downloadMeasurement: (data) =>
         this.onDownloadMeasurement(data, measurementRecord),
-      downloadComplete: (data) =>
-        this.onDownloadComplete(data, measurementRecord),
+      downloadComplete: this.settleSafely('downloadComplete', (data) =>
+        this.onDownloadComplete(data, measurementRecord)
+      ),
       uploadMeasurement: (data) =>
         this.onUploadMeasurement(data, measurementRecord),
-      uploadComplete: (data) => this.onUploadComplete(data, measurementRecord),
+      uploadComplete: this.settleSafely('uploadComplete', (data) =>
+        this.onUploadComplete(data, measurementRecord)
+      ),
       error: this.onError,
+    };
+  }
+
+  /**
+   * ndt7 calls the complete callbacks while it settles the test. If one
+   * throws, the library never resolves the test and the app waits for ever.
+   * The callbacks already cope with a missing server measurement, so this only
+   * catches the unexpected: the error is reported to Sentry and logged, and the
+   * test carries on with whatever that leg recorded.
+   */
+  private settleSafely(name: string, callback: (data: any) => void) {
+    return (data: any): void => {
+      try {
+        callback(data);
+      } catch (error) {
+        console.error(`[ndt7] ${name} callback failed:`, error);
+        this.sentryService.captureException(error, { ndt7Callback: name });
+      }
     };
   }
 
@@ -249,17 +316,28 @@ export class MeasurementClientService {
   };
 
   private onDownloadComplete = (data: any, measurementRecord: any): void => {
-    const serverBw = (data.LastServerMeasurement.BBRInfo.BW * 8) / 1000000;
-    const clientGoodput = data.LastClientMeasurement.MeanClientMbps;
+    // LastServerMeasurement is undefined when the server sent nothing before
+    // ndt7's time limit (slow or filtered links): 10 s to connect, then 12 s
+    // for the test. The download speed is measured on the client, so the leg
+    // is still usable without it.
+    const server = data?.LastServerMeasurement;
+    const client = data?.LastClientMeasurement;
+    if (!server) {
+      console.warn(
+        'Download finished without a server measurement; keeping the client-side result'
+      );
+    }
+    const bw = server?.BBRInfo?.BW;
+    const serverBw = typeof bw === 'number' ? (bw * 8) / 1000000 : 'n/a';
     console.log(`Download test is complete:
     Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
-    Mean client goodput: ${clientGoodput} Mbps`);
-    measurementRecord.results['NDTResult.S2C'] = data;
+    Mean client goodput: ${client?.MeanClientMbps ?? 'n/a'} Mbps`);
+    measurementRecord.results[DOWNLOAD_LEG] = data;
     this.downloadComplete$.next(data); // Emit event
     this.updateProgress(
       'finished_s2c',
       data,
-      data.LastClientMeasurement.ElapsedTime
+      client?.ElapsedTime ?? this.TIME_EXPECTED
     );
   };
 
@@ -278,36 +356,52 @@ export class MeasurementClientService {
   };
 
   private onUploadComplete = (data: any, measurementRecord: any): void => {
-    const bytesReceived = data.LastServerMeasurement.TCPInfo.BytesReceived;
-    const elapsed = data.LastServerMeasurement.TCPInfo.ElapsedTimex;
-    const throughput = (bytesReceived * 8) / elapsed;
-    console.log(`Upload test completed in ${(elapsed / 1000000).toFixed(2)}s
-      Mean server throughput: ${throughput} Mbps`);
-    measurementRecord.results['NDTResult.C2S'] = data;
+    // Same as the download leg: fall back to the client's own figures when the
+    // server sent no measurement before the timeout.
+    const tcpInfo = data?.LastServerMeasurement?.TCPInfo;
+    const client = data?.LastClientMeasurement;
+    if (!tcpInfo) {
+      console.warn(
+        'Upload finished without a server measurement; keeping the client-side result'
+      );
+    }
+    // TCPInfo.ElapsedTime is in microseconds, the client's ElapsedTime in seconds.
+    const hasServerTiming = tcpInfo?.ElapsedTime > 0;
+    const elapsedSeconds = hasServerTiming
+      ? tcpInfo.ElapsedTime / 1000000
+      : client?.ElapsedTime ?? this.TIME_EXPECTED;
+    const throughput = hasServerTiming
+      ? (tcpInfo.BytesReceived * 8) / tcpInfo.ElapsedTime
+      : client?.MeanClientMbps;
+    console.log(`Upload test completed in ${elapsedSeconds.toFixed(2)}s
+      Mean ${hasServerTiming ? 'server' : 'client'} throughput: ${throughput ?? 'n/a'} Mbps`);
+    measurementRecord.results[UPLOAD_LEG] = data;
     this.uploadComplete$.next(data); // Emit event
-    this.updateProgress('finished_c2s', data, elapsed / 1000000);
+    this.updateProgress('finished_c2s', data, elapsedSeconds);
   };
 
-  private onError = (err: Error): void => {
-    console.error('Error while running the test:', err.message);
+  private onError = (err: Error | string): void => {
+    // ndt7 passes worker errors through as plain strings.
+    const message = err instanceof Error ? err.message : String(err);
+    console.error('Error while running the test:', message);
 
     // Check if this is a locate server error
     const isLocateServerError =
-      err.message.includes('locate.measurementlab.net') ||
-      err.message.includes('Could not understand response') ||
-      err.message.includes('fetch');
+      message.includes('locate.measurementlab.net') ||
+      message.includes('Could not understand response') ||
+      message.includes('fetch');
 
     const errorType = isLocateServerError
       ? 'locate_server_error'
       : 'test_error';
     const errorMessage = isLocateServerError
       ? 'Failed to discover test servers. Please check your internet connection and try again.'
-      : err.message;
+      : message;
 
     this.broadcastMeasurementStatus('error', {
       error: errorMessage,
       errorType: errorType,
-      originalError: err.message,
+      originalError: message,
     });
   };
 
@@ -328,16 +422,33 @@ export class MeasurementClientService {
   }
 
   private async finalizeMeasurement(measurementRecord: any): Promise<void> {
+    // A leg without a server measurement is still saved from its client-side
+    // speed. A leg without any result (it never completed, or produced no
+    // client measurement) makes the whole test a failure: report it instead
+    // of saving a record with no speed in it.
+    const missingLegs = [
+      [DOWNLOAD_LEG, 'download'],
+      [UPLOAD_LEG, 'upload'],
+    ]
+      .filter(([leg]) => !hasClientResult(measurementRecord.results[leg]))
+      .map(([, name]) => name);
+    if (missingLegs.length) {
+      throw new Error(
+        `The ${missingLegs.join(' and ')} test did not produce a result`
+      );
+    }
+
     measurementRecord.uuid =
-      measurementRecord.results['NDTResult.S2C'].LastServerMeasurement
-        .ConnectionInfo.UUID || '';
+      measurementRecord.results[DOWNLOAD_LEG].LastServerMeasurement
+        ?.ConnectionInfo?.UUID || '';
     measurementRecord.version = 1;
 
     // `timestamp` above comes from Date.now(), so it is only as good as the
-    // clock of the machine running the test. ndt7 reports the locate service's
-    // own clock alongside each completed leg; keep it so the backend can tell
-    // the two apart. Both legs carry the same value - fall back to the upload
-    // leg only in case the download one is missing.
+    // clock of the machine running the test. The backend also wants M-Lab's
+    // clock to tell the two apart, but ndt7-js does not report one: M-Lab's
+    // locate response does not let browsers read its Date header. So this is
+    // null for now, and is read from either leg's `ServerTime` for when one
+    // carries it.
     measurementRecord.serverTimestamp =
       measurementRecord.results['NDTResult.S2C']?.ServerTime ??
       measurementRecord.results['NDTResult.C2S']?.ServerTime ??
@@ -384,20 +495,16 @@ export class MeasurementClientService {
     upload: number;
     total: number;
   } {
+    // Counted per leg, so a leg without a server measurement adds 0 instead
+    // of turning the sum into NaN.
+    const tcpCounter = (leg: string, field: string): number =>
+      Number(passedResults[leg]?.LastServerMeasurement?.TCPInfo?.[field]) || 0;
     const bytesSent =
-      Number(
-        passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
-          .BytesAcked +
-          passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo
-            .BytesAcked
-      ) || 0;
+      tcpCounter(DOWNLOAD_LEG, 'BytesAcked') +
+      tcpCounter(UPLOAD_LEG, 'BytesAcked');
     const bytesReceived =
-      Number(
-        passedResults['NDTResult.S2C'].LastServerMeasurement.TCPInfo
-          .BytesReceived +
-          passedResults['NDTResult.C2S'].LastServerMeasurement.TCPInfo
-            .BytesReceived
-      ) || 0;
+      tcpCounter(DOWNLOAD_LEG, 'BytesReceived') +
+      tcpCounter(UPLOAD_LEG, 'BytesReceived');
 
     const totalBytes = bytesSent + bytesReceived;
 

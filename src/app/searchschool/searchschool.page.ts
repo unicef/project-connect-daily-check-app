@@ -9,6 +9,7 @@ import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { getFacilityConfig } from '../models/facility';
+import { classifyRequestError } from '../schoolnotfound/types';
 @Component({
     selector: 'app-searchschool',
     templateUrl: 'searchschool.page.html',
@@ -138,18 +139,21 @@ export class SearchschoolPage {
           (err) => {
             console.log('ERROR: ' + err);
             this.loading.dismiss();
-            this.router.navigate([
-              'schoolnotfound',
-              this.schoolId,
-              this.selectedCountry,
-              this.detectedCountry,
-              this.selectedCountryName
-            ]);
-            /* Redirect to no result found page */
+            /* The search itself failed: say why instead of "not found" */
+            this.router.navigate(
+              [
+                'schoolnotfound',
+                this.schoolId,
+                this.selectedCountry,
+                this.detectedCountry,
+                this.selectedCountryName
+              ],
+              { queryParams: { reason: classifyRequestError(err) } }
+            );
           },
           () => {
             this.loading.dismiss();
-            if (this.schoolData.length > 0) {
+            if (Array.isArray(this.schoolData) && this.schoolData.length > 0) {
               this.router.navigate([
                 'schooldetails',
                 this.schoolId,

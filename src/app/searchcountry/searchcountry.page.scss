@@ -175,6 +175,14 @@ ion-select:hover {
   display: flex;
 }
 
+.retry_link {
+  margin-left: 4px;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
 .red-dot {
   background-color: #F94B4B;
   border-radius: 50%;

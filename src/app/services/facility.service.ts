@@ -81,7 +81,7 @@ export class FacilityService {
    * Supported facility types per country (backend-driven — B7). Fetched
    * FRESH on every call — this backs the Confirm-time gate, so it must
    * reflect whitelist changes immediately, not a session-old snapshot.
-   * Fails open to `null`: "no narrowing information, do not block".
+   * Returns `null` when the list could not be loaded (network/server error).
    */
   getSupportedFacilityTypes(): Observable<CountryFacilityTypes[] | null> {
     return this.http
@@ -94,16 +94,19 @@ export class FacilityService {
       );
   }
 
+  /**
+   * Whether `type` can be registered in `countryCode`. `null` means the check
+   * could not run (network/server error): the caller must not read that as
+   * "not available".
+   */
   isTypeSupported(
     countryCode: string,
     type: FacilityType
-  ): Observable<boolean> {
+  ): Observable<boolean | null> {
     return this.getSupportedFacilityTypes().pipe(
       map((countries) => {
         if (!countries) {
-          // Fail open: without narrowing info the registration 403 is the
-          // backstop (backend whitelist).
-          return true;
+          return null;
         }
         const entry = countries.find((c) => c.country_code === countryCode);
         return !!entry?.supported_facility_types?.includes(type);

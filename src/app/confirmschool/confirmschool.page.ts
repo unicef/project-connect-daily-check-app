@@ -2,7 +2,7 @@
 import { Component, OnInit, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, timeout } from 'rxjs';
 import { SchoolService } from '../services/school.service';
 import { RegistrationService } from '../services/registration.service';
 import { IdentityService } from '../services/identity.service';
@@ -12,6 +12,7 @@ import { NetworkService } from '../services/network.service';
 import { getFacilityConfig } from '../models/facility';
 
 import { School } from '../models/models';
+import { NotFound, classifyRequestError } from '../schoolnotfound/types';
 import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
 import { environment } from 'src/environments/environment';
@@ -21,6 +22,13 @@ import { TranslateService } from '@ngx-translate/core';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
 import { PosthogService } from '../services/posthog.service';
+import { withTimeout } from '../utils/with-timeout.utils';
+
+/** Cap for each optional lookup (IP, Windows username, install path, WiFi). */
+const LOOKUP_TIMEOUT_MS = 10000;
+/** Cap for the registration request itself. */
+const REGISTER_TIMEOUT_MS = 30000;
+
 @Component({
   selector: 'app-confirmschool',
   templateUrl: 'confirmschool.page.html',
@@ -125,15 +133,22 @@ export class ConfirmschoolPage implements OnInit{
       this.school?.facilityType ?? this.identityService.getFacilityType();
 
     try {
-      const ipAddress = await this.getIPAddress();
       const deviceInfo = await this.getDeviceInfo();
       const deviceId = await this.getDeviceId();
       // Get hardware ID for machine-level registration
       const hardwareId = this.hardwareIdService.getHardwareId();
-      // Get Windows username, installed path, and WiFi connections
-      const windowsUsername = await this.getWindowsUsername();
-      const installedPath = await this.getInstalledPath();
-      const wifiConnections = await this.getWifiConnections();
+      // The serials and Windows install ID (TECH-8828) are not sent: the v2
+      // registration endpoint rejects fields it does not know yet.
+      /* The loader has no duration, so none of these optional lookups may hang
+         it: each one is capped and falls back to null, and they run together
+         so the worst case is one cap rather than the sum. */
+      const [ipAddress, windowsUsername, installedPath, wifiConnections] =
+        await Promise.all([
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getIPAddress(), null),
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getWindowsUsername(), null),
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getInstalledPath(), null),
+          withTimeout(LOOKUP_TIMEOUT_MS, this.getWifiConnections(), null),
+        ]);
 
       const gigaId =
         facilityType === 'health'
@@ -166,7 +181,9 @@ export class ConfirmschoolPage implements OnInit{
       }
 
       const response = await firstValueFrom(
-        this.registrationService.register(registrationData as any)
+        this.registrationService
+          .register(registrationData as any)
+          .pipe(timeout(REGISTER_TIMEOUT_MS))
       );
 
       // New keys only — legacy keys stay untouched
@@ -178,6 +195,11 @@ export class ConfirmschoolPage implements OnInit{
       // Shared device-metadata keys (same on both vintages)
       this.storage.set('deviceType', deviceInfo.operatingSystem);
       this.storage.set('macAddress', deviceId.identifier);
+      // From here on, events belong to this PC, in this facility's group.
+      this.posthog.identifyDevice({
+        country_code: this.selectedCountry,
+        facility_type: response.facility_type,
+      });
       this.posthog.setSchool(response.giga_id);
       this.storage.set('ip_address', ipAddress?.ip);
       this.storage.set('version', environment.app_version);
@@ -187,11 +209,6 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.setFirstTimeVisit(true);
       this.storage.setRegistrationCompleted(Date.now());
 
-      // From here on, events belong to this facility.
-      this.posthog.identify(response.giga_id, {
-        country_code: this.selectedCountry,
-        facility_type: response.facility_type,
-      });
       this.posthog.capture('registration_completed', {
         country_code: this.selectedCountry,
         facility_type: response.facility_type,
@@ -209,14 +226,22 @@ export class ConfirmschoolPage implements OnInit{
          Either way the screen must not hang: dismiss and route out so the user
          can retry. */
       console.error('❌ [ConfirmSchool] Registration failed:', err);
-      this.router.navigate([
-        getFacilityConfig(facilityType as any).notFoundRoute,
-        this.schoolId,
-        this.selectedCountry,
-        this.detectedCountry,
-        this.selectedCountryName,
-      ]);
-      /* Redirect to no result found page */
+      /* The facility was found; registering it failed. Say why, and let
+         "Try again" bring the user back here. */
+      this.router.navigate(
+        [
+          getFacilityConfig(facilityType as any).notFoundRoute,
+          this.schoolId,
+          this.selectedCountry,
+          this.detectedCountry,
+          this.selectedCountryName,
+        ],
+        {
+          queryParams: {
+            reason: classifyRequestError(err, NotFound.registrationFailed),
+          },
+        }
+      );
     } finally {
       this.dismissLoader();
       this.isRegistering = false;

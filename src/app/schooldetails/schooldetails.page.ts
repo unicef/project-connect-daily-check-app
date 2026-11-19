@@ -7,6 +7,8 @@ import { IdentityService } from '../services/identity.service';
 import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
+import { switchMap } from 'rxjs/operators';
+import { classifyRequestError } from '../schoolnotfound/types';
 @Component({
   selector: 'app-schooldetails',
   templateUrl: 'schooldetails.page.html',
@@ -23,6 +25,8 @@ export class SchooldetailsPage {
   selectedCountry: any;
   selectedCountryName: any;
   detectedCountry: any;
+  /** The last search errored (as opposed to finding nothing). */
+  private searchFailed = false;
   private sub: any;
   facilityType = 'school';
   facilityLabelKey = 'facilityType.school';
@@ -59,12 +63,6 @@ export class SchooldetailsPage {
     });
   }
 
-  ionViewWillEnter() {
-    // Re-read on every entry — page instances are cached by the nav stack.
-    this.facilityType = this.identityService.getFacilityType();
-    this.facilityLabelKey = `facilityType.${this.facilityType}`;
-  }
-
   /**
    * Get school information by id
    *
@@ -72,11 +70,7 @@ export class SchooldetailsPage {
    */
   searchSchoolById(id) {
 
-    this.translate
-      .get('schoolDetails.searchSchool', {
-        facility: this.translate.instant(this.facilityLabelKey),
-      })
-      .subscribe((translatedText) => {
+    this.searchingText().subscribe((translatedText) => {
       const loadingMsg = `
       <div class="loadContent">
         <ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img>
@@ -100,15 +94,26 @@ export class SchooldetailsPage {
   }
 
   /**
+   * "Searching <facility> IDs", waiting for both strings: instant() returns
+   * the bare key while the translation file is still loading.
+   */
+  private searchingText() {
+    return this.translate
+      .get(this.facilityLabelKey)
+      .pipe(
+        switchMap((facility) =>
+          this.translate.get('schoolDetails.searchSchool', { facility })
+        )
+      );
+  }
+
+  /**
    * Search school by id and country code
    */
   searchSchoolBySchooIdAndCountryCode() {
     if (this.schoolId && this.selectedCountry) {
-      this.translate
-      .get('schoolDetails.searchSchool', {
-        facility: this.translate.instant(this.facilityLabelKey),
-      })
-      .subscribe((translatedText) => {
+      this.searchFailed = false;
+      this.searchingText().subscribe((translatedText) => {
         const loadingMsg = `
           <div class="loadContent">
             <ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img>
@@ -128,19 +133,22 @@ export class SchooldetailsPage {
             (err) => {
               console.log('ERROR: ' + err);
               this.loading.dismiss();
-              this.router.navigate([
-                'schoolnotfound',
-                this.schoolId,
-                this.selectedCountry,
-                this.detectedCountry,
-                this.selectedCountryName
-
-              ]);
-              /* Redirect to no result found page */
+              this.searchFailed = true;
+              /* The search itself failed: say why instead of "not found" */
+              this.router.navigate(
+                [
+                  'schoolnotfound',
+                  this.schoolId,
+                  this.selectedCountry,
+                  this.detectedCountry,
+                  this.selectedCountryName
+                ],
+                { queryParams: { reason: classifyRequestError(err) } }
+              );
             },
             () => {
               this.loading.dismiss();
-              if (this.schools.length > 0) {
+              if (Array.isArray(this.schools) && this.schools.length > 0) {
                 this.router.navigate([
                   'schooldetails',
                   this.schoolId,
@@ -163,6 +171,19 @@ export class SchooldetailsPage {
           );
       })
 
+    }
+  }
+
+  /**
+   * "Try again" on the error page goes back here. Ionic reuses this instance
+   * and the route params have not changed, so re-run the search that failed.
+   */
+  ionViewWillEnter() {
+    // Re-read on every entry — page instances are cached by the nav stack.
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
+    if (this.searchFailed) {
+      this.searchSchoolBySchooIdAndCountryCode();
     }
   }
 

@@ -48,5 +48,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     callback: (payload: { event: string; properties?: any }) => void
   ) => {
     ipcRenderer.on('telemetry-event', (event, payload) => callback(payload));
+    // The main process holds its events until someone is listening.
+    ipcRenderer.send('telemetry-ready');
   },
 });

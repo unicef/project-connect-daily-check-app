@@ -1036,6 +1036,8 @@ export class SearchcountryPage {
   facilityType = 'school';
   facilityLabelKey = 'facilityType.school';
   facilitySupported: boolean = true;
+  /** The eligibility check could not run (network/server), as opposed to "not available". */
+  countryCheckFailed = false;
 
   constructor(
     private storage: StorageService,
@@ -1077,6 +1079,7 @@ export class SearchcountryPage {
     this.selectedCountryName = country.name;
     // Clear any previous availability error — it will be re-checked on Confirm
     this.facilitySupported = true;
+    this.countryCheckFailed = false;
   }
 
   confirmCountry() {
@@ -1098,6 +1101,7 @@ export class SearchcountryPage {
     this.facilityLabelKey = `facilityType.${this.facilityType}`;
 
     this.isCheckingEligibility = true;
+    this.countryCheckFailed = false;
     this.facilityService
       .isTypeSupported(this.selectedCountry, this.facilityType as any)
       .pipe(
@@ -1106,6 +1110,13 @@ export class SearchcountryPage {
         })
       )
       .subscribe((supported) => {
+        if (supported === null) {
+          /* We don't know whether the country is supported, so don't say it
+             isn't: show a retryable error instead. */
+          this.facilitySupported = true;
+          this.countryCheckFailed = true;
+          return;
+        }
         this.facilitySupported = supported;
         if (!supported) {
           return;
@@ -1121,6 +1132,12 @@ export class SearchcountryPage {
           selectedCountryName,
         ]);
       });
+  }
+
+  retryCountryCheck() {
+    if (!this.isCheckingEligibility) {
+      this.confirmCountry();
+    }
   }
 
   getCountry() {
@@ -1228,6 +1245,7 @@ export class SearchcountryPage {
   onSearchInput(event: any): void {
     const value = event.target.value?.trim();
 
+    this.countryCheckFailed = false;
     if (!value) {
       // Reset everything if input is empty
       this.facilitySupported = true;

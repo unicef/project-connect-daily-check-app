@@ -24,7 +24,12 @@ import { captureException } from '@sentry/node';
 import { AUTO_UPDATE_ENABLED, BUILD_COMMIT, BUILD_MODE } from './build-mode';
 import {
   classifyWifiUnavailable,
+  getCachedHardwareIdentifiers,
   getDeviceContext,
+  getHardwareIdentifiers,
+  HardwareIdentifiers,
+  hasHardwareSerials,
+  retryHardwareSerials,
   getSsidFromNlm,
 } from './device-context';
 
@@ -60,14 +65,37 @@ let isDownloaded = false;
  * neither the renderer nor the backend sees (a machine that fails to update
  * stops sending measurements and disappears from adoption queries).
  *
- * If the window is not alive the event is lost, and that is acceptable: update
+ * Events wait in `pendingTelemetry` until the renderer says its PostHog bridge
+ * is listening ('telemetry-ready'): a send to a page that is still loading, or
+ * has not subscribed yet, is dropped. Without PostHog configured the renderer
+ * never says so, and the queue stops growing at MAX_PENDING_TELEMETRY.
+ *
+ * If the window is gone the event is lost, and that is acceptable: update
  * failures already go to Sentry separately.
  */
+const MAX_PENDING_TELEMETRY = 50;
+const pendingTelemetry: { event: string; properties: Record<string, any> }[] =
+  [];
+let telemetryReady = false;
+
 function sendTelemetry(event: string, properties: Record<string, any> = {}) {
   try {
-    if (!mainWindow || mainWindow.isDestroyed()) return;
-    if (!mainWindow.webContents || mainWindow.webContents.isDestroyed()) return;
-    mainWindow.webContents.send('telemetry-event', { event, properties });
+    // Look the window up each time: `mainWindow` stays undefined, because
+    // myCapacitorApp.init() returns nothing.
+    const win = myCapacitorApp.getMainWindow();
+    const canSend =
+      telemetryReady &&
+      win &&
+      !win.isDestroyed() &&
+      win.webContents &&
+      !win.webContents.isDestroyed();
+    if (!canSend) {
+      if (pendingTelemetry.length < MAX_PENDING_TELEMETRY) {
+        pendingTelemetry.push({ event, properties });
+      }
+      return;
+    }
+    win.webContents.send('telemetry-event', { event, properties });
   } catch (error) {
     console.warn('[telemetry] send failed:', error);
   }
@@ -164,14 +192,18 @@ if (!gotTheLock) {
         systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
       console.log('\n🔑 PRIMARY HARDWARE ID (use this):', hardwareId);
 
-      // hardwareId travels only as diagnostic metadata, never as an analytics
-      // identity: the distinct_id and the school group are set by the renderer,
-      // which is the side that talks to PostHog.
+      // Recover in the background when the logon-time probe had no UUID, so the
+      // renderer gets one without waiting for a manual restart.
+      if (!isUsableHardwareId(hardwareId)) {
+        scheduleHardwareIdRetry();
+      }
+
+      // The PC's identity (distinct_id) and school group are set by the
+      // renderer, which is the side that talks to PostHog.
       sendTelemetry('app_launched', {
         manufacturer: systemData.manufacturer,
         model: systemData.model,
         os: osData.distro,
-        hardware_id: hardwareId,
       });
 
       // Send hardware ID to renderer process when ready
@@ -204,6 +236,7 @@ if (!gotTheLock) {
     } catch (error) {
       console.error('❌ [Electron] Error getting system hardware ID:', error);
       captureException(error);
+      scheduleHardwareIdRetry();
 
       // Send error event to renderer
       if (mainWindow && mainWindow.webContents) {
@@ -385,6 +418,18 @@ app.on('before-quit', () => {
 
 // Place all ipc or other electron api calls and custom functionality under this line
 
+// The renderer's PostHog bridge is listening: send what waited (sendTelemetry).
+ipcMain.on('telemetry-ready', (event) => {
+  telemetryReady = true;
+  for (const payload of pendingTelemetry.splice(0)) {
+    try {
+      event.sender.send('telemetry-event', payload);
+    } catch (error) {
+      console.warn('[telemetry] send failed:', error);
+    }
+  }
+});
+
 ipcMain.addListener('closeFromUi', (ev) => {
   myCapacitorApp.getMainWindow().hide();
 });
@@ -546,31 +591,210 @@ ipcMain.handle('get-device-identity', async () => {
   }
 });
 
+// --- Hardware ID retry ------------------------------------------------------
+//
+// si.system() reads WMI, which is frequently not answering yet when the app is
+// started by the Windows logon Run key: the probe comes back with no UUID (or
+// throws), the renderer's registration lookup runs with nothing usable, and
+// auto-registration is skipped until someone restarts the app by hand.
+//
+// Keep probing in the background whenever that happens and push the value to
+// the renderer as soon as one succeeds. This is additive: the first probe, and
+// everything the IPC handler returns, are unchanged.
+const HARDWARE_ID_UNAVAILABLE = 'NO_UUID_AVAILABLE';
+const HARDWARE_ID_RETRY_DELAYS_MS = [2000, 5000, 10000, 20000, 30000, 60000];
+
+let cachedHardwareData: any = null;
+let hardwareIdRetryRunning = false;
+
+function isUsableHardwareId(hardwareId?: string): boolean {
+  return !!hardwareId && hardwareId !== HARDWARE_ID_UNAVAILABLE;
+}
+
+// How long the hardware ID waits for the serials (TECH-8828). They are read
+// together with the rest; this only keeps a slow WMI read from holding up the
+// hardware ID, which never depended on them. On a timeout they are read again
+// in the background (startSerialRetry).
+const HARDWARE_IDENTIFIERS_TIMEOUT_MS = 5000;
+
+function hardwareIdentifiersInTime(): Promise<HardwareIdentifiers> {
+  return Promise.race([
+    getHardwareIdentifiers(),
+    new Promise<HardwareIdentifiers>((resolve) =>
+      setTimeout(() => resolve({}), HARDWARE_IDENTIFIERS_TIMEOUT_MS)
+    ),
+  ]);
+}
+
+async function probeHardwareData(): Promise<any> {
+  const [systemData, osData, hardwareIds] = await Promise.all([
+    si.system(),
+    si.osInfo(),
+    hardwareIdentifiersInTime(),
+  ]);
+
+  // si.uuid() reads the hardware/OS UUIDs through a different code path, so it
+  // can still answer when si.system() comes back blank.
+  let uuid = systemData.uuid;
+  if (!uuid) {
+    try {
+      const uuidData = await si.uuid();
+      uuid = uuidData?.hardware || uuidData?.os || '';
+    } catch (error) {
+      console.warn('⚠️ [Electron] si.uuid() fallback failed:', error?.message);
+    }
+  }
+
+  // This probe may have stopped waiting before a background read found the
+  // serials; use those. Without serials, keep reading them in the background.
+  const known = getCachedHardwareIdentifiers();
+  const ids =
+    hasHardwareSerials(hardwareIds) || !hasHardwareSerials(known)
+      ? hardwareIds
+      : known;
+  if (!hasHardwareSerials(ids)) {
+    startSerialRetry();
+  }
+
+  return {
+    hardwareId: uuid || systemData.serial || HARDWARE_ID_UNAVAILABLE,
+    uuid,
+    serial: systemData.serial,
+    sku: systemData.sku,
+    manufacturer: systemData.manufacturer,
+    model: systemData.model,
+    osSerial: osData.serial,
+    // Sent with the registration; the backend works out the device ID.
+    baseboard_serial: ids.baseboard_serial,
+    disk_serial: ids.disk_serial,
+    machine_guid: ids.machine_guid,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+/**
+ * The serials missed the 5 s wait, or WMI wasn't answering yet at Windows
+ * logon. Keep reading them in the background on the hardware ID's retry steps;
+ * once they're read, add them to the kept hardware copy and send it to the
+ * window, so a registration later in this session carries them (TECH-8828).
+ * Without a kept copy yet, the next probe picks them up instead.
+ */
+function startSerialRetry(): void {
+  retryHardwareSerials(HARDWARE_ID_RETRY_DELAYS_MS, (ids) => {
+    console.log('✅ [Electron] Hardware serials read in the background');
+    if (!cachedHardwareData || hasHardwareSerials(cachedHardwareData)) {
+      return;
+    }
+    cachedHardwareData = {
+      ...cachedHardwareData,
+      baseboard_serial: ids.baseboard_serial,
+      disk_serial: ids.disk_serial,
+      machine_guid: ids.machine_guid ?? cachedHardwareData.machine_guid,
+    };
+    pushHardwareDataToRenderer(cachedHardwareData);
+  });
+}
+
+// The module-level `mainWindow` is assigned from init(), which returns void, so
+// it is always undefined. Ask the app object for the live window instead.
+function pushHardwareDataToRenderer(hardwareData: any): void {
+  try {
+    const targetWindow = myCapacitorApp.getMainWindow();
+    if (!targetWindow || targetWindow.isDestroyed()) {
+      return;
+    }
+    const contents = targetWindow.webContents;
+    if (!contents || contents.isDestroyed()) {
+      return;
+    }
+
+    if (contents.isLoading()) {
+      contents.once('did-finish-load', () =>
+        contents.send('system-hardware-id', hardwareData)
+      );
+    } else {
+      contents.send('system-hardware-id', hardwareData);
+    }
+  } catch (error) {
+    console.warn(
+      '⚠️ [Electron] Could not push hardware ID to renderer:',
+      error?.message
+    );
+  }
+}
+
+function scheduleHardwareIdRetry(): void {
+  if (hardwareIdRetryRunning || cachedHardwareData) {
+    return;
+  }
+  hardwareIdRetryRunning = true;
+
+  const attempt = (index: number): void => {
+    if (index >= HARDWARE_ID_RETRY_DELAYS_MS.length) {
+      hardwareIdRetryRunning = false;
+      console.warn(
+        '⚠️ [Electron] Hardware ID still unavailable after all retries'
+      );
+      return;
+    }
+
+    setTimeout(async () => {
+      try {
+        const hardwareData = await probeHardwareData();
+        if (isUsableHardwareId(hardwareData.hardwareId)) {
+          cachedHardwareData = hardwareData;
+          hardwareIdRetryRunning = false;
+          console.log(
+            `✅ [Electron] Hardware ID resolved on retry ${index + 1}:`,
+            hardwareData.hardwareId
+          );
+          pushHardwareDataToRenderer(hardwareData);
+          return;
+        }
+        console.warn(
+          `⚠️ [Electron] Hardware ID retry ${index + 1} returned no UUID`
+        );
+      } catch (error) {
+        console.warn(
+          `⚠️ [Electron] Hardware ID retry ${index + 1} failed:`,
+          error?.message
+        );
+      }
+      attempt(index + 1);
+    }, HARDWARE_ID_RETRY_DELAYS_MS[index]);
+  };
+
+  attempt(0);
+}
+
 // IPC handler to get hardware ID from renderer process
 ipcMain.handle('get-hardware-id', async () => {
   try {
     console.log('📤 [Electron] Hardware ID requested via IPC');
-    const systemData = await si.system();
-    const osData = await si.osInfo();
-    const hardwareId =
-      systemData.uuid || systemData.serial || 'NO_UUID_AVAILABLE';
+    if (cachedHardwareData) {
+      console.log(
+        '✅ [Electron] Hardware ID served from cache:',
+        cachedHardwareData.hardwareId
+      );
+      return cachedHardwareData;
+    }
+    // Same probe as the background retry, so the renderer's own retries also
+    // get the si.uuid() fallback when si.system() comes back blank.
+    const hardwareData = await probeHardwareData();
+    const hardwareId = hardwareData.hardwareId;
 
-    const hardwareData = {
-      hardwareId,
-      uuid: systemData.uuid,
-      serial: systemData.serial,
-      sku: systemData.sku,
-      manufacturer: systemData.manufacturer,
-      model: systemData.model,
-      osSerial: osData.serial,
-      timestamp: new Date().toISOString(),
-    };
+    if (isUsableHardwareId(hardwareId)) {
+      cachedHardwareData = hardwareData;
+    } else {
+      scheduleHardwareIdRetry();
+    }
 
     console.log('✅ [Electron] Hardware ID returned via IPC:', hardwareId);
     return hardwareData;
   } catch (error) {
     console.error('❌ [Electron] Error getting hardware ID via IPC:', error);
     captureException(error);
+    scheduleHardwareIdRetry();
     return {
       error: 'Failed to get hardware ID',
       message: error.message || 'Unknown error',
