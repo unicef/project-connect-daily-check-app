@@ -16,6 +16,7 @@ import {
   UPLOAD_LEG,
   hasClientResult,
 } from '../utils/ndt-results.utils';
+import { readLocateParams } from '../utils/locate.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -55,6 +56,8 @@ export class MeasurementClientService {
     country: '',
     label: '',
     metro: '',
+    metroRank: null,
+    locateVersion: null,
   };
 
   accessInformation = {
@@ -288,16 +291,19 @@ export class MeasurementClientService {
     measurementRecord: any
   ): void {
     console.log('Server chosen:', server);
+    const { metroRank, locateVersion } = readLocateParams(server?.urls);
     const serverInformation = {
       city: server?.location?.city,
-    url: server?.machine,
-    ip: [],
-    fqdn: '',
-    site: '',
-    country: server?.location?.country,
-    label: '',
-    metro: '',
-    }
+      url: server?.machine,
+      ip: [],
+      fqdn: '',
+      site: '',
+      country: server?.location?.country,
+      label: '',
+      metro: '',
+      metroRank,
+      locateVersion,
+    };
     measurementRecord.mlabInformation = serverInformation;
     console.log('Normalized server information:', serverInformation);
     this.broadcastMeasurementStatus('server_chosen', {

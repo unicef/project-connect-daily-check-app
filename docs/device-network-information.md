@@ -51,6 +51,15 @@ Why they were added: on Windows 11 24H2+ the WLAN stack sits behind the Location
 
 Added because these machines frequently have a clock that is wrong by hours or days. It sits next to the existing `timestamp` rather than replacing it. Filling it needs another source of server time.
 
+## server choice
+
+Inside the existing `server_info` JSON:
+
+*   `MetroRank` — `metro_rank` from the target URL M-Lab's Locate service issued. `0` means the server is in the client's nearest metro; `1`, `2`, … mean Locate sent the test to a further metro (it does that for a small share of requests). Null on records saved before this version.
+*   `LocateVersion` — the Locate API version that issued the URL (`v2`)
+
+Added so analytics can keep `MetroRank = 0` and drop tests that went to a far-away server. The access token in the same URL is not stored.
+
 # newly populated: device identity
 
 These columns were **added by the Android client**. The Windows client did not fill them, so Windows rows landed null. **From 2.0.4 the Windows client populates them:**
