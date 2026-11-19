@@ -66,6 +66,11 @@ export class UploadService {
         Metro: record.mlabInformation.metro,
         Site: record.mlabInformation.site,
         URL: record.mlabInformation.url,
+        // From the Locate-issued target URL. 0 = the server is in the nearest
+        // metro; >0 = Locate sent the test to a further one. Null on records
+        // saved before this was captured.
+        MetroRank: record.mlabInformation.metroRank ?? null,
+        LocateVersion: record.mlabInformation.locateVersion ?? null,
       },
       ClientInfo: {
         Country: '', //record.accessInformation.country,

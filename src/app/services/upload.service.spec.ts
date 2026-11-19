@@ -22,6 +22,42 @@ describe('UploadService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('ServerInfo', () => {
+    const mlab = (extra: any = {}) => ({
+      city: 'Madrid',
+      url: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+      ip: [],
+      fqdn: '',
+      site: '',
+      country: 'ES',
+      label: '',
+      metro: '',
+      ...extra,
+    });
+
+    it('sends the Locate metro rank and version', () => {
+      const measurement: any = service.makeMeasurement({
+        timestamp: Date.now(),
+        results: {},
+        mlabInformation: mlab({ metroRank: 0, locateVersion: 'v2' }),
+      });
+
+      expect(measurement.ServerInfo.MetroRank).toBe(0);
+      expect(measurement.ServerInfo.LocateVersion).toBe('v2');
+    });
+
+    it('sends null for records saved before the rank was captured', () => {
+      const measurement: any = service.makeMeasurement({
+        timestamp: Date.now(),
+        results: {},
+        mlabInformation: mlab(),
+      });
+
+      expect(measurement.ServerInfo.MetroRank).toBeNull();
+      expect(measurement.ServerInfo.LocateVersion).toBeNull();
+    });
+  });
+
   describe('server_timestamp', () => {
     /**
      * Drives uploadMeasurement far enough to inspect the POST body, with
