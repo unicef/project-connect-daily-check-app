@@ -15,7 +15,7 @@
         <!-- <span class="schoolID-txt">{{ schoolId | uppercase }}</span> -->
       <!-- </div> -->
       <!-- <div class="h-line"></div> -->
-      <div class="selectandconfirm" [translate]="'schoolDetails.selectAndConfirm'"></div>
+      <div class="selectandconfirm" [translate]="'schoolDetails.selectAndConfirm'" [translateParams]="{ facility: (facilityLabelKey | translate) }"></div>
       <div  class="matches" [translate]="'schoolDetails.totalSchools' | translate:{ schoolCount: schools?.length, schoolId: (schoolId | uppercase) }"></div>
 
       <div class="ionListContainer" >

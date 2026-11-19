@@ -269,7 +269,7 @@ export class PosthogService {
     }
   }
 
-  /** The hardware ID when it is a real one, else the registration ID. */
+  /** The hardware ID when it is a real one, else the registration or installation ID. */
   private getDeviceDistinctId(): string | null {
     const hardwareId = this.hardwareIdService.getHardwareId()?.trim();
     if (hardwareId && !this.isPlaceholderId(hardwareId)) {
@@ -278,6 +278,17 @@ export class PosthogService {
     const registrationId = localStorage.getItem('schoolUserId')?.trim();
     if (registrationId && !this.isPlaceholderId(registrationId)) {
       return registrationId;
+    }
+    // Installs registered through /api/v2 have no schoolUserId; use their
+    // installation ID, but only once registered, so an unregistered PC stays
+    // anonymous.
+    const installationId = localStorage.getItem('installationId')?.trim();
+    if (
+      localStorage.getItem('registrationId') &&
+      installationId &&
+      !this.isPlaceholderId(installationId)
+    ) {
+      return installationId;
     }
     return null;
   }

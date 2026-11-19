@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
+import { IdentityService } from '../services/identity.service';
 import { SharedService } from '../services/shared-service.service';
 import { environment } from 'src/environments/environment';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
@@ -122,6 +123,7 @@ export class SettingsService {
   constructor(
     private storageSerivce: StorageService,
     private sharedService: SharedService,
+    private identityService: IdentityService,
     private http: HttpClient
   ) {
     this.restore();
@@ -217,18 +219,16 @@ export class SettingsService {
     return (window as any).shell;
   }
 
+  /**
+   * v2 feature flags — facility-agnostic, keyed on installation_id and
+   * available before any facility is chosen (remote kill-switch for the
+   * un-updatable fleet). Response is a flat { flagKey: boolean } map.
+   */
   async getFeatureFlags() {
-    const gigaId = this.storageSerivce.get('gigaId');
-    console.log('Checking for flags', { giga_id_school: gigaId });
-    if (!gigaId) {
-      console.log('No gigaId found');
-      return {};
-    }
     let featureFlags = this.storageSerivce.get('featureFlags');
     if (featureFlags) {
       featureFlags = JSON.parse(featureFlags);
     }
-    console.log({ featureFlags, giga_id_school: gigaId });
     if (
       featureFlags?.updateDate &&
       new Date(parseInt(featureFlags.updateDate, 10)).getTime() >
@@ -237,28 +237,30 @@ export class SettingsService {
       return featureFlags;
     }
     try {
+      const installationId = this.identityService.getInstallationId();
       const newFlags = await this.http
-        .get(environment.restAPI + `schools/features_flags/${gigaId}`, {
+        .get(environment.restAPIv2 + 'feature-flags', {
           observe: 'response',
+          params: { installation_id: installationId },
           headers: new HttpHeaders({
             'Content-type': 'application/json',
           }),
         })
         .pipe(map((response: any) => response.body))
         .toPromise();
-      if (!newFlags || newFlags.data.length === 0) {
-        return featureFlags;
+      if (!newFlags || Object.keys(newFlags).length === 0) {
+        return featureFlags || {};
       }
 
       this.storageSerivce.set(
         'featureFlags',
-        JSON.stringify({ ...newFlags.data, updateDate: Date.now() })
+        JSON.stringify({ ...newFlags, updateDate: Date.now() })
       );
 
-      return newFlags?.data || {};
+      return newFlags;
     } catch (e) {
       console.log(e);
-      return featureFlags;
+      return featureFlags || {};
     }
   }
 }

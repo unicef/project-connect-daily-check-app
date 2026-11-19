@@ -11,6 +11,8 @@ import { StorageService } from '../services/storage.service';
 import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
+import { IdentityService } from '../services/identity.service';
+import { RegistrationService } from '../services/registration.service';
 import { PosthogService } from '../services/posthog.service';
 
 /**
@@ -18,7 +20,7 @@ import { PosthogService } from '../services/posthog.service';
  * existing registration found for this machine still takes them to the
  * dashboard.
  */
-const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
+const AUTO_REGISTRATION_ROUTES = ['/home', '/select-facility', '/register-school'];
 
 @Component({
   selector: 'app-home',
@@ -49,6 +51,8 @@ export class HomePage {
     private loading: LoadingService,
     private readonly schoolService: SchoolService,
     private hardwareIdService: HardwareIdService,
+    private identityService: IdentityService,
+    private registrationService: RegistrationService,
     private posthogService: PosthogService
   ) {
     translate.setDefaultLang('en');
@@ -87,7 +91,7 @@ export class HomePage {
         }
       });
 
-    if (this.storage.get('schoolId')) {
+    if (this.identityService.isRegistered()) {
       // User has local registration - check if device is still active
       this.checkDeviceStatusAndProceed();
     } else {
@@ -103,6 +107,27 @@ export class HomePage {
     console.log(
       '🔍 [HomePage] Checking device status for existing registration...'
     );
+
+    // v2 installs (any facility type) check status by installation_id
+    const registrationId = this.identityService.getRegistrationId();
+    if (registrationId) {
+      try {
+        const status = await this.registrationService
+          .status(this.identityService.getInstallationId())
+          .toPromise();
+        if (status?.exists && status.is_active === false) {
+          console.warn('🚫 [HomePage] v2 registration deactivated');
+          this.posthogService.reset();
+          await this.storage.clear();
+          this.loading.dismiss();
+          return;
+        }
+      } catch (error) {
+        console.warn('v2 status check failed, proceeding (fail open)', error);
+      }
+      this.proceedWithExistingRegistration();
+      return;
+    }
 
     const gigaId = this.storage.get('gigaId');
 
@@ -184,6 +209,13 @@ export class HomePage {
       try {
         // get the feature flags
         await this.settingsService.getFeatureFlags();
+        // Wrong-giga-id data-fix / unregister checks are school-only
+        // hygiene flows — never run them for other facility types.
+        if (this.storage.get('facilityType') === 'health') {
+          this.loading.dismiss();
+          this.router.navigate(['/starttest']);
+          return;
+        }
         // check if the gigaId is correct
         schoolId = this.storage.get('schoolId');
         removeUnregisterSchool(
@@ -295,7 +327,7 @@ export class HomePage {
    * ("Detecting your country"). Reaching it ends the check for this session.
    */
   private canAutoRegister(): boolean {
-    if (this.storage.get('schoolId')) {
+    if (this.identityService.isRegistered()) {
       return false;
     }
     if (this.reachedCountryStep) {

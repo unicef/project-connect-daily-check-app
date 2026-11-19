@@ -43,6 +43,8 @@ describe('PosthogService', () => {
     (environment as any).posthog = originalConfig;
     localStorage.removeItem('gigaId');
     localStorage.removeItem('schoolUserId');
+    localStorage.removeItem('registrationId');
+    localStorage.removeItem('installationId');
   });
 
   it('identifies the PC by its hardware ID and joins its school group', () => {
@@ -100,6 +102,26 @@ describe('PosthogService', () => {
         undefined
       );
     });
+  });
+
+  it('uses the installation ID of a v2 registration when there is no hardware ID', () => {
+    localStorage.setItem('registrationId', '42');
+    localStorage.setItem('installationId', REGISTRATION_ID);
+
+    service.init();
+
+    expect(posthog.identify).toHaveBeenCalledOnceWith(
+      REGISTRATION_ID,
+      undefined
+    );
+  });
+
+  it('does not use the installation ID before the install is registered', () => {
+    localStorage.setItem('installationId', REGISTRATION_ID);
+
+    service.init();
+
+    expect(posthog.identify).not.toHaveBeenCalled();
   });
 
   it('stays anonymous with neither a hardware ID nor a registration', () => {

@@ -9,14 +9,14 @@
 
     <div class="top-layout wrap_content">
       <!-- <div class="label-txt">
-        <span class="result-txt" [translate]="'resultSchool'"></span><br /><span class="schoolID-txt">{{schoolId |
+        <span class="result-txt" [translate]="'resultSchool'" [translateParams]="{ facility: (facilityLabelKey | translate) }"></span><br /><span class="schoolID-txt">{{schoolId |
           uppercase}}</span>
       </div> -->
       <!-- <div class="h-line"></div> -->
       <div class="noschool">
         <ng-container *ngIf="isNotFound; else requestError">
           <ion-img src="assets/images/school_not_found.svg" class="noschool-icon"></ion-img>
-          <div class="unabletolocate-txt" [innerHtml]="'schoolNotFound.unableToLocate' | translate:{ schoolId }"></div>
+          <div class="unabletolocate-txt" [innerHtml]="'schoolNotFound.unableToLocate' | translate:{ schoolId, facility: (facilityLabelKey | translate) }"></div>
           <div class="try_again"  [translate]="'schoolNotFound.tryAgainPlaceholder'"></div>
         </ng-container>
         <ng-template #requestError>

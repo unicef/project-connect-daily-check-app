@@ -1,0 +1,61 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  height: 100%;
+}
+
+.top-layout {
+  text-align: center;
+  margin-top: 32px;
+
+  .title {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .subtitle {
+    margin-top: 8px;
+    font-size: 15px;
+    opacity: 0.75;
+  }
+}
+
+.facility-cards {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 40px;
+}
+
+.facility-card {
+  width: 180px;
+  height: 160px;
+  margin: 0;
+  cursor: pointer;
+
+  // The card content lives inside ion-card's shadow button — center it there.
+  &::part(native) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+  }
+
+  .facility-icon {
+    display: block;
+    margin: 0 auto;
+    font-size: 56px;
+    color: var(--ion-color-primary);
+  }
+
+  .facility-label {
+    margin-top: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+  }
+}

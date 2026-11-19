@@ -6,6 +6,7 @@ import { NotFound } from './types';
 import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../services/settings.service';
 import { environment } from 'src/environments/environment';
+import { IdentityService } from '../services/identity.service';
 
 @Component({
     selector: 'app-schoolnotfound',
@@ -27,16 +28,19 @@ export class SchoolnotfoundPage {
   /** Why the flow ended here; drives the icon, copy and "Try again" action. */
   reason: NotFound = NotFound.notFound;
   appName = environment.appName;
+  facilityLabelKey = 'facilityType.school';
   constructor(
     private activatedroute: ActivatedRoute,
     public router: Router,
     public loading: LoadingService,
     private translate: TranslateService,
     private settingsService: SettingsService,
-    private navCtrl: NavController
+    private navCtrl: NavController,
+    private identityService: IdentityService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
 
     this.querySub = this.activatedroute.queryParams.subscribe((query) => {
       this.reason = Object.values(NotFound).includes(query.reason)
