@@ -6,6 +6,8 @@
     "buildResources": "resources"
   },
   "files": ["assets/**/*", "build/**/*", "capacitor.config.*", "app/**/*"],
+  // PowerShell runs this script with -File, which cannot read inside app.asar.
+  "asarUnpack": ["assets/wlan-reader.ps1"],
   "nsis": {
     "allowElevation": true,
     "oneClick": false,

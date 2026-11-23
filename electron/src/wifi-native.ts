@@ -11,23 +11,34 @@
  *
  * This reads the same values from the native WLAN API (wlanapi.dll), which
  * returns numbers instead of localized text, and fills only the fields that
- * came back empty. Values are converted exactly the way systeminformation
- * converts the English netsh output, so a filled row means the same thing as a
- * row from an English machine:
+ * came back empty. Values are converted the way systeminformation converts the
+ * English netsh output, so a filled row means the same thing as a row from an
+ * English machine:
  *
  *   quality      = signal quality, 0–100 (netsh "Signal")
  *   signalLevel  = quality / 2 − 100 dBm
  *   channel      = current channel number
- *   frequency    = MHz from the channel, same table as systeminformation
+ *   frequency    = center frequency of the connected BSS in MHz; without it,
+ *                  MHz from the channel (same table as systeminformation), or
+ *                  null when the channel number could also be a 6 GHz one
  *   txRate       = transmit rate in Mbps, integer
  *   type         = radio type, e.g. "802.11ac"
  *
- * The native read only runs when a connection is missing one of those fields,
- * so an English machine pays nothing for it. It fails soft: PowerShell blocked,
- * Add-Type unavailable or the API refusing simply leaves the fields as they were.
+ * Cost and failure:
+ * - The native read only runs when a connection is missing a field it can fill.
+ *   A field it could not fill for an adapter and BSS is not asked for again for
+ *   an hour, so an English machine whose driver reports no tx rate does not
+ *   start PowerShell on every call.
+ * - Callers wait at most FILL_DEADLINE_MS. A slower read keeps running in the
+ *   background and its result is reused by the next call within
+ *   NATIVE_CACHE_TTL_MS; concurrent calls share one read.
+ * - Everything fails soft: PowerShell missing or blocked, Add-Type refused, the
+ *   API refusing, or a timeout leave the connections exactly as systeminformation
+ *   returned them.
  */
 
 import { execFile, ExecFileException } from 'child_process';
+import * as path from 'path';
 
 /** One connected interface as the native WLAN API reports it. */
 export interface NativeWlanConnection {
@@ -38,6 +49,8 @@ export interface NativeWlanConnection {
   TxRateKbps?: number;
   PhyType?: number;
   Channel?: number;
+  /** Center frequency of the connected BSS, from the scan list; -1 when unknown. */
+  CenterFrequencyMHz?: number;
 }
 
 /** Fields of a `si.wifiConnections()` entry this module reads or fills. */
@@ -54,112 +67,23 @@ export interface WifiConnection {
   nativeFilled?: string[];
 }
 
-const NATIVE_TIMEOUT_MS = 15000;
-
 /**
- * C# 5 (what Windows PowerShell 5.1's Add-Type compiles) reading the current
- * connection of every connected WLAN interface. Structures are read at fixed
- * offsets rather than marshalled: they contain no pointers, so the offsets are
- * the same on 32- and 64-bit Windows.
- *
- *   WLAN_INTERFACE_INFO_LIST: count @0, items @8, each 532 bytes
- *     (GUID 16 + WCHAR[256] description + state @528)
- *   WLAN_CONNECTION_ATTRIBUTES: SSID length @520, SSID @524, BSSID @560,
- *     PHY type @568, signal quality @576, rx rate @580, tx rate @584 (kbps)
+ * How long a caller waits for the native read. Registration caps the whole
+ * Wi-Fi lookup at 10 s, and a test waits for it before ndt7 starts, so this
+ * stays well under both. A read measured 0.5–2 s on the machines tested.
  */
-const WLAN_READER_CS = `
-using System;
-using System.Collections.Generic;
-using System.Runtime.InteropServices;
-using System.Text;
+export const FILL_DEADLINE_MS = 4000;
 
-public class GigaWlanConnection {
-  public string Id { get; set; }
-  public string Ssid { get; set; }
-  public string Bssid { get; set; }
-  public int SignalQuality { get; set; }
-  public int TxRateKbps { get; set; }
-  public int PhyType { get; set; }
-  public int Channel { get; set; }
-}
+/** Hard limit for the PowerShell process; the whole process tree is killed then. */
+const NATIVE_HARD_TIMEOUT_MS = 15000;
 
-public static class GigaWlanReader {
-  [DllImport("wlanapi.dll")] static extern int WlanOpenHandle(uint version, IntPtr reserved, out uint negotiated, out IntPtr handle);
-  [DllImport("wlanapi.dll")] static extern int WlanCloseHandle(IntPtr handle, IntPtr reserved);
-  [DllImport("wlanapi.dll")] static extern int WlanEnumInterfaces(IntPtr handle, IntPtr reserved, out IntPtr list);
-  [DllImport("wlanapi.dll")] static extern int WlanQueryInterface(IntPtr handle, ref Guid iface, int opcode, IntPtr reserved, out uint size, out IntPtr data, IntPtr valueType);
-  [DllImport("wlanapi.dll")] static extern void WlanFreeMemory(IntPtr memory);
+/** A reading is reused for this long, so back-to-back calls compile once. */
+const NATIVE_CACHE_TTL_MS = 30000;
 
-  const int OpCurrentConnection = 7;
-  const int OpChannelNumber = 8;
-  const int InterfaceInfoSize = 532;
-  const int StateConnected = 1;
+/** How long a field the native API could not fill is not asked for again. */
+const UNFILLABLE_TTL_MS = 60 * 60 * 1000;
 
-  static IntPtr At(IntPtr p, int offset) { return new IntPtr(p.ToInt64() + offset); }
-
-  public static List<GigaWlanConnection> Read() {
-    List<GigaWlanConnection> result = new List<GigaWlanConnection>();
-    uint negotiated;
-    IntPtr handle;
-    if (WlanOpenHandle(2, IntPtr.Zero, out negotiated, out handle) != 0) return result;
-    IntPtr list = IntPtr.Zero;
-    try {
-      if (WlanEnumInterfaces(handle, IntPtr.Zero, out list) != 0 || list == IntPtr.Zero) return result;
-      int count = Marshal.ReadInt32(list, 0);
-      for (int i = 0; i < count; i++) {
-        IntPtr item = At(list, 8 + i * InterfaceInfoSize);
-        if (Marshal.ReadInt32(item, 528) != StateConnected) continue;
-        byte[] guidBytes = new byte[16];
-        Marshal.Copy(item, guidBytes, 0, 16);
-        Guid guid = new Guid(guidBytes);
-
-        GigaWlanConnection c = new GigaWlanConnection();
-        c.Id = guid.ToString();
-        c.SignalQuality = -1;
-        c.TxRateKbps = -1;
-        c.Channel = -1;
-
-        uint size;
-        IntPtr data;
-        if (WlanQueryInterface(handle, ref guid, OpCurrentConnection, IntPtr.Zero, out size, out data, IntPtr.Zero) == 0 && data != IntPtr.Zero) {
-          try {
-            int ssidLength = Marshal.ReadInt32(data, 520);
-            if (ssidLength > 0 && ssidLength <= 32) {
-              byte[] ssid = new byte[ssidLength];
-              Marshal.Copy(At(data, 524), ssid, 0, ssidLength);
-              c.Ssid = Encoding.UTF8.GetString(ssid);
-            }
-            byte[] mac = new byte[6];
-            Marshal.Copy(At(data, 560), mac, 0, 6);
-            c.Bssid = BitConverter.ToString(mac).Replace('-', ':').ToLowerInvariant();
-            c.PhyType = Marshal.ReadInt32(data, 568);
-            c.SignalQuality = Marshal.ReadInt32(data, 576);
-            c.TxRateKbps = Marshal.ReadInt32(data, 584);
-          } finally { WlanFreeMemory(data); }
-        }
-        if (WlanQueryInterface(handle, ref guid, OpChannelNumber, IntPtr.Zero, out size, out data, IntPtr.Zero) == 0 && data != IntPtr.Zero) {
-          try { c.Channel = Marshal.ReadInt32(data, 0); } finally { WlanFreeMemory(data); }
-        }
-        result.Add(c);
-      }
-    } finally {
-      if (list != IntPtr.Zero) WlanFreeMemory(list);
-      WlanCloseHandle(handle, IntPtr.Zero);
-    }
-    return result;
-  }
-}
-`;
-
-const WLAN_READER_PS = [
-  "$ErrorActionPreference = 'Stop'",
-  // Keeps the "Preparing modules for first use" progress record out of stderr.
-  "$ProgressPreference = 'SilentlyContinue'",
-  `Add-Type -TypeDefinition @'\n${WLAN_READER_CS}\n'@`,
-  // @() keeps a single interface an array; -InputObject stops PowerShell from
-  // unrolling it, so the output is always a JSON array.
-  'ConvertTo-Json -InputObject @([GigaWlanReader]::Read()) -Compress',
-].join('\n');
+const READER_SCRIPT = 'wlan-reader.ps1';
 
 /** DOT11_PHY_TYPE → the "Radio type" English netsh prints. */
 const PHY_TYPE_NAMES: Record<number, string> = {
@@ -172,6 +96,9 @@ const PHY_TYPE_NAMES: Record<number, string> = {
   10: '802.11ax',
   11: '802.11be',
 };
+
+/** 802.11ax and 802.11be are the only PHY types that can run on 6 GHz. */
+const SIX_GHZ_CAPABLE_PHY_TYPES = new Set([10, 11]);
 
 /**
  * Channel → MHz, the same table systeminformation uses for the English netsh
@@ -197,6 +124,31 @@ export function frequencyFromChannel(channel: number): number | null {
   return CHANNEL_FREQUENCIES[channel] ?? null;
 }
 
+/** 6 GHz channel numbers (2, and 1, 5, 9 … 233) overlap the 2.4 and 5 GHz ones. */
+export function isSixGhzChannelNumber(channel: number): boolean {
+  return channel === 2 || (channel >= 1 && channel <= 233 && (channel - 1) % 4 === 0);
+}
+
+/**
+ * Frequency in MHz for a native reading. Prefers the center frequency of the
+ * connected BSS. Without it, the channel table is only used when the channel
+ * number cannot be a 6 GHz one for this PHY type: on 802.11ax/be, channel 5
+ * may be 2432 MHz or 5975 MHz, so the answer is null rather than a guess.
+ */
+export function nativeFrequency(native: NativeWlanConnection, channel: number): number | null {
+  if (typeof native.CenterFrequencyMHz === 'number' && native.CenterFrequencyMHz > 0) {
+    return native.CenterFrequencyMHz;
+  }
+  if (
+    typeof native.PhyType === 'number' &&
+    SIX_GHZ_CAPABLE_PHY_TYPES.has(native.PhyType) &&
+    isSixGhzChannelNumber(channel)
+  ) {
+    return null;
+  }
+  return frequencyFromChannel(channel);
+}
+
 /** systeminformation's quality → dBm conversion for the netsh "Signal" %. */
 export function signalLevelFromQuality(quality: number): number {
   if (quality < 0) return 0;
@@ -213,23 +165,26 @@ const isMissing = (value: unknown): boolean =>
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/** `channel` 0 is what systeminformation stores when it cannot find the label. */
+const isChannelMissing = (c: WifiConnection): boolean => isMissing(c.channel) || c.channel === 0;
+
 /**
- * True when any connection lost a field the native API can fill. `channel` 0
- * counts as lost: that is what systeminformation stores when it cannot find
- * the channel label.
+ * Fields of one connection the native read could fill. `frequency` only counts
+ * when the channel is missing too: with a channel, systeminformation leaves
+ * the frequency null only for channels its table does not know (e.g. 6 GHz),
+ * which is not a reason to start a native read.
  */
-export function needsNativeFill(connections: WifiConnection[]): boolean {
-  return connections.some(
-    (c) =>
-      isObject(c) &&
-      (isMissing(c.quality) ||
-        isMissing(c.signalLevel) ||
-        isMissing(c.channel) ||
-        c.channel === 0 ||
-        isMissing(c.frequency) ||
-        isMissing(c.txRate) ||
-        isMissing(c.type))
-  );
+export function missingFields(c: WifiConnection): string[] {
+  const fields: string[] = [];
+  if (isMissing(c.quality)) fields.push('quality');
+  if (isMissing(c.signalLevel)) fields.push('signalLevel');
+  if (isChannelMissing(c)) {
+    fields.push('channel');
+    if (isMissing(c.frequency)) fields.push('frequency');
+  }
+  if (isMissing(c.txRate)) fields.push('txRate');
+  if (isMissing(c.type)) fields.push('type');
+  return fields;
 }
 
 const normalizeGuid = (value: unknown): string =>
@@ -238,7 +193,34 @@ const normalizeGuid = (value: unknown): string =>
 const normalizeMac = (value: unknown): string =>
   String(value ?? '').replace(/-/g, ':').trim().toLowerCase();
 
-function matchNative(
+const connectionKey = (c: WifiConnection): string =>
+  `${normalizeGuid(c.id)}|${normalizeMac(c.bssid)}`;
+
+/** Fields the native read could not fill, per adapter and BSS. */
+const unfillable = new Map<string, { fields: Set<string>; at: number }>();
+
+function fieldsWorthReading(c: WifiConnection, now: number): string[] {
+  const memo = unfillable.get(connectionKey(c));
+  const fields = missingFields(c);
+  if (!memo || now - memo.at >= UNFILLABLE_TTL_MS) return fields;
+  return fields.filter((field) => !memo.fields.has(field));
+}
+
+/**
+ * True when any connection is missing a field the native API can fill, leaving
+ * out fields it already failed to fill for the same adapter and BSS.
+ */
+export function needsNativeFill(connections: WifiConnection[], now: number = Date.now()): boolean {
+  return connections.some((c) => isObject(c) && fieldsWorthReading(c, now).length > 0);
+}
+
+/**
+ * The native reading for a connection: same GUID, else same BSSID. With one
+ * connection on each side and no GUID or BSSID on the systeminformation entry,
+ * the single native reading is used. Two different GUIDs are two different
+ * adapters, so they are never matched.
+ */
+export function matchNative(
   connection: WifiConnection,
   native: NativeWlanConnection[],
   onlyOne: boolean
@@ -249,8 +231,7 @@ function matchNative(
   const bssid = normalizeMac(connection.bssid);
   const byBssid = bssid && native.find((n) => normalizeMac(n.Bssid) === bssid);
   if (byBssid) return byBssid;
-  // One connection on each side is the same adapter; nothing else to match on.
-  return onlyOne && native.length === 1 ? native[0] : undefined;
+  return onlyOne && native.length === 1 && !id && !bssid ? native[0] : undefined;
 }
 
 /**
@@ -285,11 +266,7 @@ export function fillFromNative(
       }
     }
 
-    if (
-      (isMissing(connection.channel) || connection.channel === 0) &&
-      typeof n.Channel === 'number' &&
-      n.Channel > 0
-    ) {
+    if (isChannelMissing(connection) && typeof n.Channel === 'number' && n.Channel > 0) {
       connection.channel = n.Channel;
       filled.push('channel');
     }
@@ -298,7 +275,7 @@ export function fillFromNative(
       typeof connection.channel === 'number' &&
       connection.channel > 0
     ) {
-      const frequency = frequencyFromChannel(connection.channel);
+      const frequency = nativeFrequency(n, connection.channel);
       if (frequency !== null) {
         connection.frequency = frequency;
         filled.push('frequency');
@@ -324,12 +301,41 @@ export function fillFromNative(
   return connections;
 }
 
+/** Remembers, per matched connection, the fields still missing after a fill. */
+function rememberUnfillable(
+  connections: WifiConnection[],
+  native: NativeWlanConnection[],
+  now: number
+): void {
+  const readings = Array.isArray(native) ? native.filter(isObject) : [];
+  for (const connection of connections) {
+    if (!isObject(connection) || !matchNative(connection, readings, connections.length === 1)) {
+      continue;
+    }
+    const stillMissing = missingFields(connection);
+    const key = connectionKey(connection);
+    if (stillMissing.length > 0) unfillable.set(key, { fields: new Set(stillMissing), at: now });
+    else unfillable.delete(key);
+  }
+}
+
+/**
+ * Path of the reader script. It ships in `assets/` and is unpacked next to
+ * app.asar (`asarUnpack`), because PowerShell cannot read a file inside the
+ * archive.
+ */
+export function readerScriptPath(dir: string = __dirname): string {
+  return path
+    .join(dir, '..', '..', 'assets', READER_SCRIPT)
+    .replace(/app\.asar([\\/])/, 'app.asar.unpacked$1');
+}
+
 const MAX_FAILURE_DETAIL = 500;
 
 /**
- * PowerShell started with -EncodedCommand writes its error stream to a
- * redirected stderr as CLIXML. Returns the plain text of the error records, or
- * the input unchanged when it is not CLIXML.
+ * PowerShell can write its error stream to a redirected stderr as CLIXML.
+ * Returns the plain text of the error records, or the input unchanged when it
+ * is not CLIXML.
  */
 export function stderrText(stderr: string): string {
   const text = String(stderr ?? '');
@@ -348,14 +354,9 @@ export function stderrText(stderr: string): string {
     .replace(/&amp;/g, '&');
 }
 
-/**
- * A short reason for a failed native read. Never includes `error.message` for a
- * non-zero exit: Node puts the whole command line there, which here is ~10 KB
- * of base64 -EncodedCommand. The compiler or PowerShell error is on stderr.
- */
+/** A short reason for a failed native read, never the full command line. */
 function describeFailure(error: ExecFileException, stderr: string): string {
-  if (error.killed) return `timed out after ${NATIVE_TIMEOUT_MS} ms`;
-  // Spawn failures (ENOENT, EACCES…) carry a string code and a short message.
+  // Spawn failures (ENOENT, EACCES…) and maxBuffer carry a string code and a short message.
   if (typeof error.code === 'string') return error.message;
   const detail = stderrText(stderr).replace(/\s+/g, ' ').trim();
   if (detail) return detail.slice(0, MAX_FAILURE_DETAIL);
@@ -363,22 +364,48 @@ function describeFailure(error: ExecFileException, stderr: string): string {
 }
 
 /**
+ * Kills a process and its children. Killing only powershell.exe can leave the
+ * csc.exe that Add-Type started running.
+ */
+function killProcessTree(pid: number | undefined): void {
+  if (!pid) return;
+  try {
+    execFile('taskkill', ['/PID', String(pid), '/T', '/F'], { windowsHide: true }, () => undefined);
+  } catch {
+    // Nothing else to do: the process is gone or cannot be killed.
+  }
+}
+
+export interface ReadOptions {
+  scriptPath?: string;
+  timeoutMs?: number;
+}
+
+/**
  * Reads the connected interfaces from wlanapi.dll through PowerShell.
  * Resolves to an empty list on any failure.
  */
-export function readNativeWlan(): Promise<NativeWlanConnection[]> {
+export function readNativeWlan(options: ReadOptions = {}): Promise<NativeWlanConnection[]> {
   if (process.platform !== 'win32') return Promise.resolve([]);
 
-  // -EncodedCommand (UTF-16LE base64) sidesteps quoting the C# source.
-  const encoded = Buffer.from(WLAN_READER_PS, 'utf16le').toString('base64');
+  const scriptPath = options.scriptPath ?? readerScriptPath();
+  const timeoutMs = options.timeoutMs ?? NATIVE_HARD_TIMEOUT_MS;
   return new Promise((resolve) => {
+    let timedOut = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      execFile(
+      const child = execFile(
         'powershell.exe',
-        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
-        { timeout: NATIVE_TIMEOUT_MS, windowsHide: true, maxBuffer: 1024 * 1024 },
+        ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', scriptPath],
+        { windowsHide: true, maxBuffer: 1024 * 1024 },
         (error, stdout, stderr) => {
+          if (timer) clearTimeout(timer);
           try {
+            if (timedOut) {
+              console.warn(`[wifi-native] WLAN API read unavailable: timed out after ${timeoutMs} ms`);
+              resolve([]);
+              return;
+            }
             if (error) {
               console.warn('[wifi-native] WLAN API read unavailable:', describeFailure(error, stderr));
               resolve([]);
@@ -394,6 +421,10 @@ export function readNativeWlan(): Promise<NativeWlanConnection[]> {
           }
         }
       );
+      timer = setTimeout(() => {
+        timedOut = true;
+        killProcessTree(child.pid);
+      }, timeoutMs);
     } catch (spawnError) {
       // execFile can throw synchronously (e.g. EPERM/EMFILE on spawn).
       console.warn('[wifi-native] WLAN API read could not start:', spawnError?.message);
@@ -402,23 +433,94 @@ export function readNativeWlan(): Promise<NativeWlanConnection[]> {
   });
 }
 
+let cachedReading: { at: number; data: NativeWlanConnection[] } | null = null;
+let readInFlight: Promise<NativeWlanConnection[]> | null = null;
+
+/**
+ * One native read shared by concurrent callers, and reused for
+ * NATIVE_CACHE_TTL_MS. Registration followed by the first test reads once.
+ */
+export function readNativeWlanShared(
+  read: () => Promise<NativeWlanConnection[]> = readNativeWlan,
+  now: () => number = Date.now
+): Promise<NativeWlanConnection[]> {
+  if (cachedReading && now() - cachedReading.at < NATIVE_CACHE_TTL_MS) {
+    return Promise.resolve(cachedReading.data);
+  }
+  if (readInFlight) return readInFlight;
+
+  const settle = (data: NativeWlanConnection[]): NativeWlanConnection[] => {
+    cachedReading = { at: now(), data };
+    readInFlight = null;
+    return data;
+  };
+  readInFlight = read().then(settle, () => settle([]));
+  return readInFlight;
+}
+
+/** Resolves to undefined if `promise` has not settled within `ms`. */
+function withDeadline<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(undefined);
+      }
+    );
+  });
+}
+
+/** Clears the shared reading, the in-flight read and the unfillable memo. For tests. */
+export function resetNativeState(): void {
+  cachedReading = null;
+  readInFlight = null;
+  unfillable.clear();
+}
+
+export interface CompleteOptions {
+  /** Native reader; defaults to the PowerShell one. */
+  read?: () => Promise<NativeWlanConnection[]>;
+  deadlineMs?: number;
+  now?: () => number;
+}
+
 /**
  * Completes `si.wifiConnections()` output with the native reading when a field
- * is missing. Returns the connections unchanged on a healthy (English) read or
- * when the native read fails.
+ * is missing. Returns the connections unchanged on a healthy (English) read,
+ * when the native read fails, or when it has not finished by the deadline.
  *
  * Never rejects: the caller would otherwise drop the whole Wi-Fi reading,
  * including the SSID and BSSID systeminformation did parse.
  */
 export async function completeWifiConnections<T extends object>(
-  connections: T[]
+  connections: T[],
+  options: CompleteOptions = {}
 ): Promise<T[]> {
   try {
     if (!Array.isArray(connections) || connections.length === 0) return connections;
     const entries = connections as unknown as WifiConnection[];
-    if (!needsNativeFill(entries)) return connections;
+    const now = options.now ?? Date.now;
+    if (!needsNativeFill(entries, now())) return connections;
 
-    fillFromNative(entries, await readNativeWlan());
+    const deadlineMs = options.deadlineMs ?? FILL_DEADLINE_MS;
+    const native = await withDeadline(
+      readNativeWlanShared(options.read ?? (() => readNativeWlan()), now),
+      deadlineMs
+    );
+    if (native === undefined) {
+      console.warn(
+        `[wifi-native] WLAN API read not finished after ${deadlineMs} ms; ` +
+          'returning the systeminformation result (the read continues for the next call)'
+      );
+      return connections;
+    }
+    fillFromNative(entries, native);
+    rememberUnfillable(entries, native, now());
   } catch (error) {
     console.warn('[wifi-native] fill skipped:', error?.message);
   }
