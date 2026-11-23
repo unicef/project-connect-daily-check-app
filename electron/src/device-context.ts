@@ -217,7 +217,7 @@ async function getNetworkShape(gateway: string | null): Promise<CachedNetworkSha
   const wireless = list.find((iface) => iface.type === 'wireless');
   const { vpn_likely, vpn_adapter } = inferVpn(list);
 
-  cachedShape = {
+  const shape: CachedNetworkShape = {
     gateway,
     connection_type: inferConnectionType(active),
     ip_family: inferIpFamily(active),
@@ -232,7 +232,13 @@ async function getNetworkShape(gateway: string | null): Promise<CachedNetworkSha
     hasWirelessAdapter: Boolean(wireless),
   };
 
-  return cachedShape;
+  // No interfaces means the read failed (WMI not answering yet, e.g. when the
+  // app starts at Windows logon and warms these reads up). Keeping that would
+  // report "no adapter" for the whole run; the next call reads again instead.
+  if (list.length > 0) {
+    cachedShape = shape;
+  }
+  return shape;
 }
 
 /** Drops the internal bookkeeping before the shape goes into the payload. */
