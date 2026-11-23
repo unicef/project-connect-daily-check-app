@@ -290,8 +290,15 @@ export class MeasurementClientService {
     server: any,
     measurementRecord: any
   ): void {
-    console.log('Server chosen:', server);
+    // Log and broadcast only what is needed: Locate's urls carry the
+    // access_token, and console calls end up in Sentry breadcrumbs.
     const { metroRank, locateVersion } = readLocateParams(server?.urls);
+    console.log('Server chosen:', {
+      machine: server?.machine,
+      city: server?.location?.city,
+      metroRank,
+      locateVersion,
+    });
     const serverInformation = {
       city: server?.location?.city,
       url: server?.machine,
@@ -307,7 +314,7 @@ export class MeasurementClientService {
     measurementRecord.mlabInformation = serverInformation;
     console.log('Normalized server information:', serverInformation);
     this.broadcastMeasurementStatus('server_chosen', {
-      server: server,
+      server: { machine: server?.machine, location: server?.location },
       message: 'Server selected, preparing test...',
     });
   };

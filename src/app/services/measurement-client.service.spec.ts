@@ -79,6 +79,27 @@ describe('MeasurementClientService', () => {
       expect(record.mlabInformation.locateVersion).toBe('v2');
       expect(record.mlabInformation.city).toBe('Madrid');
     });
+
+    it('keeps the Locate access_token out of logs and status events', () => {
+      const logSpy = spyOn(console, 'log');
+      const statuses: any[] = [];
+      const subscription = service.measurementStatus.subscribe((s) => statuses.push(s));
+      const url = 'wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/download?access_token=secret-token&locate_version=v2&metro_rank=0';
+
+      service['onServerChosen'](
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: { 'wss:///ndt/v7/download': url },
+        },
+        {}
+      );
+      subscription.unsubscribe();
+
+      expect(JSON.stringify(logSpy.calls.allArgs())).not.toContain('secret-token');
+      expect(JSON.stringify(statuses)).not.toContain('secret-token');
+      expect(statuses[0].server.machine).toBe('mlab1-mad06.mlab-oti.measurement-lab.org');
+    });
   });
 
   describe('serverTimestamp', () => {
