@@ -52,6 +52,7 @@ describe('MeasurementClientService', () => {
     spyOn(service['sharedService'], 'broadcast').and.stub();
     spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
     spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
+    spyOn(service['syncService'], 'syncPendingMeasurements').and.resolveTo();
   });
 
   it('should be created', () => {
@@ -144,6 +145,41 @@ describe('MeasurementClientService', () => {
 
       expect(record.synced).toBeFalse();
       expect(record.uploaded).toBeFalse();
+    });
+
+    it('sends the queued tests once an upload goes through', async () => {
+      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+
+      const done = service['finalizeMeasurement'](record);
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
+      await done;
+
+      expect(service['syncService'].syncPendingMeasurements).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not try the queued tests when the upload itself failed', async () => {
+      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+
+      const done = service['finalizeMeasurement'](record);
+      httpMock
+        .expectOne((r) => r.url.endsWith('measurements'))
+        .error(new ProgressEvent('error'));
+      await done;
+
+      expect(service['syncService'].syncPendingMeasurements).not.toHaveBeenCalled();
+    });
+
+    it('keeps the test synced when sending the queued tests fails', async () => {
+      (service['syncService'].syncPendingMeasurements as jasmine.Spy).and.rejectWith(
+        new Error('offline again')
+      );
+      const record: any = { timestamp: 1, results: resultsWith(null, null) };
+
+      const done = service['finalizeMeasurement'](record);
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
+      await expectAsync(done).toBeResolved();
+
+      expect(record.synced).toBeTrue();
     });
   });
 });
