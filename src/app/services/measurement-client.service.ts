@@ -465,6 +465,11 @@ export class MeasurementClientService {
           .toPromise();
         measurementRecord.uploaded = true;
         measurementRecord.synced = true;
+        // The backend is reachable now, so send any tests whose upload failed
+        // earlier. Not awaited: the test is done whatever happens to them.
+        this.syncService
+          .syncPendingMeasurements()
+          .catch((error) => console.error('Sending queued tests failed:', error));
       } catch (error) {
         console.error('Upload failed:', error);
         measurementRecord.uploaded = false;
