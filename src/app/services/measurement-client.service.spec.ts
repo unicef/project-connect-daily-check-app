@@ -59,6 +59,50 @@ describe('MeasurementClientService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('onServerChosen', () => {
+    it('keeps metro_rank and locate_version from the Locate target URL', () => {
+      const record: any = {};
+      const query = 'access_token=abc&locate_version=v2&metro_rank=1';
+
+      service['onServerChosen'](
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: {
+            'wss:///ndt/v7/download': `wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/download?${query}`,
+            'wss:///ndt/v7/upload': `wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/upload?${query}`,
+          },
+        },
+        record
+      );
+
+      expect(record.mlabInformation.metroRank).toBe(1);
+      expect(record.mlabInformation.locateVersion).toBe('v2');
+      expect(record.mlabInformation.city).toBe('Madrid');
+    });
+
+    it('keeps the Locate access_token out of logs and status events', () => {
+      const logSpy = spyOn(console, 'log');
+      const statuses: any[] = [];
+      const subscription = service.measurementStatus.subscribe((s) => statuses.push(s));
+      const url = 'wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/download?access_token=secret-token&locate_version=v2&metro_rank=0';
+
+      service['onServerChosen'](
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: { 'wss:///ndt/v7/download': url },
+        },
+        {}
+      );
+      subscription.unsubscribe();
+
+      expect(JSON.stringify(logSpy.calls.allArgs())).not.toContain('secret-token');
+      expect(JSON.stringify(statuses)).not.toContain('secret-token');
+      expect(statuses[0].server.machine).toBe('mlab1-mad06.mlab-oti.measurement-lab.org');
+    });
+  });
+
   describe('serverTimestamp', () => {
     it('takes the server clock reported by the download leg', async () => {
       const serverTime = Date.UTC(2026, 7, 24, 10, 30, 0);
