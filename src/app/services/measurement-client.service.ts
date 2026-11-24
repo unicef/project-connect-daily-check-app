@@ -16,8 +16,13 @@ import {
   UPLOAD_LEG,
   hasClientResult,
 } from '../utils/ndt-results.utils';
-import { readLocateParams } from '../utils/locate.utils';
+import {
+  LocateAccess,
+  lookupPriorityServer,
+  readLocateParams,
+} from '../utils/locate.utils';
 import { withTimeout } from '../utils/with-timeout.utils';
+import { LocateAccessService } from './locate-access.service';
 
 @Injectable({
   providedIn: 'root',
@@ -36,6 +41,9 @@ export class MeasurementClientService {
   // without them. They are diagnostics, and the Windows queries behind them
   // have no time limit of their own.
   private readonly deviceReadsTimeoutMs = 10 * 1000;
+  // How long M-Lab's priority server lookup gets before the test uses the
+  // public lookup instead. The public one normally answers in under a second.
+  private readonly priorityLookupTimeoutMs = 5 * 1000;
   private readonly measurementNotificationActivity = new BehaviorSubject<any>(
     {}
   ).asObservable();
@@ -104,7 +112,8 @@ export class MeasurementClientService {
     private deviceContext: DeviceContextService,
     private sentryService: SentryService,
     private pingService: PingService,
-    private syncService: SyncService
+    private syncService: SyncService,
+    private locateAccess: LocateAccessService
   ) {}
 
   /**
@@ -174,10 +183,7 @@ export class MeasurementClientService {
       measurementRecord.accessInformation =
         await this.networkService.getNetInfo();
 
-      const exitCode = await ndt7.test(
-        this.testConfig,
-        this.getTestCallbacks(measurementRecord)
-      );
+      const exitCode = await this.runNdt7(measurementRecord);
       console.log('ndt7 test completed with exit code:', exitCode);
 
       await this.finalizeMeasurement(measurementRecord);
@@ -220,6 +226,53 @@ export class MeasurementClientService {
     }
   }
 
+  /**
+   * Runs the download and upload test. With access from our backend, the
+   * server comes from M-Lab's priority lookup. Without it, or when that lookup
+   * fails in any way (bad token, rate limit, timeout), ndt7-js finds the server
+   * through the public lookup exactly as it did before. The record keeps which
+   * lookup was used, and why the priority one was not.
+   */
+  private async runNdt7(measurementRecord: any): Promise<number> {
+    const callbacks = this.getTestCallbacks(measurementRecord);
+    measurementRecord.locateTier = 'public';
+
+    // Asked for here, right before the lookup, and not earlier: M-Lab's token
+    // is only good for 20 seconds after our backend gets it. Never rejects;
+    // null means the public lookup.
+    const access: LocateAccess | null = await this.locateAccess.get();
+
+    let priority: Awaited<ReturnType<typeof lookupPriorityServer>> | null =
+      null;
+    if (access) {
+      try {
+        priority = await lookupPriorityServer(
+          access,
+          this.testConfig.metadata,
+          this.priorityLookupTimeoutMs,
+          (loadbalancer) => callbacks.serverDiscovery({ loadbalancer })
+        );
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        measurementRecord.priorityLocateError = reason;
+        console.warn(
+          `Priority server lookup failed (${reason}); using the public one`
+        );
+      }
+    }
+    if (!priority) {
+      return ndt7.test(this.testConfig, callbacks);
+    }
+
+    // What ndt7.test does after its own lookup.
+    callbacks.serverChosen(priority.server);
+    measurementRecord.locateTier = 'priority';
+    const urls = Promise.resolve(priority.urls);
+    const download = await ndt7.downloadTest(this.testConfig, callbacks, urls);
+    const upload = await ndt7.uploadTest(this.testConfig, callbacks, urls);
+    return download + upload;
+  }
+
   /** `read`'s value, or null when it hasn't come back in deviceReadsTimeoutMs. */
   private async readInTime<T>(name: string, read: Promise<T>): Promise<T | null> {
     const timedOut = Symbol('timed out');
@@ -259,6 +312,10 @@ export class MeasurementClientService {
       // M-Lab's clock, set by finalizeMeasurement. Always null for now: ndt7-js
       // does not report it (see finalizeMeasurement).
       serverTimestamp: null,
+      // Set by runNdt7: which M-Lab lookup found the server ('priority' or
+      // 'public'), and why the priority one was not used when it was offered.
+      locateTier: null,
+      priorityLocateError: null,
     };
   }
 

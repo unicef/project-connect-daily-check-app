@@ -55,6 +55,21 @@ describe('UploadService', () => {
 
       expect(measurement.ServerInfo.MetroRank).toBeNull();
       expect(measurement.ServerInfo.LocateVersion).toBeNull();
+      expect(measurement.ServerInfo.LocateTier).toBeNull();
+      expect(measurement.ServerInfo.PriorityLocateError).toBeNull();
+    });
+
+    it('sends which M-Lab lookup found the server, and why not the priority one', () => {
+      const measurement: any = service.makeMeasurement({
+        timestamp: Date.now(),
+        results: {},
+        mlabInformation: mlab(),
+        locateTier: 'public',
+        priorityLocateError: 'HTTP 401',
+      });
+
+      expect(measurement.ServerInfo.LocateTier).toBe('public');
+      expect(measurement.ServerInfo.PriorityLocateError).toBe('HTTP 401');
     });
   });
 

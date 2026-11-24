@@ -71,6 +71,12 @@ export class UploadService {
         // saved before this was captured.
         MetroRank: record.mlabInformation.metroRank ?? null,
         LocateVersion: record.mlabInformation.locateVersion ?? null,
+        // Which M-Lab lookup found the server: 'priority' (access from our
+        // backend, see LocateAccessService) or 'public'. PriorityLocateError
+        // says why a priority lookup that was offered was not used. Both null
+        // on records saved before this was captured.
+        LocateTier: record.locateTier ?? null,
+        PriorityLocateError: record.priorityLocateError ?? null,
       },
       ClientInfo: {
         Country: '', //record.accessInformation.country,
