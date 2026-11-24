@@ -151,6 +151,7 @@
     "testFailed": "ТЕСТ НЕ ПРОЙДЕН",
     "testFailedDesc": "Соединение было прервано до завершения тестирования. Попробуйте еще раз.",
     "discoveringServers": "Поиск серверов...",
+    "preparingTest": "Подготовка теста...",
     "serverSelected": "Сервер найден",
     "retrying": "Попытка {{attempt}}/{{maxRetries}}",
     "runningTestDownload": "Выполнение теста (Загрузка)",
