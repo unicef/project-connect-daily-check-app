@@ -96,8 +96,12 @@ export class ConfirmschoolPage implements OnInit{
         next: (geo: any) => {
           console.log('Received geolocation from backend:', geo);
 
-          // 3. Save lat/long in localStorage
-          this.locationService.saveGeolocation(geo);
+          // 3. Save lat/long in localStorage, with the access points it came
+          // from. The connected access point is not known here, so any BSSID
+          // saved with an earlier location is cleared rather than left paired
+          // with this one; the first upload that sees the same access points
+          // records it.
+          this.locationService.saveResolvedGeolocation(geo, wifiList, null);
         },
         error: (err) => {
           console.error('Error resolving geolocation', err);

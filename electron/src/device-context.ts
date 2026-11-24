@@ -140,6 +140,33 @@ interface CachedNetworkShape {
 }
 
 let cachedShape: CachedNetworkShape | null = null;
+/** A read still running, so a call that arrives meanwhile joins it. */
+let shapeRead: {
+  gateway: string | null;
+  promise: Promise<CachedNetworkShape>;
+} | null = null;
+
+/**
+ * How long after launch a read without the adapter state (see
+ * hasAdapterState) is not kept. At Windows logon CIM can take a minute or two
+ * to answer; the hardware ID retry in index.ts waits up to ~2 min for it.
+ * After that, such a read is what this machine gives (e.g. PowerShell blocked
+ * by policy), so it is kept as before instead of being read on every test.
+ */
+const INCOMPLETE_SHAPE_GRACE_MS = 3 * 60 * 1000;
+
+/**
+ * Whether the read has the adapter state, which comes from CIM.
+ *
+ * On Windows si.networkInterfaces() starts from os.networkInterfaces(), so the
+ * list is never empty (the loopback is always there). Whether an adapter is
+ * up, its type and its speed come from a PowerShell/CIM query; when that
+ * doesn't answer, every adapter comes back 'down' with no type or speed. A
+ * connected machine always has an adapter that is up.
+ */
+function hasAdapterState(list: si.Systeminformation.NetworkInterfacesData[]): boolean {
+  return list.some((iface) => !iface.internal && iface.operstate === 'up');
+}
 
 function pickDefaultInterface(interfaces: si.Systeminformation.NetworkInterfacesData[]) {
   return (
@@ -210,14 +237,30 @@ async function getNetworkShape(gateway: string | null): Promise<CachedNetworkSha
   if (cachedShape && cachedShape.gateway === gateway) {
     return cachedShape;
   }
+  // The launch warm-up and a test can ask at the same time: read once.
+  if (shapeRead && shapeRead.gateway === gateway) {
+    return shapeRead.promise;
+  }
 
+  const promise = readNetworkShape(gateway);
+  shapeRead = { gateway, promise };
+  try {
+    return await promise;
+  } finally {
+    if (shapeRead?.promise === promise) {
+      shapeRead = null;
+    }
+  }
+}
+
+async function readNetworkShape(gateway: string | null): Promise<CachedNetworkShape> {
   const interfaces = (await soft('network interfaces', () => si.networkInterfaces())) ?? [];
   const list = Array.isArray(interfaces) ? interfaces : [interfaces];
   const active = pickDefaultInterface(list);
   const wireless = list.find((iface) => iface.type === 'wireless');
   const { vpn_likely, vpn_adapter } = inferVpn(list);
 
-  cachedShape = {
+  const shape: CachedNetworkShape = {
     gateway,
     connection_type: inferConnectionType(active),
     ip_family: inferIpFamily(active),
@@ -232,7 +275,16 @@ async function getNetworkShape(gateway: string | null): Promise<CachedNetworkSha
     hasWirelessAdapter: Boolean(wireless),
   };
 
-  return cachedShape;
+  // A read made before CIM answers (the app started at Windows logon and
+  // warmed these reads up) would report every adapter as down, with no type,
+  // for the whole run. Don't keep it: the next call reads again.
+  if (
+    hasAdapterState(list) ||
+    process.uptime() * 1000 >= INCOMPLETE_SHAPE_GRACE_MS
+  ) {
+    cachedShape = shape;
+  }
+  return shape;
 }
 
 /** Drops the internal bookkeeping before the shape goes into the payload. */
@@ -642,6 +694,7 @@ export async function getSsidFromNlm(): Promise<string | null> {
 /** Test seam: drops the cached slow-moving half. */
 export function resetDeviceContextCache(): void {
   cachedShape = null;
+  shapeRead = null;
   cachedHardwareIds = null;
   hardwareIdsPromise = null;
 }

@@ -61,7 +61,51 @@ describe('DeviceContextService', () => {
     it('asks Electron only once', async () => {
       const getDeviceIdentity = jasmine
         .createSpy('getDeviceIdentity')
-        .and.returnValue(Promise.resolve({ deviceName: 'PC' }));
+        .and.returnValue(
+          Promise.resolve({ deviceName: 'PC', deviceModel: 'ThinkPad E14' })
+        );
+      setElectronAPI({ getDeviceIdentity });
+
+      await service.getDeviceIdentity();
+      await service.getDeviceIdentity();
+
+      expect(getDeviceIdentity).toHaveBeenCalledTimes(1);
+    });
+
+    it('asks again when the model and manufacturer came back blank', async () => {
+      const blank = {
+        deviceName: 'SCHOOL-PC-01',
+        deviceModel: '',
+        deviceManufacturer: '',
+      };
+      const full = {
+        deviceName: 'SCHOOL-PC-01',
+        deviceModel: 'ThinkPad E14',
+        deviceManufacturer: 'LENOVO',
+      };
+      const getDeviceIdentity = jasmine
+        .createSpy('getDeviceIdentity')
+        .and.returnValues(Promise.resolve(blank), Promise.resolve(full));
+      setElectronAPI({ getDeviceIdentity });
+
+      const first = await service.getDeviceIdentity();
+      const second = await service.getDeviceIdentity();
+      const third = await service.getDeviceIdentity();
+
+      // The blank read still goes out with the test that asked for it.
+      expect(first.device_name).toBe('SCHOOL-PC-01');
+      expect(first.device_model).toBe('');
+      expect(second.device_model).toBe('ThinkPad E14');
+      expect(third.device_manufacturer).toBe('LENOVO');
+      expect(getDeviceIdentity).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps a read that has only the manufacturer', async () => {
+      const getDeviceIdentity = jasmine
+        .createSpy('getDeviceIdentity')
+        .and.returnValue(
+          Promise.resolve({ deviceModel: '', deviceManufacturer: 'LENOVO' })
+        );
       setElectronAPI({ getDeviceIdentity });
 
       await service.getDeviceIdentity();

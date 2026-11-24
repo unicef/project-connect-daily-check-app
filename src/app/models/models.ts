@@ -79,6 +79,9 @@ export interface mlabInformation {
     country: string;
     label: string;
     metro: string;
+    /** 0 = nearest metro; >0 = Locate sent the test to a further metro. */
+    metroRank?: number | null;
+    locateVersion?: string | null;
 }
 
 export interface accessInformation {

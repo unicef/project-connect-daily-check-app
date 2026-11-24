@@ -12,6 +12,9 @@ import { environment } from 'src/environments/environment';
 })
 export class SyncService {
   private syncInterval = 2 * 60 * 60 * 1000; // 2 hours
+  // Long enough to stay out of the way of what the app does when it opens.
+  private startupSyncDelay = 60 * 1000;
+  private pendingMeasurementsSync: Promise<void> | null = null;
 
   constructor(
     private http: HttpClient,
@@ -22,7 +25,23 @@ export class SyncService {
     private historyService: HistoryService
   ) { }
 
-  async syncPendingMeasurements(): Promise<void> {
+  /**
+   * Sends the measurements whose realtime upload failed. It is called from
+   * several places (the 2-hour interval, app start, a successful upload), so a
+   * call made while a sync is already running joins that sync instead of
+   * starting another: two syncs would read the same pending records and post
+   * them twice.
+   */
+  syncPendingMeasurements(): Promise<void> {
+    if (!this.pendingMeasurementsSync) {
+      this.pendingMeasurementsSync = this.sendPendingMeasurements().finally(
+        () => (this.pendingMeasurementsSync = null)
+      );
+    }
+    return this.pendingMeasurementsSync;
+  }
+
+  private async sendPendingMeasurements(): Promise<void> {
     try {
       let unsyncedMeasurements = await this.indexedDBService.getPendingMeasurements();
 
@@ -173,6 +192,17 @@ export class SyncService {
   }
 
   startPeriodicSync(): void {
+    // The interval alone only fires once the app has been open for 2 hours, so
+    // a PC that is on for less than that would never send its failed tests.
+    // Pings are sent after every test instead (MeasurementClientService).
+    setTimeout(() => {
+      // Offline at startup: the next successful upload or interval sends them.
+      if (navigator.onLine === false) {
+        return;
+      }
+      this.syncPendingMeasurements();
+    }, this.startupSyncDelay);
+
     setInterval(() => {
       this.syncPingResults();
       this.syncPendingMeasurements();

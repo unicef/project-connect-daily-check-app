@@ -49,7 +49,9 @@ export class DeviceContextService {
   /**
    * Machine identity. Cached for the lifetime of the app: the hostname and the
    * hardware model do not change while the process is running, and the main
-   * process caches its half too.
+   * process caches its half too. A read with no model and no manufacturer
+   * (WMI not answering yet at Windows logon) is not cached: the next call
+   * asks again.
    */
   async getDeviceIdentity(): Promise<DeviceIdentity> {
     if (this.cachedIdentity) {
@@ -78,14 +80,19 @@ export class DeviceContextService {
         return empty;
       }
 
-      this.cachedIdentity = {
+      const identity: DeviceIdentity = {
         device_name: info.deviceName ?? null,
         device_model: info.deviceModel ?? null,
         device_manufacturer: info.deviceManufacturer ?? null,
         app_build_number: info.appBuildNumber ?? environment.app_version ?? null,
         os_version: info.osVersion ?? null,
       };
-      return this.cachedIdentity;
+      // Keeping a blank read would send it with every test until the app
+      // restarts, even once WMI answers.
+      if (identity.device_model || identity.device_manufacturer) {
+        this.cachedIdentity = identity;
+      }
+      return identity;
     } catch (error) {
       console.error('[DeviceContext] failed to read device identity:', error);
       return empty;
