@@ -554,11 +554,28 @@ let cachedDeviceIdentity: {
   appBuildNumber: string;
   osVersion: string | null;
 } | null = null;
+/** A read still running, so a call that arrives meanwhile joins it. */
+let deviceIdentityRead: Promise<typeof cachedDeviceIdentity> | null = null;
 
 async function readDeviceIdentity(): Promise<typeof cachedDeviceIdentity> {
   if (cachedDeviceIdentity) {
     return cachedDeviceIdentity;
   }
+  // The launch warm-up and a test can ask at the same time: read once.
+  if (!deviceIdentityRead) {
+    deviceIdentityRead = querySystemIdentity();
+  }
+  const read = deviceIdentityRead;
+  try {
+    return await read;
+  } finally {
+    if (deviceIdentityRead === read) {
+      deviceIdentityRead = null;
+    }
+  }
+}
+
+async function querySystemIdentity(): Promise<typeof cachedDeviceIdentity> {
   const [systemData, osData] = await Promise.all([si.system(), si.osInfo()]);
 
   // Edition plus build, e.g. "Microsoft Windows 11 Home 10.0.26200". Both
