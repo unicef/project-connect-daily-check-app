@@ -12,7 +12,7 @@ import { SettingsService } from '../services/settings.service';
 import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
-import { LocationService } from './location.service';
+import { LocationService, normaliseBssid } from './location.service';
 import { PosthogService } from './posthog.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
 
@@ -214,7 +214,11 @@ export class UploadService {
       uploadURL = uploadURL + '?key=' + apiKey;
     }
 
-    return this.locationService.fetchAndSaveGeolocation().pipe(
+    // The access point this test ran on, so a location saved at another
+    // place is not sent as this one.
+    const connectedBssid = this.getConnectedBssid(record);
+
+    return this.locationService.fetchAndSaveGeolocation(connectedBssid).pipe(
       /* Geolocation is best effort: whatever happens, the measurement is still
          posted. fetchAndSaveGeolocation already falls back to the cached value
          and persists a fresh one, so nothing is written back here — the old
@@ -222,7 +226,9 @@ export class UploadService {
          destroyed the very fallback this relies on. */
       catchError(err => {
         console.error('Geolocation fetch failed, continuing with POST', err);
-        return of(this.locationService.getSavedGeolocation());
+        return of(
+          this.locationService.getSavedGeolocationForNetwork(connectedBssid)
+        );
       }),
       map(geo => {
         measurement['geolocation'] = geo ?? null;
@@ -265,6 +271,30 @@ export class UploadService {
         )
       )
     );
+  }
+
+  /**
+   * The BSSID of the access point the PC was connected to, from the
+   * connection read at the start of the test: the first entry with a usable
+   * address. Null on a cable, or when Windows hides the Wi-Fi details (the
+   * name the main process recovers then has no BSSID).
+   */
+  private getConnectedBssid(record: any): string | null {
+    try {
+      const connections = Array.isArray(record?.wifiConnections)
+        ? record.wifiConnections
+        : [];
+      for (const connection of connections) {
+        const bssid = normaliseBssid(connection?.bssid);
+        if (bssid) {
+          return bssid;
+        }
+      }
+      return null;
+    } catch (err) {
+      console.warn('[Upload] Could not read the connected BSSID:', err);
+      return null;
+    }
   }
 
   private handleError(error: Response) {

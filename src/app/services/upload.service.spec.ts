@@ -1,8 +1,8 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
-import { of } from 'rxjs';
-import { GEOLOCATE_TIMEOUT_MS } from './location.service';
+import { of, throwError } from 'rxjs';
+import { GEOLOCATE_RETRY_DELAY_MS, GEOLOCATE_TIMEOUT_MS } from './location.service';
 import { UploadService } from './upload.service';
 
 describe('UploadService', () => {
@@ -147,6 +147,133 @@ describe('UploadService', () => {
       expect(upload.request.body['geolocation']).toBeNull();
       upload.flush({});
       expect(uploaded).toBeTrue();
+    }));
+  });
+
+  describe('geolocation saved on another network', () => {
+    let originalElectronAPI: any;
+    const SAVED_GEO = { latitude: 14.07, longitude: -87.19, timestamp: 1_700_000_000_000 };
+    const SCHOOL_AP = 'aa:bb:cc:dd:ee:01';
+    const SCHOOL_OTHER_AP = 'aa:bb:cc:dd:ee:02';
+    const HOME_AP = '11:22:33:44:55:66';
+
+    const keys = ['geolocation', 'wifiAccessPoints', 'geolocationNetwork'];
+
+    beforeEach(() => {
+      originalElectronAPI = (window as any).electronAPI;
+      keys.forEach((k) => localStorage.removeItem(k));
+      const location = service['locationService'];
+      location.saveGeolocation(SAVED_GEO as any);
+      location.saveWifiAccessPoints([SCHOOL_AP, SCHOOL_OTHER_AP]);
+      location.saveConnectedBssid(SCHOOL_AP);
+
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['posthog'], 'capture').and.stub();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return {
+          ClientInfo: { Country: 'HN', IP: '10.0.0.1' },
+          Notes: 'manual',
+        } as any;
+      });
+    });
+
+    afterEach(() => {
+      (window as any).electronAPI = originalElectronAPI;
+      keys.forEach((k) => localStorage.removeItem(k));
+      httpMock.verify();
+    });
+
+    const record = (wifiConnections: any) => ({
+      Notes: 'manual',
+      timestamp: Date.now(),
+      wifiConnections,
+    });
+    const connectedTo = (bssid: string) =>
+      record([{ iface: 'Wi-Fi', ssid: 'Some-WiFi', bssid }]);
+
+    it('passes the connected BSSID to the location lookup', () => {
+      const fetch = spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+
+      // The first entry with a usable BSSID, written one way.
+      service
+        .uploadMeasurement(
+          record([
+            { iface: 'Wi-Fi 2', ssid: 'Some-WiFi', bssid: '' },
+            { iface: 'Wi-Fi', ssid: 'Home-WiFi', bssid: '11-22-33-44-55-66' },
+          ])
+        )
+        .subscribe();
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
+
+      expect(fetch).toHaveBeenCalledOnceWith(HOME_AP);
+    });
+
+    it('passes no BSSID when none is known', () => {
+      const fetch = spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+
+      // On a cable, and when Windows hides the Wi-Fi details.
+      [null, [], [{ iface: 'Wi-Fi', ssid: 'Home-WiFi' }]].forEach((connections) => {
+        service.uploadMeasurement(record(connections)).subscribe();
+        httpMock.expectOne((r) => r.url.endsWith('measurements')).flush({});
+      });
+
+      expect(fetch.calls.allArgs()).toEqual([[null], [null], [null]]);
+    });
+
+    describe('when the location fetch fails', () => {
+      beforeEach(() => {
+        spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(
+          throwError(() => new Error('boom'))
+        );
+      });
+
+      const uploadedGeolocation = (rec: any) => {
+        service.uploadMeasurement(rec).subscribe();
+        const upload = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+        const geo = upload.request.body['geolocation'];
+        upload.flush({});
+        return geo;
+      };
+
+      it('sends no location after the PC moved', () => {
+        expect(uploadedGeolocation(connectedTo(HOME_AP))).toBeNull();
+      });
+
+      it('still sends the saved location on the same access point', () => {
+        expect(uploadedGeolocation(connectedTo(SCHOOL_AP.toUpperCase()))).toEqual(SAVED_GEO);
+      });
+
+      it('still sends the saved location on another access point of the same place', () => {
+        expect(uploadedGeolocation(connectedTo(SCHOOL_OTHER_AP))).toEqual(SAVED_GEO);
+      });
+
+      it('still sends the saved location when no BSSID is known', () => {
+        expect(uploadedGeolocation(record(null))).toEqual(SAVED_GEO);
+      });
+    });
+
+    it('sends no location after a moved PC fails the lookup, end to end', fakeAsync(() => {
+      (window as any).electronAPI = {
+        getWifiList: () =>
+          Promise.resolve([{ ssid: 'x', signal: -40, macAddress: HOME_AP }]),
+      };
+
+      service.uploadMeasurement(connectedTo(HOME_AP)).subscribe();
+      flushMicrotasks();
+      httpMock
+        .expectOne((r) => r.url.endsWith('geolocation/geolocate'))
+        .flush(null, { status: 422, statusText: 'Unprocessable Entity' });
+      tick(GEOLOCATE_RETRY_DELAY_MS);
+
+      const upload = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+      expect(upload.request.body['geolocation']).toBeNull();
+      upload.flush({});
+      expect(service['locationService'].getSavedGeolocation()).toEqual(SAVED_GEO as any);
+      expect(service['locationService'].getSavedConnectedBssid()).toBe(SCHOOL_AP);
     }));
   });
 });
