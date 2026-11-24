@@ -6,6 +6,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { TranslateModule } from '@ngx-translate/core';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { NetworkService } from '../services/network.service';
 describe('StarttestPage', () => {
   let component: StarttestPage;
   let fixture: ComponentFixture<StarttestPage>;
@@ -17,7 +18,13 @@ describe('StarttestPage', () => {
     providers: [
         Network,
         provideHttpClient(withInterceptorsFromDi()),
-        provideHttpClientTesting()
+        provideHttpClientTesting(),
+        // The IP lookup's request time limit is a timer, which waitForAsync
+        // would wait for; an answer that never comes leaves none.
+        {
+          provide: NetworkService,
+          useValue: { getNetInfo: () => new Promise(() => undefined) },
+        },
     ]
 }).compileComponents();
 

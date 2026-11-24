@@ -506,6 +506,7 @@ describe('MeasurementClientService ndt7 integration', () => {
   let ndt7TestSpy: jasmine.Spy;
   let pingService: any;
   let syncService: any;
+  let sharedService: any;
 
   beforeEach(() => {
     ndt7TestSpy = spyOn(ndt7, 'test').and.resolveTo(0);
@@ -521,7 +522,7 @@ describe('MeasurementClientService ndt7 integration', () => {
     const uploadService: any = {
       uploadMeasurement: jasmine.createSpy('uploadMeasurement'),
     };
-    const sharedService: any = {
+    sharedService = {
       broadcast: jasmine.createSpy('broadcast'),
       on: jasmine.createSpy('on'),
     };
@@ -660,6 +661,106 @@ describe('MeasurementClientService ndt7 integration', () => {
       syncService.syncPingResults.and.rejectWith(new Error('offline'));
 
       await expectAsync(service.runTest('manual')).toBeResolved();
+    });
+  });
+
+  describe('one test at a time', () => {
+    it('gives a second request the test already running', async () => {
+      ndt7TestSpy.and.callFake(
+        () => new Promise((resolve) => setTimeout(() => resolve(0), 20))
+      );
+
+      const first = service.runTest('manual');
+      const second = service.runTest('daily');
+
+      expect(second).toBe(first);
+      expect(service.isTestRunning).toBeTrue();
+      await first;
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(service.isTestRunning).toBeFalse();
+    });
+
+    it('runs the next test once the previous one has ended', async () => {
+      await service.runTest('manual');
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('is not running any more after a failed test', async () => {
+      ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      expect(service.isTestRunning).toBeFalse();
+    });
+
+    it('lets another test start when the running one looks stuck', async () => {
+      // Server found, then ndt7 never ends: no timer left behind.
+      ndt7TestSpy.and.callFake((config: any, callbacks: any) => {
+        callbacks.serverChosen({});
+        return new Promise(() => undefined);
+      });
+      (service as any).stuckTestMs = 0;
+
+      const first = service.runTest('manual');
+      const second = service.runTest('manual');
+
+      expect(second).not.toBe(first);
+      // Both reach the ndt7 spy before it is removed, or they would call the
+      // real ndt7 after this spec.
+      while (ndt7TestSpy.calls.count() < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+    });
+  });
+
+  describe('server lookup', () => {
+    beforeEach(() => {
+      (service as any).serverLookupTimeoutMs = 50;
+    });
+
+    it('gives up on a lookup that does not answer, and retries it', async () => {
+      (service as any).maxRetries = 1;
+      ndt7TestSpy.and.returnValue(new Promise(() => undefined));
+
+      await expectAsync(service.runTest('manual')).toBeRejectedWithError(
+        /locate\.measurementlab\.net did not answer/
+      );
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('silences a run whose lookup answers after it gave up', async () => {
+      (service as any).maxRetries = 0;
+      const runs: any[] = [];
+      ndt7TestSpy.and.callFake((config: any, callbacks: any) => {
+        runs.push(callbacks);
+        return new Promise(() => undefined);
+      });
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+      const broadcasts = sharedService.broadcast.calls.count();
+
+      // Throwing here makes ndt7 stop before it starts the download.
+      expect(() => runs[0].serverChosen({ machine: 'late' })).toThrowError(
+        /after the test gave up/
+      );
+      runs[0].error('late error');
+      runs[0].downloadComplete({});
+      expect(sharedService.broadcast.calls.count()).toBe(broadcasts);
+    });
+
+    it('waits for the test as long as it takes once the server is chosen', async () => {
+      ndt7TestSpy.and.callFake((config: any, callbacks: any) => {
+        callbacks.serverChosen({ machine: 'mlab1' });
+        // Longer than the lookup limit.
+        return new Promise((resolve) => setTimeout(() => resolve(0), 120));
+      });
+
+      await expectAsync(service.runTest('manual')).toBeResolved();
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
     });
   });
 });

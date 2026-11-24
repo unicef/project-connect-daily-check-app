@@ -30,6 +30,18 @@ export class MeasurementClientService {
   private TIME_EXPECTED = 10;
   private retryAttempts = 0;
   private maxRetries = 3;
+  // The test in progress, so a second request joins it instead of running
+  // another test at the same time (see runTest).
+  private runningTest: { promise: Promise<void>; startedAt: number } | null =
+    null;
+  // A test still running after this long is taken as stuck, and another one
+  // may start. Every step of a test has a time limit except the Wi-Fi and
+  // device reads, so a healthy test, retries included, ends well before this.
+  private readonly stuckTestMs = 10 * 60 * 1000;
+  // ndt7 starts its download's 10 s connection timer when the test starts,
+  // before it knows the server, so a lookup slower than this ends the test
+  // with no download result anyway.
+  private readonly serverLookupTimeoutMs = 10 * 1000;
   private readonly measurementNotificationActivity = new BehaviorSubject<any>(
     {}
   ).asObservable();
@@ -106,10 +118,44 @@ export class MeasurementClientService {
    * already told the test page by then.
    *
    * Every test also gets a ping just before it, sent once the test is over.
+   *
+   * One test at a time: while a test runs, another call gets that test's
+   * promise instead of starting a second one, which would share the line with
+   * it and lower both results.
    */
-  async runTest(
+  runTest(
     notes = 'manual',
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
+  ): Promise<void> {
+    if (this.isTestRunning) {
+      console.log('A test is already running; waiting for it instead.');
+      return this.runningTest.promise;
+    }
+    const running = {
+      promise: this.runOneTest(notes, scheduleContext),
+      startedAt: Date.now(),
+    };
+    this.runningTest = running;
+    const clear = () => {
+      if (this.runningTest === running) {
+        this.runningTest = null;
+      }
+    };
+    running.promise.then(clear, clear);
+    return running.promise;
+  }
+
+  /** Whether a test is running (one running longer than stuckTestMs isn't counted). */
+  get isTestRunning(): boolean {
+    return (
+      !!this.runningTest &&
+      Date.now() - this.runningTest.startedAt < this.stuckTestMs
+    );
+  }
+
+  private async runOneTest(
+    notes: string,
+    scheduleContext: { slot: string | null; scheduledAt: number | null }
   ): Promise<void> {
     // Before the test, not alongside it, so neither slows the other down.
     await this.pingService.pingBeforeSpeedTest();
@@ -163,10 +209,7 @@ export class MeasurementClientService {
       measurementRecord.accessInformation =
         await this.networkService.getNetInfo();
 
-      const exitCode = await ndt7.test(
-        this.testConfig,
-        this.getTestCallbacks(measurementRecord)
-      );
+      const exitCode = await this.runNdt7(measurementRecord);
       console.log('ndt7 test completed with exit code:', exitCode);
 
       await this.finalizeMeasurement(measurementRecord);
@@ -236,6 +279,55 @@ export class MeasurementClientService {
       // does not report it (see finalizeMeasurement).
       serverTimestamp: null,
     };
+  }
+
+  /**
+   * Runs ndt7, giving up on its server lookup after serverLookupTimeoutMs.
+   *
+   * ndt7 puts no time limit on the lookup and can't cancel a run, so a lookup
+   * that never answers would hold the test for ever. Past the limit this
+   * rejects with a locate error, which runTestWithRetry retries, and the
+   * abandoned run is silenced: its callbacks do nothing, and if the lookup
+   * answers late, serverChosen throws so ndt7 stops before the download.
+   */
+  private runNdt7(measurementRecord: any): Promise<number> {
+    const callbacks = this.getTestCallbacks(measurementRecord);
+    let abandoned = false;
+    let timer: ReturnType<typeof setTimeout>;
+    // Started before ndt7 so it fires before ndt7's own 10 s connection timer.
+    const lookupTimedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        abandoned = true;
+        reject(
+          new Error(
+            `locate.measurementlab.net did not answer within ${this.serverLookupTimeoutMs} ms`
+          )
+        );
+      }, this.serverLookupTimeoutMs);
+    });
+
+    const guarded: Record<string, (data: any) => void> = {};
+    for (const [name, callback] of Object.entries(callbacks)) {
+      guarded[name] = (data: any) => {
+        if (!abandoned) {
+          (callback as (data: any) => void)(data);
+        }
+      };
+    }
+    guarded.serverChosen = (server: any) => {
+      if (abandoned) {
+        throw new Error(
+          'locate.measurementlab.net answered after the test gave up on it'
+        );
+      }
+      clearTimeout(timer);
+      callbacks.serverChosen(server);
+    };
+
+    return Promise.race([
+      ndt7.test(this.testConfig, guarded),
+      lookupTimedOut,
+    ]).finally(() => clearTimeout(timer));
   }
 
   private getTestCallbacks(measurementRecord: any) {

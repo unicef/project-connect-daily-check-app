@@ -1,8 +1,17 @@
 import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
+
+/**
+ * How long each request of the IP/ISP lookup waits. A request that never gets
+ * an answer would otherwise hold up the speed test (and the scheduler's
+ * network check) for ever; with this, it fails over to the next try or the
+ * fallback service.
+ */
+export const NET_INFO_REQUEST_TIMEOUT_MS = 10 * 1000;
 
 type Ip4Data = {
   organization: string;
@@ -79,7 +88,9 @@ export class NetworkService {
       try {
         console.log('accessServiceUrl', this.ipInfoLiteUrl);
         response = await firstValueFrom(
-          this.http.get<IpInfoLiteData>(this.ipInfoLiteUrl, options)
+          this.http
+            .get<IpInfoLiteData>(this.ipInfoLiteUrl, options)
+            .pipe(timeout(NET_INFO_REQUEST_TIMEOUT_MS))
         );
         console.log('response', response);
         return response;
@@ -108,15 +119,17 @@ export class NetworkService {
     try {
       const ipInfoLite = await this.getIpFromIpLite();
       const httpResponse = await firstValueFrom(
-        this.http.get<IpInfoData>(
-          `${this.accessServiceUrl}/${ipInfoLite.ip}`,
-          options
-        )
+        this.http
+          .get<IpInfoData>(`${this.accessServiceUrl}/${ipInfoLite.ip}`, options)
+          .pipe(timeout(NET_INFO_REQUEST_TIMEOUT_MS))
       );
       response = this.standardData(httpResponse);
     } catch (error) {
       console.error('Error:', error);
-      const ipGeoResponse = await fetch('https://ipv4.geojs.io/v1/ip/geo.json');
+      // The signal also covers reading the body below.
+      const ipGeoResponse = await fetch('https://ipv4.geojs.io/v1/ip/geo.json', {
+        signal: AbortSignal.timeout(NET_INFO_REQUEST_TIMEOUT_MS),
+      });
       const ipGeoData = await ipGeoResponse?.json().catch(() => null);
 
       return this.mapData(ipGeoData);

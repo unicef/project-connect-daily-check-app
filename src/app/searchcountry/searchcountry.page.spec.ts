@@ -7,6 +7,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { SearchcountryPage } from './searchcountry.page';
+import { NetworkService } from '../services/network.service';
 
 describe('SearchcountryPage', () => {
   let component: SearchcountryPage;
@@ -31,6 +32,12 @@ describe('SearchcountryPage', () => {
         Network,
         provideHttpClient(withInterceptorsFromDi()),
         provideHttpClientTesting(),
+        // The IP lookup's request time limit is a timer, which waitForAsync
+        // would wait for; an answer that never comes leaves none.
+        {
+          provide: NetworkService,
+          useValue: { getNetInfo: () => new Promise(() => undefined) },
+        },
       ],
     }).compileComponents();
 
