@@ -542,11 +542,13 @@ export class StarttestPage implements OnInit, OnDestroy {
   getStatusMessage(): string | null {
     // Show status message only during loading states (not during download/upload)
     if (this.currentState && !this.downloadStarted && !this.uploadStarted) {
-      // Don't show status message for "Starting" or "Completed" states
-      if (
-        this.currentState !== 'Starting' &&
-        this.currentState !== 'Completed'
-      ) {
+      // "Starting" covers the ping and the device/network reads that run
+      // before ndt7 reports anything, which take several seconds on a cold
+      // start. Without a message the circle sits empty and looks frozen.
+      if (this.currentState === 'Starting') {
+        return this.translate.instant('startTest.preparingTest');
+      }
+      if (this.currentState !== 'Completed') {
         return this.currentState;
       }
     }

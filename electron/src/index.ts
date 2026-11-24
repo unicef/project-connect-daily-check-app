@@ -172,6 +172,9 @@ if (!gotTheLock) {
   app.whenReady().then(async () => {
     mainWindow = await myCapacitorApp.init();
 
+    // Background only: keeps the first speed test from waiting on cold reads.
+    warmUpDeviceReads();
+
     // Get and log system hardware ID
     try {
       console.log('🔍 [Electron] Retrieving system hardware ID...');
@@ -551,6 +554,55 @@ let cachedDeviceIdentity: {
   appBuildNumber: string;
   osVersion: string | null;
 } | null = null;
+/** A read still running, so a call that arrives meanwhile joins it. */
+let deviceIdentityRead: Promise<typeof cachedDeviceIdentity> | null = null;
+
+async function readDeviceIdentity(): Promise<typeof cachedDeviceIdentity> {
+  if (cachedDeviceIdentity) {
+    return cachedDeviceIdentity;
+  }
+  // The launch warm-up and a test can ask at the same time: read once.
+  if (!deviceIdentityRead) {
+    deviceIdentityRead = querySystemIdentity();
+  }
+  const read = deviceIdentityRead;
+  try {
+    return await read;
+  } finally {
+    if (deviceIdentityRead === read) {
+      deviceIdentityRead = null;
+    }
+  }
+}
+
+async function querySystemIdentity(): Promise<typeof cachedDeviceIdentity> {
+  const [systemData, osData] = await Promise.all([si.system(), si.osInfo()]);
+
+  // Edition plus build, e.g. "Microsoft Windows 11 Home 10.0.26200". Both
+  // halves matter: the edition is what a reader recognises, the build is what
+  // distinguishes 24H2 from 23H2. os.release() is the fallback for the case
+  // where systeminformation cannot read the registry.
+  const osVersion =
+    [osData?.distro, osData?.release].filter(Boolean).join(' ').trim() ||
+    os.release() ||
+    null;
+
+  const identity = {
+    deviceName: os.hostname(),
+    deviceModel: systemData.model,
+    deviceManufacturer: systemData.manufacturer,
+    // The commit the build came from; falls back to the app version when the
+    // build ran outside a git checkout (see generate-build-mode.js).
+    appBuildNumber: BUILD_COMMIT ?? app.getVersion(),
+    osVersion,
+  };
+  // A blank WMI read (not answering yet at Windows logon) is not kept for the
+  // whole run: the next call reads again.
+  if (systemData.model || systemData.manufacturer) {
+    cachedDeviceIdentity = identity;
+  }
+  return identity;
+}
 
 ipcMain.handle('get-device-identity', async () => {
   try {
@@ -558,38 +610,39 @@ ipcMain.handle('get-device-identity', async () => {
       return cachedDeviceIdentity;
     }
     console.log('📤 [Electron] Device identity requested via IPC');
-    const [systemData, osData] = await Promise.all([si.system(), si.osInfo()]);
-
-    // Edition plus build, e.g. "Microsoft Windows 11 Home 10.0.26200". Both
-    // halves matter: the edition is what a reader recognises, the build is what
-    // distinguishes 24H2 from 23H2. os.release() is the fallback for the case
-    // where systeminformation cannot read the registry.
-    const osVersion =
-      [osData?.distro, osData?.release].filter(Boolean).join(' ').trim() ||
-      os.release() ||
-      null;
-
-    cachedDeviceIdentity = {
-      deviceName: os.hostname(),
-      deviceModel: systemData.model,
-      deviceManufacturer: systemData.manufacturer,
-      // The commit the build came from; falls back to the app version when the
-      // build ran outside a git checkout (see generate-build-mode.js).
-      appBuildNumber: BUILD_COMMIT ?? app.getVersion(),
-      osVersion,
-    };
-
-    console.log(
-      '✅ [Electron] Device identity returned via IPC:',
-      cachedDeviceIdentity
-    );
-    return cachedDeviceIdentity;
+    const identity = await readDeviceIdentity();
+    console.log('✅ [Electron] Device identity returned via IPC:', identity);
+    return identity;
   } catch (error) {
     console.error('❌ [Electron] Error getting device identity via IPC:', error);
     captureException(error);
     return { error: error.message };
   }
 });
+
+// --- Device read warm-up ----------------------------------------------------
+//
+// Every speed test reads the device identity and context before it starts.
+// Cold, those reads take ~8–9 s (PowerShell/WMI starting up), and the first
+// test of a run sat on an empty gauge for that long. Reading them once shortly
+// after launch fills the caches here and in device-context.ts and warms
+// PowerShell/WMI, so the test's own reads come back in ~2 s. Both reads fail
+// soft: if the warm-up gets nothing, the test reads them itself, as before.
+const DEVICE_READS_WARMUP_DELAY_MS = 10000;
+
+function warmUpDeviceReads(): void {
+  setTimeout(async () => {
+    const started = Date.now();
+    try {
+      await Promise.all([readDeviceIdentity(), getDeviceContext()]);
+      console.log(
+        `✅ [Electron] Device reads warmed up in ${Date.now() - started} ms`
+      );
+    } catch (error) {
+      console.warn('⚠️ [Electron] Device read warm-up failed:', error?.message);
+    }
+  }, DEVICE_READS_WARMUP_DELAY_MS);
+}
 
 // --- Hardware ID retry ------------------------------------------------------
 //

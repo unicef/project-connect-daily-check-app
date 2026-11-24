@@ -16,6 +16,7 @@ import {
   UPLOAD_LEG,
   hasClientResult,
 } from '../utils/ndt-results.utils';
+import { withTimeout } from '../utils/with-timeout.utils';
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +31,10 @@ export class MeasurementClientService {
   private TIME_EXPECTED = 10;
   private retryAttempts = 0;
   private maxRetries = 3;
+  // How long a test waits for the device identity and context before it runs
+  // without them. They are diagnostics, and the Windows queries behind them
+  // have no time limit of their own.
+  private readonly deviceReadsTimeoutMs = 10 * 1000;
   private readonly measurementNotificationActivity = new BehaviorSubject<any>(
     {}
   ).asObservable();
@@ -148,9 +153,12 @@ export class MeasurementClientService {
     // the readings describe the machine as the test found it, and awaited
     // together because they are independent I/O — serialising them is what would
     // push the capture past the 1.5 s budget the plan set.
+    // A read still running after deviceReadsTimeoutMs is sent as null. It
+    // carries on in the background, and what it remembers is there for the
+    // next test.
     const [deviceIdentity, deviceContext] = await Promise.all([
-      this.deviceContext.getDeviceIdentity(),
-      this.deviceContext.getDeviceContext(),
+      this.readInTime('device identity', this.deviceContext.getDeviceIdentity()),
+      this.readInTime('device context', this.deviceContext.getDeviceContext()),
     ]);
     measurementRecord.deviceIdentity = deviceIdentity;
     measurementRecord.deviceContext = deviceContext;
@@ -207,6 +215,19 @@ export class MeasurementClientService {
         throw error;
       }
     }
+  }
+
+  /** `read`'s value, or null when it hasn't come back in deviceReadsTimeoutMs. */
+  private async readInTime<T>(name: string, read: Promise<T>): Promise<T | null> {
+    const timedOut = Symbol('timed out');
+    const result = await withTimeout(this.deviceReadsTimeoutMs, read, timedOut);
+    if (result === timedOut) {
+      console.warn(
+        `${name} not read within ${this.deviceReadsTimeoutMs} ms; testing without it`
+      );
+      return null;
+    }
+    return result as T;
   }
 
   private initializeMeasurementRecord(

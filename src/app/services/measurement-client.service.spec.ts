@@ -506,6 +506,7 @@ describe('MeasurementClientService ndt7 integration', () => {
   let ndt7TestSpy: jasmine.Spy;
   let pingService: any;
   let syncService: any;
+  let deviceContext: any;
 
   beforeEach(() => {
     ndt7TestSpy = spyOn(ndt7, 'test').and.resolveTo(0);
@@ -527,7 +528,7 @@ describe('MeasurementClientService ndt7 integration', () => {
     };
     // Device/network context is diagnostic metadata read over IPC; outside
     // Electron it resolves to nulls, which is what these tests exercise.
-    const deviceContext: any = {
+    deviceContext = {
       getDeviceIdentity: jasmine.createSpy('getDeviceIdentity').and.resolveTo({
         device_name: null,
         device_model: null,
@@ -660,6 +661,53 @@ describe('MeasurementClientService ndt7 integration', () => {
       syncService.syncPingResults.and.rejectWith(new Error('offline'));
 
       await expectAsync(service.runTest('manual')).toBeResolved();
+    });
+  });
+
+  describe('device reads', () => {
+    const never = () => new Promise<never>(() => undefined);
+    const savedRecord = () =>
+      (service as any).finalizeMeasurement.calls.mostRecent().args[0];
+
+    beforeEach(() => {
+      (service as any).deviceReadsTimeoutMs = 50;
+      spyOn(console, 'warn');
+    });
+
+    it('runs the test without the identity when it does not come back in time', async () => {
+      deviceContext.getDeviceIdentity.and.callFake(never);
+      deviceContext.getDeviceContext.and.resolveTo({ connection_type: 'wifi' });
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().deviceIdentity).toBeNull();
+      expect(savedRecord().deviceContext).toEqual({ connection_type: 'wifi' });
+      expect(console.warn).toHaveBeenCalled();
+    });
+
+    it('runs the test without the context when it does not come back in time', async () => {
+      deviceContext.getDeviceContext.and.callFake(never);
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().deviceContext).toBeNull();
+      expect(savedRecord().deviceIdentity).toEqual(
+        jasmine.objectContaining({ device_name: null })
+      );
+    });
+
+    it('keeps reads that come back in time', async () => {
+      const identity = { device_name: 'SCHOOL-PC-01', device_model: 'ThinkPad' };
+      deviceContext.getDeviceIdentity.and.callFake(
+        () => new Promise((resolve) => setTimeout(() => resolve(identity), 10))
+      );
+
+      await service.runTest('manual');
+
+      expect(savedRecord().deviceIdentity).toEqual(identity);
+      expect(console.warn).not.toHaveBeenCalled();
     });
   });
 });

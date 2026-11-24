@@ -29,4 +29,30 @@ describe('StarttestPage', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  describe('getStatusMessage', () => {
+    // No translation loader is set up, so instant() returns the key itself.
+    it('says the test is being prepared while it is starting', () => {
+      component.currentState = 'Starting';
+      expect(component.getStatusMessage()).toBe('startTest.preparingTest');
+    });
+
+    it('shows nothing once the download has started', () => {
+      component.currentState = 'Starting';
+      component.downloadStarted = true;
+      expect(component.getStatusMessage()).toBeNull();
+    });
+
+    it('shows the current step between starting and the download', () => {
+      component.currentState = 'Finding servers...';
+      expect(component.getStatusMessage()).toBe('Finding servers...');
+    });
+
+    it('shows nothing when the test is completed or idle', () => {
+      component.currentState = 'Completed';
+      expect(component.getStatusMessage()).toBeNull();
+      component.currentState = undefined;
+      expect(component.getStatusMessage()).toBeNull();
+    });
+  });
 });
