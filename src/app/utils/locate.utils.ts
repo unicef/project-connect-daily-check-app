@@ -55,3 +55,82 @@ export function readLocateParams(urls: unknown): LocateParams {
 
   return result;
 }
+
+/**
+ * M-Lab's server lookup for registered integrations. It has higher rate limits
+ * than the public one (`/v2/nearest/...`) that ndt7-js calls by default, and
+ * answers the same way.
+ */
+export const PRIORITY_LOCATE_URL =
+  'https://locate.measurementlab.net/v2/priority/nearest/ndt/ndt7';
+
+/**
+ * What our backend hands out for the priority lookup (see
+ * LocateAccessService). Either value on its own is enough to use it.
+ */
+export interface LocateAccess {
+  /** Sent to M-Lab as `Authorization: Bearer <token>`. */
+  token: string | null;
+  /** Called instead of PRIORITY_LOCATE_URL. Its own query string is kept. */
+  locateUrl: string | null;
+}
+
+/** The two target URLs ndt7-js's downloadTest and uploadTest expect. */
+export interface NdtUrls {
+  '///ndt/v7/download': string;
+  '///ndt/v7/upload': string;
+}
+
+/**
+ * Asks the priority lookup for a server, the way ndt7-js asks the public one:
+ * the first result wins, and its wss URLs (which carry the server's own
+ * access token) are what the test connects to.
+ *
+ * Rejects with a short reason ('HTTP 401', 'timeout', …) on any failure, so
+ * the caller can fall back to the public lookup and keep the reason with the
+ * test. `onDiscovery` gets the URL without its query string, which may carry
+ * a key.
+ */
+export async function lookupPriorityServer(
+  access: LocateAccess,
+  metadata: Record<string, string>,
+  timeoutMs: number,
+  onDiscovery: (loadbalancer: URL) => void = () => undefined
+): Promise<{ server: any; urls: NdtUrls }> {
+  const url = new URL(access.locateUrl || PRIORITY_LOCATE_URL);
+  for (const [name, value] of Object.entries(metadata)) {
+    url.searchParams.set(name, value);
+  }
+  onDiscovery(new URL(url.origin + url.pathname));
+
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      headers: access.token ? { Authorization: `Bearer ${access.token}` } : {},
+      signal: AbortSignal.timeout(timeoutMs),
+    });
+  } catch (error) {
+    // Not only network errors: M-Lab sends its 401 for a refused token without
+    // CORS headers, so the app cannot read it and fetch fails the same way.
+    throw new Error(
+      (error as Error)?.name === 'TimeoutError'
+        ? 'timeout'
+        : 'refused or unreachable'
+    );
+  }
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const body = await response.json().catch(() => null);
+  const server = body?.results?.[0];
+  const download = server?.urls?.['wss:///ndt/v7/download'];
+  const upload = server?.urls?.['wss:///ndt/v7/upload'];
+  if (typeof download !== 'string' || typeof upload !== 'string') {
+    throw new Error('no server in reply');
+  }
+  return {
+    server,
+    urls: { '///ndt/v7/download': download, '///ndt/v7/upload': upload },
+  };
+}
