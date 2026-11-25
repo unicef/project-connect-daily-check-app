@@ -15,6 +15,7 @@ import { IndexedDBService } from './indexed-db.service';
 import { LocationService, normaliseBssid } from './location.service';
 import { PosthogService } from './posthog.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
+import { APP_INSTANCE_ID_KEY } from './registration-context.service';
 
 @Injectable({
   providedIn: 'root',
@@ -165,6 +166,10 @@ export class UploadService {
 
     // Add measure-saver-specific metadata.
     measurement.BrowserID = this.storage.get('schoolUserId');
+    // This install (app instance): the link from the result to its
+    // registration, in place of BrowserID.
+    measurement['app_instance_id'] =
+      this.storage.get(APP_INSTANCE_ID_KEY) || null;
     measurement.Timestamp = this.ts.toISOString();
     measurement.timestamplocal = this.ts.toLocaleString();
     measurement.DeviceType = this.storage.get('deviceType');
