@@ -200,3 +200,81 @@ describe('HardwareIdService.getDeviceIdentifiers', () => {
     }
   });
 });
+
+describe('HardwareIdService.waitForDeviceIdentifiers', () => {
+  const STORAGE_KEY = 'system_hardware_id';
+  let pushHardwareData: (data: any) => void;
+  let service: HardwareIdService;
+
+  beforeEach(() => {
+    localStorage.removeItem(STORAGE_KEY);
+    pushHardwareData = () => undefined;
+    // A fresh start: the first answer has the firmware UUID but no serials.
+    (window as any).electronAPI = {
+      getHardwareId: () =>
+        Promise.resolve({ hardwareId: 'UUID-1', machine_guid: 'GUID-1' }),
+      onHardwareId: (callback: (data: any) => void) =>
+        (pushHardwareData = callback),
+      onHardwareIdError: () => undefined,
+    };
+    service = new HardwareIdService();
+  });
+
+  afterEach(() => {
+    delete (window as any).electronAPI;
+    localStorage.removeItem(STORAGE_KEY);
+  });
+
+  it('answers at once when a serial is already known', async () => {
+    pushHardwareData({ hardwareId: 'UUID-1', disk_serial: 'DISK-1' });
+    const started = Date.now();
+
+    const ids = await service.waitForDeviceIdentifiers(5000, 10);
+
+    expect(ids.disk_serial).toBe('DISK-1');
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+
+  it('waits for the serials the main process sends later', async () => {
+    await service.fetchHardwareId();
+    setTimeout(
+      () =>
+        pushHardwareData({
+          hardwareId: 'UUID-1',
+          baseboard_serial: 'BOARD-1',
+          disk_serial: 'DISK-1',
+          machine_guid: 'GUID-1',
+        }),
+      50
+    );
+
+    const ids = await service.waitForDeviceIdentifiers(5000, 10);
+
+    expect(ids).toEqual({
+      baseboard_serial: 'BOARD-1',
+      disk_serial: 'DISK-1',
+      machine_guid: 'GUID-1',
+    });
+  });
+
+  it('gives up at the limit with what it has', async () => {
+    await service.fetchHardwareId();
+
+    const ids = await service.waitForDeviceIdentifiers(50, 10);
+
+    expect(ids).toEqual({
+      baseboard_serial: null,
+      disk_serial: null,
+      machine_guid: 'GUID-1',
+    });
+  });
+
+  it('does not wait outside the desktop app', async () => {
+    delete (window as any).electronAPI;
+    const started = Date.now();
+
+    await service.waitForDeviceIdentifiers(5000, 10);
+
+    expect(Date.now() - started).toBeLessThan(1000);
+  });
+});

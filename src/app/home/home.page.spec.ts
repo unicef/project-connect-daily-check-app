@@ -12,6 +12,7 @@ import {
   HomePage,
   PENDING_APP_INSTANCE_CLAIM_KEY,
   PENDING_AUTO_REGISTRATION_KEY,
+  SERIALS_WAIT_MS,
 } from './home.page';
 import { LoadingService } from '../services/loading.service';
 import { HardwareIdService } from '../services/hardware-id.service';
@@ -41,8 +42,14 @@ describe('HomePage', () => {
       'ensureHardwareId',
       'waitForUsableHardwareId',
       'isUsableHardwareId',
+      'waitForDeviceIdentifiers',
     ]);
     hardwareIdService.ensureHardwareId.and.resolveTo(null);
+    hardwareIdService.waitForDeviceIdentifiers.and.resolveTo({
+      baseboard_serial: 'BOARD-1',
+      disk_serial: 'DISK-1',
+      machine_guid: 'GUID-1',
+    });
     hardwareIdService.waitForUsableHardwareId.and.resolveTo(null);
     hardwareIdService.isUsableHardwareId.and.callFake(
       (id) => !!id && id !== 'NO_UUID_AVAILABLE'
@@ -238,6 +245,43 @@ describe('HomePage', () => {
       schoolService.registerSchoolDevice.and.returnValue(
         of('second-user-registration')
       );
+      // Wanted after the lookup and after the wait; not after storing.
+      let checks = 0;
+
+      await (component as any).checkMachineRegistration(
+        'UUID-1',
+        () => ++checks <= 2
+      );
+
+      expect(schoolService.registerSchoolDevice).toHaveBeenCalled();
+      expect(localStorage.getItem('schoolId')).toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('waits for the serials before registering by itself', async () => {
+      const order: string[] = [];
+      hardwareIdService.waitForDeviceIdentifiers.and.callFake(async () => {
+        order.push('wait');
+        return { baseboard_serial: 'BOARD-1', disk_serial: 'DISK-1', machine_guid: null };
+      });
+      registrationContext.build.and.callFake(async () => {
+        order.push('build');
+        return payload as any;
+      });
+      schoolService.registerSchoolDevice.and.returnValue(
+        of('second-user-registration')
+      );
+
+      await (component as any).checkMachineRegistration('UUID-1');
+
+      expect(hardwareIdService.waitForDeviceIdentifiers).toHaveBeenCalledWith(
+        SERIALS_WAIT_MS
+      );
+      expect(order).toEqual(['wait', 'build']);
+    });
+
+    it('does not register by itself when the user moved on while the PC was being read', async () => {
+      // Wanted after the lookup, no longer after the wait for the serials.
       let checks = 0;
 
       await (component as any).checkMachineRegistration(
@@ -245,6 +289,19 @@ describe('HomePage', () => {
         () => ++checks === 1
       );
 
+      expect(registrationContext.build).not.toHaveBeenCalled();
+      expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
+      expect(localStorage.getItem('schoolId')).toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('is off on a normal start too once the user reached the country step', async () => {
+      hardwareIdService.ensureHardwareId.and.resolveTo('UUID-1');
+      (component as any).reachedCountryStep = true;
+
+      await (component as any).checkHardwareRegistration();
+
+      expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
       expect(localStorage.getItem('schoolId')).toBeNull();
       expect(navigate).not.toHaveBeenCalled();
     });
@@ -271,6 +328,9 @@ describe('HomePage', () => {
         'second-user-registration'
       );
       expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBeFalsy();
+      expect(hardwareIdService.waitForDeviceIdentifiers).toHaveBeenCalledWith(
+        SERIALS_WAIT_MS
+      );
     });
 
     it('registers nothing on start when nothing is pending', async () => {

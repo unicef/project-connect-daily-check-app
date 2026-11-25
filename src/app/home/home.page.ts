@@ -37,6 +37,13 @@ export const PENDING_AUTO_REGISTRATION_KEY = 'pendingAutoRegistration';
  */
 export const PENDING_APP_INSTANCE_CLAIM_KEY = 'pendingAppInstanceClaim';
 
+/**
+ * How long a registration the app makes by itself waits for the motherboard
+ * and disk serials. They usually come within seconds of the firmware UUID;
+ * on a PC where they can't be read, it registers without them after this.
+ */
+export const SERIALS_WAIT_MS = 20000;
+
 /** This app instance registered at the school of the PC's registration. */
 interface InstanceRegistration {
   /** What was sent: this app instance's own context. */
@@ -171,7 +178,9 @@ export class HomePage {
         );
         // Check if device registration still exists in backend
         // This handles the case where User A logs out, but User B can claim the registration
-        await this.checkMachineRegistration(hardwareId);
+        await this.checkMachineRegistration(hardwareId, () =>
+          this.canAutoRegister()
+        );
       } else if (status.data.exists && status.data.is_active === true) {
         // Device is active, proceed normally
         console.log(
@@ -259,7 +268,11 @@ export class HomePage {
           '🔍 [HomePage] Checking for existing registration with hardware ID:',
           hardwareId
         );
-        await this.checkMachineRegistration(hardwareId);
+        // Only while the user hasn't started registering by hand: a match
+        // found once they reach the country step must not cut in.
+        await this.checkMachineRegistration(hardwareId, () =>
+          this.canAutoRegister()
+        );
         this.isCheckingRegistration = false;
       } else {
         // No hardware ID available after timeout - proceed normally
@@ -367,6 +380,19 @@ export class HomePage {
         console.log('   User ID:', response.data.user_id);
         console.log('   School ID:', response.data.school_id);
         console.log('   Giga ID:', response.data.giga_id_school);
+        if (response.data.giga_id_school) {
+          // On a fresh start the serials can still be on their way, and
+          // without them the backend may not know which PC this is.
+          await this.hardwareIdService.waitForDeviceIdentifiers(
+            SERIALS_WAIT_MS
+          );
+          if (!stillWanted()) {
+            console.log(
+              'ℹ️ [HomePage] User moved on while this PC was being read, not registering by itself'
+            );
+            return;
+          }
+        }
         // This app instance gets a registration of its own at that school.
         const registration = await this.registerThisInstance(response.data);
         if (!stillWanted()) {
@@ -465,6 +491,8 @@ export class HomePage {
       return;
     }
     try {
+      // At start, as the first attempt: the serials may not be read yet.
+      await this.hardwareIdService.waitForDeviceIdentifiers(SERIALS_WAIT_MS);
       const payload = await this.registrationContext.build({
         giga_id_school: gigaId,
         country_code: this.storage.get('country_code') ?? null,

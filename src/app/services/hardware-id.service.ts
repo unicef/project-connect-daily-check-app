@@ -188,6 +188,34 @@ export class HardwareIdService {
   }
 
   /**
+   * getDeviceIdentifiers(), once a motherboard or disk serial has been read,
+   * or as they are when `timeoutMs` runs out.
+   *
+   * On a fresh start the first hardware read can come back before the serials
+   * (WMI is slow to answer); the main process keeps reading them in the
+   * background and sends them when it has them. A registration sent before
+   * then has only the firmware UUID to go by, and where that UUID is shared
+   * with other PCs the backend can't tell which PC it is (TECH-8828).
+   */
+  async waitForDeviceIdentifiers(
+    timeoutMs: number,
+    pollMs = 500
+  ): Promise<DeviceIdentifiers> {
+    const hasSerials = (ids: DeviceIdentifiers) =>
+      !!(ids.baseboard_serial || ids.disk_serial);
+    let ids = this.getDeviceIdentifiers();
+    if (!this.isElectron()) {
+      return ids;
+    }
+    const deadline = Date.now() + timeoutMs;
+    while (!hasSerials(ids) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, pollMs));
+      ids = this.getDeviceIdentifiers();
+    }
+    return ids;
+  }
+
+  /**
    * Check if running in Electron
    */
   private isElectron(): boolean {
