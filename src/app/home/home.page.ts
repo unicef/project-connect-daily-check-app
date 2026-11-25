@@ -14,6 +14,7 @@ import { HardwareIdService } from '../services/hardware-id.service';
 import { PosthogService } from '../services/posthog.service';
 import {
   APP_INSTANCE_ID_KEY,
+  PENDING_AUTO_REGISTRATION_KEY,
   REGISTER_TIMEOUT_MS,
   RegistrationContextService,
 } from '../services/registration-context.service';
@@ -24,12 +25,6 @@ import {
  * dashboard.
  */
 const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
-
-/**
- * Set while this app instance's own registration couldn't be stored, so the
- * next start tries again.
- */
-export const PENDING_AUTO_REGISTRATION_KEY = 'pendingAutoRegistration';
 
 /**
  * Set while the app instance ID this install made for the registration it
@@ -404,6 +399,15 @@ export class HomePage {
           );
           return;
         }
+        // Going on with the registration found because this install's own
+        // couldn't be stored: the next start tries again. Set only here, past
+        // the check above, as a user who moved on registers by hand.
+        const borrowing =
+          !!response.data.giga_id_school && !registration?.userId;
+        await this.storage.set(
+          PENDING_AUTO_REGISTRATION_KEY,
+          borrowing ? 'true' : ''
+        );
         await this.applyExistingRegistration(response.data, registration);
         this.loading.dismiss();
         console.log('🚀 [HomePage] Navigating to /starttest...');
@@ -430,10 +434,8 @@ export class HomePage {
    * registration of its own with this instance's context (its Windows user,
    * install path, networks, location), not the context of the registration it
    * was found by. Null when there's no school to register at, or the context
-   * couldn't be read; the found registration is used as before then.
-   *
-   * When it can't be stored (offline, a server error), the found registration
-   * is used for now and the next start tries again.
+   * couldn't be read; `userId` null when it couldn't be stored (offline, a
+   * server error). In both cases the caller borrows the found registration.
    */
   private async registerThisInstance(
     registrationData: any
@@ -466,15 +468,13 @@ export class HomePage {
           .registerSchoolDevice(payload)
           .pipe(timeout(REGISTER_TIMEOUT_MS))
       )) as string;
-      await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
       console.log('✅ [HomePage] Registered this app instance:', userId);
       return { payload, userId };
     } catch (error) {
       console.error(
-        '❌ [HomePage] Registering this app instance failed; trying again on the next start:',
+        '❌ [HomePage] Registering this app instance failed:',
         error
       );
-      await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, 'true');
       return { payload, userId: null };
     }
   }

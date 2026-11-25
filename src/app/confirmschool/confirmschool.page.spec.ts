@@ -13,7 +13,10 @@ import { LoadingService } from '../services/loading.service';
 import { NetworkService } from '../services/network.service';
 import { PosthogService } from '../services/posthog.service';
 import { LocationService } from '../services/location.service';
-import { RegistrationContextService } from '../services/registration-context.service';
+import {
+  PENDING_AUTO_REGISTRATION_KEY,
+  RegistrationContextService,
+} from '../services/registration-context.service';
 
 describe('ConfirmschoolPage', () => {
   let component: ConfirmschoolPage;
@@ -114,6 +117,27 @@ describe('ConfirmschoolPage', () => {
     expect(schoolService.registerSchoolDevice).toHaveBeenCalledTimes(1);
     expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
     expect(loading.dismiss).toHaveBeenCalled();
+  });
+
+  it('leaves nothing for the next start to try again once registered by hand', async () => {
+    // An automatic registration failed earlier in this install.
+    localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
+    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+
+    await component.confirmSchool();
+
+    expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBeFalsy();
+  });
+
+  it('keeps a pending automatic registration when registering by hand fails', async () => {
+    localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
+    schoolService.registerSchoolDevice.and.returnValue(
+      throwError(() => new Error('500'))
+    );
+
+    await component.confirmSchool();
+
+    expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBe('true');
   });
 
   it('presents the loader without a duration so it survives a slow registration', async () => {

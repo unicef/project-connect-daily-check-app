@@ -19,6 +19,13 @@ export const APP_INSTANCE_ID_KEY = 'appInstanceId';
 export const APP_INSTANCE_SCHOOL_KEY = 'appInstanceSchool';
 
 /**
+ * Set while this app instance uses the registration found for its PC because
+ * its own couldn't be stored, so the next start tries again. A registration
+ * of its own, automatic or by hand, clears it.
+ */
+export const PENDING_AUTO_REGISTRATION_KEY = 'pendingAutoRegistration';
+
+/**
  * How the app came to register: the user picked the school, or the app took
  * it from the registration this PC already has.
  */

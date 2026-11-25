@@ -18,6 +18,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { LocationService } from '../services/location.service';
 import { PosthogService } from '../services/posthog.service';
 import {
+  PENDING_AUTO_REGISTRATION_KEY,
   REGISTER_TIMEOUT_MS,
   RegistrationContextService,
 } from '../services/registration-context.service';
@@ -149,6 +150,9 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.set('schoolUserId', response);
       this.storage.set('schoolId', this.schoolId);
       this.storage.set('gigaId', this.school.giga_id_school);
+      // This install has a registration of its own now: nothing for the next
+      // start to try again, even if an automatic one failed earlier.
+      this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
       // From here on, events belong to this PC, in this school's group.
       this.posthog.identifyDevice({
         country_code: this.selectedCountry,
