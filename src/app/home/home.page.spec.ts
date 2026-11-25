@@ -11,13 +11,15 @@ import { of, throwError } from 'rxjs';
 import {
   HomePage,
   PENDING_APP_INSTANCE_CLAIM_KEY,
-  PENDING_AUTO_REGISTRATION_KEY,
   SERIALS_WAIT_MS,
 } from './home.page';
 import { LoadingService } from '../services/loading.service';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { SchoolService } from '../services/school.service';
-import { RegistrationContextService } from '../services/registration-context.service';
+import {
+  PENDING_AUTO_REGISTRATION_KEY,
+  RegistrationContextService,
+} from '../services/registration-context.service';
 
 @Component({ template: '', standalone: false })
 class BlankComponent {}
@@ -230,7 +232,7 @@ describe('HomePage', () => {
       expect(navigate).toHaveBeenCalledWith(['/starttest']);
     });
 
-    it('uses the registration found as before when this PC cannot be read', async () => {
+    it('uses the registration found as before when this PC cannot be read, and tries again on the next start', async () => {
       registrationContext.build.and.rejectWith(new Error('no device plugin'));
 
       await (component as any).checkMachineRegistration('UUID-1');
@@ -238,6 +240,7 @@ describe('HomePage', () => {
       expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
       expect(localStorage.getItem('schoolUserId')).toBe('first-user');
       expect(localStorage.getItem('macAddress')).toBe('found-device');
+      expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBe('true');
       expect(navigate).toHaveBeenCalledWith(['/starttest']);
     });
 
@@ -254,6 +257,25 @@ describe('HomePage', () => {
       );
 
       expect(schoolService.registerSchoolDevice).toHaveBeenCalled();
+      expect(localStorage.getItem('schoolId')).toBeNull();
+      expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('leaves nothing to try again when storing fails after the user moved on', async () => {
+      // The user registers by hand instead; a retry on the next start would
+      // only send that registration again, as if the app had made it.
+      schoolService.registerSchoolDevice.and.returnValue(
+        throwError(() => new Error('offline'))
+      );
+      let checks = 0;
+
+      await (component as any).checkMachineRegistration(
+        'UUID-1',
+        () => ++checks <= 2
+      );
+
+      expect(schoolService.registerSchoolDevice).toHaveBeenCalled();
+      expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBeFalsy();
       expect(localStorage.getItem('schoolId')).toBeNull();
       expect(navigate).not.toHaveBeenCalled();
     });
