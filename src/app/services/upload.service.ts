@@ -5,7 +5,7 @@ import {
   HttpRequest,
   HttpParams,
 } from '@angular/common/http';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { Observable, of, throwError } from 'rxjs';
 import { SettingsService } from '../services/settings.service';
@@ -16,6 +16,14 @@ import { LocationService, normaliseBssid } from './location.service';
 import { PosthogService } from './posthog.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
 import { APP_INSTANCE_ID_KEY } from './registration-context.service';
+
+/**
+ * How long the realtime upload waits for the backend. Past this it is treated
+ * as failed: the measurement is queued and SyncService sends it later. Without
+ * a limit, a request that never gets an answer leaves the test unfinished, and
+ * the result isn't saved or queued until it ends.
+ */
+export const UPLOAD_TIMEOUT_MS = 30 * 1000;
 
 @Injectable({
   providedIn: 'root',
@@ -252,6 +260,7 @@ export class UploadService {
       }),
       switchMap(measurementWithGeo =>
         this.http.post(uploadURL, measurementWithGeo).pipe(
+          timeout(UPLOAD_TIMEOUT_MS),
           map((res: any) => res),
           tap((data) => {
             // Measurement delivered in realtime. No speed figures: that is what

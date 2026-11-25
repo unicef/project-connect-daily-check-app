@@ -180,6 +180,14 @@ export class ScheduleService {
 
     if (scheduleSemaphore.choice && currentTime > scheduleSemaphore.choice) {
       console.log("It's time to run the measurement");
+      // This runs every minute, and the slot stays due until its test ends,
+      // so a test that takes longer would otherwise get another started on
+      // top of it. If the running test is a manual one, the slot's own test
+      // runs at the first check after it ends.
+      if (this.measurementClientService.isTestRunning) {
+        console.log('A test is already running; checking again next minute.');
+        return;
+      }
       const networkInfo = await this.getNetworkInfoSafe();
       if (!networkInfo) {
         console.log('Network not available, rescheduling measurement.');
@@ -394,6 +402,11 @@ export class ScheduleService {
   // Run the startup test
   private async runStartupTest() {
     console.log('Running startup test');
+    // Not counted as run, so it is scheduled again (scheduleStartupTestIfNeeded).
+    if (this.measurementClientService.isTestRunning) {
+      console.log('A test is already running; startup test skipped for now.');
+      return;
+    }
     const networkInfo = await this.getNetworkInfoSafe();
     if (!networkInfo) {
       console.log('Network not available for startup test, skipping.');

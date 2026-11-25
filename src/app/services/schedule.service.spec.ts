@@ -74,6 +74,35 @@ describe('ScheduleService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('while a test is already running', () => {
+    beforeEach(() => {
+      measurementClientService.isTestRunning = true;
+    });
+
+    it('does not start the scheduled test, and keeps the slot due', async () => {
+      await service.decide(morningSemaphore());
+
+      expect(measurementClientService.runTest).not.toHaveBeenCalled();
+      expect(networkService.getNetInfo).not.toHaveBeenCalled();
+      expect(store.scheduleSemaphore).toBeUndefined();
+    });
+
+    it('runs the scheduled test at the next check once it has ended', async () => {
+      await service.decide(morningSemaphore());
+      measurementClientService.isTestRunning = false;
+      await service.decide(morningSemaphore());
+
+      expect(measurementClientService.runTest).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips the startup test without counting it as run', async () => {
+      await (service as any).runStartupTest();
+
+      expect(measurementClientService.runTest).not.toHaveBeenCalled();
+      expect(store[(service as any).STARTUP_TEST_KEY]).toBeUndefined();
+    });
+  });
+
   describe('no-network retries (fixed 1-minute pace)', () => {
     it('reschedules 1 minute ahead when getNetInfo rejects, without raising backoffLevel', async () => {
       networkService.getNetInfo.and.rejectWith(new Error('offline'));

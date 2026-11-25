@@ -3,11 +3,15 @@ import { StorageService } from '../services/storage.service';
 import { SharedService } from '../services/shared-service.service';
 import { environment } from 'src/environments/environment';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { map } from 'rxjs/operators';
+import { map, timeout } from 'rxjs/operators';
 
 const TEN_MINUTES = 1000 * 60 * 10;
 const MINUTE = 60 * 1000;
 const SIX_HOURS = 1000 * 60 * 60 * 6;
+// How long a flag refresh waits for the backend before it keeps the saved
+// flags. The ping before every speed test asks for them, so a request that
+// never gets an answer would hold up the test.
+export const FEATURE_FLAGS_TIMEOUT_MS = 10 * 1000;
 
 const DAY = 1000 * 60 * 60 * 24;
 @Injectable({
@@ -244,7 +248,10 @@ export class SettingsService {
             'Content-type': 'application/json',
           }),
         })
-        .pipe(map((response: any) => response.body))
+        .pipe(
+          timeout(FEATURE_FLAGS_TIMEOUT_MS),
+          map((response: any) => response.body)
+        )
         .toPromise();
       if (!newFlags || newFlags.data.length === 0) {
         return featureFlags;

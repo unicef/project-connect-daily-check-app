@@ -3,7 +3,7 @@ import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { GEOLOCATE_RETRY_DELAY_MS, GEOLOCATE_TIMEOUT_MS } from './location.service';
-import { UploadService } from './upload.service';
+import { UploadService, UPLOAD_TIMEOUT_MS } from './upload.service';
 
 describe('UploadService', () => {
   let service: UploadService;
@@ -167,6 +167,39 @@ describe('UploadService', () => {
         jasmine.objectContaining({ UUID: 'ndt-1', offline_synced: true })
       );
     });
+
+    it('gives up on an upload that gets no answer, and queues it', fakeAsync(() => {
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+      spyOn(service['posthog'], 'capture').and.stub();
+      const saveMeasurement = spyOn(service['indexedDB'], 'saveMeasurement').and.resolveTo();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return { UUID: 'ndt-2', ClientInfo: {}, Notes: 'manual' } as any;
+      });
+
+      let failure: any = null;
+      service
+        .uploadMeasurement({ Notes: 'manual', timestamp: Date.now() })
+        .subscribe({ error: (error) => (failure = error) });
+      flushMicrotasks();
+      const post = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+
+      tick(UPLOAD_TIMEOUT_MS - 1);
+      flushMicrotasks();
+      expect(failure).toBeNull();
+      tick(1);
+      flushMicrotasks();
+
+      expect(post.cancelled).toBeTrue();
+      expect(failure?.name).toBe('TimeoutError');
+      expect(saveMeasurement).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ UUID: 'ndt-2', offline_synced: true })
+      );
+    }));
   });
 
   describe('geolocation that never answers', () => {
