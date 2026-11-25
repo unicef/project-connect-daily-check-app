@@ -6,6 +6,8 @@ import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
 import { classifyRequestError } from '../schoolnotfound/types';
+import { PosthogService } from '../services/posthog.service';
+import { AnalyticsEvent } from '../analytics/analytics-events';
 @Component({
   selector: 'app-schooldetails',
   templateUrl: 'schooldetails.page.html',
@@ -36,7 +38,8 @@ export class SchooldetailsPage {
     private settingsService: SettingsService,
     private router: Router,
     private schoolService: SchoolService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private posthog: PosthogService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -158,6 +161,9 @@ export class SchooldetailsPage {
 
   confirmSchool(schoolObj) {
     this.selectedSchool = schoolObj;
+    this.posthog.capture(AnalyticsEvent.SchoolSelected, {
+      country_code: this.selectedCountry,
+    });
     this.router.navigate(
       [
         'confirmschool',

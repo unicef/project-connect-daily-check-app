@@ -67,7 +67,10 @@ describe('ConfirmschoolPage', () => {
           useValue: jasmine.createSpyObj('PosthogService', [
             'identifyDevice',
             'capture',
+            'captureFailure',
             'setSchool',
+            'setCountry',
+            'applyAppInstance',
           ]),
         },
         provideHttpClient(withInterceptorsFromDi()),

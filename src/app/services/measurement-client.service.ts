@@ -23,6 +23,42 @@ import {
 } from '../utils/locate.utils';
 import { withTimeout } from '../utils/with-timeout.utils';
 import { LocateAccessService } from './locate-access.service';
+import { PosthogService } from './posthog.service';
+import {
+  AnalyticsEvent,
+  classifyMeasurementError,
+  sanitizeMessage,
+} from '../analytics/analytics-events';
+
+/** Where a speed test is, for the failure event: what it was doing when it failed. */
+type MeasurementPhase =
+  | 'ping'
+  | 'prep'
+  | 'net_info'
+  | 'locate'
+  | 'download'
+  | 'upload'
+  | 'finalize';
+
+/**
+ * Analytics bookkeeping for one runTest(), retries included. Kept apart from
+ * the measurement record, which is uploaded as it is.
+ */
+interface MeasurementRun {
+  trigger: string;
+  slot: string | null;
+  startedAt: number;
+  phase: MeasurementPhase;
+  pingMs: number | null;
+  prepMs: number | null;
+  testStartedAt: number | null;
+  /** The last error ndt7 reported through its error callback. */
+  ndtError: string | null;
+  wifiStatus: string | null;
+  ssidSource: string | null;
+  deviceIdentityRead: boolean | null;
+  deviceContextRead: boolean | null;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -115,6 +151,9 @@ export class MeasurementClientService {
     total: 0,
   };
 
+  /** The test in progress, for its analytics events. */
+  private run: MeasurementRun | null = null;
+
   constructor(
     private historyService: HistoryService,
     private settingsService: SettingsService,
@@ -125,7 +164,9 @@ export class MeasurementClientService {
     private sentryService: SentryService,
     private pingService: PingService,
     private syncService: SyncService,
-    private locateAccess: LocateAccessService
+    private locateAccess: LocateAccessService,
+    // Optional so the specs that build this service by hand keep working.
+    private posthog?: PosthogService
   ) {}
 
   /**
@@ -174,8 +215,29 @@ export class MeasurementClientService {
     notes: string,
     scheduleContext: { slot: string | null; scheduledAt: number | null }
   ): Promise<void> {
+    const startedAt = Date.now();
+    this.run = {
+      trigger: notes,
+      slot: scheduleContext?.slot ?? null,
+      startedAt,
+      phase: 'ping',
+      pingMs: null,
+      prepMs: null,
+      testStartedAt: null,
+      ndtError: null,
+      wifiStatus: null,
+      ssidSource: null,
+      deviceIdentityRead: null,
+      deviceContextRead: null,
+    };
+    // trigger: first | manual | startup | daily; slot: the scheduled window.
+    this.posthog?.capture(AnalyticsEvent.MeasurementStarted, {
+      trigger: notes,
+      slot: this.run.slot,
+    });
     // Before the test, not alongside it, so neither slows the other down.
     await this.pingService.pingBeforeSpeedTest();
+    this.run.pingMs = Date.now() - startedAt;
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
     try {
@@ -198,6 +260,8 @@ export class MeasurementClientService {
       notes,
       scheduleContext
     );
+    const prepStartedAt = Date.now();
+    this.setPhase('prep');
 
     // Get Windows username, installed path, and WiFi connections
     const windowsUsername = await this.getWindowsUsername();
@@ -224,15 +288,23 @@ export class MeasurementClientService {
     // wifiConnections() call is not repeated.
     measurementRecord.wifiDiagnostics =
       this.deviceContext.extractWifiDiagnostics(wifiInfo);
+    this.recordPrep(prepStartedAt, wifiInfo, deviceIdentity, deviceContext);
 
     try {
+      this.setPhase('net_info');
       measurementRecord.accessInformation =
         await this.networkService.getNetInfo();
 
+      this.setPhase('locate');
+      if (this.run) {
+        this.run.testStartedAt = Date.now();
+      }
       const exitCode = await this.runNdt7(measurementRecord);
       console.log('ndt7 test completed with exit code:', exitCode);
 
+      this.setPhase('finalize');
       await this.finalizeMeasurement(measurementRecord);
+      this.captureCompleted(measurementRecord);
     } catch (error) {
       console.error('Error running ndt7 test:', error);
       const message = error instanceof Error ? error.message : String(error);
@@ -254,6 +326,14 @@ export class MeasurementClientService {
           maxRetries: this.maxRetries,
           message: `Retrying test... (${this.retryAttempts}/${this.maxRetries})`,
         });
+        this.posthog?.capture(AnalyticsEvent.MeasurementRetrying, {
+          trigger: notes,
+          slot: this.run?.slot ?? null,
+          attempt: this.retryAttempts,
+          phase: this.run?.phase ?? null,
+          error_code: classifyMeasurementError(message),
+          error_message: sanitizeMessage(message),
+        });
 
         // Wait a bit before retrying
         await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -265,6 +345,7 @@ export class MeasurementClientService {
           errorType: 'test_error',
           originalError: message,
         });
+        this.captureFailed(notes, message);
         // Without this the scheduler counts the failed test as done and
         // never retries it.
         throw error;
@@ -318,6 +399,103 @@ export class MeasurementClientService {
     const download = await ndt7.downloadTest(this.testConfig, callbacks, urls);
     const upload = await ndt7.uploadTest(this.testConfig, callbacks, urls);
     return download + upload;
+  }
+
+  private setPhase(phase: MeasurementPhase): void {
+    if (this.run) {
+      this.run.phase = phase;
+    }
+  }
+
+  /** What the reads before the test found, and how long they took. */
+  private recordPrep(
+    prepStartedAt: number,
+    wifiInfo: any,
+    deviceIdentity: unknown,
+    deviceContext: unknown
+  ): void {
+    if (!this.run) {
+      return;
+    }
+    this.run.prepMs = Date.now() - prepStartedAt;
+    this.run.wifiStatus = !wifiInfo
+      ? 'unavailable'
+      : Array.isArray(wifiInfo.wifiConnections) &&
+        wifiInfo.wifiConnections.length > 0
+      ? 'ok'
+      : wifiInfo.wifiUnavailableReason ?? 'empty';
+    this.run.ssidSource = wifiInfo?.ssidSource ?? null;
+    this.run.deviceIdentityRead = deviceIdentity !== null;
+    this.run.deviceContextRead = deviceContext !== null;
+  }
+
+  /** The properties both the completed and the failed event carry. */
+  private runProperties(): Record<string, any> {
+    const run = this.run;
+    const now = Date.now();
+    return {
+      trigger: run?.trigger ?? null,
+      slot: run?.slot ?? null,
+      attempt: this.retryAttempts,
+      duration_ms: run ? now - run.startedAt : null,
+      ping_ms: run?.pingMs ?? null,
+      prep_ms: run?.prepMs ?? null,
+      test_ms: run?.testStartedAt ? now - run.testStartedAt : null,
+      wifi_status: run?.wifiStatus ?? null,
+      ssid_source: run?.ssidSource ?? null,
+      device_identity_read: run?.deviceIdentityRead ?? null,
+      device_context_read: run?.deviceContextRead ?? null,
+    };
+  }
+
+  /**
+   * The test finished and was saved. No speed figures: the measurements table
+   * has those. What matters here is whether each step worked.
+   */
+  private captureCompleted(measurementRecord: any): void {
+    try {
+      const results = measurementRecord?.results ?? {};
+      this.posthog?.capture(AnalyticsEvent.MeasurementCompleted, {
+        ...this.runProperties(),
+        uploaded: measurementRecord?.uploaded === true,
+        upload_enabled: !!this.settingsService.get('uploadEnabled'),
+        server_country: measurementRecord?.mlabInformation?.country ?? null,
+        metro_rank: measurementRecord?.mlabInformation?.metroRank ?? null,
+        locate_version:
+          measurementRecord?.mlabInformation?.locateVersion ?? null,
+        // priority: M-Lab's priority lookup with our backend's token; public:
+        // the fallback, with why the priority one failed when it was tried.
+        locate_tier: measurementRecord?.locateTier ?? null,
+        priority_locate_error: sanitizeMessage(
+          measurementRecord?.priorityLocateError
+        ),
+        // False when the leg ended without a server measurement (slow or
+        // filtered links): the speed is then the client's own figure.
+        download_server_measurement:
+          !!results[DOWNLOAD_LEG]?.LastServerMeasurement,
+        upload_server_measurement: !!results[UPLOAD_LEG]?.LastServerMeasurement,
+      });
+    } catch (error) {
+      console.warn('[Analytics] measurement_completed failed:', error);
+    }
+  }
+
+  /** The test failed for good (after any retries). */
+  private captureFailed(notes: string, message: string): void {
+    try {
+      this.posthog?.capture(AnalyticsEvent.MeasurementFailed, {
+        ...this.runProperties(),
+        trigger: notes,
+        phase: this.run?.phase ?? null,
+        error_code: classifyMeasurementError(message),
+        error_message: sanitizeMessage(message),
+        ndt_error: this.run?.ndtError ?? null,
+        http_status: null,
+        endpoint: null,
+      });
+    } catch (error) {
+      console.warn('[Analytics] measurement_failed failed:', error);
+    }
   }
 
   /** `read`'s value, or null when it hasn't come back in deviceReadsTimeoutMs. */
@@ -489,6 +667,7 @@ export class MeasurementClientService {
     };
     measurementRecord.mlabInformation = serverInformation;
     console.log('Normalized server information:', serverInformation);
+    this.setPhase('download');
     this.broadcastMeasurementStatus('server_chosen', {
       server: { machine: server?.machine, location: server?.location },
       message: 'Server selected, preparing test...',
@@ -522,6 +701,7 @@ export class MeasurementClientService {
     Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
     Mean client goodput: ${client?.MeanClientMbps ?? 'n/a'} Mbps`);
     measurementRecord.results[DOWNLOAD_LEG] = data;
+    this.setPhase('upload');
     this.downloadComplete$.next(data); // Emit event
     this.updateProgress(
       'finished_s2c',
@@ -573,6 +753,9 @@ export class MeasurementClientService {
     // ndt7 passes worker errors through as plain strings.
     const message = err instanceof Error ? err.message : String(err);
     console.error('Error while running the test:', message);
+    if (this.run) {
+      this.run.ndtError = sanitizeMessage(message);
+    }
 
     // Check if this is a locate server error
     const isLocateServerError =

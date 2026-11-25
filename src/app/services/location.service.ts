@@ -16,6 +16,36 @@ import {
   timer,
 } from 'rxjs';
 
+import { bucketCount, describeError } from '../analytics/analytics-events';
+
+/**
+ * How the last fetchAndSaveGeolocation() went, for the analytics events sent
+ * with the upload. Never a coordinate: only whether a location was found and
+ * how.
+ */
+export interface GeolocationOutcome {
+  /**
+   * resolved: worked out by the backend now; cache_reused: same access points
+   * as last time; no_access_points: the Wi-Fi scan found none (cable, or
+   * Location services off); resolve_failed: the backend lookup failed;
+   * failed: the whole step failed.
+   */
+  geo_status:
+    | 'resolved'
+    | 'cache_reused'
+    | 'no_access_points'
+    | 'resolve_failed'
+    | 'failed';
+  /** Whether a location went with the measurement (fresh or cached). */
+  geo_sent: boolean;
+  geo_ms: number;
+  geo_error_code: string | null;
+  /** The PC is on another place's access point than the cached location's. */
+  network_changed: boolean;
+  access_points: string;
+  wifi_scan_failed: boolean;
+}
+
 /**
  * Upper bound for one geolocate request. The upload waits for geolocation
  * before it posts the measurement, so a request that never settles used to
@@ -101,8 +131,14 @@ export class LocationService {
   private readonly STORAGE_KEY_GEO = 'geolocation';
   private readonly STORAGE_KEY_WIFI = 'wifiAccessPoints';
   private readonly STORAGE_KEY_NETWORK = 'geolocationNetwork';
+  private lastOutcome: GeolocationOutcome | null = null;
 
   constructor(private http: HttpClient) { }
+
+  /** How the last fetchAndSaveGeolocation() went; null before the first. */
+  getLastOutcome(): GeolocationOutcome | null {
+    return this.lastOutcome;
+  }
 
   async getWifiAccessPoints(): Promise<{ macAddress: string; signalStrength: number }[]> {
     let scanTimer: ReturnType<typeof setTimeout>;
@@ -286,15 +322,36 @@ export class LocationService {
     connectedBssid: string | null = null
   ): Observable<{ latitude: number; longitude: number } | null> {
     const current = normaliseBssid(connectedBssid);
+    const startedAt = Date.now();
+    let scanFailed = false;
+    let accessPoints = 'unknown';
+    let networkChangedForOutcome = false;
+    const record = (
+      status: GeolocationOutcome['geo_status'],
+      geo: unknown,
+      errorCode: string | null = null
+    ) => {
+      this.lastOutcome = {
+        geo_status: status,
+        geo_sent: !!geo,
+        geo_ms: Date.now() - startedAt,
+        geo_error_code: errorCode,
+        network_changed: networkChangedForOutcome,
+        access_points: accessPoints,
+        wifi_scan_failed: scanFailed,
+      };
+    };
     const wifiPromise: Promise<{ macAddress: string; signalStrength: number }[]> =
       this.getWifiAccessPoints().catch((err) => {
         console.warn('[Location] getWifiAccessPoints failed:', err);
+        scanFailed = true;
         return [];
       });
 
     return from(wifiPromise).pipe(
       switchMap((wifiList) => {
         const currentMacs = this.extractSortedMacs(wifiList);
+        accessPoints = bucketCount(currentMacs.length);
         const savedGeo = this.getSavedGeolocation();
         const savedBssid = this.getSavedConnectedBssid();
         const savedMacs = this.getSavedWifiAccessPoints();
@@ -306,6 +363,7 @@ export class LocationService {
         const networkChanged =
           !!savedGeo && hasNetworkChanged(savedBssid, current, savedMacs);
         const fallbackGeo = networkChanged ? null : savedGeo;
+        networkChangedForOutcome = networkChanged;
         if (networkChanged) {
           console.log(
             '[Location] Network changed since the cached geolocation; not reusing it.'
@@ -317,6 +375,7 @@ export class LocationService {
           console.log(
             '[Location] No WiFi access points available; using cached geolocation if still valid.'
           );
+          record('no_access_points', fallbackGeo);
           return of(fallbackGeo);
         }
 
@@ -335,6 +394,7 @@ export class LocationService {
           console.log(
             '[Location] WiFi unchanged; reusing cached geolocation.'
           );
+          record('cache_reused', savedGeo);
           return of(savedGeo);
         }
 
@@ -343,12 +403,14 @@ export class LocationService {
           tap((geo: any) => {
             this.saveResolvedGeolocation(geo, wifiList, current);
             console.log('[Location] Geolocation refreshed from backend:', geo);
+            record('resolved', geo);
           }),
           catchError((err) => {
             console.warn(
               '[Location] Backend resolve failed; falling back to cached geolocation if still valid:',
               err
             );
+            record('resolve_failed', fallbackGeo, describeError(err).error_code);
             return of(fallbackGeo);
           })
         );
@@ -358,7 +420,9 @@ export class LocationService {
           '[Location] fetchAndSaveGeolocation failed entirely; returning cache if still valid:',
           err
         );
-        return of(this.getSavedGeolocationForNetwork(current));
+        const cached = this.getSavedGeolocationForNetwork(current);
+        record('failed', cached, describeError(err).error_code);
+        return of(cached);
       })
     );
   }

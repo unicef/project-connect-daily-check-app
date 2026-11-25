@@ -20,6 +20,7 @@ import {
   PENDING_AUTO_REGISTRATION_KEY,
   RegistrationContextService,
 } from '../services/registration-context.service';
+import { PosthogService } from '../services/posthog.service';
 
 @Component({ template: '', standalone: false })
 class BlankComponent {}
@@ -446,6 +447,173 @@ describe('HomePage', () => {
 
       expect(schoolService.claimAppInstance).not.toHaveBeenCalled();
       expect(registrationContext.appInstanceIdFor).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('analytics: device and app instance', () => {
+    let posthog: PosthogService;
+    let capture: jasmine.Spy;
+    let captureFailure: jasmine.Spy;
+    let applyAppInstance: jasmine.Spy;
+    let identifyDevice: jasmine.Spy;
+    const found = {
+      exists: true,
+      user_id: 'first-user',
+      school_id: '9',
+      giga_id_school: 'g-1',
+      country_code: 'ES',
+    };
+    const payload = {
+      giga_id_school: 'g-1',
+      country_code: 'ES',
+      device_hardware_id: 'UUID-1',
+      baseboard_serial: 'BOARD-1',
+      disk_serial: null,
+      geolocation: null,
+      app_instance_id: 'instance-1',
+      registration_source: 'auto',
+    };
+
+    beforeEach(() => {
+      posthog = TestBed.inject(PosthogService);
+      capture = spyOn(posthog, 'capture');
+      captureFailure = spyOn(posthog, 'captureFailure');
+      applyAppInstance = spyOn(posthog, 'applyAppInstance');
+      identifyDevice = spyOn(posthog, 'identifyDevice');
+      spyOn(router, 'navigate').and.resolveTo(true);
+      schoolService.checkRegistrationByHardwareId.and.returnValue(
+        of({ success: true, data: found })
+      );
+      registrationContext.build.and.resolveTo(payload as any);
+    });
+
+    it('reports a registration the app made by itself as a new app instance', async () => {
+      schoolService.registerSchoolDevice.and.returnValue(of('own-user'));
+
+      await (component as any).checkMachineRegistration(
+        'UUID-1',
+        () => true,
+        'late_hardware_id'
+      );
+
+      expect(identifyDevice).toHaveBeenCalled();
+      expect(applyAppInstance).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          registration_source: 'auto',
+          giga_id_school: 'g-1',
+          country_code: 'ES',
+        })
+      );
+      expect(capture).toHaveBeenCalledWith(
+        'registration_completed',
+        jasmine.objectContaining({
+          registration_source: 'auto',
+          trigger: 'late_hardware_id',
+          country_code: 'ES',
+          has_hardware_id: true,
+          has_serials: true,
+          is_reregistration: false,
+        })
+      );
+    });
+
+    it("reports an automatic registration that couldn't be stored", async () => {
+      schoolService.registerSchoolDevice.and.returnValue(
+        throwError(() => ({ status: 503 }))
+      );
+
+      await (component as any).checkMachineRegistration('UUID-1');
+
+      expect(captureFailure).toHaveBeenCalledWith(
+        'registration_failed',
+        jasmine.objectContaining({ status: 503 }),
+        jasmine.objectContaining({
+          registration_source: 'auto',
+          trigger: 'startup',
+        }),
+        'registration_failed'
+      );
+      expect(capture).not.toHaveBeenCalledWith(
+        'registration_completed',
+        jasmine.anything()
+      );
+    });
+
+    it('reports the retry that stores a pending registration', async () => {
+      localStorage.setItem('gigaId', 'g-1');
+      localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
+      schoolService.registerSchoolDevice.and.returnValue(of('own-user'));
+
+      await (component as any).retryPendingAutoRegistration();
+
+      expect(capture).toHaveBeenCalledWith(
+        'registration_completed',
+        jasmine.objectContaining({
+          registration_source: 'auto',
+          trigger: 'retry',
+        })
+      );
+    });
+
+    describe('the 2.0.4 claim', () => {
+      beforeEach(() => {
+        localStorage.setItem('schoolUserId', 'old-user');
+        localStorage.setItem('gigaId', 'g-1');
+        registrationContext.appInstanceIdFor.and.callFake(() => {
+          localStorage.setItem('appInstanceId', 'instance-1');
+          return 'instance-1';
+        });
+      });
+
+      it('reports an install from before app instances taking its ID', async () => {
+        schoolService.claimAppInstance.and.returnValue(of({ success: true }));
+
+        await (component as any).claimAppInstance();
+
+        expect(capture).toHaveBeenCalledWith('app_instance_claimed');
+        expect(applyAppInstance).toHaveBeenCalledWith(
+          jasmine.objectContaining({ legacy_registration: true })
+        );
+      });
+
+      it('reports a refused claim, and the registration of its own that follows', async () => {
+        schoolService.claimAppInstance.and.returnValue(
+          throwError(() => ({ status: 409 }))
+        );
+        schoolService.registerSchoolDevice.and.returnValue(of('own-user'));
+
+        await (component as any).claimAppInstance();
+
+        expect(captureFailure).toHaveBeenCalledWith(
+          'app_instance_claim_failed',
+          jasmine.anything(),
+          { outcome: 'registering_on_its_own' },
+          'claim_failed'
+        );
+        expect(capture).toHaveBeenCalledWith(
+          'registration_completed',
+          jasmine.objectContaining({
+            registration_source: 'auto',
+            trigger: 'claim_refused',
+          })
+        );
+      });
+
+      it('reports a claim that will be tried again', async () => {
+        schoolService.claimAppInstance.and.returnValue(
+          throwError(() => ({ status: 0 }))
+        );
+
+        await (component as any).claimAppInstance();
+
+        expect(captureFailure).toHaveBeenCalledWith(
+          'app_instance_claim_failed',
+          jasmine.anything(),
+          { outcome: 'will_retry' },
+          'claim_failed'
+        );
+        expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
+      });
     });
   });
 

@@ -555,9 +555,20 @@ describe('MeasurementClientService ndt7 integration', () => {
   let sharedService: any;
   let deviceContext: any;
   let locateAccess: any;
+  let posthog: { capture: jasmine.Spy };
+
+  /** The properties of the one PostHog event with this name. */
+  const event = (name: string): Record<string, any> => {
+    const calls = posthog.capture.calls
+      .allArgs()
+      .filter(([eventName]) => eventName === name);
+    expect(calls.length).withContext(`${name} sent once`).toBe(1);
+    return calls[0][1];
+  };
 
   beforeEach(() => {
     ndt7TestSpy = spyOn(ndt7, 'test').and.resolveTo(0);
+    posthog = { capture: jasmine.createSpy('capture') };
 
     const historyService: any = { add: jasmine.createSpy('add') };
     const settingsService: any = {
@@ -621,9 +632,81 @@ describe('MeasurementClientService ndt7 integration', () => {
       sentryService,
       pingService,
       syncService,
-      locateAccess
+      locateAccess,
+      posthog as any
     );
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
+  });
+
+  describe('analytics events', () => {
+    it('reports a scheduled test as started, then completed with its timings', async () => {
+      await service.runTest('daily', { slot: 'morning', scheduledAt: 1 });
+
+      expect(event('measurement_started')).toEqual({
+        trigger: 'daily',
+        slot: 'morning',
+      });
+      const completed = event('measurement_completed');
+      expect(completed.trigger).toBe('daily');
+      expect(completed.slot).toBe('morning');
+      expect(completed.attempt).toBe(0);
+      expect(completed.duration_ms).toEqual(jasmine.any(Number));
+      expect(completed.prep_ms).toEqual(jasmine.any(Number));
+      // Outside Electron the Wi-Fi read has nothing to say.
+      expect(completed.wifi_status).toBe('unavailable');
+      // No token from the backend: the public M-Lab lookup was used.
+      expect(completed.locate_tier).toBe('public');
+      expect(posthog.capture).not.toHaveBeenCalledWith(
+        'measurement_failed',
+        jasmine.anything()
+      );
+    });
+
+    it('reports a failed test with the phase it failed in and a code', async () => {
+      ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      const failed = event('measurement_failed');
+      expect(failed.trigger).toBe('manual');
+      expect(failed.phase).toBe('locate');
+      expect(failed.error_code).toBe('websocket_error');
+      expect(failed.error_message).toBe('websocket closed unexpectedly');
+      expect(posthog.capture).not.toHaveBeenCalledWith(
+        'measurement_completed',
+        jasmine.anything()
+      );
+    });
+
+    it('reports each locate retry before the final failure', async () => {
+      (service as any).maxRetries = 1;
+      spyOn(window, 'setTimeout').and.callFake(((fn: any) => {
+        fn();
+        return 0;
+      }) as any);
+      ndt7TestSpy.and.rejectWith(
+        new Error('locate.measurementlab.net: Could not understand response')
+      );
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      expect(event('measurement_retrying')).toEqual(
+        jasmine.objectContaining({ attempt: 1, error_code: 'locate_failed' })
+      );
+      expect(event('measurement_failed').error_code).toBe('locate_failed');
+    });
+
+    it('reports a failure to read the network before the test', async () => {
+      (service as any).networkService.getNetInfo = jasmine
+        .createSpy('getNetInfo')
+        .and.rejectWith(new Error('net::ERR_INTERNET_DISCONNECTED'));
+
+      await expectAsync(service.runTest('first')).toBeRejected();
+
+      const failed = event('measurement_failed');
+      expect(failed.phase).toBe('net_info');
+      expect(failed.error_code).toBe('network');
+    });
   });
 
   it('runs the test through the ndt7 package with the giga-meter metadata', async () => {

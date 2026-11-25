@@ -200,6 +200,43 @@ describe('UploadService', () => {
         jasmine.objectContaining({ UUID: 'ndt-2', offline_synced: true })
       );
     }));
+
+    it('does not queue a measurement the backend refused, and reports why', async () => {
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+      const capture = spyOn(service['posthog'], 'capture').and.stub();
+      const saveMeasurement = spyOn(service['indexedDB'], 'saveMeasurement').and.resolveTo();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return { UUID: 'ndt-1', ClientInfo: {}, Notes: 'daily' } as any;
+      });
+
+      const result = service
+        .uploadMeasurement({ Notes: 'daily', timestamp: Date.now() })
+        .toPromise();
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush(
+        {
+          statusCode: 400,
+          message: 'Failed to add measurement with error: PCDC school does not exist',
+        },
+        { status: 400, statusText: 'Bad Request' }
+      );
+
+      await expectAsync(result).toBeRejected();
+      expect(saveMeasurement).not.toHaveBeenCalled();
+      expect(capture).toHaveBeenCalledWith(
+        'measurement_rejected',
+        jasmine.objectContaining({
+          source: 'realtime',
+          reason: 'school_doesnt_exist',
+          http_status: 400,
+          notes: 'daily',
+        })
+      );
+    });
   });
 
   describe('geolocation that never answers', () => {
