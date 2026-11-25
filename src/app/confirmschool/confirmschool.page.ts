@@ -162,7 +162,10 @@ export class ConfirmschoolPage implements OnInit{
       this.posthog.identifyDevice({
         country_code: this.selectedCountry,
       });
-      this.posthog.setSchool(this.school.giga_id_school);
+      this.posthog.setSchool(this.school.giga_id_school, {
+        external_id: this.school.school_id ?? this.schoolId,
+        name: this.school.name,
+      });
       this.posthog.setCountry(this.selectedCountry);
       // This registration is a new app instance on the PC.
       this.posthog.applyAppInstance({

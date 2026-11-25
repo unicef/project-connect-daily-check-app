@@ -746,7 +746,10 @@ export class HomePage {
       await this.storage.set('gigaId', registrationData.giga_id_school);
       console.log('   ✓ Set gigaId:', registrationData.giga_id_school);
       this.posthogService.identifyDevice();
-      this.posthogService.setSchool(registrationData.giga_id_school);
+      this.posthogService.setSchool(registrationData.giga_id_school, {
+        external_id: registrationData.school_id,
+        name: registrationData.schoolInfo?.name,
+      });
       this.posthogService.setCountry(registrationData.country_code);
     }
     if (context.mac_address != null) {

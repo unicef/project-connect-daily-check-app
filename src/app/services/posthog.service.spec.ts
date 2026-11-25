@@ -44,6 +44,8 @@ describe('PosthogService', () => {
     localStorage.removeItem('schoolUserId');
     localStorage.removeItem('device_id');
     localStorage.removeItem('appInstanceId');
+    localStorage.removeItem('schoolInfo');
+    localStorage.removeItem('schoolId');
   });
 
   it('identifies the PC by its device ID and joins its school group', () => {
@@ -56,6 +58,48 @@ describe('PosthogService', () => {
     expect(posthog.identify).toHaveBeenCalledOnceWith(DEVICE_ID, undefined);
     expect(posthog.group).toHaveBeenCalledWith('school', 'giga-123', {
       giga_id_school: 'giga-123',
+    });
+  });
+
+  it("describes the school group with the saved school's external ID and name", () => {
+    localStorage.setItem('gigaId', 'giga-123');
+    localStorage.setItem('schoolId', 'EXT-42');
+    localStorage.setItem(
+      'schoolInfo',
+      JSON.stringify({ school_id: 'EXT-42', name: 'Escuela Uno', address: 'not sent' })
+    );
+
+    service.init();
+
+    expect(posthog.group).toHaveBeenCalledWith('school', 'giga-123', {
+      giga_id_school: 'giga-123',
+      external_id: 'EXT-42',
+      name: 'Escuela Uno',
+    });
+  });
+
+  it('falls back to the saved school ID when schoolInfo is missing or broken', () => {
+    localStorage.setItem('gigaId', 'giga-123');
+    localStorage.setItem('schoolId', 'EXT-42');
+    localStorage.setItem('schoolInfo', 'not json');
+
+    service.init();
+
+    expect(posthog.group).toHaveBeenCalledWith('school', 'giga-123', {
+      giga_id_school: 'giga-123',
+      external_id: 'EXT-42',
+    });
+  });
+
+  it('describes the school group when a registration sets the school', () => {
+    service.init();
+
+    service.setSchool('giga-123', { external_id: 1234, name: ' Escuela Uno ' });
+
+    expect(posthog.group).toHaveBeenCalledWith('school', 'giga-123', {
+      giga_id_school: 'giga-123',
+      external_id: '1234',
+      name: 'Escuela Uno',
     });
   });
 

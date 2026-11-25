@@ -11,6 +11,8 @@
  * Privacy: these events describe how the app behaves, never who uses it.
  * No IP addresses, Wi-Fi names, coordinates, school names, Windows usernames
  * or install paths. Free-text error messages go through sanitizeMessage().
+ * The school's name and external ID (public school records) are only on its
+ * PostHog group (PosthogService.setSchool), for the dashboards' tables.
  */
 export const AnalyticsEvent = {
   // App lifecycle

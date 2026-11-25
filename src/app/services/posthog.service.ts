@@ -9,6 +9,13 @@ import {
 } from '../analytics/analytics-events';
 import { APP_INSTANCE_ID_KEY } from './registration-context.service';
 
+/** What the school group says about a school besides its giga ID. */
+export interface SchoolDetails {
+  /** The school ID from the school records, which schools register with. */
+  external_id?: string | number | null;
+  name?: string | null;
+}
+
 /**
  * PostHog product analytics (release v2.0.4).
  *
@@ -35,8 +42,8 @@ import { APP_INSTANCE_ID_KEY } from './registration-context.service';
  *     event as the `app_instance_id` property and the `app_instance` group.
  *   Both are grouped by school and country. Until the backend has told the
  *   app its device ID, events stay anonymous; PostHog merges them into the
- *   device once it is identified. Never a school name, a Windows user,
- *   installation paths or an IP.
+ *   device once it is identified. Never a Windows user, installation paths
+ *   or an IP; the school's name and external ID only on its group.
  */
 @Injectable({
   providedIn: 'root',
@@ -312,14 +319,30 @@ export class PosthogService {
   /**
    * Ties the device to its school's group. Called at startup (when a
    * registration already exists) and right after the registration completes.
+   *
+   * The group is keyed by the giga ID (the unique ID made for each school) and
+   * describes the school with its external ID (the school ID from the school
+   * records, which schools type to register) and its name, so dashboard tables
+   * can show which school a row is. Public school records only, and only on
+   * the group: events carry the giga ID alone.
    */
-  setSchool(gigaId: string | number | null | undefined): void {
+  setSchool(
+    gigaId: string | number | null | undefined,
+    details: SchoolDetails = {}
+  ): void {
     try {
       if (!this.initialized || gigaId == null || gigaId === '') {
         return;
       }
       const key = String(gigaId);
-      posthog.group(this.SCHOOL_GROUP, key, { giga_id_school: key });
+      const properties: Record<string, string> = { giga_id_school: key };
+      if (details.external_id != null && String(details.external_id).trim()) {
+        properties.external_id = String(details.external_id).trim();
+      }
+      if (details.name != null && String(details.name).trim()) {
+        properties.name = String(details.name).trim();
+      }
+      posthog.group(this.SCHOOL_GROUP, key, properties);
     } catch (error) {
       console.warn('[PostHog] setSchool failed:', error);
     }
@@ -342,7 +365,7 @@ export class PosthogService {
     try {
       const gigaId = localStorage.getItem('gigaId');
       if (gigaId) {
-        this.setSchool(gigaId);
+        this.setSchool(gigaId, this.schoolDetailsFromStorage());
       }
       const countryCode = localStorage.getItem('country_code');
       if (countryCode) {
@@ -352,6 +375,26 @@ export class PosthogService {
     } catch (error) {
       console.warn('[PostHog] applySchoolFromStorage failed:', error);
     }
+  }
+
+  /**
+   * The registered school's external ID and name, from what the registration
+   * saved: schoolInfo (the school record, whose school_id is the external ID)
+   * and schoolId.
+   */
+  private schoolDetailsFromStorage(): SchoolDetails {
+    let info: { school_id?: unknown; name?: unknown } = {};
+    try {
+      info = JSON.parse(localStorage.getItem('schoolInfo') ?? '{}') ?? {};
+    } catch {
+      // Not JSON: go on with schoolId alone.
+    }
+    return {
+      external_id:
+        (info.school_id as string | number | undefined) ??
+        localStorage.getItem('schoolId'),
+      name: typeof info.name === 'string' ? info.name : null,
+    };
   }
 
   /**

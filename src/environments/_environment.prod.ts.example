@@ -32,9 +32,11 @@ export const environment = {
   posthogKeyDev: 'POSTHOG_PROJECT_API_KEY_DEV',
   posthogKeyStg: 'POSTHOG_PROJECT_API_KEY_STG',
   posthogKeyProd: 'POSTHOG_PROJECT_API_KEY_PROD',
-  // Use a separate PostHog project per environment, so staging tests never
-  // mix with school data. The build warns when the key for its mode is
-  // missing (electron/scripts/generate-build-mode.js).
+  // Production and staging report to one PostHog project (the free plan has
+  // one), so posthogKeyProd and posthogKeyStg hold the same key: every event
+  // carries app_mode (prod / stg / dev), and the dashboards filter on it.
+  // Leave posthogKeyDev empty unless testing analytics. The build warns when
+  // the key for its mode is missing (electron/scripts/generate-build-mode.js).
   // The Electron main process has no key of its own: it forwards its events
   // (update lifecycle, first launch, hardware ID, crashes) to the renderer
   // over IPC, which publishes them with the keys above. posthog-node would not
