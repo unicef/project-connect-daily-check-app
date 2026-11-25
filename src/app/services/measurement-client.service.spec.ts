@@ -53,10 +53,55 @@ describe('MeasurementClientService', () => {
     spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
     spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
     spyOn(service['syncService'], 'syncPendingMeasurements').and.resolveTo();
+    spyOn(service['locateAccess'], 'get').and.resolveTo(null);
   });
 
   it('should be created', () => {
     expect(service).toBeTruthy();
+  });
+
+  describe('onServerChosen', () => {
+    it('keeps metro_rank and locate_version from the Locate target URL', () => {
+      const record: any = {};
+      const query = 'access_token=abc&locate_version=v2&metro_rank=1';
+
+      service['onServerChosen'](
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: {
+            'wss:///ndt/v7/download': `wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/download?${query}`,
+            'wss:///ndt/v7/upload': `wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/upload?${query}`,
+          },
+        },
+        record
+      );
+
+      expect(record.mlabInformation.metroRank).toBe(1);
+      expect(record.mlabInformation.locateVersion).toBe('v2');
+      expect(record.mlabInformation.city).toBe('Madrid');
+    });
+
+    it('keeps the Locate access_token out of logs and status events', () => {
+      const logSpy = spyOn(console, 'log');
+      const statuses: any[] = [];
+      const subscription = service.measurementStatus.subscribe((s) => statuses.push(s));
+      const url = 'wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/download?access_token=secret-token&locate_version=v2&metro_rank=0';
+
+      service['onServerChosen'](
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: { 'wss:///ndt/v7/download': url },
+        },
+        {}
+      );
+      subscription.unsubscribe();
+
+      expect(JSON.stringify(logSpy.calls.allArgs())).not.toContain('secret-token');
+      expect(JSON.stringify(statuses)).not.toContain('secret-token');
+      expect(statuses[0].server.machine).toBe('mlab1-mad06.mlab-oti.measurement-lab.org');
+    });
   });
 
   describe('serverTimestamp', () => {
@@ -210,6 +255,7 @@ describe('MeasurementClientService without a server measurement', () => {
     spyOn(service['sharedService'], 'broadcast').and.stub();
     spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
     spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
+    spyOn(service['locateAccess'], 'get').and.resolveTo(null);
     statuses = [];
     service.measurementStatus.subscribe((status) => statuses.push(status));
   });
@@ -507,6 +553,8 @@ describe('MeasurementClientService ndt7 integration', () => {
   let pingService: any;
   let syncService: any;
   let sharedService: any;
+  let deviceContext: any;
+  let locateAccess: any;
 
   beforeEach(() => {
     ndt7TestSpy = spyOn(ndt7, 'test').and.resolveTo(0);
@@ -528,7 +576,7 @@ describe('MeasurementClientService ndt7 integration', () => {
     };
     // Device/network context is diagnostic metadata read over IPC; outside
     // Electron it resolves to nulls, which is what these tests exercise.
-    const deviceContext: any = {
+    deviceContext = {
       getDeviceIdentity: jasmine.createSpy('getDeviceIdentity').and.resolveTo({
         device_name: null,
         device_model: null,
@@ -560,6 +608,8 @@ describe('MeasurementClientService ndt7 integration', () => {
     syncService = {
       syncPingResults: jasmine.createSpy('syncPingResults').and.resolveTo(),
     };
+    // No priority access unless a case offers it: the public lookup.
+    locateAccess = { get: jasmine.createSpy('get').and.resolveTo(null) };
 
     service = new MeasurementClientService(
       historyService,
@@ -570,7 +620,8 @@ describe('MeasurementClientService ndt7 integration', () => {
       deviceContext,
       sentryService,
       pingService,
-      syncService
+      syncService,
+      locateAccess
     );
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
   });
@@ -761,6 +812,201 @@ describe('MeasurementClientService ndt7 integration', () => {
       await expectAsync(service.runTest('manual')).toBeResolved();
 
       expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('device reads', () => {
+    const never = () => new Promise<never>(() => undefined);
+    const savedRecord = () =>
+      (service as any).finalizeMeasurement.calls.mostRecent().args[0];
+
+    beforeEach(() => {
+      (service as any).deviceReadsTimeoutMs = 50;
+      spyOn(console, 'warn');
+    });
+
+    it('runs the test without the identity when it does not come back in time', async () => {
+      deviceContext.getDeviceIdentity.and.callFake(never);
+      deviceContext.getDeviceContext.and.resolveTo({ connection_type: 'wifi' });
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().deviceIdentity).toBeNull();
+      expect(savedRecord().deviceContext).toEqual({ connection_type: 'wifi' });
+      expect(console.warn).toHaveBeenCalled();
+    });
+
+    it('runs the test without the context when it does not come back in time', async () => {
+      deviceContext.getDeviceContext.and.callFake(never);
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().deviceContext).toBeNull();
+      expect(savedRecord().deviceIdentity).toEqual(
+        jasmine.objectContaining({ device_name: null })
+      );
+    });
+
+    it('keeps reads that come back in time', async () => {
+      const identity = { device_name: 'SCHOOL-PC-01', device_model: 'ThinkPad' };
+      deviceContext.getDeviceIdentity.and.callFake(
+        () => new Promise((resolve) => setTimeout(() => resolve(identity), 10))
+      );
+
+      await service.runTest('manual');
+
+      expect(savedRecord().deviceIdentity).toEqual(identity);
+      expect(console.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('priority server lookup', () => {
+    const token = 'jwt-from-our-backend';
+    const target = (leg: string) =>
+      `wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/${leg}?access_token=server-token&locate_version=v2&metro_rank=0`;
+    const locateReply = {
+      results: [
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: {
+            'wss:///ndt/v7/download': target('download'),
+            'wss:///ndt/v7/upload': target('upload'),
+          },
+        },
+      ],
+    };
+    const savedRecord = () =>
+      (service as any).finalizeMeasurement.calls.mostRecent().args[0];
+    let fetchSpy: jasmine.Spy;
+    let downloadSpy: jasmine.Spy;
+    let uploadSpy: jasmine.Spy;
+
+    beforeEach(() => {
+      fetchSpy = spyOn(window, 'fetch').and.callFake(async () =>
+        new Response(JSON.stringify(locateReply), { status: 200 })
+      );
+      downloadSpy = spyOn(ndt7, 'downloadTest').and.resolveTo(0);
+      uploadSpy = spyOn(ndt7, 'uploadTest').and.resolveTo(0);
+      spyOn(console, 'warn');
+    });
+
+    it('uses the public lookup, as before, when our backend offers none', async () => {
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(downloadSpy).not.toHaveBeenCalled();
+      expect(savedRecord().locateTier).toBe('public');
+      expect(savedRecord().priorityLocateError).toBeNull();
+    });
+
+    it('tests against the server the priority lookup picked', async () => {
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+
+      await service.runTest('manual');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args;
+      expect(url).toContain(
+        'https://locate.measurementlab.net/v2/priority/nearest/ndt/ndt7?'
+      );
+      expect(url).toContain('client_name=giga-meter');
+      expect(init.headers.Authorization).toBe(`Bearer ${token}`);
+
+      expect(ndt7TestSpy).not.toHaveBeenCalled();
+      expect(await downloadSpy.calls.mostRecent().args[2]).toEqual({
+        '///ndt/v7/download': target('download'),
+        '///ndt/v7/upload': target('upload'),
+      });
+      expect(uploadSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().locateTier).toBe('priority');
+      expect(savedRecord().mlabInformation.city).toBe('Madrid');
+      expect(savedRecord().mlabInformation.metroRank).toBe(0);
+    });
+
+    it('asks our backend for access only once everything else is read', async () => {
+      // M-Lab's token lasts 20 s, and the device reads alone may take 10 s.
+      const order: string[] = [];
+      deviceContext.getDeviceContext.and.callFake(async () => {
+        order.push('device reads');
+        return null;
+      });
+      (service as any).networkService.getNetInfo.and.callFake(async () => {
+        order.push('net info');
+        return {};
+      });
+      locateAccess.get.and.callFake(async () => {
+        order.push('access');
+        return { token, locateUrl: null };
+      });
+      fetchSpy.and.callFake(async () => {
+        order.push('lookup');
+        return new Response(JSON.stringify(locateReply), { status: 200 });
+      });
+
+      await service.runTest('manual');
+
+      expect(order).toEqual(['device reads', 'net info', 'access', 'lookup']);
+    });
+
+    it('calls the lookup URL our backend gave, keeping its query string', async () => {
+      locateAccess.get.and.resolveTo({
+        token: null,
+        locateUrl: 'https://locate.example.org/v3/priority/ndt7?key=abc',
+      });
+
+      await service.runTest('manual');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args;
+      expect(url).toContain('https://locate.example.org/v3/priority/ndt7?key=abc&');
+      expect(init.headers.Authorization).toBeUndefined();
+      expect(savedRecord().locateTier).toBe('priority');
+    });
+
+    it('falls back to the public lookup when the priority one refuses', async () => {
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+      fetchSpy.and.callFake(async () => new Response('{}', { status: 401 }));
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(downloadSpy).not.toHaveBeenCalled();
+      expect(savedRecord().locateTier).toBe('public');
+      expect(savedRecord().priorityLocateError).toBe('HTTP 401');
+    });
+
+    it('falls back to the public lookup when the priority one does not answer', async () => {
+      (service as any).priorityLookupTimeoutMs = 20;
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+      fetchSpy.and.callFake(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal.addEventListener('abort', () =>
+              reject(init.signal.reason)
+            )
+          )
+      );
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().priorityLocateError).toBe('timeout');
+    });
+
+    it('keeps the token out of logs and status events', async () => {
+      const logSpy = spyOn(console, 'log');
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+
+      await service.runTest('manual');
+
+      const broadcasts = JSON.stringify(
+        (service as any).sharedService.broadcast.calls.allArgs()
+      );
+      expect(JSON.stringify(logSpy.calls.allArgs())).not.toContain(token);
+      expect(broadcasts).not.toContain(token);
+      expect(broadcasts).toContain('locate.measurementlab.net');
     });
   });
 });

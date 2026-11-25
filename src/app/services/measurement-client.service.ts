@@ -16,6 +16,13 @@ import {
   UPLOAD_LEG,
   hasClientResult,
 } from '../utils/ndt-results.utils';
+import {
+  LocateAccess,
+  lookupPriorityServer,
+  readLocateParams,
+} from '../utils/locate.utils';
+import { withTimeout } from '../utils/with-timeout.utils';
+import { LocateAccessService } from './locate-access.service';
 
 @Injectable({
   providedIn: 'root',
@@ -35,12 +42,19 @@ export class MeasurementClientService {
   private runningTest: { promise: Promise<void>; startedAt: number } | null =
     null;
   // A test still running after this long is taken as stuck, and another one
-  // may start. Every step of a test has a time limit except the Wi-Fi and
-  // device reads, so a healthy test, retries included, ends well before this.
+  // may start. Every step of a test has a time limit except the Wi-Fi reads,
+  // so a healthy test, retries included, ends well before this.
   private readonly stuckTestMs = 10 * 60 * 1000;
-  // ndt7 starts its download's 10 s connection timer when the test starts,
-  // before it knows the server, so a lookup slower than this ends the test
-  // with no download result anyway.
+  // How long a test waits for the device identity and context before it runs
+  // without them. They are diagnostics, and the Windows queries behind them
+  // have no time limit of their own.
+  private readonly deviceReadsTimeoutMs = 10 * 1000;
+  // How long M-Lab's priority server lookup gets before the test uses the
+  // public lookup instead. The public one normally answers in under a second.
+  private readonly priorityLookupTimeoutMs = 5 * 1000;
+  // How long the public server lookup gets. ndt7 starts its download's 10 s
+  // connection timer when the test starts, before it knows the server, so a
+  // lookup slower than this ends the test with no download result anyway.
   private readonly serverLookupTimeoutMs = 10 * 1000;
   private readonly measurementNotificationActivity = new BehaviorSubject<any>(
     {}
@@ -67,6 +81,8 @@ export class MeasurementClientService {
     country: '',
     label: '',
     metro: '',
+    metroRank: null,
+    locateVersion: null,
   };
 
   accessInformation = {
@@ -108,7 +124,8 @@ export class MeasurementClientService {
     private deviceContext: DeviceContextService,
     private sentryService: SentryService,
     private pingService: PingService,
-    private syncService: SyncService
+    private syncService: SyncService,
+    private locateAccess: LocateAccessService
   ) {}
 
   /**
@@ -194,9 +211,12 @@ export class MeasurementClientService {
     // the readings describe the machine as the test found it, and awaited
     // together because they are independent I/O — serialising them is what would
     // push the capture past the 1.5 s budget the plan set.
+    // A read still running after deviceReadsTimeoutMs is sent as null. It
+    // carries on in the background, and what it remembers is there for the
+    // next test.
     const [deviceIdentity, deviceContext] = await Promise.all([
-      this.deviceContext.getDeviceIdentity(),
-      this.deviceContext.getDeviceContext(),
+      this.readInTime('device identity', this.deviceContext.getDeviceIdentity()),
+      this.readInTime('device context', this.deviceContext.getDeviceContext()),
     ]);
     measurementRecord.deviceIdentity = deviceIdentity;
     measurementRecord.deviceContext = deviceContext;
@@ -252,6 +272,67 @@ export class MeasurementClientService {
     }
   }
 
+  /**
+   * Runs the download and upload test. With access from our backend, the
+   * server comes from M-Lab's priority lookup. Without it, or when that lookup
+   * fails in any way (bad token, rate limit, timeout), ndt7-js finds the server
+   * through the public lookup as it did before, with a time limit (see
+   * runNdt7WithPublicLookup). The record keeps which lookup was used, and why
+   * the priority one was not.
+   */
+  private async runNdt7(measurementRecord: any): Promise<number> {
+    const callbacks = this.getTestCallbacks(measurementRecord);
+    measurementRecord.locateTier = 'public';
+
+    // Asked for here, right before the lookup, and not earlier: M-Lab's token
+    // is only good for 20 seconds after our backend gets it. Never rejects;
+    // null means the public lookup.
+    const access: LocateAccess | null = await this.locateAccess.get();
+
+    let priority: Awaited<ReturnType<typeof lookupPriorityServer>> | null =
+      null;
+    if (access) {
+      try {
+        priority = await lookupPriorityServer(
+          access,
+          this.testConfig.metadata,
+          this.priorityLookupTimeoutMs,
+          (loadbalancer) => callbacks.serverDiscovery({ loadbalancer })
+        );
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        measurementRecord.priorityLocateError = reason;
+        console.warn(
+          `Priority server lookup failed (${reason}); using the public one`
+        );
+      }
+    }
+    if (!priority) {
+      return this.runNdt7WithPublicLookup(callbacks);
+    }
+
+    // What ndt7.test does after its own lookup.
+    callbacks.serverChosen(priority.server);
+    measurementRecord.locateTier = 'priority';
+    const urls = Promise.resolve(priority.urls);
+    const download = await ndt7.downloadTest(this.testConfig, callbacks, urls);
+    const upload = await ndt7.uploadTest(this.testConfig, callbacks, urls);
+    return download + upload;
+  }
+
+  /** `read`'s value, or null when it hasn't come back in deviceReadsTimeoutMs. */
+  private async readInTime<T>(name: string, read: Promise<T>): Promise<T | null> {
+    const timedOut = Symbol('timed out');
+    const result = await withTimeout(this.deviceReadsTimeoutMs, read, timedOut);
+    if (result === timedOut) {
+      console.warn(
+        `${name} not read within ${this.deviceReadsTimeoutMs} ms; testing without it`
+      );
+      return null;
+    }
+    return result as T;
+  }
+
   private initializeMeasurementRecord(
     notes: string,
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
@@ -278,11 +359,16 @@ export class MeasurementClientService {
       // M-Lab's clock, set by finalizeMeasurement. Always null for now: ndt7-js
       // does not report it (see finalizeMeasurement).
       serverTimestamp: null,
+      // Set by runNdt7: which M-Lab lookup found the server ('priority' or
+      // 'public'), and why the priority one was not used when it was offered.
+      locateTier: null,
+      priorityLocateError: null,
     };
   }
 
   /**
-   * Runs ndt7, giving up on its server lookup after serverLookupTimeoutMs.
+   * Runs ndt7 with its public server lookup, giving up on the lookup after
+   * serverLookupTimeoutMs.
    *
    * ndt7 puts no time limit on the lookup and can't cancel a run, so a lookup
    * that never answers would hold the test for ever. Past the limit this
@@ -290,8 +376,9 @@ export class MeasurementClientService {
    * abandoned run is silenced: its callbacks do nothing, and if the lookup
    * answers late, serverChosen throws so ndt7 stops before the download.
    */
-  private runNdt7(measurementRecord: any): Promise<number> {
-    const callbacks = this.getTestCallbacks(measurementRecord);
+  private runNdt7WithPublicLookup(
+    callbacks: ReturnType<MeasurementClientService['getTestCallbacks']>
+  ): Promise<number> {
     let abandoned = false;
     let timer: ReturnType<typeof setTimeout>;
     // Started before ndt7 so it fires before ndt7's own 10 s connection timer.
@@ -379,21 +466,31 @@ export class MeasurementClientService {
     server: any,
     measurementRecord: any
   ): void {
-    console.log('Server chosen:', server);
+    // Log and broadcast only what is needed: Locate's urls carry the
+    // access_token, and console calls end up in Sentry breadcrumbs.
+    const { metroRank, locateVersion } = readLocateParams(server?.urls);
+    console.log('Server chosen:', {
+      machine: server?.machine,
+      city: server?.location?.city,
+      metroRank,
+      locateVersion,
+    });
     const serverInformation = {
       city: server?.location?.city,
-    url: server?.machine,
-    ip: [],
-    fqdn: '',
-    site: '',
-    country: server?.location?.country,
-    label: '',
-    metro: '',
-    }
+      url: server?.machine,
+      ip: [],
+      fqdn: '',
+      site: '',
+      country: server?.location?.country,
+      label: '',
+      metro: '',
+      metroRank,
+      locateVersion,
+    };
     measurementRecord.mlabInformation = serverInformation;
     console.log('Normalized server information:', serverInformation);
     this.broadcastMeasurementStatus('server_chosen', {
-      server: server,
+      server: { machine: server?.machine, location: server?.location },
       message: 'Server selected, preparing test...',
     });
   };

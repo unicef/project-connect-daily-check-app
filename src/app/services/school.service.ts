@@ -183,6 +183,24 @@ export class SchoolService {
   }
 
   /**
+   * Gives the registration this install already has (its user_id) this
+   * install's app instance ID. The server answers 409 when the registration
+   * belongs to another app instance, and 404 when there's none.
+   *
+   * @param userId - The registration's user_id (schoolUserId)
+   * @param appInstanceId - This install's app instance ID
+   */
+  claimAppInstance(userId: string, appInstanceId: string): Observable<any> {
+    return this.http
+      .put(
+        environment.restAPI + 'dailycheckapp_schools/app-instance',
+        { user_id: userId, app_instance_id: appInstanceId },
+        this.options
+      )
+      .pipe(catchError(this.handleError));
+  }
+
+  /**
    * Return all wrong giga id school and the right giga id school
    *
    * @returns

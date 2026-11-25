@@ -12,9 +12,10 @@ import { SettingsService } from '../services/settings.service';
 import { StorageService } from './storage.service';
 import { HardwareIdService } from './hardware-id.service';
 import { IndexedDBService } from './indexed-db.service';
-import { LocationService } from './location.service';
+import { LocationService, normaliseBssid } from './location.service';
 import { PosthogService } from './posthog.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
+import { APP_INSTANCE_ID_KEY } from './registration-context.service';
 
 /**
  * How long the realtime upload waits for the backend. Past this it is treated
@@ -74,6 +75,17 @@ export class UploadService {
         Metro: record.mlabInformation.metro,
         Site: record.mlabInformation.site,
         URL: record.mlabInformation.url,
+        // From the Locate-issued target URL. 0 = the server is in the nearest
+        // metro; >0 = Locate sent the test to a further one. Null on records
+        // saved before this was captured.
+        MetroRank: record.mlabInformation.metroRank ?? null,
+        LocateVersion: record.mlabInformation.locateVersion ?? null,
+        // Which M-Lab lookup found the server: 'priority' (access from our
+        // backend, see LocateAccessService) or 'public'. PriorityLocateError
+        // says why a priority lookup that was offered was not used. Both null
+        // on records saved before this was captured.
+        LocateTier: record.locateTier ?? null,
+        PriorityLocateError: record.priorityLocateError ?? null,
       },
       ClientInfo: {
         Country: '', //record.accessInformation.country,
@@ -162,6 +174,10 @@ export class UploadService {
 
     // Add measure-saver-specific metadata.
     measurement.BrowserID = this.storage.get('schoolUserId');
+    // This install (app instance): the link from the result to its
+    // registration, in place of BrowserID.
+    measurement['app_instance_id'] =
+      this.storage.get(APP_INSTANCE_ID_KEY) || null;
     measurement.Timestamp = this.ts.toISOString();
     measurement.timestamplocal = this.ts.toLocaleString();
     measurement.DeviceType = this.storage.get('deviceType');
@@ -222,7 +238,11 @@ export class UploadService {
       uploadURL = uploadURL + '?key=' + apiKey;
     }
 
-    return this.locationService.fetchAndSaveGeolocation().pipe(
+    // The access point this test ran on, so a location saved at another
+    // place is not sent as this one.
+    const connectedBssid = this.getConnectedBssid(record);
+
+    return this.locationService.fetchAndSaveGeolocation(connectedBssid).pipe(
       /* Geolocation is best effort: whatever happens, the measurement is still
          posted. fetchAndSaveGeolocation already falls back to the cached value
          and persists a fresh one, so nothing is written back here — the old
@@ -230,7 +250,9 @@ export class UploadService {
          destroyed the very fallback this relies on. */
       catchError(err => {
         console.error('Geolocation fetch failed, continuing with POST', err);
-        return of(this.locationService.getSavedGeolocation());
+        return of(
+          this.locationService.getSavedGeolocationForNetwork(connectedBssid)
+        );
       }),
       map(geo => {
         measurement['geolocation'] = geo ?? null;
@@ -274,6 +296,30 @@ export class UploadService {
         )
       )
     );
+  }
+
+  /**
+   * The BSSID of the access point the PC was connected to, from the
+   * connection read at the start of the test: the first entry with a usable
+   * address. Null on a cable, or when Windows hides the Wi-Fi details (the
+   * name the main process recovers then has no BSSID).
+   */
+  private getConnectedBssid(record: any): string | null {
+    try {
+      const connections = Array.isArray(record?.wifiConnections)
+        ? record.wifiConnections
+        : [];
+      for (const connection of connections) {
+        const bssid = normaliseBssid(connection?.bssid);
+        if (bssid) {
+          return bssid;
+        }
+      }
+      return null;
+    } catch (err) {
+      console.warn('[Upload] Could not read the connected BSSID:', err);
+      return null;
+    }
   }
 
   private handleError(error: Response) {
