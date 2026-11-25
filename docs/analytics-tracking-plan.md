@@ -62,8 +62,13 @@ one table can list them all.
   dashboard groups by), `http_status`, `endpoint` (host and path, IDs replaced
   by `:id`) and `error_message` (cleaned, 200 characters max).
 - **Privacy.** No IP addresses, Wi-Fi names, coordinates, school names, Windows
-  user names or install paths. Free-text messages go through `sanitizeMessage()`.
-  Autocapture and session replay are off.
+  user names or install paths on events. Free-text messages go through
+  `sanitizeMessage()`. Autocapture and session replay are off.
+- **Schools.** Events carry the school's giga ID (the unique ID made for each
+  school) as the `school` group key. The group also holds the school's
+  `external_id` (the school ID from the school records, which schools type to
+  register) and `name`, from the school record the registration saved, so
+  dashboard tables can show giga ID, external ID and name side by side.
 - **Volume.** Pings (every 15 minutes) are summarised once a day in
   `device_heartbeat` instead of one event each. The backend only reports
   problems, never every accepted measurement.
@@ -179,6 +184,26 @@ school, without a person. Off unless `POSTHOG_API_KEY` is set.
 
 ## Dashboards
 
+All dashboards are named "Giga Meter · …" and filtered to production with a
+dashboard filter, `app_mode = prod` (switch it to `stg` to look at staging).
+The SQL tables have `app_mode = 'prod'` written into them.
+
+0. **Release adoption** (the key release metric): how fast schools, devices
+   and app instances move to the latest version, for every day of the last 90.
+   - **Schools with at least one device on the latest version**, and the
+     schools seen, per day; the same for devices and app instances.
+   - For each day, *latest version* is the highest version any production
+     device reported in the 7 days up to that day. A device counts as on it
+     when any of its app instances reported it in those 7 days; a school when
+     any of its devices did. The 7 days smooth out PCs that are off at
+     weekends.
+   - Latest version by country, and the schools not on it yet (giga ID,
+     external ID, name, country, devices, highest version).
+   - Schools and devices per version, updates installed per day, restart
+     prompt answers, update failures: why an upgrade is slow.
+   - PostHog only hears from 2.0.4 and later, so schools still on older
+     versions are not in the "seen" counts. The counts of schools on the
+     latest version are complete; a share of all schools needs the database.
 1. **Release health** (the "is everything working" page): active devices
    (24 h, 7 d: persons with a `device_heartbeat` or a measurement) and active
    app instances, test success rate
@@ -223,13 +248,22 @@ school, without a person. Off unless `POSTHOG_API_KEY` is set.
 
 ## Environments
 
-- One PostHog project per environment (staging, production). Each build's
-  `_environment.prod.ts` sets `posthogKeyStg` / `posthogKeyProd` /
-  `posthogKeyDev`; the Electron build warns when the key for its mode is
-  missing (`electron/scripts/generate-build-mode.js`). An older `posthogApiKey`
-  entry is not read by anything.
-- The backend uses `POSTHOG_API_KEY` with the same project key as the app
-  builds of its environment.
+- **One PostHog project for production and staging** (the free plan has
+  one). Every event says which it came from in `app_mode` (`prod` / `stg` /
+  `dev`), and every dashboard filters on it.
+- App builds: `_environment.prod.ts` sets `posthogKeyProd` and
+  `posthogKeyStg` to the same project key; leave `posthogKeyDev` empty unless
+  testing analytics. The Electron build warns when the key for its mode is
+  missing (`electron/scripts/generate-build-mode.js`). An older
+  `posthogApiKey` entry is not read by anything.
+- Backend: `POSTHOG_API_KEY` is the same key, and `POSTHOG_APP_MODE` says
+  `prod` or `stg` (worked out from `SENTRY_ENVIRONMENT` / `NODE_ENV` when
+  unset; set it on production so its events don't drop out of the
+  dashboards).
+- A PC registered on both staging and production gets the same device ID in
+  both (the ID is a hash of its hardware), so it is one PostHog person with
+  events of both modes. Only test PCs do this; the `app_mode` filter keeps the
+  dashboards apart.
 - In PostHog: discard client IP data. Group types: `school`, `country` and
   `app_instance` (each created by the first event that carries it).
 
