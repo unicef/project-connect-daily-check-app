@@ -45,6 +45,15 @@ Context for a measurement that looks wrong: a machine at 100% CPU does not produ
 
 Why they were added: on Windows 11 24H2+ the WLAN stack sits behind the Location services permission. With it off, `wifi_connections` comes back empty **on a machine connected over Wi-Fi**, and Wi-Fi geolocation silently degrades to the IP estimate — previously indistinguishable from a machine with no Wi-Fi at all. `ssid_source` marks rows whose name was recovered through the ungated fallback: those have a name, but no BSSID, signal or channel.
 
+## wi-fi fields on non-English Windows
+
+`wifi_connections` is unchanged in shape, but its `quality`, `signalLevel`, `channel`, `frequency`, `txRate` and `type` are now filled on Windows set to a language other than English, French or German. The library that reads Wi-Fi parses the localized text of `netsh wlan show interfaces` by label, so on a Russian or Spanish display language those fields came back empty (or `channel: 0`) while the SSID survived — signal coverage tracked the Windows language, not the network.
+
+When a field is missing, the client now reads it from the native WLAN API and converts it the same way the English text is converted (`signalLevel = quality / 2 − 100`), so filled rows are comparable with English ones. Those entries carry `nativeFilled`, the list of fields that came from the native read. Rows from English machines are untouched and have no `nativeFilled`.
+
+*   A filled `frequency` is the center frequency of the access point the machine is connected to. When Windows does not report it, it comes from the channel number, except on 802.11ax/be links whose channel number also exists on 6 GHz: those stay `null`, because channel 5, for example, can be 2432 MHz or 5975 MHz.
+*   The client waits at most 4 seconds for the native read. A row without `nativeFilled` on a non-English machine can mean the read was slow or blocked (for example by a security policy); the fields then stay as the library returned them.
+
 ## timing
 
 *   `server_timestamp` — meant to hold the measurement server's own clock. **Always null for now**: it was to come from the `Date` header of M-Lab's server lookup, but that response does not let browsers read the header (no `Access-Control-Expose-Headers`)

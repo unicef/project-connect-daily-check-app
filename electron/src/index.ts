@@ -32,6 +32,7 @@ import {
   retryHardwareSerials,
   getSsidFromNlm,
 } from './device-context';
+import { completeWifiConnections } from './wifi-native';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
@@ -487,7 +488,12 @@ ipcMain.handle('get-installed-path', async () => {
 ipcMain.handle('get-wifi-connections', async () => {
   try {
     console.log('📤 [Electron] WiFi connections requested via IPC');
-    const wifiConnections = await si.wifiConnections();
+    // systeminformation parses localized `netsh` text and loses the signal,
+    // channel, frequency, tx rate and radio type on non-English Windows; the
+    // native WLAN API fills whatever it left empty (see wifi-native.ts).
+    const wifiConnections = await completeWifiConnections(
+      await si.wifiConnections()
+    );
 
     if (Array.isArray(wifiConnections) && wifiConnections.length > 0) {
       console.log(

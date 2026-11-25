@@ -16,6 +16,7 @@
     "app:dist": "electron-builder",
     "postinstall": "electron-builder install-app-deps",
     "build": "node scripts/generate-build-mode.js && tsc && electron-rebuild",
+    "test": "node scripts/generate-build-mode.js && tsc && node --test \"test/*.test.js\"",
     "electron:start-live": "node ./live-runner.js",
     "electron:start": "npm run build && electron --inspect=5858 ./",
     "electron:pack": "npm run build && electron-builder build --dir -c ./electron-builder.config.json",
