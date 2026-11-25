@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { filter } from 'rxjs/operators';
+import { Subscription, firstValueFrom } from 'rxjs';
+import { filter, timeout } from 'rxjs/operators';
 import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../../app/services/settings.service';
 import { NotFound } from '../schoolnotfound/types';
@@ -12,6 +12,10 @@ import { checkRightGigaId, removeUnregisterSchool } from './home.utils';
 import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { PosthogService } from '../services/posthog.service';
+import {
+  REGISTER_TIMEOUT_MS,
+  RegistrationContextService,
+} from '../services/registration-context.service';
 
 /**
  * Screens before the country step. While the user is on one of these, an
@@ -19,6 +23,20 @@ import { PosthogService } from '../services/posthog.service';
  * dashboard.
  */
 const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
+
+/**
+ * Set while this app instance's own registration couldn't be stored, so the
+ * next start tries again.
+ */
+export const PENDING_AUTO_REGISTRATION_KEY = 'pendingAutoRegistration';
+
+/** This app instance registered at the school of the PC's registration. */
+interface InstanceRegistration {
+  /** What was sent: this app instance's own context. */
+  payload: { [key: string]: any };
+  /** The new registration's user ID, or null when it couldn't be stored. */
+  userId: string | null;
+}
 
 @Component({
   selector: 'app-home',
@@ -49,7 +67,8 @@ export class HomePage {
     private loading: LoadingService,
     private readonly schoolService: SchoolService,
     private hardwareIdService: HardwareIdService,
-    private posthogService: PosthogService
+    private posthogService: PosthogService,
+    private registrationContext: RegistrationContextService
   ) {
     translate.setDefaultLang('en');
     const applicationLanguage = this.settingsService.get('applicationLanguage');
@@ -179,6 +198,9 @@ export class HomePage {
     let schoolId = this.storage.get('schoolId');
     const gigaId = this.storage.get('gigaId');
     const schoolUserId = this.storage.get('schoolUserId');
+
+    // In the background: it must not hold up the start.
+    void this.retryPendingAutoRegistration();
 
     const getFlagsAndCheckGigaId = async () => {
       try {
@@ -338,7 +360,18 @@ export class HomePage {
         console.log('   User ID:', response.data.user_id);
         console.log('   School ID:', response.data.school_id);
         console.log('   Giga ID:', response.data.giga_id_school);
-        await this.applyExistingRegistration(response.data);
+        // This app instance gets a registration of its own at that school.
+        const registration = await this.registerThisInstance(response.data);
+        if (!stillWanted()) {
+          // A registration stored meanwhile isn't lost: registering at the
+          // same school from the registration screen sends the same app
+          // instance ID, and gets it back.
+          console.log(
+            'ℹ️ [HomePage] User moved on during the registration, ignoring it'
+          );
+          return;
+        }
+        await this.applyExistingRegistration(response.data, registration);
         this.loading.dismiss();
         console.log('🚀 [HomePage] Navigating to /starttest...');
         this.router.navigate(['/starttest']);
@@ -360,18 +393,123 @@ export class HomePage {
   }
 
   /**
-   * Populate localStorage with existing registration data
+   * Registers this app instance at the school of the PC's registration, as a
+   * registration of its own with this instance's context (its Windows user,
+   * install path, networks, location), not the context of the registration it
+   * was found by. Null when there's no school to register at, or the context
+   * couldn't be read; the found registration is used as before then.
+   *
+   * When it can't be stored (offline, a server error), the found registration
+   * is used for now and the next start tries again.
    */
-  private async applyExistingRegistration(registrationData: any) {
+  private async registerThisInstance(
+    registrationData: any
+  ): Promise<InstanceRegistration | null> {
+    if (!registrationData.giga_id_school) {
+      return null;
+    }
+    let payload: InstanceRegistration['payload'];
+    try {
+      payload = await this.registrationContext.build({
+        giga_id_school: registrationData.giga_id_school,
+        country_code:
+          registrationData.country_code ??
+          registrationData.schoolInfo?.country ??
+          null,
+        registration_source: 'auto',
+        lookUpLocation: true,
+      });
+    } catch (error) {
+      console.error(
+        '❌ [HomePage] Could not read this PC for its registration:',
+        error
+      );
+      return null;
+    }
+
+    try {
+      const userId = (await firstValueFrom(
+        this.schoolService
+          .registerSchoolDevice(payload)
+          .pipe(timeout(REGISTER_TIMEOUT_MS))
+      )) as string;
+      await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
+      console.log('✅ [HomePage] Registered this app instance:', userId);
+      return { payload, userId };
+    } catch (error) {
+      console.error(
+        '❌ [HomePage] Registering this app instance failed; trying again on the next start:',
+        error
+      );
+      await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, 'true');
+      return { payload, userId: null };
+    }
+  }
+
+  /**
+   * Tries again to store this app instance's registration, when it couldn't
+   * be stored before. It sends the same app instance ID, so if the earlier
+   * attempt did get through, the server returns that registration. Tests run
+   * until it's stored count under the PC's earlier registration.
+   */
+  private async retryPendingAutoRegistration() {
+    const gigaId = this.storage.get('gigaId');
+    if (this.storage.get(PENDING_AUTO_REGISTRATION_KEY) !== 'true' || !gigaId) {
+      return;
+    }
+    try {
+      const payload = await this.registrationContext.build({
+        giga_id_school: gigaId,
+        country_code: this.storage.get('country_code') ?? null,
+        registration_source: 'auto',
+        lookUpLocation: true,
+      });
+      const userId = (await firstValueFrom(
+        this.schoolService
+          .registerSchoolDevice(payload)
+          .pipe(timeout(REGISTER_TIMEOUT_MS))
+      )) as string;
+      if (userId) {
+        await this.storage.set('schoolUserId', userId);
+        await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
+        this.posthogService.capture('registration_completed', {
+          country_code: payload.country_code,
+          registration_source: 'auto',
+        });
+        console.log('✅ [HomePage] Registered this app instance:', userId);
+      }
+    } catch (error) {
+      console.warn(
+        '⚠️ [HomePage] Registering this app instance failed again:',
+        error
+      );
+    }
+  }
+
+  /**
+   * Populate localStorage with the school of the registration found for this
+   * PC, and with this app instance's own registration and context when it
+   * was registered (see registerThisInstance).
+   */
+  private async applyExistingRegistration(
+    registrationData: any,
+    registration: InstanceRegistration | null = null
+  ) {
     console.log(
       '💾 [HomePage] Applying existing registration to localStorage...'
     );
     console.log('   Registration data:', registrationData);
 
+    // This app instance's own registration; the found one until it's stored.
+    const userId = registration?.userId ?? registrationData.user_id;
+    // This app instance's own context; the found registration's only when it
+    // couldn't be read.
+    const context = registration?.payload ?? registrationData;
+
     // Only set values that are non-null and not undefined
-    if (registrationData.user_id != null) {
-      await this.storage.set('schoolUserId', registrationData.user_id);
-      console.log('   ✓ Set schoolUserId:', registrationData.user_id);
+    if (userId != null) {
+      await this.storage.set('schoolUserId', userId);
+      console.log('   ✓ Set schoolUserId:', userId);
     }
     if (registrationData.school_id != null) {
       await this.storage.set('schoolId', registrationData.school_id);
@@ -384,21 +522,27 @@ export class HomePage {
       this.posthogService.identifyDevice();
       this.posthogService.setSchool(registrationData.giga_id_school);
     }
-    if (registrationData.mac_address != null) {
-      await this.storage.set('macAddress', registrationData.mac_address);
-      console.log('   ✓ Set macAddress:', registrationData.mac_address);
+    if (context.mac_address != null) {
+      await this.storage.set('macAddress', context.mac_address);
+      console.log('   ✓ Set macAddress:', context.mac_address);
     }
-    if (registrationData.os != null) {
-      await this.storage.set('deviceType', registrationData.os);
-      console.log('   ✓ Set deviceType:', registrationData.os);
+    if (context.os != null) {
+      await this.storage.set('deviceType', context.os);
+      console.log('   ✓ Set deviceType:', context.os);
     }
-    if (registrationData.ip_address != null) {
-      await this.storage.set('ip_address', registrationData.ip_address);
-      console.log('   ✓ Set ip_address:', registrationData.ip_address);
+    if (context.ip_address != null) {
+      await this.storage.set('ip_address', context.ip_address);
+      console.log('   ✓ Set ip_address:', context.ip_address);
     }
-    if (registrationData.app_version != null) {
-      await this.storage.set('version', registrationData.app_version);
-      console.log('   ✓ Set version:', registrationData.app_version);
+    if (context.app_version != null) {
+      await this.storage.set('version', context.app_version);
+      console.log('   ✓ Set version:', context.app_version);
+    }
+    if (registration?.userId) {
+      this.posthogService.capture('registration_completed', {
+        country_code: registration.payload.country_code,
+        registration_source: 'auto',
+      });
     }
     if (registrationData.country_code != null) {
       await this.storage.set('country_code', registrationData.country_code);
