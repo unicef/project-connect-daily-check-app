@@ -78,10 +78,12 @@ describe('UploadService', () => {
      * Drives uploadMeasurement far enough to inspect the POST body, with
      * makeMeasurement stubbed so the test does not need a full ndt7 result.
      */
-    const post = (record: any): any => {
+    const post = (record: any, stored: Record<string, string> = {}): any => {
       service['settingService'].currentSettings = { uploadEnabled: true } as any;
       spyOn(service['settingService'], 'get').and.returnValue('');
-      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.callFake(
+        (key: string) => stored[key] ?? ''
+      );
       spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
       spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
       spyOn(service['locationService'], 'saveGeolocation').and.stub();
@@ -116,6 +118,24 @@ describe('UploadService', () => {
       const body = post({ Notes: 'manual', timestamp: Date.now(), serverTimestamp: null });
 
       expect(body['server_timestamp']).toBeNull();
+    });
+
+    describe('app instance', () => {
+      it("sends this install's app instance ID with the browser ID", () => {
+        const body = post(
+          { Notes: 'manual', timestamp: Date.now() },
+          { appInstanceId: 'instance-1', schoolUserId: 'user-1' }
+        );
+
+        expect(body['app_instance_id']).toBe('instance-1');
+        expect(body.BrowserID).toBe('user-1');
+      });
+
+      it('sends null on an install without one yet', () => {
+        const body = post({ Notes: 'manual', timestamp: Date.now() });
+
+        expect(body['app_instance_id']).toBeNull();
+      });
     });
   });
 

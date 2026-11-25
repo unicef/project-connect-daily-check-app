@@ -8,7 +8,11 @@ import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { Component } from '@angular/core';
 import { of, throwError } from 'rxjs';
 
-import { HomePage, PENDING_AUTO_REGISTRATION_KEY } from './home.page';
+import {
+  HomePage,
+  PENDING_APP_INSTANCE_CLAIM_KEY,
+  PENDING_AUTO_REGISTRATION_KEY,
+} from './home.page';
 import { LoadingService } from '../services/loading.service';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { SchoolService } from '../services/school.service';
@@ -47,9 +51,11 @@ describe('HomePage', () => {
     schoolService = jasmine.createSpyObj('SchoolService', [
       'checkRegistrationByHardwareId',
       'registerSchoolDevice',
+      'claimAppInstance',
     ]);
     registrationContext = jasmine.createSpyObj('RegistrationContextService', [
       'build',
+      'appInstanceIdFor',
     ]);
 
     TestBed.configureTestingModule({
@@ -273,6 +279,91 @@ describe('HomePage', () => {
       await (component as any).retryPendingAutoRegistration();
 
       expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('an install registered before app instances', () => {
+    const claim = () => (component as any).claimAppInstance();
+
+    beforeEach(() => {
+      localStorage.setItem('schoolUserId', 'old-user');
+      localStorage.setItem('gigaId', 'g-1');
+      localStorage.setItem('country_code', 'ES');
+      // What the real service does: make an ID for the school and keep it.
+      registrationContext.appInstanceIdFor.and.callFake((school: string) => {
+        localStorage.setItem('appInstanceId', 'instance-1');
+        localStorage.setItem('appInstanceSchool', school);
+        return 'instance-1';
+      });
+    });
+
+    it('makes an app instance ID and attaches it to its registration', async () => {
+      schoolService.claimAppInstance.and.returnValue(of({ success: true }));
+
+      await claim();
+
+      expect(registrationContext.appInstanceIdFor).toHaveBeenCalledWith('g-1');
+      expect(schoolService.claimAppInstance).toHaveBeenCalledWith(
+        'old-user',
+        'instance-1'
+      );
+      expect(localStorage.getItem('appInstanceId')).toBe('instance-1');
+      expect(localStorage.getItem(PENDING_APP_INSTANCE_CLAIM_KEY)).toBeFalsy();
+      expect(localStorage.getItem('schoolUserId')).toBe('old-user');
+    });
+
+    it('tries again on the next start, with the same ID', async () => {
+      schoolService.claimAppInstance.and.returnValues(
+        throwError(() => ({ status: 0 })),
+        of({ success: true })
+      );
+
+      await claim();
+      expect(localStorage.getItem(PENDING_APP_INSTANCE_CLAIM_KEY)).toBe('true');
+
+      await claim();
+
+      expect(registrationContext.appInstanceIdFor).toHaveBeenCalledTimes(1);
+      expect(schoolService.claimAppInstance.calls.allArgs()).toEqual([
+        ['old-user', 'instance-1'],
+        ['old-user', 'instance-1'],
+      ]);
+      expect(localStorage.getItem(PENDING_APP_INSTANCE_CLAIM_KEY)).toBeFalsy();
+    });
+
+    it("registers on its own when the registration is another install's", async () => {
+      // Older apps copied one registration to every Windows user of a PC.
+      schoolService.claimAppInstance.and.returnValue(
+        throwError(() => ({ status: 409 }))
+      );
+      registrationContext.build.and.resolveTo({
+        giga_id_school: 'g-1',
+        country_code: 'ES',
+        app_instance_id: 'instance-1',
+        registration_source: 'auto',
+      } as any);
+      schoolService.registerSchoolDevice.and.returnValue(of('own-user'));
+
+      await claim();
+
+      expect(registrationContext.build).toHaveBeenCalledWith(
+        jasmine.objectContaining({
+          giga_id_school: 'g-1',
+          registration_source: 'auto',
+        })
+      );
+      expect(localStorage.getItem('schoolUserId')).toBe('own-user');
+      expect(localStorage.getItem(PENDING_APP_INSTANCE_CLAIM_KEY)).toBeFalsy();
+      expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBeFalsy();
+    });
+
+    it('leaves an install that has its own app instance alone', async () => {
+      localStorage.setItem('appInstanceId', 'instance-own');
+
+      await claim();
+
+      expect(schoolService.claimAppInstance).not.toHaveBeenCalled();
+      expect(registrationContext.appInstanceIdFor).not.toHaveBeenCalled();
     });
   });
 

@@ -13,6 +13,7 @@ import { environment } from '../../environments/environment';
 import { HardwareIdService } from '../services/hardware-id.service';
 import { PosthogService } from '../services/posthog.service';
 import {
+  APP_INSTANCE_ID_KEY,
   REGISTER_TIMEOUT_MS,
   RegistrationContextService,
 } from '../services/registration-context.service';
@@ -29,6 +30,12 @@ const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
  * next start tries again.
  */
 export const PENDING_AUTO_REGISTRATION_KEY = 'pendingAutoRegistration';
+
+/**
+ * Set while the app instance ID this install made for the registration it
+ * already had isn't attached to that registration yet.
+ */
+export const PENDING_APP_INSTANCE_CLAIM_KEY = 'pendingAppInstanceClaim';
 
 /** This app instance registered at the school of the PC's registration. */
 interface InstanceRegistration {
@@ -200,7 +207,7 @@ export class HomePage {
     const schoolUserId = this.storage.get('schoolUserId');
 
     // In the background: it must not hold up the start.
-    void this.retryPendingAutoRegistration();
+    void this.completeAppInstance();
 
     const getFlagsAndCheckGigaId = async () => {
       try {
@@ -483,6 +490,74 @@ export class HomePage {
         '⚠️ [HomePage] Registering this app instance failed again:',
         error
       );
+    }
+  }
+
+  /**
+   * Makes sure the registration this install uses is its own: stores one
+   * that couldn't be stored before, or attaches an app instance ID to a
+   * registration made before app instances.
+   */
+  private async completeAppInstance() {
+    await this.retryPendingAutoRegistration();
+    await this.claimAppInstance();
+  }
+
+  /**
+   * An install registered before app instances has a registration but no app
+   * instance ID, and an update doesn't register again. It makes an ID and
+   * attaches it to that registration, so its results link to the registration
+   * without the browser ID.
+   *
+   * The ID is kept from the first try, so a claim that did get through is
+   * only repeated. When the registration belongs to another install (older
+   * apps copied one registration to every Windows user of a PC) or is gone,
+   * this install registers on its own instead, with the same ID. Anything
+   * else (offline, a server error) is tried again on the next start.
+   */
+  private async claimAppInstance() {
+    const userId = this.storage.get('schoolUserId');
+    const gigaId = this.storage.get('gigaId');
+    if (
+      !userId ||
+      !gigaId ||
+      this.storage.get(PENDING_AUTO_REGISTRATION_KEY) === 'true'
+    ) {
+      return;
+    }
+    if (!this.storage.get(APP_INSTANCE_ID_KEY)) {
+      this.registrationContext.appInstanceIdFor(gigaId);
+      await this.storage.set(PENDING_APP_INSTANCE_CLAIM_KEY, 'true');
+    }
+    if (this.storage.get(PENDING_APP_INSTANCE_CLAIM_KEY) !== 'true') {
+      return;
+    }
+
+    const appInstanceId = this.storage.get(APP_INSTANCE_ID_KEY);
+    try {
+      await firstValueFrom(
+        this.schoolService
+          .claimAppInstance(userId, appInstanceId)
+          .pipe(timeout(REGISTER_TIMEOUT_MS))
+      );
+      await this.storage.set(PENDING_APP_INSTANCE_CLAIM_KEY, '');
+      console.log(
+        '✅ [HomePage] Attached this app instance to its registration:',
+        appInstanceId
+      );
+    } catch (error) {
+      const status = (error as { status?: number })?.status;
+      if (status !== 409 && status !== 404) {
+        console.warn(
+          '⚠️ [HomePage] Attaching this app instance failed; trying again on the next start:',
+          error
+        );
+        return;
+      }
+      // Not this install's registration: it registers on its own.
+      await this.storage.set(PENDING_APP_INSTANCE_CLAIM_KEY, '');
+      await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, 'true');
+      await this.retryPendingAutoRegistration();
     }
   }
 
