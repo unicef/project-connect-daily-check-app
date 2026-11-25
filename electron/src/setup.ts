@@ -25,6 +25,7 @@ import electronServe from 'electron-serve';
 import windowStateKeeper from 'electron-window-state';
 import { join } from 'path';
 import * as Sentry from '@sentry/node';
+import { watchMainWindow, watchOtherProcesses } from './crash-recovery';
 import { Console } from 'console';
 var isQuiting = false;
 const si = require('systeminformation');
@@ -87,17 +88,8 @@ process.on('unhandledRejection', (reason, promise) => {
   Sentry.captureException(reason);
 });
 
-app.on('render-process-gone', (event, webContents, details) => {
-  console.error('Renderer process crashed:', details);
-  Sentry.captureMessage(`Renderer process crashed: ${details.reason}`);
-});
-
-app.on('child-process-gone', (event, details) => {
-  console.error('Child process crashed:', details);
-  Sentry.captureMessage(
-    `Child process crashed: ${details.type} - ${details.reason}`
-  );
-});
+// The main window's page is watched (and restarted) in init(), see crash-recovery.ts.
+watchOtherProcesses(app, getIsQuiting);
 
 const gotTheLock = app.requestSingleInstanceLock();
 // Define components for a watcher to detect when the webapp is changed so we can reload in Dev mode.
@@ -247,29 +239,9 @@ export class ElectronCapacitorApp {
       },
     });
 
-    // Add error tracking for renderer process
-    this.MainWindow?.webContents?.on(
-      'render-process-gone',
-      (event, details) => {
-        const crashData = {
-          reason: details?.reason,
-          exitCode: details?.exitCode,
-          processType: 'renderer',
-        };
-        Sentry.captureException(new Error('Renderer Process Gone'), {
-          extra: crashData,
-        });
-      }
-    );
-
-    this.MainWindow?.on('unresponsive', () => {
-      Sentry.captureMessage('Window became unresponsive', {
-        level: Sentry.Severity.Error,
-        extra: {
-          windowId: this.MainWindow?.id,
-        },
-      });
-    });
+    // Reload the page when its process crashes or it hangs for minutes:
+    // the scheduler runs in it, so a dead page means no more tests.
+    watchMainWindow(this.MainWindow, getIsQuiting);
 
     this.MainWindow?.webContents?.on(
       'console-message',

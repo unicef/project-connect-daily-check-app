@@ -36,19 +36,25 @@ export class LoadingService {
     return await this.loadingController.create(this.loadingObj).then(a => {
       a.present().then(() => {
         if (!this.isLoading) {
-          a.dismiss().then(() => console.log('abort presenting'));
+          // dismiss() ran while this loader was still opening.
+          return a.dismiss().then(() => console.log('abort presenting'));
         }
-      });
+      }).catch(() => undefined);
     });
   }
 
   /**
-   * Close the loader
-   * @returns 
+   * Close the loader. Safe to call when none is showing: two flows often both
+   * close it, or close it before it has finished opening (present() then
+   * closes it itself). Ionic rejects with "overlay does not exist" in those
+   * cases, and none of the callers handle it.
    */
-  async dismiss() {
+  async dismiss(): Promise<void> {
     this.isLoading = false;
-    return await this.loadingController.dismiss().then(() => console.log('dismissed'));
+    await this.loadingController
+      .dismiss()
+      .then(() => console.log('dismissed'))
+      .catch(() => undefined);
   }
 
   /**

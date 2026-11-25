@@ -632,9 +632,9 @@ describe('MeasurementClientService ndt7 integration', () => {
     );
     expect(config.userAcceptedDataPolicy).toBeTrue();
     expect(config.downloadworkerfile).toBe(
-      'assets/js/ndt/ndt7-download-worker.js'
+      'assets/js/ndt/giga-ndt7-download-worker.js'
     );
-    expect(config.uploadworkerfile).toBe('assets/js/ndt/ndt7-upload-worker.js');
+    expect(config.uploadworkerfile).toBe('assets/js/ndt/giga-ndt7-upload-worker.js');
   });
 
   it('still classifies locate-server failures as retryable', async () => {

@@ -39,7 +39,7 @@ export class SchoolsuccessPage {
     private measurementClientService: MeasurementClientService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
-    this.translate.use(appLang.code);
+    this.translate.use(appLang?.code ?? 'en');
   }
   swipeNext() {
     this.slides.slideNext();

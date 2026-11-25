@@ -6,6 +6,7 @@ import { StorageService } from '../app/services/storage.service';
 import { SettingsService } from './services/settings.service';
 import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
+import { parseSchoolInfo } from './utils/school-info.utils';
 import { ScheduleService } from './services/schedule.service';
 import { environment } from '../environments/environment'; // './esrc/environments/environment';
 import { PingResult, PingService } from './services/ping.service';
@@ -106,7 +107,7 @@ export class AppComponent {
     // Show the full device ID as requested
     this.device_id_short = this.device_id;
     if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
     }
     this.sharedService.on(
       'settings:changed',
@@ -203,7 +204,7 @@ export class AppComponent {
 
   openSecond() {
     if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
     }
     this.menu.enable(true, 'second');
     this.menu.open('second');
