@@ -22,6 +22,11 @@ import {
   REGISTER_TIMEOUT_MS,
   RegistrationContextService,
 } from '../services/registration-context.service';
+import {
+  AnalyticsEvent,
+  onboardingDurationMs,
+  registrationProps,
+} from '../analytics/analytics-events';
 
 @Component({
   selector: 'app-confirmschool',
@@ -157,7 +162,19 @@ export class ConfirmschoolPage implements OnInit{
       this.posthog.identifyDevice({
         country_code: this.selectedCountry,
       });
-      this.posthog.setSchool(this.school.giga_id_school);
+      this.posthog.setSchool(this.school.giga_id_school, {
+        external_id: this.school.school_id ?? this.schoolId,
+        name: this.school.name,
+      });
+      this.posthog.setCountry(this.selectedCountry);
+      // This registration is a new app instance on the PC.
+      this.posthog.applyAppInstance({
+        registration_source: 'manual',
+        giga_id_school: this.school.giga_id_school,
+        country_code: this.selectedCountry,
+        app_version: environment.app_version,
+        registered_at: new Date().toISOString(),
+      });
       this.storage.set('ip_address', schoolData.ip_address);
       this.storage.set('version', environment.app_version);
       //this.storage.set('country_code', c.country);
@@ -168,9 +185,10 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.setFirstTimeVisit(true);
       this.storage.setRegistrationCompleted(Date.now());
 
-      this.posthog.capture('registration_completed', {
-        country_code: this.selectedCountry,
-        registration_source: 'manual',
+      this.posthog.capture(AnalyticsEvent.RegistrationCompleted, {
+        ...registrationProps(schoolData),
+        duration_ms: onboardingDurationMs(),
+        country_mismatch: this.selectedCountry !== this.detectedCountry,
       });
 
       // Navigate to starttest page normally
@@ -185,6 +203,16 @@ export class ConfirmschoolPage implements OnInit{
          Either way the screen must not hang: dismiss and route out so the user
          can retry. */
       console.error('❌ [ConfirmSchool] Registration failed:', err);
+      this.posthog.captureFailure(
+        AnalyticsEvent.RegistrationFailed,
+        err,
+        {
+          country_code: this.selectedCountry,
+          registration_source: 'manual',
+          reason: classifyRequestError(err, NotFound.registrationFailed),
+        },
+        'registration_failed'
+      );
       /* The school was found; registering it failed. Say why, and let
          "Try again" bring the user back here. */
       this.router.navigate(

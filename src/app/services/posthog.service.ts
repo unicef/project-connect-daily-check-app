@@ -3,7 +3,18 @@ import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import posthog from 'posthog-js';
 import { environment } from 'src/environments/environment';
-import { HardwareIdService } from './hardware-id.service';
+import {
+  describeError,
+  getRememberedDeviceId,
+} from '../analytics/analytics-events';
+import { APP_INSTANCE_ID_KEY } from './registration-context.service';
+
+/** What the school group says about a school besides its giga ID. */
+export interface SchoolDetails {
+  /** The school ID from the school records, which schools register with. */
+  external_id?: string | number | null;
+  name?: string | null;
+}
 
 /**
  * PostHog product analytics (release v2.0.4).
@@ -20,10 +31,19 @@ import { HardwareIdService } from './hardware-id.service';
  *   CSP.
  * - In Electron `window.location` is `file://`, useless for analytics: the same
  *   virtual host as Matomo is used so the URLs stay readable.
- * - Each PC is one PostHog person, identified by its hardware ID when it has
- *   a real one, else by its registration ID (`schoolUserId`, the BrowserID
- *   sent with every measurement). Both already travel with the measurements.
- *   Never a school name, a Windows user, installation paths or an IP.
+ * - Two levels, as in the backend's registration table:
+ *   - device: each PC is one PostHog person, identified by its device ID, the
+ *     backend's ID for one physical PC across all its app instances
+ *     (TECH-8828), from its firmware UUID, motherboard serial and disk serial.
+ *   - app instance: each registration, manual or automatic, is one app
+ *     instance (the app under one Windows user, for one registration), with
+ *     the ID the app generates (`appInstanceId`, also sent with every
+ *     measurement and ping). A device can have several. It goes with every
+ *     event as the `app_instance_id` property and the `app_instance` group.
+ *   Both are grouped by school and country. Until the backend has told the
+ *   app its device ID, events stay anonymous; PostHog merges them into the
+ *   device once it is identified. Never a Windows user, installation paths
+ *   or an IP; the school's name and external ID only on its group.
  */
 @Injectable({
   providedIn: 'root',
@@ -35,32 +55,17 @@ export class PosthogService {
   // *group*, not as a person: each installation stays its own "person", so
   // devices can be counted per school instead of collapsing them all into one.
   private readonly SCHOOL_GROUP = 'school';
+  // Second group type, so dashboards can break any metric down by country.
+  private readonly COUNTRY_GROUP = 'country';
+  // Third: the app instance (one registration), so dashboards can count app
+  // instances as well as devices.
+  private readonly APP_INSTANCE_GROUP = 'app_instance';
 
   // Same virtual host as MatomoService, so both tools report the same URLs and
   // can be cross-referenced.
   private readonly electronVirtualOrigin = 'https://app.gigameter.local';
 
-  // Hardware IDs that are not unique to one PC: the main process's "none
-  // read" value and the placeholders some boards ship with. PCs sharing one
-  // would become a single person, so they fall back to the registration ID.
-  private readonly PLACEHOLDER_HARDWARE_IDS = new Set([
-    'NO_UUID_AVAILABLE',
-    '03000200-0400-0500-0006-000700080009',
-    'TO BE FILLED BY O.E.M.',
-    'DEFAULT STRING',
-    'SYSTEM SERIAL NUMBER',
-    'NOT APPLICABLE',
-    'NOT SPECIFIED',
-    'NONE',
-    'N/A',
-    'UNDEFINED',
-    'NULL',
-  ]);
-
-  constructor(
-    private router: Router,
-    private hardwareIdService: HardwareIdService
-  ) {}
+  constructor(private router: Router) {}
 
   /**
    * Starts PostHog. Safe to call more than once.
@@ -126,22 +131,85 @@ export class PosthogService {
   }
 
   /**
-   * Identifies this PC: by its hardware ID when it has a real one, else by its
-   * registration ID. With neither (not registered, no hardware ID yet) the PC
-   * stays anonymous. Called at startup and right after a registration, manual
-   * or automatic. The school is a group (setSchool), never the identity.
+   * Records an event and sends it right away instead of with the next batch.
+   * For events sent just before the page reloads or the window closes (logout
+   * clears localStorage and reloads 500 ms later), which a batch would lose.
+   */
+  captureNow(event: string, properties?: Record<string, any>): void {
+    try {
+      if (!this.initialized) {
+        return;
+      }
+      posthog.capture(event, properties, {
+        send_instantly: true,
+        transport: 'sendBeacon',
+      });
+    } catch (error) {
+      console.warn('[PostHog] captureNow failed:', error);
+    }
+  }
+
+  /**
+   * Records a failure with the standard fields (error_code, http_status,
+   * endpoint, error_message) worked out from whatever was caught.
+   * `properties` can override any of them.
+   */
+  captureFailure(
+    event: string,
+    error: unknown,
+    properties?: Record<string, any>,
+    fallbackCode = 'unknown'
+  ): void {
+    this.capture(event, {
+      ...describeError(error, fallbackCode),
+      ...(properties ?? {}),
+    });
+  }
+
+  /**
+   * Adds properties sent with every event from now on, such as the build and
+   * OS version once the main process has read them.
+   */
+  registerProperties(properties: Record<string, any>): void {
+    try {
+      if (!this.initialized) {
+        return;
+      }
+      const defined = Object.fromEntries(
+        Object.entries(properties).filter(
+          ([, value]) => value !== undefined && value !== null && value !== ''
+        )
+      );
+      if (Object.keys(defined).length > 0) {
+        posthog.register(defined);
+      }
+    } catch (error) {
+      console.warn('[PostHog] registerProperties failed:', error);
+    }
+  }
+
+  /**
+   * Identifies this PC by its device ID, once the backend has given it one
+   * (this app instance's registration, or the status check at every start).
+   * Without one the PC stays anonymous, and PostHog merges those anonymous
+   * events into the device when it is identified. Called at startup, after the
+   * status check, and after a registration, manual or automatic. The app
+   * instance, school and country are groups, never the identity: every app
+   * instance on a PC (each Windows user, each login) is the same person.
    *
-   * An identity, once set, is kept: identifying again with another ID would
-   * start a new person, because PostHog does not merge two identified people.
-   * So a PC that got its hardware ID only after registering stays on its
-   * registration ID. Logout calls reset(), which frees it.
+   * An install identified by anything else (2.0.4 test builds used the
+   * hardware ID, the registration ID or the school's giga id), or by a device
+   * ID the backend has since changed, moves to its device ID. PostHog does
+   * not merge two identified people, so that starts the device's person
+   * afresh rather than carrying the old history.
    */
   identifyDevice(properties?: Record<string, any>): void {
     try {
       if (!this.initialized) {
         return;
       }
-      const deviceId = this.getDeviceDistinctId();
+      this.applyAppInstance();
+      const deviceId = getRememberedDeviceId();
       if (!deviceId) {
         return;
       }
@@ -154,15 +222,9 @@ export class PosthogService {
           }
           return;
         }
-        // Earlier 2.0.4 test builds identified by the school's giga id, which
-        // made every PC at a school one person. Move those installs over;
-        // keep any other identity.
-        if (currentId !== localStorage.getItem('gigaId')) {
-          return;
-        }
         this.reset();
         posthog.identify(deviceId, properties);
-        this.applySchoolFromStorage(); // reset() dropped the school group
+        this.applySchoolFromStorage(); // reset() dropped the groups
         return;
       }
 
@@ -216,9 +278,11 @@ export class PosthogService {
    * hardest to recover. The renderer SDK does queue in localStorage and
    * survives restarts.
    *
-   * Today only the auto-update lifecycle arrives, which is the one thing
-   * neither the renderer nor the backend sees: a machine that fails to update
-   * stops sending measurements and disappears from version adoption queries.
+   * What arrives is what only the main process sees: the auto-update
+   * lifecycle (a machine that fails to update stops sending measurements and
+   * disappears from version adoption queries), first launch and app_updated,
+   * hardware ID retries, and main-process crashes. See MainProcessEvent in
+   * analytics/analytics-events.ts.
    */
   private bridgeMainProcessEvents(): void {
     try {
@@ -227,14 +291,24 @@ export class PosthogService {
         return; // browser, or a build without the new preload
       }
       electronAPI.onTelemetryEvent(
-        (payload: { event: string; properties?: Record<string, any> }) => {
+        (payload: {
+          event: string;
+          properties?: Record<string, any>;
+          sendNow?: boolean;
+        }) => {
           if (!payload?.event) {
             return;
           }
-          this.capture(payload.event, {
+          const properties = {
             ...(payload.properties ?? {}),
             source: 'electron-main',
-          });
+          };
+          // Events sent just before the app quits (restart to update, quit).
+          if (payload.sendNow) {
+            this.captureNow(payload.event, properties);
+          } else {
+            this.capture(payload.event, properties);
+          }
         }
       );
     } catch (error) {
@@ -245,16 +319,45 @@ export class PosthogService {
   /**
    * Ties the device to its school's group. Called at startup (when a
    * registration already exists) and right after the registration completes.
+   *
+   * The group is keyed by the giga ID (the unique ID made for each school) and
+   * describes the school with its external ID (the school ID from the school
+   * records, which schools type to register) and its name, so dashboard tables
+   * can show which school a row is. Public school records only, and only on
+   * the group: events carry the giga ID alone.
    */
-  setSchool(gigaId: string | number | null | undefined): void {
+  setSchool(
+    gigaId: string | number | null | undefined,
+    details: SchoolDetails = {}
+  ): void {
     try {
       if (!this.initialized || gigaId == null || gigaId === '') {
         return;
       }
       const key = String(gigaId);
-      posthog.group(this.SCHOOL_GROUP, key, { giga_id_school: key });
+      const properties: Record<string, string> = { giga_id_school: key };
+      if (details.external_id != null && String(details.external_id).trim()) {
+        properties.external_id = String(details.external_id).trim();
+      }
+      if (details.name != null && String(details.name).trim()) {
+        properties.name = String(details.name).trim();
+      }
+      posthog.group(this.SCHOOL_GROUP, key, properties);
     } catch (error) {
       console.warn('[PostHog] setSchool failed:', error);
+    }
+  }
+
+  /** Ties the device to its country's group. */
+  setCountry(countryCode: string | null | undefined): void {
+    try {
+      if (!this.initialized || !countryCode) {
+        return;
+      }
+      const key = String(countryCode).toUpperCase();
+      posthog.group(this.COUNTRY_GROUP, key, { country_code: key });
+    } catch (error) {
+      console.warn('[PostHog] setCountry failed:', error);
     }
   }
 
@@ -262,34 +365,61 @@ export class PosthogService {
     try {
       const gigaId = localStorage.getItem('gigaId');
       if (gigaId) {
-        this.setSchool(gigaId);
+        this.setSchool(gigaId, this.schoolDetailsFromStorage());
       }
+      const countryCode = localStorage.getItem('country_code');
+      if (countryCode) {
+        this.setCountry(countryCode);
+      }
+      this.applyAppInstance();
     } catch (error) {
       console.warn('[PostHog] applySchoolFromStorage failed:', error);
     }
   }
 
-  /** The hardware ID when it is a real one, else the registration ID. */
-  private getDeviceDistinctId(): string | null {
-    const hardwareId = this.hardwareIdService.getHardwareId()?.trim();
-    if (hardwareId && !this.isPlaceholderId(hardwareId)) {
-      return hardwareId;
+  /**
+   * The registered school's external ID and name, from what the registration
+   * saved: schoolInfo (the school record, whose school_id is the external ID)
+   * and schoolId.
+   */
+  private schoolDetailsFromStorage(): SchoolDetails {
+    let info: { school_id?: unknown; name?: unknown } = {};
+    try {
+      info = JSON.parse(localStorage.getItem('schoolInfo') ?? '{}') ?? {};
+    } catch {
+      // Not JSON: go on with schoolId alone.
     }
-    const registrationId = localStorage.getItem('schoolUserId')?.trim();
-    if (registrationId && !this.isPlaceholderId(registrationId)) {
-      return registrationId;
-    }
-    return null;
+    return {
+      external_id:
+        (info.school_id as string | number | undefined) ??
+        localStorage.getItem('schoolId'),
+      name: typeof info.name === 'string' ? info.name : null,
+    };
   }
 
-  private isPlaceholderId(id: string): boolean {
-    const value = id.toUpperCase();
-    return (
-      this.PLACEHOLDER_HARDWARE_IDS.has(value) ||
-      // All zeros or all Fs, with or without dashes
-      /^[0-]+$/.test(value) ||
-      /^[F-]+$/.test(value)
-    );
+  /**
+   * Sends this app instance's ID with every event, as the `app_instance_id`
+   * property and the `app_instance` group, so dashboards can count app
+   * instances per device and per school next to devices. Only once the app is
+   * registered: the ID is made when a registration is first tried, and an
+   * install from before app instances makes one at start to attach to its
+   * registration. `properties` describe the app instance (its group), set
+   * when it registers.
+   */
+  applyAppInstance(properties?: Record<string, any>): void {
+    try {
+      if (!this.initialized) {
+        return;
+      }
+      const appInstanceId = localStorage.getItem(APP_INSTANCE_ID_KEY)?.trim();
+      if (!appInstanceId || !localStorage.getItem('schoolUserId')) {
+        return;
+      }
+      posthog.register({ app_instance_id: appInstanceId });
+      posthog.group(this.APP_INSTANCE_GROUP, appInstanceId, properties);
+    } catch (error) {
+      console.warn('[PostHog] applyAppInstance failed:', error);
+    }
   }
 
   /** Properties sent with every event. */
@@ -298,7 +428,7 @@ export class PosthogService {
       posthog.register({
         app_version: environment.app_version,
         app_mode: environment.mode,
-        is_electron: !!environment.isElectron,
+        is_electron: this.isElectron(),
       });
     } catch (error) {
       console.warn('[PostHog] register failed:', error);
@@ -321,9 +451,18 @@ export class PosthogService {
    * Clean origin for reporting. In Electron the real one is `file://`, which is
    * useless for analytics, so it is replaced by a fixed virtual host.
    */
+  /**
+   * Whether this is the desktop app. environment.isElectron reads
+   * window.process, which context isolation hides from the page, so it is
+   * false in Electron too; the preload's electronAPI is the reliable sign.
+   */
+  private isElectron(): boolean {
+    return !!environment.isElectron || !!(window as any)?.electronAPI;
+  }
+
   private getTrackingOrigin(): string {
     try {
-      if (environment.isElectron) {
+      if (this.isElectron()) {
         return this.electronVirtualOrigin;
       }
       return window.location.origin;

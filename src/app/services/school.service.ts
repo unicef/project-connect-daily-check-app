@@ -7,6 +7,7 @@ import { Observable, throwError } from 'rxjs';
 import { School } from '../models/models';
 import { WrongGigaIdSchool } from './dto/school.dto';
 import { ResponseDto } from './dto/response.dto';
+import { rememberDeviceId } from '../analytics/analytics-events';
 
 @Injectable({
   providedIn: 'root',
@@ -116,18 +117,35 @@ export class SchoolService {
    * Check if a device is still active (not deactivated/logged out)
    * @param hardwareId - Device hardware ID
    * @param gigaId - School giga ID
+   * @param appInstanceId - This install's app instance ID, when it has one:
+   *   the answer's device ID is then its own registration's
    * @returns Observable with device status
    */
-  checkDeviceStatus(hardwareId: string, gigaId: string): Observable<any> {
+  checkDeviceStatus(
+    hardwareId: string,
+    gigaId: string,
+    appInstanceId: string | null = null
+  ): Observable<any> {
+    const query = appInstanceId
+      ? `?app_instance_id=${encodeURIComponent(appInstanceId)}`
+      : '';
     return this.http
       .get(
-        `${environment.restAPI}dailycheckapp_schools/checkDeviceStatus/${hardwareId}/${gigaId}`,
+        `${environment.restAPI}dailycheckapp_schools/checkDeviceStatus/${hardwareId}/${gigaId}${query}`,
         this.options
       )
       .pipe(
         tap((response) =>
           console.log('Device status check response:', response)
         ),
+        // Checked at every start: how an existing installation learns its
+        // device ID (TECH-8828, the analytics person) without registering
+        // again, and a new one when the backend gave its registration one.
+        tap((response: any) => {
+          if (response?.data?.is_active !== false) {
+            rememberDeviceId(response?.data?.device_id);
+          }
+        }),
         catchError(this.handleError)
       );
   }
@@ -152,6 +170,8 @@ export class SchoolService {
     return this.http
       .post(environment.restAPI + 'dailycheckapp_schools', data, this.options)
       .pipe(
+        // Before the map below keeps only the user_id.
+        tap((response: any) => rememberDeviceId(response?.data?.device_id)),
         map((response: any) => response.data.user_id),
         tap((data) => console.log(JSON.stringify(data))),
         catchError(this.handleError)

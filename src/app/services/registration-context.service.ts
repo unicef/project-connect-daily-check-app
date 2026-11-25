@@ -26,6 +26,12 @@ export const APP_INSTANCE_SCHOOL_KEY = 'appInstanceSchool';
 export const PENDING_AUTO_REGISTRATION_KEY = 'pendingAutoRegistration';
 
 /**
+ * Set while the app instance ID this install made for the registration it
+ * already had isn't attached to that registration yet.
+ */
+export const PENDING_APP_INSTANCE_CLAIM_KEY = 'pendingAppInstanceClaim';
+
+/**
  * How the app came to register: the user picked the school, or the app took
  * it from the registration this PC already has.
  */

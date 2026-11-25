@@ -45,7 +45,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // PostHog: its SDK persists the queue in localStorage and survives restarts
   // without network, which the node SDK does not.
   onTelemetryEvent: (
-    callback: (payload: { event: string; properties?: any }) => void
+    callback: (payload: {
+      event: string;
+      properties?: any;
+      sendNow?: boolean;
+    }) => void
   ) => {
     ipcRenderer.on('telemetry-event', (event, payload) => callback(payload));
     // The main process holds its events until someone is listening.

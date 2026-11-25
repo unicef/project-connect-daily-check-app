@@ -241,6 +241,64 @@ describe('ScheduleService', () => {
     });
   });
 
+  describe('analytics events', () => {
+    let posthog: { capture: jasmine.Spy };
+
+    beforeEach(() => {
+      posthog = { capture: jasmine.createSpy('capture') };
+      service = new ScheduleService(
+        storageService,
+        measurementClientService,
+        settingsService,
+        sharedService,
+        networkService,
+        posthog as any
+      );
+    });
+
+    it('reports a slot whose time came while the PC was off as missed', async () => {
+      jasmine.clock().mockDate(new Date(2026, 7, 7, 12, 30, 0));
+
+      await service.decide(morningSemaphore());
+
+      expect(posthog.capture).toHaveBeenCalledOnceWith('scheduled_test_missed', {
+        slot: 'morning',
+        reason: 'slot_ended_before_run',
+        retry_attempts: 0,
+      });
+    });
+
+    it('reports the window ending after failed tests as missed for that reason', async () => {
+      measurementClientService.runTest.and.rejectWith(new Error('test broke'));
+      jasmine.clock().mockDate(new Date(MORNING_END));
+
+      await service.decide(morningSemaphore({ retryAttempts: 3 }));
+
+      expect(posthog.capture).toHaveBeenCalledWith('scheduled_test_missed', {
+        slot: 'morning',
+        reason: 'test_failed',
+        retry_attempts: 3,
+      });
+    });
+
+    it('reports only the first of a run of offline retries', async () => {
+      networkService.getNetInfo.and.rejectWith(new Error('offline'));
+
+      await service.decide(morningSemaphore());
+      jasmine.clock().mockDate(new Date(NOW.getTime() + 2 * MINUTE));
+      await service.decide(savedSemaphore());
+      expect(savedSemaphore().retryAttempts).toBe(2);
+
+      const rescheduled = posthog.capture.calls
+        .allArgs()
+        .filter(([name]) => name === 'scheduled_test_rescheduled');
+      expect(rescheduled.length).toBe(1);
+      expect(rescheduled[0][1]).toEqual(
+        jasmine.objectContaining({ reason: 'no_network', retry_attempt: 1 })
+      );
+    });
+  });
+
   describe('legacy semaphores', () => {
     it('handles a pre-2.0.4 semaphore without the new fields', async () => {
       measurementClientService.runTest.and.rejectWith(new Error('test broke'));

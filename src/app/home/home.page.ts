@@ -14,10 +14,15 @@ import { HardwareIdService } from '../services/hardware-id.service';
 import { PosthogService } from '../services/posthog.service';
 import {
   APP_INSTANCE_ID_KEY,
+  PENDING_APP_INSTANCE_CLAIM_KEY,
   PENDING_AUTO_REGISTRATION_KEY,
   REGISTER_TIMEOUT_MS,
   RegistrationContextService,
 } from '../services/registration-context.service';
+import {
+  AnalyticsEvent,
+  registrationProps,
+} from '../analytics/analytics-events';
 
 /**
  * Screens before the country step. While the user is on one of these, an
@@ -26,11 +31,9 @@ import {
  */
 const AUTO_REGISTRATION_ROUTES = ['/home', '/register-school'];
 
-/**
- * Set while the app instance ID this install made for the registration it
- * already had isn't attached to that registration yet.
- */
-export const PENDING_APP_INSTANCE_CLAIM_KEY = 'pendingAppInstanceClaim';
+// Kept in RegistrationContextService with the other app instance keys, where
+// the analytics heartbeat reads it too.
+export { PENDING_APP_INSTANCE_CLAIM_KEY };
 
 /**
  * How long a registration the app makes by itself waits for the motherboard
@@ -38,6 +41,19 @@ export const PENDING_APP_INSTANCE_CLAIM_KEY = 'pendingAppInstanceClaim';
  * on a PC where they can't be read, it registers without them after this.
  */
 export const SERIALS_WAIT_MS = 20000;
+
+/**
+ * What led the app to register by itself, for analytics: the lookup at start,
+ * a hardware ID that came late, the PC's registration logged out from another
+ * app instance, a retry of one that couldn't be stored, or a registration
+ * from before app instances that turned out to be another install's.
+ */
+type AutoRegistrationTrigger =
+  | 'startup'
+  | 'late_hardware_id'
+  | 'after_remote_deactivation'
+  | 'retry'
+  | 'claim_refused';
 
 /** This app instance registered at the school of the PC's registration. */
 interface InstanceRegistration {
@@ -147,8 +163,14 @@ export class HomePage {
     }
 
     try {
+      // With this app instance's ID, the answer's device ID is its own
+      // registration's, not another PC's sharing the firmware UUID.
       const status = await this.schoolService
-        .checkDeviceStatus(hardwareId, gigaId)
+        .checkDeviceStatus(
+          hardwareId,
+          gigaId,
+          this.storage.get(APP_INSTANCE_ID_KEY) || null
+        )
         .toPromise();
 
       console.log('📊 [HomePage] Device status:', status);
@@ -166,6 +188,8 @@ export class HomePage {
         // Device was deactivated by another user (logged out)
         console.warn('🚫 [HomePage] Device has been deactivated (logged out)');
         console.log('   Clearing localStorage...');
+        // Before reset(): the event belongs to this PC's identity.
+        this.posthogService.capture(AnalyticsEvent.DeviceDeactivatedRemotely);
         this.posthogService.reset();
         await this.storage.clear();
         console.log(
@@ -173,14 +197,19 @@ export class HomePage {
         );
         // Check if device registration still exists in backend
         // This handles the case where User A logs out, but User B can claim the registration
-        await this.checkMachineRegistration(hardwareId, () =>
-          this.canAutoRegister()
+        await this.checkMachineRegistration(
+          hardwareId,
+          () => this.canAutoRegister(),
+          'after_remote_deactivation'
         );
       } else if (status.data.exists && status.data.is_active === true) {
         // Device is active, proceed normally
         console.log(
           '✅ [HomePage] Device is active, proceeding with existing registration...'
         );
+        // The status answer carries the device ID (SchoolService remembered
+        // it): an installation registered before 2.0.4 is identified here.
+        this.posthogService.identifyDevice();
         this.proceedWithExistingRegistration();
       } else if (!status.data.exists) {
         // Device not found in backend - backward compatibility
@@ -195,6 +224,11 @@ export class HomePage {
       }
     } catch (error) {
       console.error('❌ [HomePage] Error checking device status:', error);
+      this.posthogService.captureFailure(
+        AnalyticsEvent.DeviceStatusCheckFailed,
+        error,
+        { check: 'device_status' }
+      );
       // On API error, proceed with existing registration (fail open)
       // This prevents blocking users if backend is temporarily down
       console.log('   Proceeding with existing registration (fail open)...');
@@ -230,6 +264,9 @@ export class HomePage {
             this.router.navigate(['/starttest']);
           } else {
             // The registration is gone and the local data was cleared.
+            this.posthogService.capture(AnalyticsEvent.RegistrationLost, {
+              reason: NotFound.notRegister,
+            });
             this.posthogService.reset();
             this.loading.dismiss();
             this.router.navigate(['schoolnotfound', schoolId, 0, 0, 0], {
@@ -274,6 +311,10 @@ export class HomePage {
         console.warn(
           '⚠️ [HomePage] No hardware ID available, proceeding with normal flow'
         );
+        this.posthogService.capture(AnalyticsEvent.HardwareIdUnavailable, {
+          where: 'startup_registration_check',
+          wait_ms: 10000,
+        });
         console.log('   User will need to manually register the device');
         this.loading.dismiss();
         this.retryHardwareRegistrationInBackground();
@@ -313,8 +354,10 @@ export class HomePage {
         '🔁 [HomePage] Hardware ID arrived late, retrying registration lookup:',
         hardwareId
       );
-      await this.checkMachineRegistration(hardwareId, () =>
-        this.canAutoRegister()
+      await this.checkMachineRegistration(
+        hardwareId,
+        () => this.canAutoRegister(),
+        'late_hardware_id'
       );
     } catch (error) {
       console.error(
@@ -347,7 +390,8 @@ export class HomePage {
    */
   private async checkMachineRegistration(
     hardwareId: string,
-    stillWanted: () => boolean = () => true
+    stillWanted: () => boolean = () => true,
+    trigger: AutoRegistrationTrigger = 'startup'
   ) {
     try {
       console.log(
@@ -389,7 +433,10 @@ export class HomePage {
           }
         }
         // This app instance gets a registration of its own at that school.
-        const registration = await this.registerThisInstance(response.data);
+        const registration = await this.registerThisInstance(
+          response.data,
+          trigger
+        );
         if (!stillWanted()) {
           // A registration stored meanwhile isn't lost: registering at the
           // same school from the registration screen sends the same app
@@ -409,6 +456,9 @@ export class HomePage {
           borrowing ? 'true' : ''
         );
         await this.applyExistingRegistration(response.data, registration);
+        if (registration?.userId) {
+          this.reportAutoRegistration(registration.payload, trigger);
+        }
         this.loading.dismiss();
         console.log('🚀 [HomePage] Navigating to /starttest...');
         this.router.navigate(['/starttest']);
@@ -424,6 +474,11 @@ export class HomePage {
     } catch (err) {
       // API error - gracefully fallback to normal registration flow
       console.error('❌ [HomePage] Error checking machine registration:', err);
+      this.posthogService.captureFailure(
+        AnalyticsEvent.DeviceStatusCheckFailed,
+        err,
+        { check: 'existing_installation', trigger }
+      );
       console.log('   Falling back to normal registration flow');
       this.loading.dismiss();
     }
@@ -438,19 +493,21 @@ export class HomePage {
    * server error). In both cases the caller borrows the found registration.
    */
   private async registerThisInstance(
-    registrationData: any
+    registrationData: any,
+    trigger: AutoRegistrationTrigger = 'startup'
   ): Promise<InstanceRegistration | null> {
     if (!registrationData.giga_id_school) {
       return null;
     }
+    const countryCode =
+      registrationData.country_code ??
+      registrationData.schoolInfo?.country ??
+      null;
     let payload: InstanceRegistration['payload'];
     try {
       payload = await this.registrationContext.build({
         giga_id_school: registrationData.giga_id_school,
-        country_code:
-          registrationData.country_code ??
-          registrationData.schoolInfo?.country ??
-          null,
+        country_code: countryCode,
         registration_source: 'auto',
         lookUpLocation: true,
       });
@@ -458,6 +515,12 @@ export class HomePage {
       console.error(
         '❌ [HomePage] Could not read this PC for its registration:',
         error
+      );
+      this.posthogService.captureFailure(
+        AnalyticsEvent.RegistrationFailed,
+        error,
+        { registration_source: 'auto', trigger, country_code: countryCode },
+        'context_unavailable'
       );
       return null;
     }
@@ -475,8 +538,40 @@ export class HomePage {
         '❌ [HomePage] Registering this app instance failed:',
         error
       );
+      // The app goes on with the registration it found, and tries again at
+      // the next start (retryPendingAutoRegistration).
+      this.posthogService.captureFailure(
+        AnalyticsEvent.RegistrationFailed,
+        error,
+        { registration_source: 'auto', trigger, country_code: countryCode },
+        'registration_failed'
+      );
       return { payload, userId: null };
     }
+  }
+
+  /**
+   * A registration the app made by itself went through: this app instance is
+   * a new row on the PC, at the school of the PC's registration. The device
+   * ID came back with it (SchoolService remembered it), so the PC is
+   * identified, and the app instance described in its group.
+   */
+  private reportAutoRegistration(
+    payload: InstanceRegistration['payload'],
+    trigger: AutoRegistrationTrigger
+  ) {
+    this.posthogService.identifyDevice();
+    this.posthogService.applyAppInstance({
+      registration_source: 'auto',
+      giga_id_school: payload.giga_id_school,
+      country_code: payload.country_code ?? null,
+      app_version: environment.app_version,
+      registered_at: new Date().toISOString(),
+    });
+    this.posthogService.capture(AnalyticsEvent.RegistrationCompleted, {
+      ...registrationProps(payload),
+      trigger,
+    });
   }
 
   /**
@@ -485,7 +580,9 @@ export class HomePage {
    * attempt did get through, the server returns that registration. Tests run
    * until it's stored count under the PC's earlier registration.
    */
-  private async retryPendingAutoRegistration() {
+  private async retryPendingAutoRegistration(
+    trigger: AutoRegistrationTrigger = 'retry'
+  ) {
     const gigaId = this.storage.get('gigaId');
     if (this.storage.get(PENDING_AUTO_REGISTRATION_KEY) !== 'true' || !gigaId) {
       return;
@@ -507,16 +604,23 @@ export class HomePage {
       if (userId) {
         await this.storage.set('schoolUserId', userId);
         await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
-        this.posthogService.capture('registration_completed', {
-          country_code: payload.country_code,
-          registration_source: 'auto',
-        });
+        this.reportAutoRegistration(payload, trigger);
         console.log('✅ [HomePage] Registered this app instance:', userId);
       }
     } catch (error) {
       console.warn(
         '⚠️ [HomePage] Registering this app instance failed again:',
         error
+      );
+      this.posthogService.captureFailure(
+        AnalyticsEvent.RegistrationFailed,
+        error,
+        {
+          registration_source: 'auto',
+          trigger,
+          country_code: this.storage.get('country_code') ?? null,
+        },
+        'registration_failed'
       );
     }
   }
@@ -573,9 +677,28 @@ export class HomePage {
         '✅ [HomePage] Attached this app instance to its registration:',
         appInstanceId
       );
+      // Its events now carry the app instance; it has no registration_source
+      // (registered before app instances), so the group says so.
+      this.posthogService.applyAppInstance({
+        legacy_registration: true,
+        giga_id_school: gigaId,
+        country_code: this.storage.get('country_code') ?? null,
+        app_version: environment.app_version,
+      });
+      this.posthogService.capture(AnalyticsEvent.AppInstanceClaimed);
     } catch (error) {
       const status = (error as { status?: number })?.status;
-      if (status !== 409 && status !== 404) {
+      const refused = status === 409 || status === 404;
+      this.posthogService.captureFailure(
+        AnalyticsEvent.AppInstanceClaimFailed,
+        error,
+        // Refused: the registration is another install's (older apps copied
+        // one to every Windows user of a PC) or gone, so this one registers
+        // on its own. Anything else is tried again at the next start.
+        { outcome: refused ? 'registering_on_its_own' : 'will_retry' },
+        'claim_failed'
+      );
+      if (!refused) {
         console.warn(
           '⚠️ [HomePage] Attaching this app instance failed; trying again on the next start:',
           error
@@ -585,7 +708,7 @@ export class HomePage {
       // Not this install's registration: it registers on its own.
       await this.storage.set(PENDING_APP_INSTANCE_CLAIM_KEY, '');
       await this.storage.set(PENDING_AUTO_REGISTRATION_KEY, 'true');
-      await this.retryPendingAutoRegistration();
+      await this.retryPendingAutoRegistration('claim_refused');
     }
   }
 
@@ -623,7 +746,11 @@ export class HomePage {
       await this.storage.set('gigaId', registrationData.giga_id_school);
       console.log('   ✓ Set gigaId:', registrationData.giga_id_school);
       this.posthogService.identifyDevice();
-      this.posthogService.setSchool(registrationData.giga_id_school);
+      this.posthogService.setSchool(registrationData.giga_id_school, {
+        external_id: registrationData.school_id,
+        name: registrationData.schoolInfo?.name,
+      });
+      this.posthogService.setCountry(registrationData.country_code);
     }
     if (context.mac_address != null) {
       await this.storage.set('macAddress', context.mac_address);
@@ -640,12 +767,6 @@ export class HomePage {
     if (context.app_version != null) {
       await this.storage.set('version', context.app_version);
       console.log('   ✓ Set version:', context.app_version);
-    }
-    if (registration?.userId) {
-      this.posthogService.capture('registration_completed', {
-        country_code: registration.payload.country_code,
-        registration_source: 'auto',
-      });
     }
     if (registrationData.country_code != null) {
       await this.storage.set('country_code', registrationData.country_code);

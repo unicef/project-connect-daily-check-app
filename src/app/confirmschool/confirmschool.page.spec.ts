@@ -67,7 +67,10 @@ describe('ConfirmschoolPage', () => {
           useValue: jasmine.createSpyObj('PosthogService', [
             'identifyDevice',
             'capture',
+            'captureFailure',
             'setSchool',
+            'setCountry',
+            'applyAppInstance',
           ]),
         },
         provideHttpClient(withInterceptorsFromDi()),
@@ -117,6 +120,19 @@ describe('ConfirmschoolPage', () => {
     expect(schoolService.registerSchoolDevice).toHaveBeenCalledTimes(1);
     expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
     expect(loading.dismiss).toHaveBeenCalled();
+  });
+
+  it("puts the device in its school's analytics group, with the school's external ID and name", async () => {
+    component.school = { ...component.school, name: 'Escuela Uno' };
+    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    const posthog = TestBed.inject(PosthogService) as jasmine.SpyObj<PosthogService>;
+
+    await component.confirmSchool();
+
+    expect(posthog.setSchool).toHaveBeenCalledWith(
+      '7f60b4e6-3a43-3f90-b7cb-882c3a6bdb80',
+      { external_id: 'ext-1', name: 'Escuela Uno' }
+    );
   });
 
   it('leaves nothing for the next start to try again once registered by hand', async () => {
