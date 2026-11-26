@@ -122,6 +122,18 @@ app instance at the same school by itself (`registration_completed`,
 `error_code` for tests: `locate_failed`, `no_result`, `websocket_error`,
 `timeout`, `network`, `unknown`.
 
+Pings: every 15 minutes from 08:00 to 20:00, and before each speed test
+unless a ping got a reply in the last 15 minutes. A check that gets no reply
+is run once more, 30 seconds later (5 seconds before a speed test, which
+`ping_ms` then includes), and only that second check is stored, so a PC that
+has just woken from sleep isn't stored as offline. A failed ping stores why
+in `errorMessage` (`connectivity_ping_checks.error_message`), and
+`top_ping_error` is the commonest of these over the last 24 hours: `offline`
+(Windows reports no network), `gave_up` (the check gave up without a reply,
+e.g. Cloudflare blocked), `timeout` (no reply within 5 seconds), `error` (the
+check threw; its text stays in the console). `no_reply` is a failed ping
+stored by an older version, which recorded no reason.
+
 ### 4. App update
 
 All sent by the Electron main process through the telemetry bridge. Staging

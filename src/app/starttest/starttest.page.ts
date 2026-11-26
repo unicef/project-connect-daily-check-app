@@ -105,6 +105,7 @@ export class StarttestPage implements OnInit, OnDestroy {
   private uploadSub!: Subscription;
   private downloadStartedSub!: Subscription;
   private uploadStartedSub!: Subscription;
+  private pingSavedSub!: Subscription;
 
   downloadTimer: any;
   uploadTimer: any;
@@ -262,6 +263,15 @@ export class StarttestPage implements OnInit, OnDestroy {
       this.refreshHistory.bind(this)
     );
     this.sharedService.on('history:reset', this.refreshHistory.bind(this));
+    // Pings are stored while the window sits in the tray, and showing it
+    // doesn't enter this page again.
+    this.pingSavedSub = this.sharedService.events.subscribe(
+      ({ name }: { name: string }) => {
+        if (name === 'ping:saved') {
+          this.loadLatestPingResult();
+        }
+      }
+    );
   }
 
   /**
@@ -988,5 +998,6 @@ export class StarttestPage implements OnInit, OnDestroy {
     this.uploadSub.unsubscribe();
     this.downloadStartedSub.unsubscribe();
     this.uploadStartedSub.unsubscribe();
+    this.pingSavedSub.unsubscribe();
   }
 }
