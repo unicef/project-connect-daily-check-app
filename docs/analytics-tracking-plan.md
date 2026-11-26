@@ -112,7 +112,7 @@ app instance at the same school by itself (`registration_completed`,
 | `measurement_completed` | Test finished and saved | `duration_ms`, `ping_ms`, `prep_ms`, `test_ms`, `uploaded`, `server_country`, `metro_rank`, `locate_tier` (`priority` / `public`), `priority_locate_error`, `download_server_measurement`, `upload_server_measurement`, `wifi_status`, `ssid_source`, `device_identity_read`, `device_context_read` |
 | `measurement_failed` | Test failed for good | `phase` (`ping` / `prep` / `net_info` / `locate` / `download` / `upload` / `finalize`), `error_code`, `ndt_error` + failure fields |
 | `scheduled_test_rescheduled` | Scheduled test retried later | `reason` (`no_network` / `test_failed`), `retry_attempt`, `delay_ms` (offline: first retry only) |
-| `scheduled_test_missed` | A window ended without a test | `reason` (`slot_ended_before_run` = PC off or asleep, `no_network`, `test_failed`), `retry_attempts` |
+| `scheduled_test_missed` | A window ended without a test (once per window), or the startup test found no network (`slot` = `startup`; offline retries after the first are not sent) | `reason` (`slot_ended_before_run` = PC off or asleep, `no_network`, `test_failed`), `retry_attempts` |
 | `measurement_uploaded` | Delivered in realtime | `notes`, `scheduled_slot`, geolocation fields (below) |
 | `measurement_queued_offline` | Upload failed, queued for sync | failure fields, geolocation fields |
 | `measurement_rejected` | Backend refused it (not queued: it is already in `measurements_failed`) | `source` (`realtime` / `sync`), `reason`, `count` |
@@ -144,7 +144,7 @@ and dev builds have the updater off; testing this flow needs a build with
 |---|---|---|
 | `logout_started` / `logout_cancelled` | Logout dialog opened / closed without logging out | |
 | `logout_failed` | Wrong school ID typed (`error_code: wrong_school_id`) or unexpected error | failure fields |
-| `logout_completed` | Logged out (sent at once: the page reloads) | `backend_deactivated`, `deactivate_error_code`, `deactivate_http_status` |
+| `logout_completed` | Logged out (sent at once: the page reloads) | `backend_deactivated`, `deactivate_error_code`, `deactivate_http_status`, `databases_deleted` (false: a local database, pings or the offline queue, failed to delete or took over 5 s; logout went on, having emptied it first) |
 | `device_deactivated_remotely` | Another app instance on this PC logged out: the backend deactivates every app instance of the PC at that school | |
 | `device_status_check_failed` | Startup registration checks failed (the app continues) | `check`, failure fields |
 

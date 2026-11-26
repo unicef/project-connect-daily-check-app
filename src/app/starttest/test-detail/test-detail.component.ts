@@ -75,9 +75,11 @@ export class TestDetailComponent implements OnInit, OnDestroy {
   ngOnInit() {
     if (this.identityService.isRegistered()) {
       this.school = this.identityService.getFacilityInfo();
+    }
+    if (this.school?.country) {
       this.countryService.getPcdcCountryByCode(this.school.country).subscribe(
         (response) => {
-          this.selectedCountry = response[0].name;
+          this.selectedCountry = response?.[0]?.name;
         },
         (err) => {
           console.log('ERROR: ' + err);

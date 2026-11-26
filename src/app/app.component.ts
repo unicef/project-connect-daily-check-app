@@ -557,7 +557,15 @@ export class AppComponent {
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
       const registrationId = this.identityService.getRegistrationId();
-      await this.localStorageService.deleteAllDatabases();
+      // Logout goes on without it: it gives up after a few seconds, and it
+      // empties each database before trying to delete it.
+      let databasesDeleted = true;
+      try {
+        await this.localStorageService.deleteAllDatabases();
+      } catch (databaseError) {
+        console.error('⚠️ Could not delete the local databases:', databaseError);
+        databasesDeleted = false;
+      }
 
       // Deactivate on backend: v2 registrations by registration/installation
       // id (any facility type); legacy school installs keep the v1 path.
@@ -614,10 +622,10 @@ export class AppComponent {
 
       // Sent now: the page reloads in 500 ms and a batched event would be lost.
       // Before reset(), so it belongs to this PC.
-      this.posthogService.captureNow(
-        AnalyticsEvent.LogoutCompleted,
-        deactivation
-      );
+      this.posthogService.captureNow(AnalyticsEvent.LogoutCompleted, {
+        ...deactivation,
+        databases_deleted: databasesDeleted,
+      });
 
       // Forget this PC's analytics identity, so a new registration can set it
       this.posthogService.reset();

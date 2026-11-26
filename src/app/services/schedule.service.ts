@@ -41,6 +41,7 @@ export class ScheduleService {
   private readonly STARTUP_TEST_KEY = 'lastStartupTest';
   private readonly STARTUP_TEST_SCHEDULED_KEY = 'startupTestScheduled';
   private readonly TEN_MINUTE = 60 * 1000 * 10; // 10 minutes in milliseconds
+  private startupNoNetworkReported = false;
 
   constructor(
     private storageService: StorageService,
@@ -136,7 +137,12 @@ export class ScheduleService {
       return this.createSlotSemaphore(morning, 'morning');
     } else if (lastMeasurementTime < afternoon && now.getTime() < evening) {
       return this.createSlotSemaphore(afternoon, 'afternoon');
-    } else if (lastMeasurementTime < evening) {
+    } else if (
+      lastMeasurementTime < evening &&
+      // An evening already over would be reported missed and cleared by
+      // decide(), then created again at the next check, until midnight.
+      now.getTime() < evening + this.SLOT_DURATION
+    ) {
       return this.createSlotSemaphore(evening, 'evening');
     } else if (lastMeasurementTime < nextDayMorning) {
       return this.createSlotSemaphore(nextDayMorning, 'morning');
@@ -453,9 +459,15 @@ export class ScheduleService {
     const networkInfo = await this.getNetworkInfoSafe();
     if (!networkInfo) {
       console.log('Network not available for startup test, skipping.');
-      this.captureMissed({ slot: 'startup', retryAttempts: 0 }, 'no_network');
+      // Offline, it is tried again every 10-25 minutes until it runs:
+      // report only the first one in a row.
+      if (!this.startupNoNetworkReported) {
+        this.startupNoNetworkReported = true;
+        this.captureMissed({ slot: 'startup', retryAttempts: 0 }, 'no_network');
+      }
       return;
     }
+    this.startupNoNetworkReported = false;
 
     try {
       const scheduledFor = parseInt(

@@ -304,6 +304,237 @@ describe('ScheduleService', () => {
         jasmine.objectContaining({ reason: 'no_network', retry_attempt: 1 })
       );
     });
+
+    const eventsNamed = (name: string) =>
+      posthog.capture.calls.allArgs().filter(([event]) => event === name);
+    const missed = () => eventsNamed('scheduled_test_missed');
+
+    it('reports the startup test finding no network once while offline for hours', async () => {
+      store.schoolId = '1';
+      networkService.getNetInfo.and.rejectWith(new Error('offline'));
+      spyOn(Math, 'random').and.returnValue(0.5);
+      spyOn(console, 'log');
+
+      // initiate() plans a new startup test every 10-25 minutes until one runs
+      for (let minute = 0; minute < 180; minute++) {
+        await service.initiate();
+        jasmine.clock().tick(MINUTE);
+      }
+
+      const startup = missed().filter(([, props]) => props.slot === 'startup');
+      expect(startup).toEqual([
+        [
+          'scheduled_test_missed',
+          { slot: 'startup', reason: 'no_network', retry_attempts: 0 },
+        ],
+      ]);
+    });
+
+    it('reports the startup test finding no network again once it had the network', async () => {
+      const runStartupTest = () => (service as any).runStartupTest();
+      networkService.getNetInfo.and.rejectWith(new Error('offline'));
+      await runStartupTest();
+      networkService.getNetInfo.and.resolveTo({ ip: '1.2.3.4' });
+      await runStartupTest();
+      networkService.getNetInfo.and.rejectWith(new Error('offline'));
+      await runStartupTest();
+
+      expect(missed().length).toBe(2);
+    });
+
+    describe('checked every minute, as the app does', () => {
+      const at = (day: number, hour: number, minute = 0, second = 30) =>
+        new Date(2026, 7, day, hour, minute, second).getTime();
+      const EVENING_START = at(7, 16, 0, 0);
+      const EVENING_END = at(7, 20, 0, 0);
+      const NEXT_MORNING_START = at(8, 8, 0, 0);
+
+      const eveningSemaphore = (choice: number, overrides: any = {}) => ({
+        start: EVENING_START,
+        end: EVENING_END,
+        choice,
+        scheduledAt: choice,
+        slot: 'evening',
+        intervalType: 'daily',
+        retryAttempts: 0,
+        backoffLevel: 0,
+        ...overrides,
+      });
+      const missedEvening = (reason: string, retryAttempts: number) => [
+        'scheduled_test_missed',
+        { slot: 'evening', reason, retry_attempts: retryAttempts },
+      ];
+
+      // AppComponent runs watch() (through initiate()) every minute; the
+      // semaphore:refresh it broadcasts makes AppComponent call getSemaphore()
+      // once more.
+      const checkEveryMinute = async (from: number, to: number) => {
+        for (let time = from; time <= to; time += MINUTE) {
+          jasmine.clock().mockDate(new Date(time));
+          await service.watch();
+          await service.getSemaphore();
+        }
+      };
+
+      beforeEach(() => {
+        // The afternoon test ran, so the evening window is the one due
+        store.lastMeasurement = at(7, 13, 0, 0).toString();
+        spyOn(console, 'log');
+      });
+
+      it('online, its time in the last minute of the window: reports it once, through midnight', async () => {
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(EVENING_END - 15 * 1000)
+        );
+
+        await checkEveryMinute(at(7, 19, 58), at(7, 20, 5));
+        expect(missed()).toEqual([missedEvening('slot_ended_before_run', 0)]);
+
+        await checkEveryMinute(at(7, 20, 6), at(8, 0, 5));
+        expect(missed().length).toBe(1);
+        expect(measurementClientService.runTest).not.toHaveBeenCalled();
+        expect(savedSemaphore().start).toBe(NEXT_MORNING_START);
+      });
+
+      it('offline through the window end: reports it once, through midnight', async () => {
+        networkService.getNetInfo.and.rejectWith(new Error('offline'));
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(at(7, 19, 30))
+        );
+
+        await checkEveryMinute(at(7, 19, 58), at(7, 20, 5));
+        expect(missed()).toEqual([missedEvening('no_network', 1)]);
+
+        await checkEveryMinute(at(7, 20, 6), at(8, 0, 5));
+        expect(missed().length).toBe(1);
+        expect(eventsNamed('scheduled_test_rescheduled').length).toBe(1);
+        expect(savedSemaphore().start).toBe(NEXT_MORNING_START);
+      });
+
+      it('tests failing through the window end: reports it once, through midnight', async () => {
+        measurementClientService.runTest.and.rejectWith(new Error('test broke'));
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(at(7, 19, 57))
+        );
+
+        await checkEveryMinute(at(7, 19, 58), at(7, 20, 5));
+        expect(missed()).toEqual([missedEvening('test_failed', 1)]);
+
+        await checkEveryMinute(at(7, 20, 6), at(8, 0, 5));
+        expect(missed().length).toBe(1);
+        expect(measurementClientService.runTest).toHaveBeenCalledTimes(1);
+        expect(savedSemaphore().start).toBe(NEXT_MORNING_START);
+      });
+
+      it('keeps it at one across an app restart after 20:00', async () => {
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(EVENING_END - 15 * 1000)
+        );
+        await checkEveryMinute(at(7, 19, 58), at(7, 20, 2));
+
+        service = new ScheduleService(
+          storageService,
+          identityService,
+          measurementClientService,
+          settingsService,
+          sharedService,
+          networkService,
+          posthog as any
+        );
+        await checkEveryMinute(at(7, 21, 0), at(7, 21, 10));
+
+        expect(missed().length).toBe(1);
+      });
+
+      it('started after the window ended with its test pending: reports it once', async () => {
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(at(7, 18, 0))
+        );
+
+        await checkEveryMinute(at(7, 21, 0), at(7, 21, 10));
+
+        expect(missed()).toEqual([missedEvening('slot_ended_before_run', 0)]);
+        expect(measurementClientService.runTest).not.toHaveBeenCalled();
+        expect(savedSemaphore().start).toBe(NEXT_MORNING_START);
+      });
+
+      [
+        { label: 'the afternoon test done', lastMeasurement: at(7, 13, 0, 0) },
+        { label: 'never measured', lastMeasurement: undefined },
+      ].forEach(({ label, lastMeasurement }) => {
+        it(`started after 20:00 with no semaphore and ${label}: reports nothing, schedules the next morning`, async () => {
+          if (lastMeasurement === undefined) {
+            delete store.lastMeasurement;
+          }
+
+          await checkEveryMinute(at(7, 20, 30), at(7, 20, 40));
+
+          expect(missed()).toEqual([]);
+          expect(measurementClientService.runTest).not.toHaveBeenCalled();
+          expect(savedSemaphore()).toEqual(
+            jasmine.objectContaining({
+              slot: 'morning',
+              start: NEXT_MORNING_START,
+            })
+          );
+        });
+      });
+
+      it('asleep from before the window to after midnight: reports it once, then runs the morning test', async () => {
+        spyOn(Math, 'random').and.returnValue(0.5); // morning test at 10:00
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(at(7, 18, 0))
+        );
+
+        await checkEveryMinute(at(8, 0, 30), at(8, 0, 40));
+        expect(missed()).toEqual([missedEvening('slot_ended_before_run', 0)]);
+        expect(savedSemaphore()).toEqual(
+          jasmine.objectContaining({ slot: 'morning', start: NEXT_MORNING_START })
+        );
+
+        await checkEveryMinute(at(8, 9, 58), at(8, 10, 2));
+        expect(missed().length).toBe(1);
+        expect(measurementClientService.runTest).toHaveBeenCalledOnceWith(
+          'daily',
+          { slot: 'morning', scheduledAt: at(8, 10, 0, 0) }
+        );
+      });
+
+      it('a legacy (slot C) semaphore left from days ago: reports it once by name, then schedules the next window', async () => {
+        spyOn(Math, 'random').and.returnValue(0.5);
+        store.lastMeasurement = at(4, 13, 0, 0).toString();
+        store.scheduleSemaphore = JSON.stringify(
+          eveningSemaphore(at(4, 18, 0), {
+            start: at(4, 16, 0, 0),
+            end: at(4, 20, 0, 0),
+            slot: 'C',
+          })
+        );
+
+        await checkEveryMinute(at(7, 20, 30), at(7, 20, 40));
+        expect(missed()).toEqual([missedEvening('slot_ended_before_run', 0)]);
+        expect(savedSemaphore().start).toBe(NEXT_MORNING_START);
+      });
+
+      it('a missed morning still leads to the afternoon test', async () => {
+        spyOn(Math, 'random').and.returnValue(0.5); // afternoon test at 14:00
+        store.lastMeasurement = at(6, 17, 0, 0).toString();
+        store.scheduleSemaphore = JSON.stringify(morningSemaphore());
+
+        await checkEveryMinute(at(7, 13, 58), at(7, 14, 2));
+
+        expect(missed()).toEqual([
+          [
+            'scheduled_test_missed',
+            { slot: 'morning', reason: 'slot_ended_before_run', retry_attempts: 0 },
+          ],
+        ]);
+        expect(measurementClientService.runTest).toHaveBeenCalledOnceWith(
+          'daily',
+          { slot: 'afternoon', scheduledAt: at(7, 14, 0, 0) }
+        );
+      });
+    });
   });
 
   describe('legacy semaphores', () => {
@@ -363,6 +594,36 @@ describe('ScheduleService', () => {
       expect(sem.scheduledAt).toBe(sem.choice);
       expect(sem.choice).toBeGreaterThanOrEqual(sem.start);
       expect(sem.choice).toBeLessThanOrEqual(sem.end);
+    });
+
+    const at = (day: number, hour: number, minute = 0) =>
+      new Date(2026, 7, day, hour, minute, 0).getTime();
+    const cases: [number, number, string, number][] = [
+      // [now, last measurement, window scheduled, its start]
+      [at(7, 7, 0), at(6, 17), 'morning', at(7, 8)],
+      [at(7, 11, 59), at(6, 17), 'morning', at(7, 8)],
+      [at(7, 12, 0), at(6, 17), 'afternoon', at(7, 12)],
+      [at(7, 15, 59), at(7, 9), 'afternoon', at(7, 12)],
+      [at(7, 16, 0), at(7, 9), 'evening', at(7, 16)],
+      [at(7, 19, 59), at(7, 13), 'evening', at(7, 16)],
+      [at(7, 20, 0), at(7, 13), 'morning', at(8, 8)],
+      [at(7, 23, 59), 0, 'morning', at(8, 8)],
+      [at(7, 21, 0), at(7, 17), 'morning', at(8, 8)],
+      [at(8, 0, 0), at(7, 13), 'morning', at(8, 8)],
+    ];
+    cases.forEach(([now, last, slot, start]) => {
+      it(`at ${new Date(now).toString().slice(4, 21)}, last test ${
+        last ? new Date(last).toString().slice(4, 21) : 'never'
+      }: schedules the ${slot} from ${new Date(start).toString().slice(4, 21)}`, async () => {
+        jasmine.clock().mockDate(new Date(now));
+        store.lastMeasurement = last.toString();
+
+        const sem = await service.scheduleInitializers('daily');
+
+        expect(sem.slot).toBe(slot);
+        expect(sem.start).toBe(start);
+        expect(sem.end).toBeGreaterThan(now);
+      });
     });
   });
 });

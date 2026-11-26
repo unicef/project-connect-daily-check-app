@@ -4,9 +4,16 @@ import { AppModule } from './app/app.module';
 import { environment } from './environments/environment';
 import { initSentry } from './app/sentry.config';
 import * as Sentry from '@sentry/browser';
+import { forgetUnfinishedRegistration } from './app/utils/unfinished-registration.utils';
 
 // Initialize Sentry
 initSentry();
+
+// Before the app reads schoolId: one left by a registration that failed made
+// every start open blank. Without it the app takes the first-run path.
+if (forgetUnfinishedRegistration()) {
+  Sentry.captureMessage('Forgot an unfinished registration at start');
+}
 
 enableProdMode();
 

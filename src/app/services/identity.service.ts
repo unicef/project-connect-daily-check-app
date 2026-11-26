@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { StorageService } from './storage.service';
 import { DEFAULT_FACILITY_TYPE, FacilityType } from '../models/facility';
+import { parseSchoolInfo } from '../utils/school-info.utils';
 
 /**
  * Single place that resolves device/install identity with `legacy || new`
@@ -69,16 +70,11 @@ export class IdentityService {
 
   /** Facility info blob: 'facilityInfo' || legacy 'schoolInfo' (JSON). */
   getFacilityInfo(): any | null {
-    const raw =
-      this.storage.get('facilityInfo') || this.storage.get('schoolInfo');
-    if (!raw) {
-      return null;
-    }
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
+    // A broken value (not JSON, or "undefined") is no facility, never a
+    // crash: the screens that read it would otherwise stay blank.
+    return parseSchoolInfo(
+      this.storage.get('facilityInfo') || this.storage.get('schoolInfo')
+    );
   }
 
   /**

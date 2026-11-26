@@ -280,7 +280,9 @@ export class ConfirmschoolPage implements OnInit{
 
   /**
    * Record a country mismatch (detected vs selected). Independent of the school
-   * registration: it never gates navigation.
+   * registration: it never gates navigation, and it doesn't save schoolId (the
+   * registration does). Its answer can land after a failed registration or a
+   * logout, and a schoolId saved then made every later start open blank.
    */
   private registerFlaggedSchool(today: string) {
     const flaggedSchoolData = {
@@ -295,7 +297,6 @@ export class ConfirmschoolPage implements OnInit{
       next: () => {
         this.storage.set('detectedCountry', this.detectedCountry);
         this.storage.set('selectedCountry', this.selectedCountry);
-        this.storage.set('schoolId', this.schoolId);
       },
       error: (err) => {
         console.error('❌ [ConfirmSchool] Flagged school failed:', err);
