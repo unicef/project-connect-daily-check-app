@@ -38,6 +38,14 @@ describe('TestDetailComponent', () => {
     expect(component).toBeTruthy();
   });
 
+  it('shows when the registration saved no readable school', () => {
+    localStorage.setItem('schoolInfo', 'undefined');
+    const withoutSchool = TestBed.createComponent(TestDetailComponent);
+
+    expect(() => withoutSchool.detectChanges()).not.toThrow();
+    expect(withoutSchool.componentInstance.school).toBeNull();
+  });
+
   it('reloads the table when the history changes while it is open', () => {
     const loadData = spyOn(component, 'loadData');
     TestBed.inject(SharedService).broadcast('history:measurement:change');

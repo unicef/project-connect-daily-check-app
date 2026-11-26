@@ -44,6 +44,31 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
+  describe('with a schoolId but no readable school saved', () => {
+    afterEach(() => localStorage.clear());
+
+    // JSON.parse threw on these, the root component never existed and the
+    // window stayed blank.
+    for (const schoolInfo of [null, 'undefined', '{not json']) {
+      it(`starts (schoolInfo ${schoolInfo})`, () => {
+        localStorage.setItem('schoolId', 'ext-1');
+        if (schoolInfo !== null) {
+          localStorage.setItem('schoolInfo', schoolInfo);
+        }
+
+        const menu = TestBed.inject(MenuController);
+        spyOn(menu, 'enable').and.resolveTo(undefined);
+        spyOn(menu, 'open').and.resolveTo(true);
+
+        const fixture = TestBed.createComponent(AppComponent);
+
+        expect(fixture.componentInstance.school).toBeNull();
+        expect(() => fixture.componentInstance.openSecond()).not.toThrow();
+        expect(fixture.componentInstance.school).toBeNull();
+      });
+    }
+  });
+
   describe('logout', () => {
     let databases: IndexedDBService;
     let deactivate: jasmine.Spy;
