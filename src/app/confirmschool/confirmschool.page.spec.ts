@@ -343,6 +343,60 @@ describe('ConfirmschoolPage', () => {
     expect(schoolService.registerFlaggedSchool).toHaveBeenCalledTimes(1);
   });
 
+  describe('when the registration fails', () => {
+    // What makes the app treat the install as registered at the next start.
+    const registration = () => ({
+      schoolId: localStorage.getItem('schoolId'),
+      schoolUserId: localStorage.getItem('schoolUserId'),
+      gigaId: localStorage.getItem('gigaId'),
+      schoolInfo: localStorage.getItem('schoolInfo'),
+    });
+    const none = {
+      schoolId: null,
+      schoolUserId: null,
+      gigaId: null,
+      schoolInfo: null,
+    };
+
+    beforeEach(() => {
+      schoolService.registerSchoolDevice.and.returnValue(
+        throwError(() => new Error('500'))
+      );
+    });
+
+    it('saves nothing of a registration', async () => {
+      await component.confirmSchool();
+
+      expect(registration()).toEqual(none);
+    });
+
+    it('saves nothing of a registration when the countries differ', async () => {
+      component.detectedCountry = 'PT';
+      schoolService.registerFlaggedSchool.and.returnValue(of(1));
+
+      await component.confirmSchool();
+
+      expect(schoolService.registerFlaggedSchool).toHaveBeenCalledTimes(1);
+      expect(registration()).toEqual(none);
+    });
+
+    it('saves nothing of a registration when the flagged-school answer comes after the failure', async () => {
+      component.detectedCountry = 'PT';
+      const flagged = new Subject<any>();
+      schoolService.registerFlaggedSchool.and.returnValue(flagged);
+
+      await component.confirmSchool();
+      expect(router.navigate).toHaveBeenCalledWith(
+        ['schoolnotfound', 'ext-1', 'ES', 'PT', 'Spain'],
+        { queryParams: { reason: 'registrationFailed' } }
+      );
+      flagged.next(1);
+      flagged.complete();
+
+      expect(registration()).toEqual(none);
+    });
+  });
+
   it('saves the registration location with its access points and no BSSID yet', async () => {
     const location = TestBed.inject(LocationService);
     const httpMock = TestBed.inject(HttpTestingController);

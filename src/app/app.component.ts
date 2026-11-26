@@ -6,6 +6,7 @@ import { StorageService } from '../app/services/storage.service';
 import { SettingsService } from './services/settings.service';
 import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
+import { parseSchoolInfo } from './utils/school-info.utils';
 import { ScheduleService } from './services/schedule.service';
 import { environment } from '../environments/environment'; // './esrc/environments/environment';
 import { PingResult, PingService } from './services/ping.service';
@@ -114,7 +115,7 @@ export class AppComponent {
     // Show the full device ID as requested
     this.device_id_short = this.device_id;
     if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
     }
     this.sharedService.on(
       'settings:changed',
@@ -211,7 +212,7 @@ export class AppComponent {
 
   openSecond() {
     if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
     }
     this.menu.enable(true, 'second');
     this.menu.open('second');
@@ -544,7 +545,15 @@ export class AppComponent {
       // Get hardware ID and giga ID before clearing storage
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
-      await this.localStorageService.deleteAllDatabases();
+      // Logout goes on without it: it gives up after a few seconds, and it
+      // empties each database before trying to delete it.
+      let databasesDeleted = true;
+      try {
+        await this.localStorageService.deleteAllDatabases();
+      } catch (databaseError) {
+        console.error('⚠️ Could not delete the local databases:', databaseError);
+        databasesDeleted = false;
+      }
 
       // Deactivate device on backend if we have the required IDs
       let deactivation: Record<string, any> = { backend_deactivated: false };
@@ -582,10 +591,10 @@ export class AppComponent {
 
       // Sent now: the page reloads in 500 ms and a batched event would be lost.
       // Before reset(), so it belongs to this PC.
-      this.posthogService.captureNow(
-        AnalyticsEvent.LogoutCompleted,
-        deactivation
-      );
+      this.posthogService.captureNow(AnalyticsEvent.LogoutCompleted, {
+        ...deactivation,
+        databases_deleted: databasesDeleted,
+      });
 
       // Forget this PC's analytics identity, so a new registration can set it
       this.posthogService.reset();
