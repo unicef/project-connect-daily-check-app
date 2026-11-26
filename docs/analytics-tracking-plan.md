@@ -144,7 +144,7 @@ and dev builds have the updater off; testing this flow needs a build with
 |---|---|---|
 | `logout_started` / `logout_cancelled` | Logout dialog opened / closed without logging out | |
 | `logout_failed` | Wrong school ID typed (`error_code: wrong_school_id`) or unexpected error | failure fields |
-| `logout_completed` | Logged out (sent at once: the page reloads) | `backend_deactivated`, `deactivate_error_code`, `deactivate_http_status` |
+| `logout_completed` | Logged out (sent at once: the page reloads) | `backend_deactivated`, `deactivate_error_code`, `deactivate_http_status`, `databases_deleted` (false: a local database, pings or the offline queue, failed to delete or took over 5 s; logout went on, having emptied it first) |
 | `device_deactivated_remotely` | Another app instance on this PC logged out: the backend deactivates every app instance of the PC at that school | |
 | `device_status_check_failed` | Startup registration checks failed (the app continues) | `check`, failure fields |
 
