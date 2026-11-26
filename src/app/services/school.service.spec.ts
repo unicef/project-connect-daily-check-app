@@ -1,8 +1,8 @@
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { TestBed, fakeAsync, tick } from '@angular/core/testing';
 import { HttpErrorResponse, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { RouterTestingModule } from '@angular/router/testing';
-import { SchoolService } from './school.service';
+import { DEACTIVATE_TIMEOUT_MS, SchoolService } from './school.service';
 
 describe('SchoolService', () => {
   let service: SchoolService;
@@ -95,4 +95,21 @@ describe('SchoolService', () => {
       expect(localStorage.getItem('device_id')).toBeNull();
     });
   });
+
+  it('gives up on a deactivation that gets no answer', fakeAsync(() => {
+    let failure: any = null;
+    service
+      .deactivateDevice('hw-1', 'giga-1')
+      .subscribe({ error: (error) => (failure = error) });
+    const request = httpMock.expectOne((r) =>
+      r.url.endsWith('dailycheckapp_schools/deactivate')
+    );
+
+    tick(DEACTIVATE_TIMEOUT_MS - 1);
+    expect(failure).toBeNull();
+    tick(1);
+
+    expect(failure?.name).toBe('TimeoutError');
+    expect(request.cancelled).toBeTrue();
+  }));
 });

@@ -268,6 +268,7 @@
     "confirmText": "Por favor, escriba <strong class=\"school-id-highlight\">{{ schoolId }}</strong> para confirmar el ID de la escuela para la cancelación del registro.",
     "placeholder": "Ingrese el ID de la escuela",
     "errorMessage": "El ID de la escuela no coincide. Por favor, inténtelo de nuevo.",
+    "notLoggedOut": "No se ha cerrado la sesión: para cerrar sesión se necesita conexión a Internet. Compruebe su conexión e inténtelo de nuevo.",
     "logoutButton": "Cerrar sesión",
     "cancelButton": "Cancelar"
   },

@@ -266,5 +266,8 @@
   "privacy": "<a href='https://www.unicef.org/legal#privacy-policy' target={{targetUrl}}>",
   "privacyPolicy": "Политика конфиденциальности",
   "welcome": "Добро пожаловать в",
-  "start": "Начать"
+  "start": "Начать",
+  "logout": {
+    "notLoggedOut": "Выход не выполнен: для выхода нужно подключение к интернету. Проверьте подключение и повторите попытку."
+  }
 }

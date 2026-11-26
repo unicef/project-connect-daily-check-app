@@ -8,7 +8,7 @@ import {
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
-import { SyncService } from './sync.service';
+import { SyncService, SYNC_TIMEOUT_MS } from './sync.service';
 
 describe('SyncService', () => {
   let service: SyncService;
@@ -127,6 +127,137 @@ describe('SyncService', () => {
 
       expect(service['indexedDBService'].getPendingMeasurements).toHaveBeenCalledTimes(2);
       expect(markSynced).toHaveBeenCalledOnceWith(['ndt-a', 'ndt-b']);
+    }));
+
+    it('retries a failed batch once and marks it synced when the retry gets through', fakeAsync(() => {
+      service.syncPendingMeasurements();
+      flushMicrotasks();
+      batch().flush('', { status: 503, statusText: 'Service Unavailable' });
+      flushMicrotasks();
+      batch().flush({});
+      flushMicrotasks();
+
+      expect(markSynced).toHaveBeenCalledOnceWith(['ndt-a', 'ndt-b']);
+      expect(service['posthog'].capture).toHaveBeenCalledWith(
+        'measurements_synced',
+        jasmine.objectContaining({ batch_size: 2 })
+      );
+    }));
+
+    it('ends the sync when a request gets no answer, without posting the batch again', fakeAsync(() => {
+      let done = false;
+      service.syncPendingMeasurements().then(() => (done = true));
+      flushMicrotasks();
+      const request = batch(); // never answered
+
+      tick(SYNC_TIMEOUT_MS - 1);
+      expect(done).toBeFalse();
+      tick(1);
+
+      expect(done).toBeTrue();
+      expect(request.cancelled).toBeTrue();
+      // No retry: httpMock.verify() in afterEach fails on a second post.
+      expect(service['indexedDBService'].markMeasurementSynced).not.toHaveBeenCalled();
+      expect(markSynced).not.toHaveBeenCalled();
+      expect(service['posthog'].capture).toHaveBeenCalledWith(
+        'measurements_sync_failed',
+        jasmine.objectContaining({ error_code: 'timeout', batch_size: 2, status: null })
+      );
+    }));
+
+    it('ends the sync when the retry after a failure gets no answer', fakeAsync(() => {
+      let done = false;
+      service.syncPendingMeasurements().then(() => (done = true));
+      flushMicrotasks();
+      batch().error(new ProgressEvent('error'));
+      flushMicrotasks();
+      const retry = batch(); // never answered
+
+      tick(SYNC_TIMEOUT_MS);
+
+      expect(done).toBeTrue();
+      expect(retry.cancelled).toBeTrue();
+      expect(markSynced).not.toHaveBeenCalled();
+      expect(service['posthog'].capture).toHaveBeenCalledWith(
+        'measurements_sync_failed',
+        jasmine.objectContaining({ error_code: 'timeout' })
+      );
+    }));
+
+    it('releases the callers that joined a sync whose request got no answer', fakeAsync(() => {
+      let first = false;
+      let second = false;
+      service.syncPendingMeasurements().then(() => (first = true));
+      flushMicrotasks();
+      batch(); // never answered
+      // Joins while the request is pending, as a successful upload does.
+      service.syncPendingMeasurements().then(() => (second = true));
+
+      tick(SYNC_TIMEOUT_MS);
+
+      expect(first).toBeTrue();
+      expect(second).toBeTrue();
+      expect(service['indexedDBService'].getPendingMeasurements).toHaveBeenCalledTimes(1);
+    }));
+
+    it('starts a new sync after one whose request got no answer, and delivers the queue', fakeAsync(() => {
+      service.syncPendingMeasurements();
+      flushMicrotasks();
+      batch(); // never answered
+      tick(SYNC_TIMEOUT_MS);
+
+      service.syncPendingMeasurements();
+      flushMicrotasks();
+      batch().flush({});
+      flushMicrotasks();
+
+      expect(service['indexedDBService'].getPendingMeasurements).toHaveBeenCalledTimes(2);
+      expect(markSynced).toHaveBeenCalledOnceWith(['ndt-a', 'ndt-b']);
+    }));
+  });
+
+  describe('syncPingResults', () => {
+    let httpMock: HttpTestingController;
+    let markAsSynced: jasmine.Spy;
+    const pings = () => httpMock.expectOne((r) => r.url.includes('connectivity/'));
+
+    beforeEach(() => {
+      httpMock = TestBed.inject(HttpTestingController);
+      const indexedDB = service['indexedDBService'];
+      spyOn(indexedDB, 'getUnsyncedRecords').and.resolveTo([
+        { timestamp: 1, app_local_uuid: 'ping-a', isSynced: false, createdAt: 1 },
+      ]);
+      markAsSynced = spyOn(indexedDB, 'markAsSynced').and.resolveTo();
+      spyOn(indexedDB, 'cleanupOldRecords').and.resolveTo();
+    });
+
+    afterEach(() => httpMock.verify());
+
+    it('posts the pings again once when the first post gets no answer', fakeAsync(() => {
+      service.syncPingResults();
+      flushMicrotasks();
+      const first = pings(); // never answered
+      tick(SYNC_TIMEOUT_MS);
+
+      expect(first.cancelled).toBeTrue();
+      pings().flush({});
+      flushMicrotasks();
+
+      expect(markAsSynced).toHaveBeenCalledTimes(1);
+    }));
+
+    it('gives up when the retry gets no answer either', fakeAsync(() => {
+      let error: any = null;
+      service.syncPingResults().catch((e) => (error = e));
+      flushMicrotasks();
+      pings(); // never answered
+      tick(SYNC_TIMEOUT_MS);
+      const retry = pings(); // never answered
+      tick(SYNC_TIMEOUT_MS);
+
+      expect(retry.cancelled).toBeTrue();
+      expect(error?.name).toBe('TimeoutError');
+      expect(markAsSynced).not.toHaveBeenCalled();
     }));
   });
 
