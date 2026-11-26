@@ -186,23 +186,26 @@ school, without a person. Off unless `POSTHOG_API_KEY` is set.
 
 All dashboards are named "Giga Meter · …" and filtered to production with a
 dashboard filter, `app_mode = prod` (switch it to `stg` to look at staging).
-The SQL tables have `app_mode = 'prod'` written into them.
+The filter drives every tile: the SQL tables take it through `{filters}`.
 
 0. **Release adoption** (the key release metric): how fast schools, devices
    and app instances move to the latest version, for every day of the last 90.
    - **Schools with at least one device on the latest version**, and the
-     schools seen, per day; the same for devices and app instances.
-   - For each day, *latest version* is the highest version any production
-     device reported in the 7 days up to that day. A device counts as on it
-     when any of its app instances reported it in those 7 days; a school when
-     any of its devices did. The 7 days smooth out PCs that are off at
-     weekends.
-   - Latest version by country, and the schools not on it yet (giga ID,
-     external ID, name, country, devices, highest version).
+     schools known, per day; the same for devices and app instances.
+   - Each device counts at the version of its **latest report** (its last
+     event, however old; up to 15 months back), with the school it reported
+     from. A school is on the latest version when any of its devices' latest
+     report is. App instances count at their own latest report.
+   - For each day, *latest version* is the highest version among the devices'
+     latest reports that day.
+   - "Known" counts every device and school PostHog has heard from, so ones
+     that stopped using the app stay in them.
+   - Latest version by country today, and the schools not on it yet (giga ID,
+     external ID, name, country, devices, highest version, last report).
    - Schools and devices per version, updates installed per day, restart
      prompt answers, update failures: why an upgrade is slow.
    - PostHog only hears from 2.0.4 and later, so schools still on older
-     versions are not in the "seen" counts. The counts of schools on the
+     versions are not in the "known" counts. The counts of schools on the
      latest version are complete; a share of all schools needs the database.
 1. **Release health** (the "is everything working" page): active devices
    (24 h, 7 d: persons with a `device_heartbeat` or a measurement) and active
