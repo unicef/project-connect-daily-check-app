@@ -16,8 +16,49 @@ import {
   UPLOAD_LEG,
   hasClientResult,
 } from '../utils/ndt-results.utils';
-import { readLocateParams } from '../utils/locate.utils';
+import {
+  LocateAccess,
+  lookupPriorityServer,
+  readLocateParams,
+} from '../utils/locate.utils';
 import { withTimeout } from '../utils/with-timeout.utils';
+import { LocateAccessService } from './locate-access.service';
+import { PosthogService } from './posthog.service';
+import {
+  AnalyticsEvent,
+  classifyMeasurementError,
+  sanitizeMessage,
+} from '../analytics/analytics-events';
+
+/** Where a speed test is, for the failure event: what it was doing when it failed. */
+type MeasurementPhase =
+  | 'ping'
+  | 'prep'
+  | 'net_info'
+  | 'locate'
+  | 'download'
+  | 'upload'
+  | 'finalize';
+
+/**
+ * Analytics bookkeeping for one runTest(), retries included. Kept apart from
+ * the measurement record, which is uploaded as it is.
+ */
+interface MeasurementRun {
+  trigger: string;
+  slot: string | null;
+  startedAt: number;
+  phase: MeasurementPhase;
+  pingMs: number | null;
+  prepMs: number | null;
+  testStartedAt: number | null;
+  /** The last error ndt7 reported through its error callback. */
+  ndtError: string | null;
+  wifiStatus: string | null;
+  ssidSource: string | null;
+  deviceIdentityRead: boolean | null;
+  deviceContextRead: boolean | null;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -32,10 +73,25 @@ export class MeasurementClientService {
   private TIME_EXPECTED = 10;
   private retryAttempts = 0;
   private maxRetries = 3;
+  // The test in progress, so a second request joins it instead of running
+  // another test at the same time (see runTest).
+  private runningTest: { promise: Promise<void>; startedAt: number } | null =
+    null;
+  // A test still running after this long is taken as stuck, and another one
+  // may start. Every step of a test has a time limit except the Wi-Fi reads,
+  // so a healthy test, retries included, ends well before this.
+  private readonly stuckTestMs = 10 * 60 * 1000;
   // How long a test waits for the device identity and context before it runs
   // without them. They are diagnostics, and the Windows queries behind them
   // have no time limit of their own.
   private readonly deviceReadsTimeoutMs = 10 * 1000;
+  // How long M-Lab's priority server lookup gets before the test uses the
+  // public lookup instead. The public one normally answers in under a second.
+  private readonly priorityLookupTimeoutMs = 5 * 1000;
+  // How long the public server lookup gets. ndt7 starts its download's 10 s
+  // connection timer when the test starts, before it knows the server, so a
+  // lookup slower than this ends the test with no download result anyway.
+  private readonly serverLookupTimeoutMs = 10 * 1000;
   private readonly measurementNotificationActivity = new BehaviorSubject<any>(
     {}
   ).asObservable();
@@ -95,6 +151,9 @@ export class MeasurementClientService {
     total: 0,
   };
 
+  /** The test in progress, for its analytics events. */
+  private run: MeasurementRun | null = null;
+
   constructor(
     private historyService: HistoryService,
     private settingsService: SettingsService,
@@ -104,7 +163,10 @@ export class MeasurementClientService {
     private deviceContext: DeviceContextService,
     private sentryService: SentryService,
     private pingService: PingService,
-    private syncService: SyncService
+    private syncService: SyncService,
+    private locateAccess: LocateAccessService,
+    // Optional so the specs that build this service by hand keep working.
+    private posthog?: PosthogService
   ) {}
 
   /**
@@ -114,13 +176,68 @@ export class MeasurementClientService {
    * already told the test page by then.
    *
    * Every test also gets a ping just before it, sent once the test is over.
+   *
+   * One test at a time: while a test runs, another call gets that test's
+   * promise instead of starting a second one, which would share the line with
+   * it and lower both results.
    */
-  async runTest(
+  runTest(
     notes = 'manual',
     scheduleContext: { slot: string | null; scheduledAt: number | null } = null
   ): Promise<void> {
+    if (this.isTestRunning) {
+      console.log('A test is already running; waiting for it instead.');
+      return this.runningTest.promise;
+    }
+    const running = {
+      promise: this.runOneTest(notes, scheduleContext),
+      startedAt: Date.now(),
+    };
+    this.runningTest = running;
+    const clear = () => {
+      if (this.runningTest === running) {
+        this.runningTest = null;
+      }
+    };
+    running.promise.then(clear, clear);
+    return running.promise;
+  }
+
+  /** Whether a test is running (one running longer than stuckTestMs isn't counted). */
+  get isTestRunning(): boolean {
+    return (
+      !!this.runningTest &&
+      Date.now() - this.runningTest.startedAt < this.stuckTestMs
+    );
+  }
+
+  private async runOneTest(
+    notes: string,
+    scheduleContext: { slot: string | null; scheduledAt: number | null }
+  ): Promise<void> {
+    const startedAt = Date.now();
+    this.run = {
+      trigger: notes,
+      slot: scheduleContext?.slot ?? null,
+      startedAt,
+      phase: 'ping',
+      pingMs: null,
+      prepMs: null,
+      testStartedAt: null,
+      ndtError: null,
+      wifiStatus: null,
+      ssidSource: null,
+      deviceIdentityRead: null,
+      deviceContextRead: null,
+    };
+    // trigger: first | manual | startup | daily; slot: the scheduled window.
+    this.posthog?.capture(AnalyticsEvent.MeasurementStarted, {
+      trigger: notes,
+      slot: this.run.slot,
+    });
     // Before the test, not alongside it, so neither slows the other down.
     await this.pingService.pingBeforeSpeedTest();
+    this.run.pingMs = Date.now() - startedAt;
     console.log('Starting ndt7 test', ndt7);
     this.retryAttempts = 0;
     try {
@@ -143,6 +260,8 @@ export class MeasurementClientService {
       notes,
       scheduleContext
     );
+    const prepStartedAt = Date.now();
+    this.setPhase('prep');
 
     // Get Windows username, installed path, and WiFi connections
     const windowsUsername = await this.getWindowsUsername();
@@ -169,18 +288,23 @@ export class MeasurementClientService {
     // wifiConnections() call is not repeated.
     measurementRecord.wifiDiagnostics =
       this.deviceContext.extractWifiDiagnostics(wifiInfo);
+    this.recordPrep(prepStartedAt, wifiInfo, deviceIdentity, deviceContext);
 
     try {
+      this.setPhase('net_info');
       measurementRecord.accessInformation =
         await this.networkService.getNetInfo();
 
-      const exitCode = await ndt7.test(
-        this.testConfig,
-        this.getTestCallbacks(measurementRecord)
-      );
+      this.setPhase('locate');
+      if (this.run) {
+        this.run.testStartedAt = Date.now();
+      }
+      const exitCode = await this.runNdt7(measurementRecord);
       console.log('ndt7 test completed with exit code:', exitCode);
 
+      this.setPhase('finalize');
       await this.finalizeMeasurement(measurementRecord);
+      this.captureCompleted(measurementRecord);
     } catch (error) {
       console.error('Error running ndt7 test:', error);
       const message = error instanceof Error ? error.message : String(error);
@@ -202,6 +326,14 @@ export class MeasurementClientService {
           maxRetries: this.maxRetries,
           message: `Retrying test... (${this.retryAttempts}/${this.maxRetries})`,
         });
+        this.posthog?.capture(AnalyticsEvent.MeasurementRetrying, {
+          trigger: notes,
+          slot: this.run?.slot ?? null,
+          attempt: this.retryAttempts,
+          phase: this.run?.phase ?? null,
+          error_code: classifyMeasurementError(message),
+          error_message: sanitizeMessage(message),
+        });
 
         // Wait a bit before retrying
         await new Promise((resolve) => setTimeout(resolve, 2000));
@@ -213,10 +345,156 @@ export class MeasurementClientService {
           errorType: 'test_error',
           originalError: message,
         });
+        this.captureFailed(notes, message);
         // Without this the scheduler counts the failed test as done and
         // never retries it.
         throw error;
       }
+    }
+  }
+
+  /**
+   * Runs the download and upload test. With access from our backend, the
+   * server comes from M-Lab's priority lookup. Without it, or when that lookup
+   * fails in any way (bad token, rate limit, timeout), ndt7-js finds the server
+   * through the public lookup as it did before, with a time limit (see
+   * runNdt7WithPublicLookup). The record keeps which lookup was used, and why
+   * the priority one was not.
+   */
+  private async runNdt7(measurementRecord: any): Promise<number> {
+    const callbacks = this.getTestCallbacks(measurementRecord);
+    measurementRecord.locateTier = 'public';
+
+    // Asked for here, right before the lookup, and not earlier: M-Lab's token
+    // is only good for 20 seconds after our backend gets it. Never rejects;
+    // null means the public lookup.
+    const access: LocateAccess | null = await this.locateAccess.get();
+
+    let priority: Awaited<ReturnType<typeof lookupPriorityServer>> | null =
+      null;
+    if (access) {
+      try {
+        priority = await lookupPriorityServer(
+          access,
+          this.testConfig.metadata,
+          this.priorityLookupTimeoutMs,
+          (loadbalancer) => callbacks.serverDiscovery({ loadbalancer })
+        );
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : String(error);
+        measurementRecord.priorityLocateError = reason;
+        console.warn(
+          `Priority server lookup failed (${reason}); using the public one`
+        );
+      }
+    }
+    if (!priority) {
+      return this.runNdt7WithPublicLookup(callbacks);
+    }
+
+    // What ndt7.test does after its own lookup.
+    callbacks.serverChosen(priority.server);
+    measurementRecord.locateTier = 'priority';
+    const urls = Promise.resolve(priority.urls);
+    const download = await ndt7.downloadTest(this.testConfig, callbacks, urls);
+    const upload = await ndt7.uploadTest(this.testConfig, callbacks, urls);
+    return download + upload;
+  }
+
+  private setPhase(phase: MeasurementPhase): void {
+    if (this.run) {
+      this.run.phase = phase;
+    }
+  }
+
+  /** What the reads before the test found, and how long they took. */
+  private recordPrep(
+    prepStartedAt: number,
+    wifiInfo: any,
+    deviceIdentity: unknown,
+    deviceContext: unknown
+  ): void {
+    if (!this.run) {
+      return;
+    }
+    this.run.prepMs = Date.now() - prepStartedAt;
+    this.run.wifiStatus = !wifiInfo
+      ? 'unavailable'
+      : Array.isArray(wifiInfo.wifiConnections) &&
+        wifiInfo.wifiConnections.length > 0
+      ? 'ok'
+      : wifiInfo.wifiUnavailableReason ?? 'empty';
+    this.run.ssidSource = wifiInfo?.ssidSource ?? null;
+    this.run.deviceIdentityRead = deviceIdentity !== null;
+    this.run.deviceContextRead = deviceContext !== null;
+  }
+
+  /** The properties both the completed and the failed event carry. */
+  private runProperties(): Record<string, any> {
+    const run = this.run;
+    const now = Date.now();
+    return {
+      trigger: run?.trigger ?? null,
+      slot: run?.slot ?? null,
+      attempt: this.retryAttempts,
+      duration_ms: run ? now - run.startedAt : null,
+      ping_ms: run?.pingMs ?? null,
+      prep_ms: run?.prepMs ?? null,
+      test_ms: run?.testStartedAt ? now - run.testStartedAt : null,
+      wifi_status: run?.wifiStatus ?? null,
+      ssid_source: run?.ssidSource ?? null,
+      device_identity_read: run?.deviceIdentityRead ?? null,
+      device_context_read: run?.deviceContextRead ?? null,
+    };
+  }
+
+  /**
+   * The test finished and was saved. No speed figures: the measurements table
+   * has those. What matters here is whether each step worked.
+   */
+  private captureCompleted(measurementRecord: any): void {
+    try {
+      const results = measurementRecord?.results ?? {};
+      this.posthog?.capture(AnalyticsEvent.MeasurementCompleted, {
+        ...this.runProperties(),
+        uploaded: measurementRecord?.uploaded === true,
+        upload_enabled: !!this.settingsService.get('uploadEnabled'),
+        server_country: measurementRecord?.mlabInformation?.country ?? null,
+        metro_rank: measurementRecord?.mlabInformation?.metroRank ?? null,
+        locate_version:
+          measurementRecord?.mlabInformation?.locateVersion ?? null,
+        // priority: M-Lab's priority lookup with our backend's token; public:
+        // the fallback, with why the priority one failed when it was tried.
+        locate_tier: measurementRecord?.locateTier ?? null,
+        priority_locate_error: sanitizeMessage(
+          measurementRecord?.priorityLocateError
+        ),
+        // False when the leg ended without a server measurement (slow or
+        // filtered links): the speed is then the client's own figure.
+        download_server_measurement:
+          !!results[DOWNLOAD_LEG]?.LastServerMeasurement,
+        upload_server_measurement: !!results[UPLOAD_LEG]?.LastServerMeasurement,
+      });
+    } catch (error) {
+      console.warn('[Analytics] measurement_completed failed:', error);
+    }
+  }
+
+  /** The test failed for good (after any retries). */
+  private captureFailed(notes: string, message: string): void {
+    try {
+      this.posthog?.capture(AnalyticsEvent.MeasurementFailed, {
+        ...this.runProperties(),
+        trigger: notes,
+        phase: this.run?.phase ?? null,
+        error_code: classifyMeasurementError(message),
+        error_message: sanitizeMessage(message),
+        ndt_error: this.run?.ndtError ?? null,
+        http_status: null,
+        endpoint: null,
+      });
+    } catch (error) {
+      console.warn('[Analytics] measurement_failed failed:', error);
     }
   }
 
@@ -259,7 +537,62 @@ export class MeasurementClientService {
       // M-Lab's clock, set by finalizeMeasurement. Always null for now: ndt7-js
       // does not report it (see finalizeMeasurement).
       serverTimestamp: null,
+      // Set by runNdt7: which M-Lab lookup found the server ('priority' or
+      // 'public'), and why the priority one was not used when it was offered.
+      locateTier: null,
+      priorityLocateError: null,
     };
+  }
+
+  /**
+   * Runs ndt7 with its public server lookup, giving up on the lookup after
+   * serverLookupTimeoutMs.
+   *
+   * ndt7 puts no time limit on the lookup and can't cancel a run, so a lookup
+   * that never answers would hold the test for ever. Past the limit this
+   * rejects with a locate error, which runTestWithRetry retries, and the
+   * abandoned run is silenced: its callbacks do nothing, and if the lookup
+   * answers late, serverChosen throws so ndt7 stops before the download.
+   */
+  private runNdt7WithPublicLookup(
+    callbacks: ReturnType<MeasurementClientService['getTestCallbacks']>
+  ): Promise<number> {
+    let abandoned = false;
+    let timer: ReturnType<typeof setTimeout>;
+    // Started before ndt7 so it fires before ndt7's own 10 s connection timer.
+    const lookupTimedOut = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => {
+        abandoned = true;
+        reject(
+          new Error(
+            `locate.measurementlab.net did not answer within ${this.serverLookupTimeoutMs} ms`
+          )
+        );
+      }, this.serverLookupTimeoutMs);
+    });
+
+    const guarded: Record<string, (data: any) => void> = {};
+    for (const [name, callback] of Object.entries(callbacks)) {
+      guarded[name] = (data: any) => {
+        if (!abandoned) {
+          (callback as (data: any) => void)(data);
+        }
+      };
+    }
+    guarded.serverChosen = (server: any) => {
+      if (abandoned) {
+        throw new Error(
+          'locate.measurementlab.net answered after the test gave up on it'
+        );
+      }
+      clearTimeout(timer);
+      callbacks.serverChosen(server);
+    };
+
+    return Promise.race([
+      ndt7.test(this.testConfig, guarded),
+      lookupTimedOut,
+    ]).finally(() => clearTimeout(timer));
   }
 
   private getTestCallbacks(measurementRecord: any) {
@@ -334,6 +667,7 @@ export class MeasurementClientService {
     };
     measurementRecord.mlabInformation = serverInformation;
     console.log('Normalized server information:', serverInformation);
+    this.setPhase('download');
     this.broadcastMeasurementStatus('server_chosen', {
       server: { machine: server?.machine, location: server?.location },
       message: 'Server selected, preparing test...',
@@ -367,6 +701,7 @@ export class MeasurementClientService {
     Instantaneous server bottleneck bandwidth estimate: ${serverBw} Mbps
     Mean client goodput: ${client?.MeanClientMbps ?? 'n/a'} Mbps`);
     measurementRecord.results[DOWNLOAD_LEG] = data;
+    this.setPhase('upload');
     this.downloadComplete$.next(data); // Emit event
     this.updateProgress(
       'finished_s2c',
@@ -418,6 +753,9 @@ export class MeasurementClientService {
     // ndt7 passes worker errors through as plain strings.
     const message = err instanceof Error ? err.message : String(err);
     console.error('Error while running the test:', message);
+    if (this.run) {
+      this.run.ndtError = sanitizeMessage(message);
+    }
 
     // Check if this is a locate server error
     const isLocateServerError =

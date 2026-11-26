@@ -32,10 +32,16 @@ export const environment = {
   posthogKeyDev: 'POSTHOG_PROJECT_API_KEY_DEV',
   posthogKeyStg: 'POSTHOG_PROJECT_API_KEY_STG',
   posthogKeyProd: 'POSTHOG_PROJECT_API_KEY_PROD',
-  // The Electron main process has no key of its own: it forwards its two
-  // auto-update events to the renderer over IPC, which publishes them with the
-  // keys above. posthog-node would not survive a restart offline; posthog-js
-  // persists its queue in localStorage, and this app is offline a lot.
+  // Production and staging report to one PostHog project (the free plan has
+  // one), so posthogKeyProd and posthogKeyStg hold the same key: every event
+  // carries app_mode (prod / stg / dev), and the dashboards filter on it.
+  // Leave posthogKeyDev empty unless testing analytics. The build warns when
+  // the key for its mode is missing (electron/scripts/generate-build-mode.js).
+  // The Electron main process has no key of its own: it forwards its events
+  // (update lifecycle, first launch, hardware ID, crashes) to the renderer
+  // over IPC, which publishes them with the keys above. posthog-node would not
+  // survive a restart offline; posthog-js is in the renderer, and this app is
+  // offline a lot.
   // Session replay records the user's screen. Off unless explicitly enabled —
   // its scope is still being defined.
   posthogEnableSessionRecording: false,

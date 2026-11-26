@@ -7,6 +7,8 @@ import { MeasurementClientService } from '../services/measurement-client.service
 import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
 import { NetworkService } from './network.service';
+import { PosthogService } from './posthog.service';
+import { AnalyticsEvent } from '../analytics/analytics-events';
 
 /** The three daily windows, named as the backend stores them. */
 export type DailySlot = 'morning' | 'afternoon' | 'evening';
@@ -46,9 +48,24 @@ export class ScheduleService {
     private measurementClientService: MeasurementClientService,
     private settingsService: SettingsService,
     private sharedService: SharedService,
-    private networkService: NetworkService
+    private networkService: NetworkService,
+    // Optional so the specs that build this service by hand keep working.
+    private posthog?: PosthogService
   ) {
     console.log('ScheduleService constructor called');
+  }
+
+  /**
+   * A scheduled test that will not run in its window. `reason`:
+   * slot_ended_before_run (the PC was off or asleep when the slot's time came),
+   * no_network or test_failed (every try in the window failed).
+   */
+  private captureMissed(semaphore: any, reason: string): void {
+    this.posthog?.capture(AnalyticsEvent.ScheduledTestMissed, {
+      slot: this.normalizeSlot(semaphore?.slot),
+      reason,
+      retry_attempts: semaphore?.retryAttempts ?? 0,
+    });
   }
 
   async initiate() {
@@ -182,6 +199,14 @@ export class ScheduleService {
 
     if (scheduleSemaphore.choice && currentTime > scheduleSemaphore.choice) {
       console.log("It's time to run the measurement");
+      // This runs every minute, and the slot stays due until its test ends,
+      // so a test that takes longer would otherwise get another started on
+      // top of it. If the running test is a manual one, the slot's own test
+      // runs at the first check after it ends.
+      if (this.measurementClientService.isTestRunning) {
+        console.log('A test is already running; checking again next minute.');
+        return;
+      }
       const networkInfo = await this.getNetworkInfoSafe();
       if (!networkInfo) {
         console.log('Network not available, rescheduling measurement.');
@@ -190,6 +215,14 @@ export class ScheduleService {
       }
       if (currentTime > scheduleSemaphore.end) {
         console.log('Slot ended, Skiping measurement.');
+        this.captureMissed(
+          scheduleSemaphore,
+          scheduleSemaphore.lastFailReason === 'no-network'
+            ? 'no_network'
+            : scheduleSemaphore.lastFailReason === 'test-failed'
+            ? 'test_failed'
+            : 'slot_ended_before_run'
+        );
         await this.setSemaphore({});
         return;
       }
@@ -250,6 +283,10 @@ export class ScheduleService {
 
     if (currentTime >= scheduleSemaphore.end) {
       console.log('Slot ended. Scheduling for next slot.');
+      this.captureMissed(
+        scheduleSemaphore,
+        reason === 'no-network' ? 'no_network' : 'test_failed'
+      );
       await this.setSemaphore({});
       return;
     }
@@ -279,6 +316,18 @@ export class ScheduleService {
         newSemaphore.choice
       ).toISOString()}`
     );
+    // Offline, this runs every minute: report only the first one in a row.
+    if (
+      reason === 'test-failed' ||
+      scheduleSemaphore.lastFailReason !== 'no-network'
+    ) {
+      this.posthog?.capture(AnalyticsEvent.ScheduledTestRescheduled, {
+        slot: this.normalizeSlot(scheduleSemaphore.slot),
+        reason: reason === 'no-network' ? 'no_network' : 'test_failed',
+        retry_attempt: newSemaphore.retryAttempts,
+        delay_ms: delay,
+      });
+    }
   }
 
   async getSemaphore() {
@@ -396,9 +445,15 @@ export class ScheduleService {
   // Run the startup test
   private async runStartupTest() {
     console.log('Running startup test');
+    // Not counted as run, so it is scheduled again (scheduleStartupTestIfNeeded).
+    if (this.measurementClientService.isTestRunning) {
+      console.log('A test is already running; startup test skipped for now.');
+      return;
+    }
     const networkInfo = await this.getNetworkInfoSafe();
     if (!networkInfo) {
       console.log('Network not available for startup test, skipping.');
+      this.captureMissed({ slot: 'startup', retryAttempts: 0 }, 'no_network');
       return;
     }
 

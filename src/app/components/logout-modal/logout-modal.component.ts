@@ -3,6 +3,8 @@ import { ModalController } from '@ionic/angular';
 import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../../services/storage.service';
 import { IdentityService } from '../../services/identity.service';
+import { PosthogService } from '../../services/posthog.service';
+import { AnalyticsEvent } from '../../analytics/analytics-events';
 
 @Component({
   selector: 'app-logout-modal',
@@ -20,7 +22,8 @@ export class LogoutModalComponent implements OnInit {
     private modalController: ModalController,
     public translate: TranslateService,
     private storage: StorageService,
-    private identityService: IdentityService
+    private identityService: IdentityService,
+    private posthog: PosthogService
   ) {}
 
   ngOnInit() {
@@ -49,6 +52,14 @@ export class LogoutModalComponent implements OnInit {
     } else {
       // Error message is now handled by translation in template
       this.errorMessage = 'error';
+      // The troubleshooting guide sends people here to fix a wrong school ID;
+      // a typed ID that doesn't match is where they get stuck.
+      this.posthog.capture(AnalyticsEvent.LogoutFailed, {
+        error_code: 'wrong_school_id',
+        http_status: null,
+        endpoint: null,
+        error_message: null,
+      });
     }
   }
 

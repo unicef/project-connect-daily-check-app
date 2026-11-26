@@ -198,6 +198,19 @@ describe('PingService connectivity check', () => {
     expect((await result).latency).toBe(42.12);
   });
 
+  it("records this install's app instance ID with the ping", async () => {
+    (service as any).storage = {
+      get: (key: string) =>
+        key === 'appInstanceId' ? 'instance-1' : 'school-user-1',
+    };
+    const result = service.checkConnectivity();
+    await created;
+    replies = [40];
+    fake.onFinish(fake.results);
+
+    expect((await result).app_instance_id).toBe('instance-1');
+  });
+
   it('is not connected when the check gives up without a reply', async () => {
     // Cloudflare can't be reached: the library retries, gives up and
     // still calls onFinish.

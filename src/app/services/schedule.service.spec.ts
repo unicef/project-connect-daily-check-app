@@ -80,6 +80,35 @@ describe('ScheduleService', () => {
     expect(service).toBeTruthy();
   });
 
+  describe('while a test is already running', () => {
+    beforeEach(() => {
+      measurementClientService.isTestRunning = true;
+    });
+
+    it('does not start the scheduled test, and keeps the slot due', async () => {
+      await service.decide(morningSemaphore());
+
+      expect(measurementClientService.runTest).not.toHaveBeenCalled();
+      expect(networkService.getNetInfo).not.toHaveBeenCalled();
+      expect(store.scheduleSemaphore).toBeUndefined();
+    });
+
+    it('runs the scheduled test at the next check once it has ended', async () => {
+      await service.decide(morningSemaphore());
+      measurementClientService.isTestRunning = false;
+      await service.decide(morningSemaphore());
+
+      expect(measurementClientService.runTest).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips the startup test without counting it as run', async () => {
+      await (service as any).runStartupTest();
+
+      expect(measurementClientService.runTest).not.toHaveBeenCalled();
+      expect(store[(service as any).STARTUP_TEST_KEY]).toBeUndefined();
+    });
+  });
+
   describe('no-network retries (fixed 1-minute pace)', () => {
     it('reschedules 1 minute ahead when getNetInfo rejects, without raising backoffLevel', async () => {
       networkService.getNetInfo.and.rejectWith(new Error('offline'));
@@ -215,6 +244,65 @@ describe('ScheduleService', () => {
       await service.decide(morningSemaphore());
 
       expect(savedSemaphore().choice).toBe(MORNING_END);
+    });
+  });
+
+  describe('analytics events', () => {
+    let posthog: { capture: jasmine.Spy };
+
+    beforeEach(() => {
+      posthog = { capture: jasmine.createSpy('capture') };
+      service = new ScheduleService(
+        storageService,
+        identityService,
+        measurementClientService,
+        settingsService,
+        sharedService,
+        networkService,
+        posthog as any
+      );
+    });
+
+    it('reports a slot whose time came while the PC was off as missed', async () => {
+      jasmine.clock().mockDate(new Date(2026, 7, 7, 12, 30, 0));
+
+      await service.decide(morningSemaphore());
+
+      expect(posthog.capture).toHaveBeenCalledOnceWith('scheduled_test_missed', {
+        slot: 'morning',
+        reason: 'slot_ended_before_run',
+        retry_attempts: 0,
+      });
+    });
+
+    it('reports the window ending after failed tests as missed for that reason', async () => {
+      measurementClientService.runTest.and.rejectWith(new Error('test broke'));
+      jasmine.clock().mockDate(new Date(MORNING_END));
+
+      await service.decide(morningSemaphore({ retryAttempts: 3 }));
+
+      expect(posthog.capture).toHaveBeenCalledWith('scheduled_test_missed', {
+        slot: 'morning',
+        reason: 'test_failed',
+        retry_attempts: 3,
+      });
+    });
+
+    it('reports only the first of a run of offline retries', async () => {
+      networkService.getNetInfo.and.rejectWith(new Error('offline'));
+
+      await service.decide(morningSemaphore());
+      jasmine.clock().mockDate(new Date(NOW.getTime() + 2 * MINUTE));
+      await service.decide(savedSemaphore());
+      expect(savedSemaphore().retryAttempts).toBe(2);
+
+      const rescheduled = posthog.capture.calls
+        .allArgs()
+        .filter(([name]) => name === 'scheduled_test_rescheduled');
+      expect(rescheduled.length).toBe(1);
+      expect(rescheduled[0][1]).toEqual(
+        jasmine.objectContaining({ reason: 'no_network', retry_attempt: 1 })
+      );
     });
   });
 

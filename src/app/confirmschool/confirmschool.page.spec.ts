@@ -15,6 +15,10 @@ import { PosthogService } from '../services/posthog.service';
 import { RegistrationService } from '../services/registration.service';
 import { IdentityService } from '../services/identity.service';
 import { LocationService } from '../services/location.service';
+import {
+  PENDING_AUTO_REGISTRATION_KEY,
+  RegistrationContextService,
+} from '../services/registration-context.service';
 
 describe('ConfirmschoolPage', () => {
   let component: ConfirmschoolPage;
@@ -29,6 +33,7 @@ describe('ConfirmschoolPage', () => {
   };
   let loading: jasmine.SpyObj<LoadingService>;
   let router: Router;
+  let context: RegistrationContextService;
 
   /** Drain the microtask queue so the awaited lookups inside confirmSchool run. */
   const flushMicrotasks = async () => {
@@ -83,7 +88,10 @@ describe('ConfirmschoolPage', () => {
           useValue: jasmine.createSpyObj('PosthogService', [
             'identifyDevice',
             'capture',
+            'captureFailure',
             'setSchool',
+            'setCountry',
+            'applyAppInstance',
           ]),
         },
         provideHttpClient(withInterceptorsFromDi()),
@@ -94,6 +102,7 @@ describe('ConfirmschoolPage', () => {
     fixture = TestBed.createComponent(ConfirmschoolPage);
     component = fixture.componentInstance;
     router = TestBed.inject(Router);
+    context = TestBed.inject(RegistrationContextService);
     fixture.detectChanges();
 
     // Route params are not provided by RouterTestingModule here; set the state
@@ -109,14 +118,14 @@ describe('ConfirmschoolPage', () => {
 
     // The device/network lookups hit Electron IPC and a remote IP service; stub
     // them so the spec exercises the registration flow only.
-    spyOn(component, 'getIPAddress').and.resolveTo('203.0.113.10');
-    spyOn(component, 'getDeviceInfo').and.resolveTo({
+    spyOn(context, 'getIPAddress').and.resolveTo('203.0.113.10');
+    spyOn(context, 'getDeviceInfo').and.resolveTo({
       operatingSystem: 'windows',
     } as any);
-    spyOn(component, 'getDeviceId').and.resolveTo({ identifier: 'device-1' });
-    spyOn(component, 'getWindowsUsername').and.resolveTo('T001');
-    spyOn(component, 'getInstalledPath').and.resolveTo('C:\\app');
-    spyOn(component, 'getWifiConnections').and.resolveTo(null);
+    spyOn(context, 'getDeviceId').and.resolveTo({ identifier: 'device-1' });
+    spyOn(context, 'getWindowsUsername').and.resolveTo('T001');
+    spyOn(context, 'getInstalledPath').and.resolveTo('C:\\app');
+    spyOn(context, 'getWifiConnections').and.resolveTo(null);
     spyOn(router, 'navigate').and.resolveTo(true);
   }));
 
@@ -166,6 +175,40 @@ describe('ConfirmschoolPage', () => {
     expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
   });
 
+  it("puts the device in its school's analytics group, with the school's external ID and name", async () => {
+    component.school = { ...component.school, name: 'Escuela Uno' };
+    registrationService.register.and.returnValue(of(registered as any));
+    const posthog = TestBed.inject(PosthogService) as jasmine.SpyObj<PosthogService>;
+
+    await component.confirmSchool();
+
+    expect(posthog.setSchool).toHaveBeenCalledWith(
+      '7f60b4e6-3a43-3f90-b7cb-882c3a6bdb80',
+      { external_id: 'ext-1', name: 'Escuela Uno' }
+    );
+  });
+
+  it('leaves nothing for the next start to try again once registered by hand', async () => {
+    // An automatic registration failed earlier in this install.
+    localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
+    registrationService.register.and.returnValue(of(registered as any));
+
+    await component.confirmSchool();
+
+    expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBeFalsy();
+  });
+
+  it('keeps a pending automatic registration when registering by hand fails', async () => {
+    localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
+    registrationService.register.and.returnValue(
+      throwError(() => new Error('500'))
+    );
+
+    await component.confirmSchool();
+
+    expect(localStorage.getItem(PENDING_AUTO_REGISTRATION_KEY)).toBe('true');
+  });
+
   it('presents the loader without a duration so it survives a slow registration', async () => {
     registrationService.register.and.returnValue(of(registered as any));
 
@@ -212,7 +255,7 @@ describe('ConfirmschoolPage', () => {
   });
 
   it('registers with null when an optional pre-registration lookup fails', async () => {
-    (component.getWifiConnections as jasmine.Spy).and.rejectWith(
+    (context.getWifiConnections as jasmine.Spy).and.rejectWith(
       new Error('ipc down')
     );
     registrationService.register.and.returnValue(of(registered as any));
@@ -248,13 +291,60 @@ describe('ConfirmschoolPage', () => {
     localStorage.removeItem('system_hardware_id');
   });
 
+  describe('app instance', () => {
+    const UUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+    it('keeps a new app instance ID for the facility without sending it to /api/v2', async () => {
+      registrationService.register.and.returnValue(of(registered as any));
+
+      await component.confirmSchool();
+
+      const payload = registrationService.register.calls.mostRecent().args[0];
+      expect(payload['app_instance_id']).toBeUndefined();
+      expect(payload['registration_source']).toBeUndefined();
+      expect(localStorage.getItem('appInstanceId')).toMatch(UUID);
+    });
+
+    it('keeps the same app instance ID when registering again at the facility', async () => {
+      registrationService.register.and.returnValues(
+        throwError(() => new Error('timeout')),
+        of(registered as any)
+      );
+
+      await component.confirmSchool();
+      const first = localStorage.getItem('appInstanceId');
+      await component.confirmSchool();
+
+      expect(localStorage.getItem('appInstanceId')).toBe(first);
+    });
+
+    it('makes a new app instance ID for another facility', async () => {
+      registrationService.register.and.returnValues(
+        throwError(() => new Error('500')),
+        of(registered as any)
+      );
+
+      await component.confirmSchool();
+      const first = localStorage.getItem('appInstanceId');
+      component.school = {
+        giga_id_school: '0a3c6c1e-9b1d-3a8f-8f41-5e2b7d9c4a10',
+        school_id: 'ext-2',
+      };
+      await component.confirmSchool();
+
+      expect(localStorage.getItem('appInstanceId')).toMatch(UUID);
+      expect(localStorage.getItem('appInstanceId')).not.toBe(first);
+    });
+  });
+
   describe('with a mocked clock', () => {
     beforeEach(() => jasmine.clock().install());
     afterEach(() => jasmine.clock().uninstall());
 
     it('does not let a hanging lookup hold the loader up', async () => {
       // Never settles, like an IP service that accepts the connection and stalls.
-      (component.getIPAddress as jasmine.Spy).and.returnValue(
+      (context.getIPAddress as jasmine.Spy).and.returnValue(
         new Promise(() => undefined)
       );
       registrationService.register.and.returnValue(of(registered as any));

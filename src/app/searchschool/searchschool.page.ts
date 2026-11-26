@@ -10,6 +10,8 @@ import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { getFacilityConfig } from '../models/facility';
 import { classifyRequestError } from '../schoolnotfound/types';
+import { PosthogService } from '../services/posthog.service';
+import { AnalyticsEvent, bucketCount } from '../analytics/analytics-events';
 @Component({
     selector: 'app-searchschool',
     templateUrl: 'searchschool.page.html',
@@ -47,7 +49,8 @@ export class SearchschoolPage {
     private facilityService: FacilityService,
     private identityService: IdentityService,
     private settingsService: SettingsService,
-    public loading: LoadingService
+    public loading: LoadingService,
+    private posthog: PosthogService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -139,6 +142,10 @@ export class SearchschoolPage {
           (err) => {
             console.log('ERROR: ' + err);
             this.loading.dismiss();
+            this.posthog.captureFailure(AnalyticsEvent.SchoolSearchFailed, err, {
+              country_code: this.selectedCountry,
+              reason: classifyRequestError(err),
+            });
             /* The search itself failed: say why instead of "not found" */
             this.router.navigate(
               [
@@ -153,6 +160,14 @@ export class SearchschoolPage {
           },
           () => {
             this.loading.dismiss();
+            const resultCount = Array.isArray(this.schoolData)
+              ? this.schoolData.length
+              : 0;
+            this.posthog.capture(AnalyticsEvent.SchoolSearchPerformed, {
+              country_code: this.selectedCountry,
+              found: resultCount > 0,
+              result_count: bucketCount(resultCount),
+            });
             if (Array.isArray(this.schoolData) && this.schoolData.length > 0) {
               this.router.navigate([
                 'schooldetails',

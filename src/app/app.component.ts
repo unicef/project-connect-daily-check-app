@@ -19,6 +19,12 @@ import { IdentityService } from './services/identity.service';
 import { RegistrationService } from './services/registration.service';
 import { SchoolService } from './services/school.service';
 import { PosthogService } from './services/posthog.service';
+import { AnalyticsHeartbeatService } from './analytics/analytics-heartbeat.service';
+import {
+  AnalyticsEvent,
+  describeError,
+  markLoggedOut,
+} from './analytics/analytics-events';
 
 // const shell = require('electron').shell;
 @Component({
@@ -78,10 +84,12 @@ export class AppComponent {
     private router: Router,
     private schoolService: SchoolService,
     private posthogService: PosthogService,
+    private analyticsHeartbeat: AnalyticsHeartbeatService,
   ) {
     try {
       this.posthogService.init();
-      this.posthogService.capture('app_started');
+      this.posthogService.capture(AnalyticsEvent.AppStarted);
+      this.analyticsHeartbeat.start();
     } catch (error) {
       console.warn('PostHog init failed:', error);
     }
@@ -519,6 +527,7 @@ export class AppComponent {
    * Open logout confirmation modal
    */
   async openLogoutModal(): Promise<void> {
+    this.posthogService.capture(AnalyticsEvent.LogoutStarted);
     const modal = await this.modalController.create({
       component: LogoutModalComponent,
       cssClass: 'logout-modal',
@@ -528,6 +537,8 @@ export class AppComponent {
     modal.onDidDismiss().then((result) => {
       if (result.data && result.data.action === 'logout') {
         this.handleLogout();
+      } else {
+        this.posthogService.capture(AnalyticsEvent.LogoutCancelled);
       }
     });
 
@@ -550,15 +561,24 @@ export class AppComponent {
 
       // Deactivate on backend: v2 registrations by registration/installation
       // id (any facility type); legacy school installs keep the v1 path.
+      let deactivation: Record<string, any> = { backend_deactivated: false };
       if (registrationId) {
         try {
           await this.registrationService
             .deactivate(this.identityService.getInstallationId(), registrationId)
             .toPromise();
           console.log('✅ v2 registration deactivated on backend');
+          deactivation = { backend_deactivated: true };
         } catch (deactivateError) {
           console.error('⚠️ Error deactivating v2 registration:', deactivateError);
-          // Continue with logout even if deactivation fails
+          // Continue with logout even if deactivation fails. The backend
+          // still counts this registration as active, so say why.
+          const failure = describeError(deactivateError);
+          deactivation = {
+            backend_deactivated: false,
+            deactivate_error_code: failure.error_code,
+            deactivate_http_status: failure.http_status,
+          };
         }
       } else if (hardwareId && gigaId) {
         console.log('Deactivating device:', { hardwareId, gigaId });
@@ -567,24 +587,45 @@ export class AppComponent {
             .deactivateDevice(hardwareId, gigaId)
             .toPromise();
           console.log('✅ Device marked as inactive on backend');
+          deactivation = { backend_deactivated: true };
         } catch (deactivateError) {
           console.error(
             '⚠️ Error deactivating device on backend:',
             deactivateError
           );
-          // Continue with logout even if deactivation fails
+          // Continue with logout even if deactivation fails. The backend
+          // still counts this device as active, so say why.
+          const failure = describeError(deactivateError);
+          deactivation = {
+            backend_deactivated: false,
+            deactivate_error_code: failure.error_code,
+            deactivate_http_status: failure.http_status,
+          };
         }
       } else {
         console.warn(
           '⚠️ Missing hardware ID or giga ID, skipping backend deactivation'
         );
+        deactivation = {
+          backend_deactivated: false,
+          deactivate_error_code: hardwareId ? 'no_giga_id' : 'no_hardware_id',
+        };
       }
+
+      // Sent now: the page reloads in 500 ms and a batched event would be lost.
+      // Before reset(), so it belongs to this PC.
+      this.posthogService.captureNow(
+        AnalyticsEvent.LogoutCompleted,
+        deactivation
+      );
 
       // Forget this PC's analytics identity, so a new registration can set it
       this.posthogService.reset();
 
       // Clear all localStorage data
       await this.storage.clear();
+      // After clear(): the next registration reports itself as a re-registration.
+      markLoggedOut();
 
       // Show success toast
       this.showToast('Logged out successfully', 'success');
@@ -598,6 +639,12 @@ export class AppComponent {
       }, 500);
     } catch (error) {
       console.error('Error during logout:', error);
+      this.posthogService.captureFailure(
+        AnalyticsEvent.LogoutFailed,
+        error,
+        {},
+        'unexpected'
+      );
       this.showToast('Error during logout. Please try again.', 'danger');
     }
   }

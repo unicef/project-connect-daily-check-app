@@ -5,7 +5,7 @@ import {
   HttpRequest,
   HttpParams,
 } from '@angular/common/http';
-import { catchError, map, switchMap, tap } from 'rxjs/operators';
+import { catchError, map, switchMap, tap, timeout } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { Observable, of, throwError } from 'rxjs';
 import { SettingsService } from '../services/settings.service';
@@ -16,6 +16,20 @@ import { IndexedDBService } from './indexed-db.service';
 import { LocationService, normaliseBssid } from './location.service';
 import { PosthogService } from './posthog.service';
 import { averageLatencyMs } from '../utils/ndt-results.utils';
+import { APP_INSTANCE_ID_KEY } from './registration-context.service';
+import {
+  AnalyticsEvent,
+  describeError,
+  parseMeasurementRejection,
+} from '../analytics/analytics-events';
+
+/**
+ * How long the realtime upload waits for the backend. Past this it is treated
+ * as failed: the measurement is queued and SyncService sends it later. Without
+ * a limit, a request that never gets an answer leaves the test unfinished, and
+ * the result isn't saved or queued until it ends.
+ */
+export const UPLOAD_TIMEOUT_MS = 30 * 1000;
 
 @Injectable({
   providedIn: 'root',
@@ -73,6 +87,12 @@ export class UploadService {
         // saved before this was captured.
         MetroRank: record.mlabInformation.metroRank ?? null,
         LocateVersion: record.mlabInformation.locateVersion ?? null,
+        // Which M-Lab lookup found the server: 'priority' (access from our
+        // backend, see LocateAccessService) or 'public'. PriorityLocateError
+        // says why a priority lookup that was offered was not used. Both null
+        // on records saved before this was captured.
+        LocateTier: record.locateTier ?? null,
+        PriorityLocateError: record.priorityLocateError ?? null,
       },
       ClientInfo: {
         Country: '', //record.accessInformation.country,
@@ -159,7 +179,10 @@ export class UploadService {
     measurement.country_code = measurement.ClientInfo.Country;
 
     // Add measure-saver-specific metadata. No BrowserID in v2 — the record
-    // is keyed on registration_id + installation_id.
+    // is keyed on registration_id + installation_id. The app instance is sent
+    // as well, for when /api/v2 stores it.
+    measurement['app_instance_id'] =
+      this.storage.get(APP_INSTANCE_ID_KEY) || null;
     measurement.Timestamp = this.ts.toISOString();
     measurement.timestamplocal = this.ts.toLocaleString();
     measurement.DeviceType = this.storage.get('deviceType');
@@ -254,20 +277,42 @@ export class UploadService {
       }),
       switchMap(measurementWithGeo =>
         this.http.post(uploadURL, measurementWithGeo).pipe(
+          timeout(UPLOAD_TIMEOUT_MS),
           map((res: any) => res),
           tap((data) => {
             // Measurement delivered in realtime. No speed figures: that is what
             // the measurements table itself is for; what matters here is the
             // funnel.
-            this.posthog.capture('measurement_uploaded', {
+            this.posthog.capture(AnalyticsEvent.MeasurementUploaded, {
               notes: measurementWithGeo.Notes,
               scheduled_slot: measurementWithGeo['scheduled_slot'],
               protocol: measurementWithGeo['protocol'] ?? 'mlab',
               offline_synced: false,
+              ...this.geolocationProperties(),
             });
             return data;
           }),
           catchError(async (error) => {
+            // The backend refused it (school no longer exists, wrong country):
+            // it already sits in measurements_failed, and sending it again
+            // would only add another row there. Not queued.
+            const rejection = parseMeasurementRejection(error);
+            if (rejection) {
+              console.error('Upload refused by the backend, not queued:', error);
+              this.posthog.captureFailure(
+                AnalyticsEvent.MeasurementRejected,
+                error,
+                {
+                  source: 'realtime',
+                  reason: rejection.reason,
+                  count: 1,
+                  notes: measurementWithGeo.Notes,
+                  scheduled_slot: measurementWithGeo['scheduled_slot'],
+                  ...this.geolocationProperties(),
+                }
+              );
+              throw error;
+            }
             console.error('Upload failed, saving to IndexedDB...', error);
             await this.indexedDB.saveMeasurement({
               ...measurementWithGeo,
@@ -275,10 +320,12 @@ export class UploadService {
             });
             // The realtime upload failed and the measurement stays in the local
             // queue: this is the signal the offline_synced flag is after.
-            this.posthog.capture('measurement_queued_offline', {
+            this.posthog.capture(AnalyticsEvent.MeasurementQueuedOffline, {
               notes: measurementWithGeo.Notes,
               scheduled_slot: measurementWithGeo['scheduled_slot'],
               status: error?.status ?? null,
+              ...describeError(error),
+              ...this.geolocationProperties(),
             });
             // Still a failure for the caller: returning a value here made every
             // failed upload look delivered, so the history showed "Synced" for
@@ -312,6 +359,15 @@ export class UploadService {
     } catch (err) {
       console.warn('[Upload] Could not read the connected BSSID:', err);
       return null;
+    }
+  }
+
+  /** How geolocation went for this upload (LocationService.getLastOutcome). */
+  private geolocationProperties(): Record<string, any> {
+    try {
+      return { ...(this.locationService.getLastOutcome?.() ?? {}) };
+    } catch {
+      return {};
     }
   }
 

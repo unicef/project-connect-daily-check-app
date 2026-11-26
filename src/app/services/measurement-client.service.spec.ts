@@ -53,6 +53,7 @@ describe('MeasurementClientService', () => {
     spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
     spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
     spyOn(service['syncService'], 'syncPendingMeasurements').and.resolveTo();
+    spyOn(service['locateAccess'], 'get').and.resolveTo(null);
   });
 
   it('should be created', () => {
@@ -254,6 +255,7 @@ describe('MeasurementClientService without a server measurement', () => {
     spyOn(service['sharedService'], 'broadcast').and.stub();
     spyOn(service['pingService'], 'pingBeforeSpeedTest').and.resolveTo();
     spyOn(service['syncService'], 'syncPingResults').and.resolveTo();
+    spyOn(service['locateAccess'], 'get').and.resolveTo(null);
     statuses = [];
     service.measurementStatus.subscribe((status) => statuses.push(status));
   });
@@ -551,10 +553,23 @@ describe('MeasurementClientService ndt7 integration', () => {
   let ndt7TestSpy: jasmine.Spy;
   let pingService: any;
   let syncService: any;
+  let sharedService: any;
   let deviceContext: any;
+  let locateAccess: any;
+  let posthog: { capture: jasmine.Spy };
+
+  /** The properties of the one PostHog event with this name. */
+  const event = (name: string): Record<string, any> => {
+    const calls = posthog.capture.calls
+      .allArgs()
+      .filter(([eventName]) => eventName === name);
+    expect(calls.length).withContext(`${name} sent once`).toBe(1);
+    return calls[0][1];
+  };
 
   beforeEach(() => {
     ndt7TestSpy = spyOn(ndt7, 'test').and.resolveTo(0);
+    posthog = { capture: jasmine.createSpy('capture') };
 
     const historyService: any = { add: jasmine.createSpy('add') };
     const settingsService: any = {
@@ -567,7 +582,7 @@ describe('MeasurementClientService ndt7 integration', () => {
     const uploadService: any = {
       uploadMeasurement: jasmine.createSpy('uploadMeasurement'),
     };
-    const sharedService: any = {
+    sharedService = {
       broadcast: jasmine.createSpy('broadcast'),
       on: jasmine.createSpy('on'),
     };
@@ -605,6 +620,8 @@ describe('MeasurementClientService ndt7 integration', () => {
     syncService = {
       syncPingResults: jasmine.createSpy('syncPingResults').and.resolveTo(),
     };
+    // No priority access unless a case offers it: the public lookup.
+    locateAccess = { get: jasmine.createSpy('get').and.resolveTo(null) };
 
     service = new MeasurementClientService(
       historyService,
@@ -615,9 +632,82 @@ describe('MeasurementClientService ndt7 integration', () => {
       deviceContext,
       sentryService,
       pingService,
-      syncService
+      syncService,
+      locateAccess,
+      posthog as any
     );
     spyOn<any>(service, 'finalizeMeasurement').and.resolveTo(undefined);
+  });
+
+  describe('analytics events', () => {
+    it('reports a scheduled test as started, then completed with its timings', async () => {
+      await service.runTest('daily', { slot: 'morning', scheduledAt: 1 });
+
+      expect(event('measurement_started')).toEqual({
+        trigger: 'daily',
+        slot: 'morning',
+      });
+      const completed = event('measurement_completed');
+      expect(completed.trigger).toBe('daily');
+      expect(completed.slot).toBe('morning');
+      expect(completed.attempt).toBe(0);
+      expect(completed.duration_ms).toEqual(jasmine.any(Number));
+      expect(completed.prep_ms).toEqual(jasmine.any(Number));
+      // Outside Electron the Wi-Fi read has nothing to say.
+      expect(completed.wifi_status).toBe('unavailable');
+      // No token from the backend: the public M-Lab lookup was used.
+      expect(completed.locate_tier).toBe('public');
+      expect(posthog.capture).not.toHaveBeenCalledWith(
+        'measurement_failed',
+        jasmine.anything()
+      );
+    });
+
+    it('reports a failed test with the phase it failed in and a code', async () => {
+      ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      const failed = event('measurement_failed');
+      expect(failed.trigger).toBe('manual');
+      expect(failed.phase).toBe('locate');
+      expect(failed.error_code).toBe('websocket_error');
+      expect(failed.error_message).toBe('websocket closed unexpectedly');
+      expect(posthog.capture).not.toHaveBeenCalledWith(
+        'measurement_completed',
+        jasmine.anything()
+      );
+    });
+
+    it('reports each locate retry before the final failure', async () => {
+      (service as any).maxRetries = 1;
+      spyOn(window, 'setTimeout').and.callFake(((fn: any) => {
+        fn();
+        return 0;
+      }) as any);
+      ndt7TestSpy.and.rejectWith(
+        new Error('locate.measurementlab.net: Could not understand response')
+      );
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      expect(event('measurement_retrying')).toEqual(
+        jasmine.objectContaining({ attempt: 1, error_code: 'locate_failed' })
+      );
+      expect(event('measurement_failed').error_code).toBe('locate_failed');
+    });
+
+    it('reports a failure to read the network before the test', async () => {
+      (service as any).networkService.getNetInfo = jasmine
+        .createSpy('getNetInfo')
+        .and.rejectWith(new Error('net::ERR_INTERNET_DISCONNECTED'));
+
+      await expectAsync(service.runTest('first')).toBeRejected();
+
+      const failed = event('measurement_failed');
+      expect(failed.phase).toBe('net_info');
+      expect(failed.error_code).toBe('network');
+    });
   });
 
   it('runs the test through the ndt7 package with the giga-meter metadata', async () => {
@@ -709,6 +799,106 @@ describe('MeasurementClientService ndt7 integration', () => {
     });
   });
 
+  describe('one test at a time', () => {
+    it('gives a second request the test already running', async () => {
+      ndt7TestSpy.and.callFake(
+        () => new Promise((resolve) => setTimeout(() => resolve(0), 20))
+      );
+
+      const first = service.runTest('manual');
+      const second = service.runTest('daily');
+
+      expect(second).toBe(first);
+      expect(service.isTestRunning).toBeTrue();
+      await first;
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(service.isTestRunning).toBeFalse();
+    });
+
+    it('runs the next test once the previous one has ended', async () => {
+      await service.runTest('manual');
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('is not running any more after a failed test', async () => {
+      ndt7TestSpy.and.rejectWith(new Error('websocket closed unexpectedly'));
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+
+      expect(service.isTestRunning).toBeFalse();
+    });
+
+    it('lets another test start when the running one looks stuck', async () => {
+      // Server found, then ndt7 never ends: no timer left behind.
+      ndt7TestSpy.and.callFake((config: any, callbacks: any) => {
+        callbacks.serverChosen({});
+        return new Promise(() => undefined);
+      });
+      (service as any).stuckTestMs = 0;
+
+      const first = service.runTest('manual');
+      const second = service.runTest('manual');
+
+      expect(second).not.toBe(first);
+      // Both reach the ndt7 spy before it is removed, or they would call the
+      // real ndt7 after this spec.
+      while (ndt7TestSpy.calls.count() < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      }
+    });
+  });
+
+  describe('server lookup', () => {
+    beforeEach(() => {
+      (service as any).serverLookupTimeoutMs = 50;
+    });
+
+    it('gives up on a lookup that does not answer, and retries it', async () => {
+      (service as any).maxRetries = 1;
+      ndt7TestSpy.and.returnValue(new Promise(() => undefined));
+
+      await expectAsync(service.runTest('manual')).toBeRejectedWithError(
+        /locate\.measurementlab\.net did not answer/
+      );
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(2);
+    });
+
+    it('silences a run whose lookup answers after it gave up', async () => {
+      (service as any).maxRetries = 0;
+      const runs: any[] = [];
+      ndt7TestSpy.and.callFake((config: any, callbacks: any) => {
+        runs.push(callbacks);
+        return new Promise(() => undefined);
+      });
+
+      await expectAsync(service.runTest('manual')).toBeRejected();
+      const broadcasts = sharedService.broadcast.calls.count();
+
+      // Throwing here makes ndt7 stop before it starts the download.
+      expect(() => runs[0].serverChosen({ machine: 'late' })).toThrowError(
+        /after the test gave up/
+      );
+      runs[0].error('late error');
+      runs[0].downloadComplete({});
+      expect(sharedService.broadcast.calls.count()).toBe(broadcasts);
+    });
+
+    it('waits for the test as long as it takes once the server is chosen', async () => {
+      ndt7TestSpy.and.callFake((config: any, callbacks: any) => {
+        callbacks.serverChosen({ machine: 'mlab1' });
+        // Longer than the lookup limit.
+        return new Promise((resolve) => setTimeout(() => resolve(0), 120));
+      });
+
+      await expectAsync(service.runTest('manual')).toBeResolved();
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('device reads', () => {
     const never = () => new Promise<never>(() => undefined);
     const savedRecord = () =>
@@ -753,6 +943,154 @@ describe('MeasurementClientService ndt7 integration', () => {
 
       expect(savedRecord().deviceIdentity).toEqual(identity);
       expect(console.warn).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('priority server lookup', () => {
+    const token = 'jwt-from-our-backend';
+    const target = (leg: string) =>
+      `wss://ndt-mlab1-mad06.mlab-oti.measurement-lab.org/ndt/v7/${leg}?access_token=server-token&locate_version=v2&metro_rank=0`;
+    const locateReply = {
+      results: [
+        {
+          machine: 'mlab1-mad06.mlab-oti.measurement-lab.org',
+          location: { city: 'Madrid', country: 'ES' },
+          urls: {
+            'wss:///ndt/v7/download': target('download'),
+            'wss:///ndt/v7/upload': target('upload'),
+          },
+        },
+      ],
+    };
+    const savedRecord = () =>
+      (service as any).finalizeMeasurement.calls.mostRecent().args[0];
+    let fetchSpy: jasmine.Spy;
+    let downloadSpy: jasmine.Spy;
+    let uploadSpy: jasmine.Spy;
+
+    beforeEach(() => {
+      fetchSpy = spyOn(window, 'fetch').and.callFake(async () =>
+        new Response(JSON.stringify(locateReply), { status: 200 })
+      );
+      downloadSpy = spyOn(ndt7, 'downloadTest').and.resolveTo(0);
+      uploadSpy = spyOn(ndt7, 'uploadTest').and.resolveTo(0);
+      spyOn(console, 'warn');
+    });
+
+    it('uses the public lookup, as before, when our backend offers none', async () => {
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(downloadSpy).not.toHaveBeenCalled();
+      expect(savedRecord().locateTier).toBe('public');
+      expect(savedRecord().priorityLocateError).toBeNull();
+    });
+
+    it('tests against the server the priority lookup picked', async () => {
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+
+      await service.runTest('manual');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args;
+      expect(url).toContain(
+        'https://locate.measurementlab.net/v2/priority/nearest/ndt/ndt7?'
+      );
+      expect(url).toContain('client_name=giga-meter');
+      expect(init.headers.Authorization).toBe(`Bearer ${token}`);
+
+      expect(ndt7TestSpy).not.toHaveBeenCalled();
+      expect(await downloadSpy.calls.mostRecent().args[2]).toEqual({
+        '///ndt/v7/download': target('download'),
+        '///ndt/v7/upload': target('upload'),
+      });
+      expect(uploadSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().locateTier).toBe('priority');
+      expect(savedRecord().mlabInformation.city).toBe('Madrid');
+      expect(savedRecord().mlabInformation.metroRank).toBe(0);
+    });
+
+    it('asks our backend for access only once everything else is read', async () => {
+      // M-Lab's token lasts 20 s, and the device reads alone may take 10 s.
+      const order: string[] = [];
+      deviceContext.getDeviceContext.and.callFake(async () => {
+        order.push('device reads');
+        return null;
+      });
+      (service as any).networkService.getNetInfo.and.callFake(async () => {
+        order.push('net info');
+        return {};
+      });
+      locateAccess.get.and.callFake(async () => {
+        order.push('access');
+        return { token, locateUrl: null };
+      });
+      fetchSpy.and.callFake(async () => {
+        order.push('lookup');
+        return new Response(JSON.stringify(locateReply), { status: 200 });
+      });
+
+      await service.runTest('manual');
+
+      expect(order).toEqual(['device reads', 'net info', 'access', 'lookup']);
+    });
+
+    it('calls the lookup URL our backend gave, keeping its query string', async () => {
+      locateAccess.get.and.resolveTo({
+        token: null,
+        locateUrl: 'https://locate.example.org/v3/priority/ndt7?key=abc',
+      });
+
+      await service.runTest('manual');
+
+      const [url, init] = fetchSpy.calls.mostRecent().args;
+      expect(url).toContain('https://locate.example.org/v3/priority/ndt7?key=abc&');
+      expect(init.headers.Authorization).toBeUndefined();
+      expect(savedRecord().locateTier).toBe('priority');
+    });
+
+    it('falls back to the public lookup when the priority one refuses', async () => {
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+      fetchSpy.and.callFake(async () => new Response('{}', { status: 401 }));
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(downloadSpy).not.toHaveBeenCalled();
+      expect(savedRecord().locateTier).toBe('public');
+      expect(savedRecord().priorityLocateError).toBe('HTTP 401');
+    });
+
+    it('falls back to the public lookup when the priority one does not answer', async () => {
+      (service as any).priorityLookupTimeoutMs = 20;
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+      fetchSpy.and.callFake(
+        (_url: string, init: RequestInit) =>
+          new Promise((_resolve, reject) =>
+            init.signal.addEventListener('abort', () =>
+              reject(init.signal.reason)
+            )
+          )
+      );
+
+      await service.runTest('manual');
+
+      expect(ndt7TestSpy).toHaveBeenCalledTimes(1);
+      expect(savedRecord().priorityLocateError).toBe('timeout');
+    });
+
+    it('keeps the token out of logs and status events', async () => {
+      const logSpy = spyOn(console, 'log');
+      locateAccess.get.and.resolveTo({ token, locateUrl: null });
+
+      await service.runTest('manual');
+
+      const broadcasts = JSON.stringify(
+        (service as any).sharedService.broadcast.calls.allArgs()
+      );
+      expect(JSON.stringify(logSpy.calls.allArgs())).not.toContain(token);
+      expect(broadcasts).not.toContain(token);
+      expect(broadcasts).toContain('locate.measurementlab.net');
     });
   });
 });

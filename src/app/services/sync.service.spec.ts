@@ -67,6 +67,35 @@ describe('SyncService', () => {
       expect(markSynced).not.toHaveBeenCalled();
     }));
 
+    it('takes a batch the backend refused out of the queue without posting it again', fakeAsync(() => {
+      service.syncPendingMeasurements();
+      flushMicrotasks();
+      batch().flush(
+        {
+          statusCode: 400,
+          message:
+            'Failed to add measurements with error for each records : PCDC school does not exist,Wrong country code',
+        },
+        { status: 400, statusText: 'Bad Request' }
+      );
+      flushMicrotasks();
+
+      // No second post: httpMock.verify() in afterEach fails on one.
+      const indexedDB = service['indexedDBService'];
+      expect(indexedDB.markMeasurementSynced).toHaveBeenCalledWith(1);
+      expect(indexedDB.markMeasurementSynced).toHaveBeenCalledWith(2);
+      // Not delivered: the history keeps saying so.
+      expect(markSynced).not.toHaveBeenCalled();
+      expect(service['posthog'].capture).toHaveBeenCalledWith(
+        'measurement_rejected',
+        jasmine.objectContaining({
+          source: 'sync',
+          count: 2,
+          reason: 'school_doesnt_exist,wrong_country_code',
+        })
+      );
+    }));
+
     it('joins a sync that is already running instead of posting the tests twice', fakeAsync(() => {
       let first = false;
       let second = false;

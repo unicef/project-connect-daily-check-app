@@ -13,21 +13,23 @@ import { getFacilityConfig } from '../models/facility';
 
 import { School } from '../models/models';
 import { NotFound, classifyRequestError } from '../schoolnotfound/types';
-import { Device } from '@capacitor/device';
 import { DatePipe } from '@angular/common';
 import { environment } from 'src/environments/environment';
 import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
 import { TranslateService } from '@ngx-translate/core';
-import { HardwareIdService } from '../services/hardware-id.service';
 import { LocationService } from '../services/location.service';
 import { PosthogService } from '../services/posthog.service';
-import { withTimeout } from '../utils/with-timeout.utils';
-
-/** Cap for each optional lookup (IP, Windows username, install path, WiFi). */
-const LOOKUP_TIMEOUT_MS = 10000;
-/** Cap for the registration request itself. */
-const REGISTER_TIMEOUT_MS = 30000;
+import {
+  PENDING_AUTO_REGISTRATION_KEY,
+  REGISTER_TIMEOUT_MS,
+  RegistrationContextService,
+} from '../services/registration-context.service';
+import {
+  AnalyticsEvent,
+  onboardingDurationMs,
+  registrationProps,
+} from '../analytics/analytics-events';
 
 @Component({
   selector: 'app-confirmschool',
@@ -66,9 +68,9 @@ export class ConfirmschoolPage implements OnInit{
     private datePipe: DatePipe,
     private translate: TranslateService,
     private sharedService: SharedService,
-    private hardwareIdService: HardwareIdService,
     private locationService: LocationService,
-    private posthog: PosthogService
+    private posthog: PosthogService,
+    private registrationContext: RegistrationContextService
   ) {
     const appLang = this.settings.get('applicationLanguage');
     this.translate.use(appLang.code);
@@ -137,41 +139,36 @@ export class ConfirmschoolPage implements OnInit{
       this.school?.facilityType ?? this.identityService.getFacilityType();
 
     try {
-      const deviceInfo = await this.getDeviceInfo();
-      const deviceId = await this.getDeviceId();
-      // Get hardware ID for machine-level registration
-      const hardwareId = this.hardwareIdService.getHardwareId();
-      // The serials and Windows install ID (TECH-8828) are not sent: the v2
-      // registration endpoint rejects fields it does not know yet.
-      /* The loader has no duration, so none of these optional lookups may hang
-         it: each one is capped and falls back to null, and they run together
-         so the worst case is one cap rather than the sum. */
-      const [ipAddress, windowsUsername, installedPath, wifiConnections] =
-        await Promise.all([
-          withTimeout(LOOKUP_TIMEOUT_MS, this.getIPAddress(), null),
-          withTimeout(LOOKUP_TIMEOUT_MS, this.getWindowsUsername(), null),
-          withTimeout(LOOKUP_TIMEOUT_MS, this.getInstalledPath(), null),
-          withTimeout(LOOKUP_TIMEOUT_MS, this.getWifiConnections(), null),
-        ]);
-
       const gigaId =
         facilityType === 'health'
           ? this.school.giga_id_health
           : this.school.giga_id_school;
 
+      /* The loader has no duration, so none of the optional lookups behind
+         this may hang it: each one is capped and falls back to null. */
+      const context = await this.registrationContext.build({
+        giga_id_school: gigaId,
+        country_code: this.selectedCountry,
+        registration_source: 'manual',
+        created: today,
+      });
+
+      /* The v2 registration endpoint rejects fields it does not know, so only
+         these are sent: not the serials and Windows install ID (TECH-8828),
+         the location, app_instance_id or registration_source. */
       const registrationData = {
         [facilityType === 'health' ? 'giga_id_health' : 'giga_id_school']:
           gigaId,
-        mac_address: deviceId.identifier,
-        os: deviceInfo.operatingSystem,
-        app_version: environment.app_version,
-        ip_address: ipAddress,
-        country_code: this.selectedCountry,
+        mac_address: context.mac_address,
+        os: context.os,
+        app_version: context.app_version,
+        ip_address: context.ip_address,
+        country_code: context.country_code,
         installation_id: this.identityService.getInstallationId(),
-        device_hardware_id: hardwareId || null,
-        windows_username: windowsUsername || null,
-        installed_path: installedPath || null,
-        wifi_connections: wifiConnections || null,
+        device_hardware_id: context.device_hardware_id,
+        windows_username: context.windows_username,
+        installed_path: context.installed_path,
+        wifi_connections: context.wifi_connections,
       };
 
       /* Fire-and-forget, as before: the flagged record is independent of the
@@ -197,15 +194,31 @@ export class ConfirmschoolPage implements OnInit{
         this.schoolId
       );
       // Shared device-metadata keys (same on both vintages)
-      this.storage.set('deviceType', deviceInfo.operatingSystem);
-      this.storage.set('macAddress', deviceId.identifier);
+      this.storage.set('deviceType', context.os);
+      this.storage.set('macAddress', context.mac_address);
+      // This install has a registration of its own now: nothing for the next
+      // start to try again, even if an automatic one failed earlier.
+      this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
       // From here on, events belong to this PC, in this facility's group.
       this.posthog.identifyDevice({
         country_code: this.selectedCountry,
         facility_type: response.facility_type,
       });
-      this.posthog.setSchool(response.giga_id);
-      this.storage.set('ip_address', ipAddress?.ip);
+      this.posthog.setSchool(response.giga_id, {
+        external_id: this.school.school_id ?? this.schoolId,
+        name: this.school.name,
+      });
+      this.posthog.setCountry(this.selectedCountry);
+      // This registration is a new app instance on the PC.
+      this.posthog.applyAppInstance({
+        registration_source: 'manual',
+        giga_id_school: response.giga_id,
+        facility_type: response.facility_type,
+        country_code: this.selectedCountry,
+        app_version: environment.app_version,
+        registered_at: new Date().toISOString(),
+      });
+      this.storage.set('ip_address', context.ip_address);
       this.storage.set('version', environment.app_version);
       this.storage.set('country_code', this.selectedCountry);
 
@@ -213,9 +226,11 @@ export class ConfirmschoolPage implements OnInit{
       this.storage.setFirstTimeVisit(true);
       this.storage.setRegistrationCompleted(Date.now());
 
-      this.posthog.capture('registration_completed', {
-        country_code: this.selectedCountry,
+      this.posthog.capture(AnalyticsEvent.RegistrationCompleted, {
+        ...registrationProps(context),
         facility_type: response.facility_type,
+        duration_ms: onboardingDurationMs(),
+        country_mismatch: this.selectedCountry !== this.detectedCountry,
       });
 
       // Navigate to starttest page normally
@@ -230,6 +245,17 @@ export class ConfirmschoolPage implements OnInit{
          Either way the screen must not hang: dismiss and route out so the user
          can retry. */
       console.error('❌ [ConfirmSchool] Registration failed:', err);
+      this.posthog.captureFailure(
+        AnalyticsEvent.RegistrationFailed,
+        err,
+        {
+          country_code: this.selectedCountry,
+          facility_type: facilityType,
+          registration_source: 'manual',
+          reason: classifyRequestError(err, NotFound.registrationFailed),
+        },
+        'registration_failed'
+      );
       /* The facility was found; registering it failed. Say why, and let
          "Try again" bring the user back here. */
       this.router.navigate(
@@ -297,141 +323,6 @@ export class ConfirmschoolPage implements OnInit{
       ],
       { state: schoolObj }
     );
-  }
-
-  async getDeviceInfo() {
-    const info = await Device.getInfo();
-    return info;
-  }
-
-  async getIPAddress() {
-    try {
-      const response = await fetch('https://ipv4.geojs.io/v1/ip/geo.json');
-      const data = await response.json();
-      const ipAddress = data.ip;
-      return ipAddress;
-    } catch (error) {
-      console.log('Error:', error);
-      return null;
-    }
-  }
-
-  async getDeviceId() {
-    const deviceId = await Device.getId();
-    return deviceId;
-  }
-
-  async getWindowsUsername(): Promise<string> {
-    try {
-      // Check if running in Electron
-      if (window && (window as any).electronAPI) {
-        console.log('📡 [Windows Username] Requesting Windows username...');
-        const usernameInfo = await (
-          window as any
-        ).electronAPI.getWindowsUsername();
-
-        if (usernameInfo && usernameInfo.username) {
-          console.log(
-            '✅ [Windows Username] Retrieved username:',
-            usernameInfo.username
-          );
-          return usernameInfo.username;
-        } else if (usernameInfo && usernameInfo.error) {
-          console.error(
-            '❌ [Windows Username] Error retrieving username:',
-            usernameInfo.error
-          );
-          return null;
-        }
-      } else {
-        console.log(
-          '⚠️ [Windows Username] Not running in Electron, username not available'
-        );
-        return null;
-      }
-    } catch (error) {
-      console.error(
-        '❌ [Windows Username] Exception while retrieving username:',
-        error
-      );
-      return null;
-    }
-
-    return null;
-  }
-
-  async getInstalledPath(): Promise<string> {
-    try {
-      // Check if running in Electron
-      if (window && (window as any).electronAPI) {
-        console.log('📡 [Installed Path] Requesting installed path...');
-        const pathInfo = await (window as any).electronAPI.getInstalledPath();
-
-        if (pathInfo && pathInfo.installedPath) {
-          console.log(
-            '✅ [Installed Path] Retrieved path:',
-            pathInfo.installedPath
-          );
-          return pathInfo.installedPath;
-        } else if (pathInfo && pathInfo.error) {
-          console.error(
-            '❌ [Installed Path] Error retrieving path:',
-            pathInfo.error
-          );
-          return null;
-        }
-      } else {
-        console.log(
-          '⚠️ [Installed Path] Not running in Electron, path not available'
-        );
-        return null;
-      }
-    } catch (error) {
-      console.error(
-        '❌ [Installed Path] Exception while retrieving path:',
-        error
-      );
-      return null;
-    }
-
-    return null;
-  }
-
-  async getWifiConnections(): Promise<any> {
-    try {
-      // Check if running in Electron
-      if (window && (window as any).electronAPI) {
-        console.log('📡 [WiFi Connections] Requesting WiFi connections...');
-        const wifiInfo = await (window as any).electronAPI.getWifiConnections();
-
-        if (wifiInfo && wifiInfo.wifiConnections) {
-          console.log(
-            '✅ [WiFi Connections] Retrieved connections:',
-            wifiInfo.wifiConnections
-          );
-          return wifiInfo.wifiConnections;
-        } else if (wifiInfo && wifiInfo.error) {
-          console.error(
-            '❌ [WiFi Connections] Error retrieving connections:',
-            wifiInfo.error
-          );
-          return null;
-        }
-      } else {
-        console.log(
-          '⚠️ [WiFi Connections] Not running in Electron, connections not available'
-        );
-        return null;
-      }
-    } catch (error) {
-      console.error(
-        '❌ [WiFi Connections] Exception while retrieving connections:',
-        error
-      );
-      return null;
-    }
-
-    return null;
   }
 
   closeNotification() {

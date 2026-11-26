@@ -7,6 +7,7 @@ import { StorageService } from './storage.service';
 import { SettingsService } from './settings.service';
 import { IdentityService } from './identity.service';
 import SpeedTest from '@cloudflare/speedtest';
+import { APP_INSTANCE_ID_KEY } from './registration-context.service';
 
 export interface PingResult {
   timestamp: Date;
@@ -14,6 +15,8 @@ export interface PingResult {
   errorMessage: string | null;
   app_local_uuid: string;
   latency?: number | null;
+  /** This install (app instance): the link to its registration. */
+  app_instance_id?: string | null;
 }
 
 @Injectable({
@@ -84,6 +87,7 @@ export class PingService {
       errorMessage,
       app_local_uuid: uniqueId,
       latency: this.latency,
+      app_instance_id: this.storage.get(APP_INSTANCE_ID_KEY) || null,
     };
   }
 

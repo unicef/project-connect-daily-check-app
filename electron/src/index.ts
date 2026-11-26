@@ -32,18 +32,39 @@ import {
   retryHardwareSerials,
   getSsidFromNlm,
 } from './device-context';
+import {
+  classifyUpdateError,
+  hadUserData,
+  installScope,
+  recordLaunch,
+  sanitizeForTelemetry,
+} from './analytics-main';
 
 // Set userData path to use name instead of productName - must be set before app is ready
 const userDataPath = path.join(app.getPath('appData'), 'unicef-pdca');
 app.setPath('userData', userDataPath);
+// Read before Chromium creates anything in userData: tells a first launch
+// from the first launch of an upgraded install (analytics-main.recordLaunch).
+const hadUserDataBeforeLaunch = hadUserData(userDataPath);
 
 const gotTheLock = app.requestSingleInstanceLock();
+// Main-process crashes go to Sentry with the stack; PostHog gets a capped count
+// per run, so the dashboard shows which versions crash without a flood.
+const MAX_MAIN_ERROR_EVENTS = 10;
+let mainErrorEvents = 0;
 // Graceful handling of unhandled errors.
 unhandled({
   logger: (e) => {
     console.error(e);
     captureException(e);
     console.log('there is an error occurs');
+    if (mainErrorEvents < MAX_MAIN_ERROR_EVENTS) {
+      mainErrorEvents++;
+      sendTelemetry('main_process_error', {
+        error_type: (e as Error)?.name ?? typeof e,
+        error_message: sanitizeForTelemetry((e as Error)?.message ?? e),
+      });
+    }
   },
   showDialog: false,
   reportButton: (error) => {
@@ -74,11 +95,22 @@ let isDownloaded = false;
  * failures already go to Sentry separately.
  */
 const MAX_PENDING_TELEMETRY = 50;
-const pendingTelemetry: { event: string; properties: Record<string, any> }[] =
-  [];
+const pendingTelemetry: {
+  event: string;
+  properties: Record<string, any>;
+  sendNow?: boolean;
+}[] = [];
 let telemetryReady = false;
 
-function sendTelemetry(event: string, properties: Record<string, any> = {}) {
+/**
+ * `sendNow` asks the renderer to send the event at once instead of with its
+ * next batch: for events sent right before the app quits.
+ */
+function sendTelemetry(
+  event: string,
+  properties: Record<string, any> = {},
+  options: { sendNow?: boolean } = {}
+) {
   try {
     // Look the window up each time: `mainWindow` stays undefined, because
     // myCapacitorApp.init() returns nothing.
@@ -89,13 +121,14 @@ function sendTelemetry(event: string, properties: Record<string, any> = {}) {
       !win.isDestroyed() &&
       win.webContents &&
       !win.webContents.isDestroyed();
+    const sendNow = options.sendNow === true;
     if (!canSend) {
       if (pendingTelemetry.length < MAX_PENDING_TELEMETRY) {
-        pendingTelemetry.push({ event, properties });
+        pendingTelemetry.push({ event, properties, sendNow });
       }
       return;
     }
-    win.webContents.send('telemetry-event', { event, properties });
+    win.webContents.send('telemetry-event', { event, properties, sendNow });
   } catch (error) {
     console.warn('[telemetry] send failed:', error);
   }
@@ -175,6 +208,18 @@ if (!gotTheLock) {
     // Background only: keeps the first speed test from waiting on cold reads.
     warmUpDeviceReads();
 
+    // First launch on this PC, or first launch after an update. The update
+    // is only visible from here: the old process is gone once it installed.
+    const scope = installScope(app.getPath('exe'));
+    const launch = recordLaunch(
+      userDataPath,
+      app.getVersion(),
+      hadUserDataBeforeLaunch
+    );
+    if (launch.event) {
+      sendTelemetry(launch.event, { ...launch.properties, install_scope: scope });
+    }
+
     // Get and log system hardware ID
     try {
       console.log('🔍 [Electron] Retrieving system hardware ID...');
@@ -198,6 +243,7 @@ if (!gotTheLock) {
       // Recover in the background when the logon-time probe had no UUID, so the
       // renderer gets one without waiting for a manual restart.
       if (!isUsableHardwareId(hardwareId)) {
+        sendTelemetry('hardware_id_unavailable', { where: 'main_startup' });
         scheduleHardwareIdRetry();
       }
 
@@ -207,6 +253,7 @@ if (!gotTheLock) {
         manufacturer: systemData.manufacturer,
         model: systemData.model,
         os: osData.distro,
+        install_scope: scope,
       });
 
       // Send hardware ID to renderer process when ready
@@ -239,6 +286,10 @@ if (!gotTheLock) {
     } catch (error) {
       console.error('❌ [Electron] Error getting system hardware ID:', error);
       captureException(error);
+      sendTelemetry('hardware_id_unavailable', {
+        where: 'main_startup',
+        error_message: sanitizeForTelemetry(error?.message),
+      });
       scheduleHardwareIdRetry();
 
       // Send error event to renderer
@@ -286,12 +337,52 @@ if (!gotTheLock) {
   } else {
   autoUpdater.autoDownload = true;
 
+  // Where the update lifecycle is, so a failure says which step failed.
+  let updatePhase: 'check' | 'download' | 'install' = 'check';
+  let updateToVersion: string | null = null;
+  // The answer to the restart prompt. "Restart" is sent at once and the
+  // install waits a moment for it: quitAndInstall ends the process.
+  const handleRestartAnswer = (response: number) => {
+    const restart = response === 0;
+    sendTelemetry(
+      'update_prompt_answered',
+      {
+        action: restart ? 'restart' : 'later',
+        from_version: app.getVersion(),
+        to_version: updateToVersion,
+      },
+      { sendNow: restart }
+    );
+    if (restart) {
+      updatePhase = 'install';
+      setTimeout(() => autoUpdater.quitAndInstall(false, true), 500);
+    }
+  };
+
   setInterval(() => {
     autoUpdater.checkForUpdates();
   }, 3600000);
 
+  autoUpdater.on('checking-for-update', () => {
+    updatePhase = 'check';
+  });
+
+  autoUpdater.on('update-available', (info: any) => {
+    updatePhase = 'download';
+    updateToVersion = info?.version ?? null;
+    sendTelemetry('update_available', {
+      from_version: app.getVersion(),
+      to_version: updateToVersion,
+    });
+  });
+
   autoUpdater.on('update-downloaded', (_event, releaseNotes, releaseName) => {
-    sendTelemetry('desktop_update_downloaded', { release_name: releaseName });
+    // electron-updater passes the update info as the first argument.
+    updateToVersion = (_event as any)?.version ?? updateToVersion;
+    sendTelemetry('update_downloaded', {
+      from_version: app.getVersion(),
+      to_version: updateToVersion,
+    });
     const dialogOpts = {
       type: 'info' as const,
       buttons: ['Restart / Reinicie. / Перезапуск', 'Later / Después / Позже'],
@@ -324,10 +415,9 @@ if (!gotTheLock) {
           message: process.platform === 'win32' ? releaseNotes : releaseName,
           detail: `A new version of UNICEF's Giga Meter  has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Giga Meter de UNICEF ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Giga Meter  загружена . Перезапустите приложение, чтобы применить обновления.`,
         };
-        dialog.showMessageBox(dialogOpts).then((returnValue) => {
-          if (returnValue.response === 0)
-            autoUpdater.quitAndInstall(false, true);
-        });
+        dialog
+          .showMessageBox(dialogOpts)
+          .then((returnValue) => handleRestartAnswer(returnValue.response));
 
         //throw new Error("opps there is unexpected error")
       } catch (error) {
@@ -343,18 +433,21 @@ if (!gotTheLock) {
           message: process.platform === 'win32' ? releaseNotes : releaseName,
           detail: `A new version of UNICEF's Giga Meter  has been downloaded. Restart the application to apply the updates.\n\nUna nueva version de la aplicación Giga Meter de UNICEF  ha sido descargada. Reinicie la aplicación para aplicar los cambios.\n\nНовая версия приложения Giga Meter  загружена . Перезапустите приложение, чтобы применить обновления.`,
         };
-        dialog.showMessageBox(dialogOpts).then((returnValue) => {
-          if (returnValue.response === 0)
-            autoUpdater.quitAndInstall(false, true);
-        });
+        dialog
+          .showMessageBox(dialogOpts)
+          .then((returnValue) => handleRestartAnswer(returnValue.response));
       }
     }
   });
   autoUpdater.on('error', (error) => {
     console.error('Update Error:', error);
     captureException(error);
-    sendTelemetry('desktop_update_failed', {
-      message: error?.message ?? null,
+    sendTelemetry('update_failed', {
+      phase: updatePhase,
+      from_version: app.getVersion(),
+      to_version: updateToVersion,
+      error_code: classifyUpdateError(error?.message),
+      error_message: sanitizeForTelemetry(error?.message),
     });
   });
   }
@@ -415,7 +508,7 @@ app.on('before-quit', () => {
   // Before cleanup(): sendTelemetry needs the window alive. posthog-js
   // persists its queue in localStorage, so if the process dies before sending
   // it, the event goes out on the next launch.
-  sendTelemetry('app_quit');
+  sendTelemetry('app_quit', {}, { sendNow: true });
   myCapacitorApp.cleanup();
 });
 
@@ -788,6 +881,10 @@ function scheduleHardwareIdRetry(): void {
       console.warn(
         '⚠️ [Electron] Hardware ID still unavailable after all retries'
       );
+      sendTelemetry('hardware_id_unavailable', {
+        where: 'main_retries_exhausted',
+        attempts: HARDWARE_ID_RETRY_DELAYS_MS.length,
+      });
       return;
     }
 
@@ -801,6 +898,7 @@ function scheduleHardwareIdRetry(): void {
             `✅ [Electron] Hardware ID resolved on retry ${index + 1}:`,
             hardwareData.hardwareId
           );
+          sendTelemetry('hardware_id_resolved', { retry: index + 1 });
           pushHardwareDataToRenderer(hardwareData);
           return;
         }

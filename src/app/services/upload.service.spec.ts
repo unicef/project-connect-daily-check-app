@@ -3,7 +3,7 @@ import { TestBed, fakeAsync, flushMicrotasks, tick } from '@angular/core/testing
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { of, throwError } from 'rxjs';
 import { GEOLOCATE_RETRY_DELAY_MS, GEOLOCATE_TIMEOUT_MS } from './location.service';
-import { UploadService } from './upload.service';
+import { UploadService, UPLOAD_TIMEOUT_MS } from './upload.service';
 
 describe('UploadService', () => {
   let service: UploadService;
@@ -55,6 +55,21 @@ describe('UploadService', () => {
 
       expect(measurement.ServerInfo.MetroRank).toBeNull();
       expect(measurement.ServerInfo.LocateVersion).toBeNull();
+      expect(measurement.ServerInfo.LocateTier).toBeNull();
+      expect(measurement.ServerInfo.PriorityLocateError).toBeNull();
+    });
+
+    it('sends which M-Lab lookup found the server, and why not the priority one', () => {
+      const measurement: any = service.makeMeasurement({
+        timestamp: Date.now(),
+        results: {},
+        mlabInformation: mlab(),
+        locateTier: 'public',
+        priorityLocateError: 'HTTP 401',
+      });
+
+      expect(measurement.ServerInfo.LocateTier).toBe('public');
+      expect(measurement.ServerInfo.PriorityLocateError).toBe('HTTP 401');
     });
   });
 
@@ -63,10 +78,12 @@ describe('UploadService', () => {
      * Drives uploadMeasurement far enough to inspect the POST body, with
      * makeMeasurement stubbed so the test does not need a full ndt7 result.
      */
-    const post = (record: any): any => {
+    const post = (record: any, stored: Record<string, string> = {}): any => {
       service['settingService'].currentSettings = { uploadEnabled: true } as any;
       spyOn(service['settingService'], 'get').and.returnValue('');
-      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.callFake(
+        (key: string) => stored[key] ?? ''
+      );
       spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
       spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
       spyOn(service['locationService'], 'saveGeolocation').and.stub();
@@ -102,6 +119,24 @@ describe('UploadService', () => {
 
       expect(body['server_timestamp']).toBeNull();
     });
+
+    describe('app instance', () => {
+      it("sends this install's app instance ID, and no browser ID to /api/v2", () => {
+        const body = post(
+          { Notes: 'manual', timestamp: Date.now() },
+          { appInstanceId: 'instance-1', schoolUserId: 'user-1' }
+        );
+
+        expect(body['app_instance_id']).toBe('instance-1');
+        expect(body.BrowserID).toBeUndefined();
+      });
+
+      it('sends null on an install without one yet', () => {
+        const body = post({ Notes: 'manual', timestamp: Date.now() });
+
+        expect(body['app_instance_id']).toBeNull();
+      });
+    });
   });
 
   describe('when the upload fails', () => {
@@ -130,6 +165,76 @@ describe('UploadService', () => {
       await expectAsync(result).toBeRejected();
       expect(saveMeasurement).toHaveBeenCalledOnceWith(
         jasmine.objectContaining({ UUID: 'ndt-1', offline_synced: true })
+      );
+    });
+
+    it('gives up on an upload that gets no answer, and queues it', fakeAsync(() => {
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+      spyOn(service['posthog'], 'capture').and.stub();
+      const saveMeasurement = spyOn(service['indexedDB'], 'saveMeasurement').and.resolveTo();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return { UUID: 'ndt-2', ClientInfo: {}, Notes: 'manual' } as any;
+      });
+
+      let failure: any = null;
+      service
+        .uploadMeasurement({ Notes: 'manual', timestamp: Date.now() })
+        .subscribe({ error: (error) => (failure = error) });
+      flushMicrotasks();
+      const post = httpMock.expectOne((r) => r.url.endsWith('measurements'));
+
+      tick(UPLOAD_TIMEOUT_MS - 1);
+      flushMicrotasks();
+      expect(failure).toBeNull();
+      tick(1);
+      flushMicrotasks();
+
+      expect(post.cancelled).toBeTrue();
+      expect(failure?.name).toBe('TimeoutError');
+      expect(saveMeasurement).toHaveBeenCalledOnceWith(
+        jasmine.objectContaining({ UUID: 'ndt-2', offline_synced: true })
+      );
+    }));
+
+    it('does not queue a measurement the backend refused, and reports why', async () => {
+      service['settingService'].currentSettings = { uploadEnabled: true } as any;
+      spyOn(service['settingService'], 'get').and.returnValue('');
+      spyOn(service['storage'], 'get').and.returnValue('');
+      spyOn(service['hardwareIdService'], 'getHardwareId').and.returnValue(null);
+      spyOn(service['locationService'], 'fetchAndSaveGeolocation').and.returnValue(of(null));
+      const capture = spyOn(service['posthog'], 'capture').and.stub();
+      const saveMeasurement = spyOn(service['indexedDB'], 'saveMeasurement').and.resolveTo();
+      spyOn(service, 'makeMeasurement').and.callFake((r: any) => {
+        service.ts = new Date(r.timestamp);
+        return { UUID: 'ndt-1', ClientInfo: {}, Notes: 'daily' } as any;
+      });
+
+      const result = service
+        .uploadMeasurement({ Notes: 'daily', timestamp: Date.now() })
+        .toPromise();
+      httpMock.expectOne((r) => r.url.endsWith('measurements')).flush(
+        {
+          statusCode: 400,
+          message: 'Failed to add measurement with error: PCDC school does not exist',
+        },
+        { status: 400, statusText: 'Bad Request' }
+      );
+
+      await expectAsync(result).toBeRejected();
+      expect(saveMeasurement).not.toHaveBeenCalled();
+      expect(capture).toHaveBeenCalledWith(
+        'measurement_rejected',
+        jasmine.objectContaining({
+          source: 'realtime',
+          reason: 'school_doesnt_exist',
+          http_status: 400,
+          notes: 'daily',
+        })
       );
     });
   });

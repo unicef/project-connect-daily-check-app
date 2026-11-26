@@ -6,6 +6,11 @@ import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { IonAccordionGroup, IonSlides } from '@ionic/angular';
 import { IdentityService } from 'src/app/services/identity.service';
+import { PosthogService } from 'src/app/services/posthog.service';
+import {
+  AnalyticsEvent,
+  markOnboardingStarted,
+} from 'src/app/analytics/analytics-events';
 
 @Component({
   selector: 'app-register-school-page',
@@ -46,7 +51,8 @@ export class RegisterSchoolPageComponent implements OnInit {
     private readonly router: Router,
     private settingsService: SettingsService,
     private translate: TranslateService,
-    private identityService: IdentityService
+    private identityService: IdentityService,
+    private posthog: PosthogService
 
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
@@ -55,6 +61,10 @@ export class RegisterSchoolPageComponent implements OnInit {
 
   ngOnInit() {
     this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
+    markOnboardingStarted();
+    this.posthog.capture(AnalyticsEvent.OnboardingStarted, {
+      language: this.settingsService.get('applicationLanguage')?.code ?? null,
+    });
   }
 
   swipeNext() {
@@ -64,6 +74,7 @@ export class RegisterSchoolPageComponent implements OnInit {
     this.isLast = true;
   }
   moveToStartTest() {
+    this.posthog.capture(AnalyticsEvent.ConsentAccepted);
     const translatedText = this.translate.instant('searchCountry.check');
 
     const loadingMsg =
@@ -74,6 +85,7 @@ export class RegisterSchoolPageComponent implements OnInit {
   }
 
   redirectToCountry() {
+    this.posthog.capture(AnalyticsEvent.ConsentAccepted);
     const translatedText = this.translate.instant('searchCountry.check');
 
     const loadingMsg =

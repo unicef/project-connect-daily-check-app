@@ -9,6 +9,8 @@ import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
 import { switchMap } from 'rxjs/operators';
 import { classifyRequestError } from '../schoolnotfound/types';
+import { PosthogService } from '../services/posthog.service';
+import { AnalyticsEvent } from '../analytics/analytics-events';
 @Component({
   selector: 'app-schooldetails',
   templateUrl: 'schooldetails.page.html',
@@ -46,7 +48,8 @@ export class SchooldetailsPage {
     private schoolService: SchoolService,
     private facilityService: FacilityService,
     private identityService: IdentityService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private posthog: PosthogService
   ) {
     this.facilityType = this.identityService.getFacilityType();
     this.facilityLabelKey = `facilityType.${this.facilityType}`;
@@ -189,6 +192,9 @@ export class SchooldetailsPage {
 
   confirmSchool(schoolObj) {
     this.selectedSchool = schoolObj;
+    this.posthog.capture(AnalyticsEvent.SchoolSelected, {
+      country_code: this.selectedCountry,
+    });
     this.router.navigate(
       [
         'confirmschool',

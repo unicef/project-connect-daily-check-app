@@ -6,6 +6,10 @@ import { IdentityService } from './identity.service';
 import { PosthogService } from './posthog.service';
 import { HistoryService } from './history.service';
 import { environment } from 'src/environments/environment';
+import {
+  AnalyticsEvent,
+  parseMeasurementRejection,
+} from '../analytics/analytics-events';
 
 @Injectable({
   providedIn: 'root',
@@ -70,18 +74,43 @@ export class SyncService {
           console.log(`Successfully synced measurements batch ${index / batchSize + 1}`);
           // Measurements that failed in realtime and are recovered now: the
           // other end of measurement_queued_offline.
-          this.posthog.capture('measurements_synced', {
+          this.posthog.capture(AnalyticsEvent.MeasurementsSynced, {
             batch_size: batch.length,
           });
         } catch (error) {
+          // /measurements/multiple answers 400 only when the backend refused
+          // every record of the batch (stored in measurements_failed). They
+          // would be refused again on every cycle and block the queue behind
+          // them, so they leave the queue and the sync goes on.
+          const rejection = parseMeasurementRejection(error);
+          if (rejection) {
+            console.error(
+              `Backend refused measurement batch ${index / batchSize + 1}; removing it from the queue:`,
+              error
+            );
+            for (const record of batch) {
+              await this.indexedDBService.markMeasurementSynced(record.id);
+            }
+            this.posthog.captureFailure(AnalyticsEvent.MeasurementRejected, error, {
+              source: 'sync',
+              reason: rejection.reason,
+              count: batch.length,
+            });
+            index += batchSize;
+            continue;
+          }
           console.error(
             `Failed to sync measurement batch ${index / batchSize + 1} after retry:`,
             error
           );
-          this.posthog.capture('measurements_sync_failed', {
-            batch_size: batch.length,
-            status: (error as any)?.status ?? null,
-          });
+          this.posthog.captureFailure(
+            AnalyticsEvent.MeasurementsSyncFailed,
+            error,
+            {
+              batch_size: batch.length,
+              status: (error as any)?.status ?? null,
+            }
+          );
           break; // Stop further sync until next cycle
         }
 
@@ -108,6 +137,11 @@ export class SyncService {
         .post(`${environment.restAPIv2}measurements/batch`, payload)
         .toPromise();
     } catch (error) {
+      // A refusal is the backend's answer, not a glitch: posting again would
+      // only store each record in measurements_failed a second time.
+      if (parseMeasurementRejection(error)) {
+        throw error;
+      }
       console.warn('Initial measurement sync failed. Retrying once...');
       try {
         await this.http

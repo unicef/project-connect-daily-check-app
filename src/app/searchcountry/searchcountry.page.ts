@@ -13,6 +13,8 @@ import { IdentityService } from '../services/identity.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { finalize } from 'rxjs/operators';
+import { PosthogService } from '../services/posthog.service';
+import { AnalyticsEvent } from '../analytics/analytics-events';
 @Component({
   selector: 'app-searchcountry',
   templateUrl: 'searchcountry.page.html',
@@ -1047,7 +1049,8 @@ export class SearchcountryPage {
     private facilityService: FacilityService,
     private identityService: IdentityService,
     public loading: LoadingService,
-    private translate: TranslateService
+    private translate: TranslateService,
+    private posthog: PosthogService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang?.code);
@@ -1086,9 +1089,18 @@ export class SearchcountryPage {
     if (this.isCheckingEligibility) return;
     if (!this.selectedCountry) return;
 
+    const wasDetected =
+      this.detectedCountry !== undefined && this.detectedCountry !== null;
     if (this.detectedCountry === undefined || this.detectedCountry === null) {
       this.detectedCountry = this.selectedCountry;
     }
+    this.posthog.capture(AnalyticsEvent.CountryConfirmed, {
+      country_code: this.selectedCountry,
+      detected_country: wasDetected ? this.detectedCountry : null,
+      // The user picked another country than the one detected from the IP:
+      // a VPN, a border, or a wrong pick. Each one is also flagged backend-side.
+      overridden: wasDetected && this.detectedCountry !== this.selectedCountry,
+    });
 
     // Country + facility-type gate, checked at CONFIRM time —
     // the selection isn't final until here (autodetect can be wrong and the
@@ -1113,12 +1125,29 @@ export class SearchcountryPage {
         if (supported === null) {
           /* We don't know whether the country is supported, so don't say it
              isn't: show a retryable error instead. */
+          this.posthog.capture(AnalyticsEvent.CountryCheckFailed, {
+            country_code: this.selectedCountry,
+            facility_type: this.facilityType,
+            error_code: 'check_failed',
+            http_status: null,
+            endpoint: null,
+            error_message: null,
+          });
           this.facilitySupported = true;
           this.countryCheckFailed = true;
           return;
         }
         this.facilitySupported = supported;
         if (!supported) {
+          // "Giga Meter is not available in <country>" for this facility type.
+          this.posthog.capture(AnalyticsEvent.CountryCheckFailed, {
+            country_code: this.selectedCountry,
+            facility_type: this.facilityType,
+            error_code: 'not_available',
+            http_status: null,
+            endpoint: null,
+            error_message: null,
+          });
           return;
         }
         const selectedCountryName =
@@ -1154,11 +1183,20 @@ export class SearchcountryPage {
           country_code: c.country,
         };
         this.automaticSearched = true;
+        this.posthog.capture(AnalyticsEvent.CountryDetected, {
+          detected_country: c.country ?? null,
+        });
         this.searchTerm = this.filterCountryByCode(this.selectedCountry).name;
         this.selectCountry({ name: this.searchTerm, code: c.country });
       },
       (error) => {
         this.automaticSearched = false;
+        this.posthog.captureFailure(
+          AnalyticsEvent.CountryDetectionFailed,
+          error,
+          {},
+          'ip_lookup_failed'
+        );
       }
     );
   }
