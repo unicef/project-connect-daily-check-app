@@ -158,8 +158,9 @@ export function localDay(date: Date): string {
 }
 
 /**
- * The most common error among failed pings, cleaned for sending. A ping that
- * got no reply before its timeout records no message: that is `no_reply`.
+ * The most common error among failed pings, cleaned for sending: a code
+ * (`offline`, `gave_up`, `timeout`, `error`; see PingFailure). A failed ping
+ * stored by an older version records none: that is `no_reply`.
  */
 function topError(pings: any[]): string | null {
   const counts = new Map<string, number>();

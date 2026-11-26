@@ -7,6 +7,7 @@ import { Network } from '@awesome-cordova-plugins/network/ngx';
 import { TranslateModule } from '@ngx-translate/core';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { NetworkService } from '../services/network.service';
+import { SharedService } from '../services/shared-service.service';
 describe('StarttestPage', () => {
   let component: StarttestPage;
   let fixture: ComponentFixture<StarttestPage>;
@@ -35,6 +36,20 @@ describe('StarttestPage', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('reloads the Ping tile when a ping is stored, until the page is gone', () => {
+    // Pings are stored while the window sits in the tray, and nothing enters
+    // the page again when it is shown.
+    const load = spyOn(component, 'loadLatestPingResult').and.resolveTo();
+    const sharedService = TestBed.inject(SharedService);
+
+    sharedService.broadcast('ping:saved');
+    expect(load).toHaveBeenCalledTimes(1);
+
+    fixture.destroy();
+    sharedService.broadcast('ping:saved');
+    expect(load).toHaveBeenCalledTimes(1);
   });
 
   describe('getStatusMessage', () => {
