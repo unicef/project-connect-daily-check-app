@@ -1,0 +1,24 @@
+<app-pcdc-header></app-pcdc-header>
+<ion-content>
+  <div class="container">
+    <div class="top-layout">
+      <div class="title" [translate]="'selectFacility.title'"></div>
+      <div
+        class="subtitle"
+        [innerHtml]="'selectFacility.subtitle' | translate : { appName }"
+      ></div>
+    </div>
+    <div class="facility-cards">
+      <ion-card
+        *ngFor="let facility of facilityTypes"
+        button
+        appEnterKeyClick
+        class="facility-card"
+        (click)="selectFacility(facility.type)"
+      >
+        <ion-icon [name]="facility.icon" class="facility-icon"></ion-icon>
+        <div class="facility-label" [translate]="facility.labelKey"></div>
+      </ion-card>
+    </div>
+  </div>
+</ion-content>

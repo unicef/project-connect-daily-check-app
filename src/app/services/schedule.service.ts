@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/member-ordering */
 import { Injectable } from '@angular/core';
 import { StorageService } from '../services/storage.service';
+import { IdentityService } from '../services/identity.service';
 import { MeasurementClientService } from '../services/measurement-client.service';
 import { SettingsService } from '../services/settings.service';
 import { SharedService } from '../services/shared-service.service';
@@ -44,6 +45,7 @@ export class ScheduleService {
 
   constructor(
     private storageService: StorageService,
+    private identityService: IdentityService,
     private measurementClientService: MeasurementClientService,
     private settingsService: SettingsService,
     private sharedService: SharedService,
@@ -70,8 +72,8 @@ export class ScheduleService {
   async initiate() {
     console.log('ScheduleService initiate called');
     try {
-      if (!this.storageService.get('schoolId')) {
-        return console.log('No schoolId found, skipping schedule service');
+      if (!this.identityService.isRegistered()) {
+        return console.log('No registration found, skipping schedule service');
       }
 
       this.scheduleStartupTestIfNeeded();

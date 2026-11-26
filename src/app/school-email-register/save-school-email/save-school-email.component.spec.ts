@@ -1,5 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 import { IonicModule } from '@ionic/angular';
+import { TranslateModule } from '@ngx-translate/core';
 
 import { SaveSchoolEmailComponent } from './save-school-email.component';
 
@@ -9,8 +10,10 @@ describe('SaveSchoolEmailComponent', () => {
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
-      // Standalone component: it is imported, not declared.
-      imports: [IonicModule.forRoot(), SaveSchoolEmailComponent],
+      // Declared in SchoolEmailRegisterModule; its template uses the translate
+      // pipe for the facility label.
+      declarations: [SaveSchoolEmailComponent],
+      imports: [IonicModule.forRoot(), TranslateModule.forRoot()],
     }).compileComponents();
 
     fixture = TestBed.createComponent(SaveSchoolEmailComponent);

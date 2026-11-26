@@ -8,7 +8,8 @@ import { SettingsService } from '../services/settings.service';
 
 import { ActivatedRoute, Router } from '@angular/router';
 import { Country } from '../shared/country.model';
-import { CountryService } from '../services/country.service';
+import { FacilityService } from '../services/facility.service';
+import { IdentityService } from '../services/identity.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { finalize } from 'rxjs/operators';
@@ -27,8 +28,6 @@ export class SearchcountryPage {
   accordionGroup: IonAccordionGroup;
   detectedCountry: any;
   selectedCountry: any;
-  isPcdcCountry: any;
-  pcdcCountry: any;
   selectedCountryName: any;
   countries: Country[] = [
     {
@@ -1036,22 +1035,27 @@ export class SearchcountryPage {
   searchTerm: string = '';
   filteredCountries: Country[] = [];
   isCheckingEligibility: boolean = false;
+  facilityType = 'school';
+  facilityLabelKey = 'facilityType.school';
+  facilitySupported: boolean = true;
   /** The eligibility check could not run (network/server), as opposed to "not available". */
   countryCheckFailed = false;
-  private lastCheckedCountry: Country;
 
   constructor(
     private storage: StorageService,
     private networkService: NetworkService,
     public router: Router,
     private settingsService: SettingsService,
-    private countryService: CountryService,
+    private facilityService: FacilityService,
+    private identityService: IdentityService,
     public loading: LoadingService,
     private translate: TranslateService,
     private posthog: PosthogService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang?.code);
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
   }
   ngOnInit() {
     this.getCountry();
@@ -1074,65 +1078,16 @@ export class SearchcountryPage {
     this.searchTerm = country.name;
     this.filteredCountries = [];
     this.automaticSearched = false;
-
-    // Validate PCDC eligibility immediately
-    this.validateSelectedCountry(country);
-  }
-
-  validateSelectedCountry(country: Country) {
-    // if (!this.selectedCountry) return;
-
-    this.isCheckingEligibility = true;
+    this.selectedCountry = country.code;
+    this.selectedCountryName = country.name;
+    // Clear any previous availability error — it will be re-checked on Confirm
+    this.facilitySupported = true;
     this.countryCheckFailed = false;
-    this.lastCheckedCountry = country;
-    this.countryService
-      .getPcdcCountryByCode(country.code)
-      .pipe(
-        finalize(() => {
-          this.isCheckingEligibility = false;
-        })
-      )
-      .subscribe(
-        (response) => {
-          this.pcdcCountry = response;
-          if (this.pcdcCountry.length > 0) {
-            this.isPcdcCountry = true;
-            this.selectedCountry = country.code;
-          } else {
-            this.isPcdcCountry = false;
-            // this.selectedCountry = country.code;
-            // "Giga Meter is not available in <country>": not whitelisted.
-            this.posthog.capture(AnalyticsEvent.CountryCheckFailed, {
-              country_code: country.code,
-              error_code: 'not_available',
-              http_status: null,
-              endpoint: null,
-              error_message: null,
-            });
-          }
-        },
-        (err) => {
-          console.log('Validation error:', err);
-          this.posthog.captureFailure(AnalyticsEvent.CountryCheckFailed, err, {
-            country_code: country.code,
-          });
-          /* We don't know whether the country is supported, so don't say it
-             isn't: show a retryable error instead. */
-          this.isPcdcCountry = undefined;
-          this.countryCheckFailed = true;
-        }
-      );
-  }
-
-  retryCountryCheck() {
-    if (this.lastCheckedCountry && !this.isCheckingEligibility) {
-      this.validateSelectedCountry(this.lastCheckedCountry);
-    }
   }
 
   confirmCountry() {
     if (this.isCheckingEligibility) return;
-    if (!this.selectedCountry || !this.isPcdcCountry) return;
+    if (!this.selectedCountry) return;
 
     const wasDetected =
       this.detectedCountry !== undefined && this.detectedCountry !== null;
@@ -1147,13 +1102,71 @@ export class SearchcountryPage {
       overridden: wasDetected && this.detectedCountry !== this.selectedCountry,
     });
 
-    const selectedCountryName = this.pcdcCountry?.[0]?.name || '';
-    this.router.navigate([
-      'searchschool',
-      this.selectedCountry,
-      this.detectedCountry,
-      selectedCountryName,
-    ]);
+    // Country + facility-type gate, checked at CONFIRM time —
+    // the selection isn't final until here (autodetect can be wrong and the
+    // user may keep changing it). Whitelist-driven; fail-open: without
+    // narrowing info the registration 403 remains the backstop.
+    // Read the facility type NOW — the page instance can be cached by the
+    // Ionic nav stack, so a constructor-time read may be stale (e.g. user
+    // went back and picked a different facility type).
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
+
+    this.isCheckingEligibility = true;
+    this.countryCheckFailed = false;
+    this.facilityService
+      .isTypeSupported(this.selectedCountry, this.facilityType as any)
+      .pipe(
+        finalize(() => {
+          this.isCheckingEligibility = false;
+        })
+      )
+      .subscribe((supported) => {
+        if (supported === null) {
+          /* We don't know whether the country is supported, so don't say it
+             isn't: show a retryable error instead. */
+          this.posthog.capture(AnalyticsEvent.CountryCheckFailed, {
+            country_code: this.selectedCountry,
+            facility_type: this.facilityType,
+            error_code: 'check_failed',
+            http_status: null,
+            endpoint: null,
+            error_message: null,
+          });
+          this.facilitySupported = true;
+          this.countryCheckFailed = true;
+          return;
+        }
+        this.facilitySupported = supported;
+        if (!supported) {
+          // "Giga Meter is not available in <country>" for this facility type.
+          this.posthog.capture(AnalyticsEvent.CountryCheckFailed, {
+            country_code: this.selectedCountry,
+            facility_type: this.facilityType,
+            error_code: 'not_available',
+            http_status: null,
+            endpoint: null,
+            error_message: null,
+          });
+          return;
+        }
+        const selectedCountryName =
+          this.selectedCountryName ||
+          this.filterCountryByCode(this.selectedCountry)?.name ||
+          '';
+        this.router.navigate([
+          'searchschool',
+          this.selectedCountry,
+          this.detectedCountry,
+          selectedCountryName,
+        ]);
+      });
+  }
+
+  retryCountryCheck() {
+    if (!this.isCheckingEligibility) {
+      this.confirmCountry();
+    }
   }
 
   getCountry() {
@@ -1273,7 +1286,7 @@ export class SearchcountryPage {
     this.countryCheckFailed = false;
     if (!value) {
       // Reset everything if input is empty
-      this.isPcdcCountry = true;
+      this.facilitySupported = true;
       this.selectedCountry = '';
       this.filteredCountries = [];
       this.selectedFromList = false;
@@ -1282,7 +1295,7 @@ export class SearchcountryPage {
     }
 
     // Otherwise, do normal filtering
-    this.isPcdcCountry = true; // temporarily assume it's valid during input
+    this.facilitySupported = true; // temporarily assume it's valid during input
     this.filterCountries(event);
   }
 }

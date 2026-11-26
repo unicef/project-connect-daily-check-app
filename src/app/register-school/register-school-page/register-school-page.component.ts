@@ -5,6 +5,7 @@ import { SettingsService } from 'src/app/services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
 import { environment } from 'src/environments/environment';
 import { IonAccordionGroup, IonSlides } from '@ionic/angular';
+import { IdentityService } from 'src/app/services/identity.service';
 import { PosthogService } from 'src/app/services/posthog.service';
 import {
   AnalyticsEvent,
@@ -45,10 +46,12 @@ export class RegisterSchoolPageComponent implements OnInit {
   privacyUrl2 = "https://www.measurementlab.net/privacy/";
   targetUrl = "_blank"
   isPrivacyChecked = false;
+  facilityLabelKey = 'facilityType.school';
   constructor(public loading: LoadingService,
     private readonly router: Router,
     private settingsService: SettingsService,
     private translate: TranslateService,
+    private identityService: IdentityService,
     private posthog: PosthogService
 
   ) {
@@ -57,6 +60,7 @@ export class RegisterSchoolPageComponent implements OnInit {
   }
 
   ngOnInit() {
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
     markOnboardingStarted();
     this.posthog.capture(AnalyticsEvent.OnboardingStarted, {
       language: this.settingsService.get('applicationLanguage')?.code ?? null,

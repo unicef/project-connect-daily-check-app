@@ -380,19 +380,25 @@ export class PosthogService {
   /**
    * The registered school's external ID and name, from what the registration
    * saved: schoolInfo (the school record, whose school_id is the external ID)
-   * and schoolId.
+   * and schoolId, or facilityInfo and facilityId for a /api/v2 registration.
    */
   private schoolDetailsFromStorage(): SchoolDetails {
     let info: { school_id?: unknown; name?: unknown } = {};
     try {
-      info = JSON.parse(localStorage.getItem('schoolInfo') ?? '{}') ?? {};
+      info =
+        JSON.parse(
+          localStorage.getItem('schoolInfo') ??
+            localStorage.getItem('facilityInfo') ??
+            '{}'
+        ) ?? {};
     } catch {
       // Not JSON: go on with schoolId alone.
     }
     return {
       external_id:
         (info.school_id as string | number | undefined) ??
-        localStorage.getItem('schoolId'),
+        localStorage.getItem('schoolId') ??
+        localStorage.getItem('facilityId'),
       name: typeof info.name === 'string' ? info.name : null,
     };
   }
@@ -412,7 +418,11 @@ export class PosthogService {
         return;
       }
       const appInstanceId = localStorage.getItem(APP_INSTANCE_ID_KEY)?.trim();
-      if (!appInstanceId || !localStorage.getItem('schoolUserId')) {
+      // schoolUserId for a /api/v1 registration, registrationId for /api/v2.
+      const registered =
+        localStorage.getItem('schoolUserId') ||
+        localStorage.getItem('registrationId');
+      if (!appInstanceId || !registered) {
         return;
       }
       posthog.register({ app_instance_id: appInstanceId });

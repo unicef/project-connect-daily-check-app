@@ -31,11 +31,14 @@
             <div
               class="success-txt txt-font"
               [translate]="'registerSchool.register-step-1'"
+              [translateParams]="{ facility: facilityLabelKey | translate }"
             ></div>
             <div
               class="success-txt"
               [innerHtml]="
-                'registerSchool.register-part-2' | translate : { appName }
+                'registerSchool.register-part-2'
+                  | translate
+                    : { appName, facility: facilityLabelKey | translate }
               "
             ></div>
           </div>
@@ -50,7 +53,10 @@
             ></ion-img>
             <div
               class="success-txt"
-              [innerHtml]="'registerSchool.register-step-2' | translate"
+              [innerHtml]="
+                'registerSchool.register-step-2'
+                  | translate : { facility: facilityLabelKey | translate }
+              "
             ></div>
           </div>
         </div>
@@ -107,14 +113,19 @@
                 openExternalUrl('https://www.unicef.org/legal#privacy-policy')
               "
               >UNICEF's Privacy Policy</b
-            >
-            and
+            >, the
             <b
               class="underline"
               (click)="
                 openExternalUrl('https://www.measurementlab.net/privacy/')
               "
               >M-Lab Privacy Policy</b
+            >
+            and
+            <b
+              class="underline"
+              (click)="openExternalUrl('https://www.cloudflare.com/privacypolicy/')"
+              >Cloudflare Privacy Policy</b
             >.</span
           >
         </div>

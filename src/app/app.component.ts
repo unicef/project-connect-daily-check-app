@@ -6,7 +6,6 @@ import { StorageService } from '../app/services/storage.service';
 import { SettingsService } from './services/settings.service';
 import { SharedService } from './services/shared-service.service';
 import { HistoryService } from './services/history.service';
-import { parseSchoolInfo } from './utils/school-info.utils';
 import { ScheduleService } from './services/schedule.service';
 import { environment } from '../environments/environment'; // './esrc/environments/environment';
 import { PingResult, PingService } from './services/ping.service';
@@ -16,6 +15,8 @@ import { WhatsNewService } from './services/whats-new.service';
 import { WhatsNewModalComponent } from './components/whats-new-modal/whats-new-modal.component';
 import { LogoutModalComponent } from './components/logout-modal/logout-modal.component';
 import { HardwareIdService } from './services/hardware-id.service';
+import { IdentityService } from './services/identity.service';
+import { RegistrationService } from './services/registration.service';
 import { SchoolService } from './services/school.service';
 import { PosthogService } from './services/posthog.service';
 import { AnalyticsHeartbeatService } from './analytics/analytics-heartbeat.service';
@@ -43,6 +44,7 @@ export class AppComponent {
   toastColor = 'success';
   showCopySuccess = false;
   school: any;
+  facilityLabelKey = 'facilityType.school';
   historyState: any;
   availableSettings: any;
   scheduleSemaphore: any;
@@ -77,6 +79,8 @@ export class AppComponent {
     private whatsNewService: WhatsNewService,
     private modalController: ModalController,
     private hardwareIdService: HardwareIdService,
+    private identityService: IdentityService,
+    private registrationService: RegistrationService,
     private router: Router,
     private schoolService: SchoolService,
     private posthogService: PosthogService,
@@ -89,6 +93,12 @@ export class AppComponent {
     } catch (error) {
       console.warn('PostHog init failed:', error);
     }
+    this.identityService
+      .reconcileOnLaunch()
+      .then(() => this.registrationService.reconcileRegistration())
+      .catch((error) => {
+        console.warn('Identity reconciliation failed:', error);
+      });
     this.filteredOptions = [];
     this.selectedLanguage =
       this.settingsService.get('applicationLanguage')?.code ??
@@ -114,8 +124,9 @@ export class AppComponent {
       'unknown-device';
     // Show the full device ID as requested
     this.device_id_short = this.device_id;
-    if (this.storage.get('schoolId')) {
-      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
+    if (this.identityService.isRegistered()) {
+      this.school = this.identityService.getFacilityInfo();
     }
     this.sharedService.on(
       'settings:changed',
@@ -211,8 +222,8 @@ export class AppComponent {
   }
 
   openSecond() {
-    if (this.storage.get('schoolId')) {
-      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
+    if (this.identityService.isRegistered()) {
+      this.school = this.identityService.getFacilityInfo();
     }
     this.menu.enable(true, 'second');
     this.menu.open('second');
@@ -545,6 +556,7 @@ export class AppComponent {
       // Get hardware ID and giga ID before clearing storage
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
+      const registrationId = this.identityService.getRegistrationId();
       // Logout goes on without it: it gives up after a few seconds, and it
       // empties each database before trying to delete it.
       let databasesDeleted = true;
@@ -555,9 +567,28 @@ export class AppComponent {
         databasesDeleted = false;
       }
 
-      // Deactivate device on backend if we have the required IDs
+      // Deactivate on backend: v2 registrations by registration/installation
+      // id (any facility type); legacy school installs keep the v1 path.
       let deactivation: Record<string, any> = { backend_deactivated: false };
-      if (hardwareId && gigaId) {
+      if (registrationId) {
+        try {
+          await this.registrationService
+            .deactivate(this.identityService.getInstallationId(), registrationId)
+            .toPromise();
+          console.log('✅ v2 registration deactivated on backend');
+          deactivation = { backend_deactivated: true };
+        } catch (deactivateError) {
+          console.error('⚠️ Error deactivating v2 registration:', deactivateError);
+          // Continue with logout even if deactivation fails. The backend
+          // still counts this registration as active, so say why.
+          const failure = describeError(deactivateError);
+          deactivation = {
+            backend_deactivated: false,
+            deactivate_error_code: failure.error_code,
+            deactivate_http_status: failure.http_status,
+          };
+        }
+      } else if (hardwareId && gigaId) {
         console.log('Deactivating device:', { hardwareId, gigaId });
         try {
           await this.schoolService

@@ -12,6 +12,8 @@ import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
 import { NetworkService } from '../services/network.service';
 import { PosthogService } from '../services/posthog.service';
+import { RegistrationService } from '../services/registration.service';
+import { IdentityService } from '../services/identity.service';
 import { LocationService } from '../services/location.service';
 import {
   PENDING_AUTO_REGISTRATION_KEY,
@@ -22,6 +24,13 @@ describe('ConfirmschoolPage', () => {
   let component: ConfirmschoolPage;
   let fixture: ComponentFixture<ConfirmschoolPage>;
   let schoolService: jasmine.SpyObj<SchoolService>;
+  let registrationService: jasmine.SpyObj<RegistrationService>;
+  let identityService: jasmine.SpyObj<IdentityService>;
+  const registered = {
+    giga_id: '7f60b4e6-3a43-3f90-b7cb-882c3a6bdb80',
+    registration_id: '42',
+    facility_type: 'school',
+  };
   let loading: jasmine.SpyObj<LoadingService>;
   let router: Router;
   let context: RegistrationContextService;
@@ -41,9 +50,19 @@ describe('ConfirmschoolPage', () => {
     );
 
     schoolService = jasmine.createSpyObj('SchoolService', [
-      'registerSchoolDevice',
       'registerFlaggedSchool',
     ]);
+    registrationService = jasmine.createSpyObj('RegistrationService', [
+      'register',
+      'persistRegistration',
+    ]);
+    registrationService.persistRegistration.and.resolveTo(undefined);
+    identityService = jasmine.createSpyObj('IdentityService', [
+      'getFacilityType',
+      'getInstallationId',
+    ]);
+    identityService.getFacilityType.and.returnValue('school');
+    identityService.getInstallationId.and.returnValue('inst-1');
     loading = jasmine.createSpyObj('LoadingService', ['present', 'dismiss']);
     loading.present.and.resolveTo(undefined);
     loading.dismiss.and.resolveTo(undefined);
@@ -58,6 +77,8 @@ describe('ConfirmschoolPage', () => {
       providers: [
         DatePipe,
         { provide: SchoolService, useValue: schoolService },
+        { provide: RegistrationService, useValue: registrationService },
+        { provide: IdentityService, useValue: identityService },
         { provide: LoadingService, useValue: loading },
         // NetworkService pulls in the Ionic Native Network plugin, which has no
         // provider under TestBed; the page only holds the reference.
@@ -113,18 +134,50 @@ describe('ConfirmschoolPage', () => {
   });
 
   it('registers the device once and navigates to the test screen', async () => {
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
 
     await component.confirmSchool();
 
-    expect(schoolService.registerSchoolDevice).toHaveBeenCalledTimes(1);
+    expect(registrationService.register).toHaveBeenCalledTimes(1);
+    expect(registrationService.register).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        giga_id_school: registered.giga_id,
+        installation_id: 'inst-1',
+        country_code: 'ES',
+      })
+    );
+    expect(registrationService.persistRegistration).toHaveBeenCalledWith(
+      registered as any,
+      component.school,
+      'ext-1'
+    );
     expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
     expect(loading.dismiss).toHaveBeenCalled();
   });
 
+  it('registers a health facility with giga_id_health and never flags it', async () => {
+    component.school = {
+      giga_id_health: 'HF-1',
+      facilityType: 'health',
+      school_id: 'GOV-1',
+    };
+    component.detectedCountry = 'PT';
+    registrationService.register.and.returnValue(
+      of({ ...registered, giga_id: 'HF-1', facility_type: 'health' } as any)
+    );
+
+    await component.confirmSchool();
+
+    const payload = registrationService.register.calls.mostRecent().args[0];
+    expect(payload['giga_id_health']).toBe('HF-1');
+    expect(payload['giga_id_school']).toBeUndefined();
+    expect(schoolService.registerFlaggedSchool).not.toHaveBeenCalled();
+    expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
+  });
+
   it("puts the device in its school's analytics group, with the school's external ID and name", async () => {
     component.school = { ...component.school, name: 'Escuela Uno' };
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
     const posthog = TestBed.inject(PosthogService) as jasmine.SpyObj<PosthogService>;
 
     await component.confirmSchool();
@@ -138,7 +191,7 @@ describe('ConfirmschoolPage', () => {
   it('leaves nothing for the next start to try again once registered by hand', async () => {
     // An automatic registration failed earlier in this install.
     localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
 
     await component.confirmSchool();
 
@@ -147,7 +200,7 @@ describe('ConfirmschoolPage', () => {
 
   it('keeps a pending automatic registration when registering by hand fails', async () => {
     localStorage.setItem(PENDING_AUTO_REGISTRATION_KEY, 'true');
-    schoolService.registerSchoolDevice.and.returnValue(
+    registrationService.register.and.returnValue(
       throwError(() => new Error('500'))
     );
 
@@ -157,7 +210,7 @@ describe('ConfirmschoolPage', () => {
   });
 
   it('presents the loader without a duration so it survives a slow registration', async () => {
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
 
     await component.confirmSchool();
 
@@ -171,7 +224,7 @@ describe('ConfirmschoolPage', () => {
 
   it('ignores repeat taps while a registration is in flight', async () => {
     // Never emits: the first registration stays pending for the whole test.
-    schoolService.registerSchoolDevice.and.returnValue(new Subject<any>());
+    registrationService.register.and.returnValue(new Subject<any>());
 
     const first = component.confirmSchool();
     await flushMicrotasks();
@@ -179,7 +232,7 @@ describe('ConfirmschoolPage', () => {
     await component.confirmSchool();
     await flushMicrotasks();
 
-    expect(schoolService.registerSchoolDevice).toHaveBeenCalledTimes(1);
+    expect(registrationService.register).toHaveBeenCalledTimes(1);
     expect(component.isRegistering).toBeTrue();
     expect(loading.dismiss).not.toHaveBeenCalled();
     expect(router.navigate).not.toHaveBeenCalled();
@@ -187,7 +240,7 @@ describe('ConfirmschoolPage', () => {
   });
 
   it('dismisses the loader, routes out and re-arms the button when registration fails', async () => {
-    schoolService.registerSchoolDevice.and.returnValue(
+    registrationService.register.and.returnValue(
       throwError(() => new Error('500'))
     );
 
@@ -205,18 +258,18 @@ describe('ConfirmschoolPage', () => {
     (context.getWifiConnections as jasmine.Spy).and.rejectWith(
       new Error('ipc down')
     );
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
 
     await component.confirmSchool();
 
-    expect(schoolService.registerSchoolDevice).toHaveBeenCalledWith(
+    expect(registrationService.register).toHaveBeenCalledWith(
       jasmine.objectContaining({ wifi_connections: null })
     );
     expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
     expect(component.isRegistering).toBeFalse();
   });
 
-  it('sends the hardware values the backend works out the device ID from', async () => {
+  it('sends the hardware ID but not the serials the v2 endpoint does not take', async () => {
     localStorage.setItem(
       'system_hardware_id',
       JSON.stringify({
@@ -226,68 +279,62 @@ describe('ConfirmschoolPage', () => {
         machine_guid: 'GUID-1',
       })
     );
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
 
     await component.confirmSchool();
 
-    expect(schoolService.registerSchoolDevice).toHaveBeenCalledWith(
-      jasmine.objectContaining({
-        device_hardware_id: 'UUID-1',
-        baseboard_serial: 'BOARD-1',
-        disk_serial: 'DISK-1',
-        machine_guid: 'GUID-1',
-      })
-    );
+    const payload = registrationService.register.calls.mostRecent().args[0];
+    expect(payload['device_hardware_id']).toBe('UUID-1');
+    expect(payload['baseboard_serial']).toBeUndefined();
+    expect(payload['disk_serial']).toBeUndefined();
+    expect(payload['machine_guid']).toBeUndefined();
     localStorage.removeItem('system_hardware_id');
   });
 
   describe('app instance', () => {
     const UUID =
       /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-    const sent = (call: number) =>
-      schoolService.registerSchoolDevice.calls.argsFor(call)[0];
 
-    it('registers as a new app instance, picked by the user', async () => {
-      schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    it('keeps a new app instance ID for the facility without sending it to /api/v2', async () => {
+      registrationService.register.and.returnValue(of(registered as any));
 
       await component.confirmSchool();
 
-      expect(sent(0).registration_source).toBe('manual');
-      expect(sent(0).app_instance_id).toMatch(UUID);
-      expect(localStorage.getItem('appInstanceId')).toBe(
-        sent(0).app_instance_id
-      );
+      const payload = registrationService.register.calls.mostRecent().args[0];
+      expect(payload['app_instance_id']).toBeUndefined();
+      expect(payload['registration_source']).toBeUndefined();
+      expect(localStorage.getItem('appInstanceId')).toMatch(UUID);
     });
 
-    it('sends the same app instance ID when registering again at the school', async () => {
-      // The first attempt timed out on the way back: the server may have
-      // stored it, and must return that registration rather than a second one.
-      schoolService.registerSchoolDevice.and.returnValues(
+    it('keeps the same app instance ID when registering again at the facility', async () => {
+      registrationService.register.and.returnValues(
         throwError(() => new Error('timeout')),
-        of('user-1')
+        of(registered as any)
       );
 
       await component.confirmSchool();
+      const first = localStorage.getItem('appInstanceId');
       await component.confirmSchool();
 
-      expect(sent(1).app_instance_id).toBe(sent(0).app_instance_id);
+      expect(localStorage.getItem('appInstanceId')).toBe(first);
     });
 
-    it('sends a new app instance ID for another school', async () => {
-      schoolService.registerSchoolDevice.and.returnValues(
+    it('makes a new app instance ID for another facility', async () => {
+      registrationService.register.and.returnValues(
         throwError(() => new Error('500')),
-        of('user-1')
+        of(registered as any)
       );
 
       await component.confirmSchool();
+      const first = localStorage.getItem('appInstanceId');
       component.school = {
         giga_id_school: '0a3c6c1e-9b1d-3a8f-8f41-5e2b7d9c4a10',
         school_id: 'ext-2',
       };
       await component.confirmSchool();
 
-      expect(sent(1).app_instance_id).toMatch(UUID);
-      expect(sent(1).app_instance_id).not.toBe(sent(0).app_instance_id);
+      expect(localStorage.getItem('appInstanceId')).toMatch(UUID);
+      expect(localStorage.getItem('appInstanceId')).not.toBe(first);
     });
   });
 
@@ -300,16 +347,16 @@ describe('ConfirmschoolPage', () => {
       (context.getIPAddress as jasmine.Spy).and.returnValue(
         new Promise(() => undefined)
       );
-      schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+      registrationService.register.and.returnValue(of(registered as any));
 
       const done = component.confirmSchool();
       await flushMicrotasks();
-      expect(schoolService.registerSchoolDevice).not.toHaveBeenCalled();
+      expect(registrationService.register).not.toHaveBeenCalled();
 
       jasmine.clock().tick(10000);
       await done;
 
-      expect(schoolService.registerSchoolDevice).toHaveBeenCalledWith(
+      expect(registrationService.register).toHaveBeenCalledWith(
         jasmine.objectContaining({ ip_address: null })
       );
       expect(router.navigate).toHaveBeenCalledWith(['/starttest']);
@@ -317,7 +364,7 @@ describe('ConfirmschoolPage', () => {
     });
 
     it('gives up on a registration request that never answers', async () => {
-      schoolService.registerSchoolDevice.and.returnValue(new Subject<any>());
+      registrationService.register.and.returnValue(new Subject<any>());
 
       const done = component.confirmSchool();
       await flushMicrotasks();
@@ -331,7 +378,7 @@ describe('ConfirmschoolPage', () => {
   });
 
   it('records a flagged school only when the selected country differs', async () => {
-    schoolService.registerSchoolDevice.and.returnValue(of('user-1'));
+    registrationService.register.and.returnValue(of(registered as any));
     schoolService.registerFlaggedSchool.and.returnValue(of(1));
 
     await component.confirmSchool();
@@ -350,16 +397,22 @@ describe('ConfirmschoolPage', () => {
       schoolUserId: localStorage.getItem('schoolUserId'),
       gigaId: localStorage.getItem('gigaId'),
       schoolInfo: localStorage.getItem('schoolInfo'),
+      registrationId: localStorage.getItem('registrationId'),
+      facilityId: localStorage.getItem('facilityId'),
+      facilityInfo: localStorage.getItem('facilityInfo'),
     });
     const none = {
       schoolId: null,
       schoolUserId: null,
       gigaId: null,
       schoolInfo: null,
+      registrationId: null,
+      facilityId: null,
+      facilityInfo: null,
     };
 
     beforeEach(() => {
-      schoolService.registerSchoolDevice.and.returnValue(
+      registrationService.register.and.returnValue(
         throwError(() => new Error('500'))
       );
     });

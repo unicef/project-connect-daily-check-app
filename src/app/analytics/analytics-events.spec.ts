@@ -143,6 +143,12 @@ describe('analytics-events', () => {
   });
 
   describe('flow markers', () => {
+    // Specs that open the registration screens leave a start behind.
+    beforeEach(() => {
+      sessionStorage.removeItem('analytics_onboarding_started_at');
+      localStorage.removeItem('analytics_logged_out_at');
+    });
+
     afterEach(() => {
       sessionStorage.removeItem('analytics_onboarding_started_at');
       localStorage.removeItem('analytics_logged_out_at');

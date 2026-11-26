@@ -121,14 +121,14 @@ describe('UploadService', () => {
     });
 
     describe('app instance', () => {
-      it("sends this install's app instance ID with the browser ID", () => {
+      it("sends this install's app instance ID, and no browser ID to /api/v2", () => {
         const body = post(
           { Notes: 'manual', timestamp: Date.now() },
           { appInstanceId: 'instance-1', schoolUserId: 'user-1' }
         );
 
         expect(body['app_instance_id']).toBe('instance-1');
-        expect(body.BrowserID).toBe('user-1');
+        expect(body.BrowserID).toBeUndefined();
       });
 
       it('sends null on an install without one yet', () => {

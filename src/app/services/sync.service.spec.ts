@@ -30,7 +30,7 @@ describe('SyncService', () => {
   describe('syncPendingMeasurements', () => {
     let httpMock: HttpTestingController;
     let markSynced: jasmine.Spy;
-    const batch = () => httpMock.expectOne((r) => r.url.endsWith('measurements/multiple'));
+    const batch = () => httpMock.expectOne((r) => r.url.endsWith('measurements/batch'));
 
     beforeEach(() => {
       httpMock = TestBed.inject(HttpTestingController);

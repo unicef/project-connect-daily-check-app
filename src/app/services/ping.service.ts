@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { IndexedDBService } from './indexed-db.service';
 import { StorageService } from './storage.service';
 import { SettingsService } from './settings.service';
+import { IdentityService } from './identity.service';
 import SpeedTest from '@cloudflare/speedtest';
 import { APP_INSTANCE_ID_KEY } from './registration-context.service';
 
@@ -12,7 +13,6 @@ export interface PingResult {
   timestamp: Date;
   isConnected: boolean;
   errorMessage: string | null;
-  browserId: string;
   app_local_uuid: string;
   latency?: number | null;
   /** This install (app instance): the link to its registration. */
@@ -41,18 +41,16 @@ export class PingService {
     private http: HttpClient,
     private indexedDBService: IndexedDBService,
     private settingsService: SettingsService,
-    private storage: StorageService
+    private storage: StorageService,
+    private identityService: IdentityService
   ) {}
   async checkConnectivity(): Promise<PingResult> {
     let isConnected = false;
     let errorMessage = null;
-    let browserId;
     let uniqueId = uuidv4();
 
     try {
       isConnected = await this.checkNavigatorOnline();
-      const deviceInfo = await this.getBrowserId();
-      browserId = deviceInfo.uuid;
 
       if (this.isElectron) {
         const dnsChecks = await Promise.all(
@@ -87,16 +85,10 @@ export class PingService {
       timestamp: new Date(),
       isConnected,
       errorMessage,
-      browserId,
       app_local_uuid: uniqueId,
       latency: this.latency,
       app_instance_id: this.storage.get(APP_INSTANCE_ID_KEY) || null,
     };
-  }
-
-  async getBrowserId() {
-    const browserId = this.storage.get('schoolUserId');
-    return { uuid: browserId };
   }
 
   async performCheck(): Promise<PingResult | null> {
@@ -117,7 +109,7 @@ export class PingService {
    */
   async pingBeforeSpeedTest(): Promise<void> {
     try {
-      if (!this.storage.get('schoolId')) {
+      if (!this.identityService.isRegistered()) {
         return;
       }
       const featureFlags = await this.settingsService.getFeatureFlags();
@@ -160,8 +152,8 @@ export class PingService {
       // Check feature flag on each interval
       const featureFlags = await this.settingsService.getFeatureFlags();
 
-      if (!this.storage.get('schoolId')) {
-        console.log('No schoolId found, skipping Ping service');
+      if (!this.identityService.isRegistered()) {
+        console.log('No registration found, skipping Ping service');
       } else if (!featureFlags?.pingService) {
         console.log('Ping service disabled by feature flags');
       } else {

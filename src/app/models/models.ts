@@ -1,3 +1,41 @@
+import { FacilityType } from './facility';
+
+/**
+ * Normalized facility view-model. Details/confirm/test screens consume this
+ * regardless of the underlying type (School vs HealthFacility).
+ */
+export interface Facility {
+    facilityType: FacilityType;
+    /** giga_id_school | health_id_giga, depending on type. */
+    gigaId: string;
+    facilityId?: number | string;
+    name: string;
+    /** education_level (school) | facility_level (health). */
+    level?: string;
+    admin1?: string;
+    admin2?: string;
+    countryCode?: string;
+    latitude?: number;
+    longitude?: number;
+    /** Original API record, for fields not covered by the normalization. */
+    raw?: School | HealthFacility;
+}
+
+/** Mirrors the GET /api/v2/health response records. */
+export interface HealthFacility {
+    id?: number;
+    health_id_giga: string;
+    facility_name: string;
+    /** Government-assigned facility ID (DHIS2). Shown to the user as the facility id. */
+    dhis2_id?: string;
+    facility_level?: string;
+    admin1?: string;
+    admin2?: string;
+    latitude?: number;
+    longitude?: number;
+    country_code?: string;
+}
+
 export interface Country {
     id: number;
     code: string;

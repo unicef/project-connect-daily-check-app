@@ -7,6 +7,7 @@ import { TranslateService } from '@ngx-translate/core';
 import { SettingsService } from '../services/settings.service';
 import { environment } from 'src/environments/environment';
 import { MeasurementClientService } from '../services/measurement-client.service';
+import { IdentityService } from '../services/identity.service';
 
 @Component({
     selector: 'app-schoolsuccess',
@@ -31,15 +32,18 @@ export class SchoolsuccessPage {
   };
   isLast = false;
   appName = environment.appName;
+  facilityLabelKey = 'facilityType.school';
   constructor(
     public loading: LoadingService,
     private router: Router,
     private translate: TranslateService,
     private settingsService: SettingsService,
-    private measurementClientService: MeasurementClientService
+    private measurementClientService: MeasurementClientService,
+    private identityService: IdentityService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
   }
   swipeNext() {
     this.slides.slideNext();

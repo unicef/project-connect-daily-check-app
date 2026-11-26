@@ -383,6 +383,7 @@ describe('MeasurementClientService without a server measurement', () => {
     };
     const scheduler = new ScheduleService(
       storage,
+      { isRegistered: () => true } as any,
       service,
       { get: async () => true } as any,
       { broadcast: () => undefined } as any,

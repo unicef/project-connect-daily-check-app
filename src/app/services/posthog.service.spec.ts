@@ -42,10 +42,14 @@ describe('PosthogService', () => {
     (environment as any).posthog = originalConfig;
     localStorage.removeItem('gigaId');
     localStorage.removeItem('schoolUserId');
+    localStorage.removeItem('registrationId');
+    localStorage.removeItem('installationId');
     localStorage.removeItem('device_id');
     localStorage.removeItem('appInstanceId');
     localStorage.removeItem('schoolInfo');
     localStorage.removeItem('schoolId');
+    localStorage.removeItem('facilityInfo');
+    localStorage.removeItem('facilityId');
   });
 
   it('identifies the PC by its device ID and joins its school group', () => {
@@ -89,6 +93,36 @@ describe('PosthogService', () => {
       giga_id_school: 'giga-123',
       external_id: 'EXT-42',
     });
+  });
+
+  it('describes the group of a facility registered through /api/v2', () => {
+    localStorage.setItem('gigaId', 'hf-1');
+    localStorage.setItem('facilityId', 'GOV-1');
+    localStorage.setItem(
+      'facilityInfo',
+      JSON.stringify({ school_id: 'GOV-1', name: 'Clinic One' })
+    );
+
+    service.init();
+
+    expect(posthog.group).toHaveBeenCalledWith('school', 'hf-1', {
+      giga_id_school: 'hf-1',
+      external_id: 'GOV-1',
+      name: 'Clinic One',
+    });
+  });
+
+  it('sends the app instance of a /api/v2 registration', () => {
+    localStorage.setItem('registrationId', '42');
+    localStorage.setItem('appInstanceId', APP_INSTANCE_ID);
+
+    service.init();
+
+    expect(posthog.group).toHaveBeenCalledWith(
+      'app_instance',
+      APP_INSTANCE_ID,
+      undefined
+    );
   });
 
   it('describes the school group when a registration sets the school', () => {

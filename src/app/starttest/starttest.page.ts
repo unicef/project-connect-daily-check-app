@@ -11,7 +11,6 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
-import { parseSchoolInfo } from '../utils/school-info.utils';
 import { MenuController } from '@ionic/angular';
 import { NetworkService } from '../services/network.service';
 import { SettingsService } from '../services/settings.service';
@@ -20,6 +19,7 @@ import { SharedService } from '../services/shared-service.service';
 import { HistoryService } from '../services/history.service';
 import { TranslateService } from '@ngx-translate/core';
 import { StorageService } from '../services/storage.service';
+import { IdentityService } from '../services/identity.service';
 import { Subscription } from 'rxjs';
 import { CountryService } from '../services/country.service';
 import { mlabInformation, accessInformation } from '../models/models';
@@ -133,12 +133,13 @@ export class StarttestPage implements OnInit, OnDestroy {
     public translate: TranslateService,
     private ref: ChangeDetectorRef,
     private storage: StorageService,
+    private identityService: IdentityService,
     private countryService: CountryService,
     private confettiService: ConfettiService,
     private indexedDBService: IndexedDBService
   ) {
-    if (this.storage.get('schoolId')) {
-      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
+    if (this.identityService.isRegistered()) {
+      this.school = this.identityService.getFacilityInfo();
       console.log(this.school, 'heheh');
     }
     this.onlineStatus = navigator.onLine;
@@ -196,12 +197,12 @@ export class StarttestPage implements OnInit, OnDestroy {
         this.tryConnectivity();
       }
     });
-    if (!this.storage.get('schoolId')) {
+    if (!this.identityService.isRegistered()) {
       this.router.navigate(['/']);
     }
   }
   ngOnInit() {
-    this.schoolId = this.storage.get('schoolId');
+    this.schoolId = this.identityService.getFacilityId();
 
     // CRITICAL: Set up all event listeners FIRST before any auto-trigger logic
     this.setupEventListeners();

@@ -2,9 +2,12 @@ import { Component, ViewChild } from '@angular/core';
 import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SchoolService } from '../services/school.service';
+import { FacilityService } from '../services/facility.service';
+import { IdentityService } from '../services/identity.service';
 import { LoadingService } from '../services/loading.service';
 import { SettingsService } from '../services/settings.service';
 import { TranslateService } from '@ngx-translate/core';
+import { switchMap } from 'rxjs/operators';
 import { classifyRequestError } from '../schoolnotfound/types';
 import { PosthogService } from '../services/posthog.service';
 import { AnalyticsEvent } from '../analytics/analytics-events';
@@ -27,20 +30,29 @@ export class SchooldetailsPage {
   /** The last search errored (as opposed to finding nothing). */
   private searchFailed = false;
   private sub: any;
-  private translatedText = this.translate.instant('schoolDetails.searchSchool');
+  facilityType = 'school';
+  facilityLabelKey = 'facilityType.school';
+  private translatedText = this.translate.instant('schoolDetails.searchSchool', {
+    facility: this.translate.instant(this.facilityLabelKey),
+  });
 
   private loadingMsg =
     // eslint-disable-next-line max-len
     `<div class="loadContent"><ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img><p class="green_loader">${this.translatedText}</p></div>`;
+
   constructor(
     private activatedroute: ActivatedRoute,
     public loading: LoadingService,
     private settingsService: SettingsService,
     private router: Router,
     private schoolService: SchoolService,
+    private facilityService: FacilityService,
+    private identityService: IdentityService,
     private translate: TranslateService,
     private posthog: PosthogService
   ) {
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
     const appLang = this.settingsService.get('applicationLanguage');
     this.translate.use(appLang.code);
     this.sub = this.activatedroute.params.subscribe((params) => {
@@ -61,7 +73,7 @@ export class SchooldetailsPage {
    */
   searchSchoolById(id) {
 
-    this.translate.get('schoolDetails.searchSchool').subscribe((translatedText) => {
+    this.searchingText().subscribe((translatedText) => {
       const loadingMsg = `
       <div class="loadContent">
         <ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img>
@@ -85,12 +97,26 @@ export class SchooldetailsPage {
   }
 
   /**
+   * "Searching <facility> IDs", waiting for both strings: instant() returns
+   * the bare key while the translation file is still loading.
+   */
+  private searchingText() {
+    return this.translate
+      .get(this.facilityLabelKey)
+      .pipe(
+        switchMap((facility) =>
+          this.translate.get('schoolDetails.searchSchool', { facility })
+        )
+      );
+  }
+
+  /**
    * Search school by id and country code
    */
   searchSchoolBySchooIdAndCountryCode() {
     if (this.schoolId && this.selectedCountry) {
       this.searchFailed = false;
-      this.translate.get('schoolDetails.searchSchool').subscribe((translatedText) => {
+      this.searchingText().subscribe((translatedText) => {
         const loadingMsg = `
           <div class="loadContent">
             <ion-img src="assets/loader/new_loader.gif" class="loaderGif"></ion-img>
@@ -98,11 +124,13 @@ export class SchooldetailsPage {
           </div>`;
 
         this.loading.present(loadingMsg, 15000, 'pdcaLoaderClass', 'null');
-        this.schoolService
-          .getBySchoolIdAndCountryCode(this.schoolId, this.selectedCountry)
+        this.facilityService
+          .lookup(this.facilityType as any, this.selectedCountry, this.schoolId)
           .subscribe(
-            (response) => {
-              this.schools = response;
+            (facilities) => {
+              this.schools = facilities.map((f) =>
+                this.facilityService.toDisplayRecord(f)
+              );
               console.log(this.schools);
             },
             (err) => {
@@ -154,6 +182,9 @@ export class SchooldetailsPage {
    * and the route params have not changed, so re-run the search that failed.
    */
   ionViewWillEnter() {
+    // Re-read on every entry — page instances are cached by the nav stack.
+    this.facilityType = this.identityService.getFacilityType();
+    this.facilityLabelKey = `facilityType.${this.facilityType}`;
     if (this.searchFailed) {
       this.searchSchoolBySchooIdAndCountryCode();
     }

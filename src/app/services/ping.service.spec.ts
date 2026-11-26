@@ -37,7 +37,6 @@ describe('PingService before a speed test', () => {
     timestamp: NOW,
     isConnected: true,
     errorMessage: null,
-    browserId: 'browser-1',
     app_local_uuid: 'uuid-1',
     latency: 42,
   };
@@ -59,11 +58,16 @@ describe('PingService before a speed test', () => {
         .and.resolveTo({ pingService: true }),
     };
 
+    // Same rule as IdentityService.isRegistered(): a giga id or a facility id.
+    const identity: any = {
+      isRegistered: () => !!(store.gigaId || store.facilityId || store.schoolId),
+    };
     service = new PingService(
       null,
       indexedDBService,
       settingsService,
-      storage
+      storage,
+      identity
     );
     checkConnectivity = spyOn(service, 'checkConnectivity').and.resolveTo(
       pingResult
@@ -156,7 +160,7 @@ describe('PingService connectivity check', () => {
     jasmine.clock().install();
     replies = [];
     const storage: any = { get: () => 'school-user-1' };
-    service = new PingService(null, null, null, storage);
+    service = new PingService(null, null, null, storage, null);
 
     let markCreated: () => void;
     created = new Promise((resolve) => (markCreated = resolve));
@@ -205,7 +209,6 @@ describe('PingService connectivity check', () => {
     fake.onFinish(fake.results);
 
     expect((await result).app_instance_id).toBe('instance-1');
-    expect((await result).browserId).toBe('school-user-1');
   });
 
   it('is not connected when the check gives up without a reply', async () => {

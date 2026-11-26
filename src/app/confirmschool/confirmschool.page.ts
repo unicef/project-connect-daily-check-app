@@ -4,9 +4,12 @@ import { IonAccordionGroup } from '@ionic/angular';
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, timeout } from 'rxjs';
 import { SchoolService } from '../services/school.service';
+import { RegistrationService } from '../services/registration.service';
+import { IdentityService } from '../services/identity.service';
 import { LoadingService } from '../services/loading.service';
 import { StorageService } from '../services/storage.service';
 import { NetworkService } from '../services/network.service';
+import { getFacilityConfig } from '../models/facility';
 
 import { School } from '../models/models';
 import { NotFound, classifyRequestError } from '../schoolnotfound/types';
@@ -45,6 +48,7 @@ export class ConfirmschoolPage implements OnInit{
   detectedCountry: any;
   sub: any;
   appName = environment.appName;
+  facilityLabelKey = 'facilityType.school';
   /**
    * Registration in flight. Guards `confirmSchool()` against repeat taps: every
    * extra tap used to start an independent registration chain, and each one
@@ -55,6 +59,8 @@ export class ConfirmschoolPage implements OnInit{
     private activatedroute: ActivatedRoute,
     public router: Router,
     private schoolService: SchoolService,
+    private registrationService: RegistrationService,
+    private identityService: IdentityService,
     private storage: StorageService,
     private networkService: NetworkService,
     private settings: SettingsService,
@@ -82,6 +88,7 @@ export class ConfirmschoolPage implements OnInit{
 
   
   async ngOnInit() {
+    this.facilityLabelKey = `facilityType.${this.identityService.getFacilityType()}`;
     try {
       // 1. Get WiFi list from Electron
       const wifiList = await this.locationService.getWifiAccessPoints();
@@ -128,41 +135,76 @@ export class ConfirmschoolPage implements OnInit{
        the seemingly idle screen invited another tap. */
     this.loading.present(loadingMsg, undefined, 'pdcaLoaderClass', 'null');
 
+    const facilityType =
+      this.school?.facilityType ?? this.identityService.getFacilityType();
+
     try {
+      const gigaId =
+        facilityType === 'health'
+          ? this.school.giga_id_health
+          : this.school.giga_id_school;
+
       /* The loader has no duration, so none of the optional lookups behind
          this may hang it: each one is capped and falls back to null. */
-      const schoolData = await this.registrationContext.build({
-        giga_id_school: this.school.giga_id_school,
+      const context = await this.registrationContext.build({
+        giga_id_school: gigaId,
         country_code: this.selectedCountry,
         registration_source: 'manual',
         created: today,
       });
 
+      /* The v2 registration endpoint rejects fields it does not know, so only
+         these are sent: not the serials and Windows install ID (TECH-8828),
+         the location, app_instance_id or registration_source. */
+      const registrationData = {
+        [facilityType === 'health' ? 'giga_id_health' : 'giga_id_school']:
+          gigaId,
+        mac_address: context.mac_address,
+        os: context.os,
+        app_version: context.app_version,
+        ip_address: context.ip_address,
+        country_code: context.country_code,
+        installation_id: this.identityService.getInstallationId(),
+        device_hardware_id: context.device_hardware_id,
+        windows_username: context.windows_username,
+        installed_path: context.installed_path,
+        wifi_connections: context.wifi_connections,
+      };
+
       /* Fire-and-forget, as before: the flagged record is independent of the
-         registration outcome and does not gate navigation. */
-      if (this.selectedCountry !== this.detectedCountry) {
+         registration outcome and does not gate navigation. Schools only: the
+         flagged table is keyed on giga_id_school. */
+      if (
+        facilityType === 'school' &&
+        this.selectedCountry !== this.detectedCountry
+      ) {
         this.registerFlaggedSchool(today);
       }
 
       const response = await firstValueFrom(
-        this.schoolService
-          .registerSchoolDevice(schoolData)
+        this.registrationService
+          .register(registrationData as any)
           .pipe(timeout(REGISTER_TIMEOUT_MS))
       );
 
-      this.storage.set('deviceType', schoolData.os);
-      this.storage.set('macAddress', schoolData.mac_address);
-      this.storage.set('schoolUserId', response);
-      this.storage.set('schoolId', this.schoolId);
-      this.storage.set('gigaId', this.school.giga_id_school);
+      // New keys only — legacy keys stay untouched
+      await this.registrationService.persistRegistration(
+        response,
+        this.school,
+        this.schoolId
+      );
+      // Shared device-metadata keys (same on both vintages)
+      this.storage.set('deviceType', context.os);
+      this.storage.set('macAddress', context.mac_address);
       // This install has a registration of its own now: nothing for the next
       // start to try again, even if an automatic one failed earlier.
       this.storage.set(PENDING_AUTO_REGISTRATION_KEY, '');
-      // From here on, events belong to this PC, in this school's group.
+      // From here on, events belong to this PC, in this facility's group.
       this.posthog.identifyDevice({
         country_code: this.selectedCountry,
+        facility_type: response.facility_type,
       });
-      this.posthog.setSchool(this.school.giga_id_school, {
+      this.posthog.setSchool(response.giga_id, {
         external_id: this.school.school_id ?? this.schoolId,
         name: this.school.name,
       });
@@ -170,23 +212,23 @@ export class ConfirmschoolPage implements OnInit{
       // This registration is a new app instance on the PC.
       this.posthog.applyAppInstance({
         registration_source: 'manual',
-        giga_id_school: this.school.giga_id_school,
+        giga_id_school: response.giga_id,
+        facility_type: response.facility_type,
         country_code: this.selectedCountry,
         app_version: environment.app_version,
         registered_at: new Date().toISOString(),
       });
-      this.storage.set('ip_address', schoolData.ip_address);
+      this.storage.set('ip_address', context.ip_address);
       this.storage.set('version', environment.app_version);
-      //this.storage.set('country_code', c.country);
       this.storage.set('country_code', this.selectedCountry);
-      this.storage.set('schoolInfo', JSON.stringify(this.school));
 
       // Set first-time visit flags for new registration flow
       this.storage.setFirstTimeVisit(true);
       this.storage.setRegistrationCompleted(Date.now());
 
       this.posthog.capture(AnalyticsEvent.RegistrationCompleted, {
-        ...registrationProps(schoolData),
+        ...registrationProps(context),
+        facility_type: response.facility_type,
         duration_ms: onboardingDurationMs(),
         country_mismatch: this.selectedCountry !== this.detectedCountry,
       });
@@ -208,16 +250,17 @@ export class ConfirmschoolPage implements OnInit{
         err,
         {
           country_code: this.selectedCountry,
+          facility_type: facilityType,
           registration_source: 'manual',
           reason: classifyRequestError(err, NotFound.registrationFailed),
         },
         'registration_failed'
       );
-      /* The school was found; registering it failed. Say why, and let
+      /* The facility was found; registering it failed. Say why, and let
          "Try again" bring the user back here. */
       this.router.navigate(
         [
-          'schoolnotfound',
+          getFacilityConfig(facilityType as any).notFoundRoute,
           this.schoolId,
           this.selectedCountry,
           this.detectedCountry,

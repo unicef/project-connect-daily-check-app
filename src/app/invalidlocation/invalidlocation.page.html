@@ -3,13 +3,18 @@
   <div class="container">
     <div class="top-layout">
       <div class="label-txt">
-        <span class="result-txt" [translate]="'resultSchool'"></span>:
+        <span
+          class="result-txt"
+          [translate]="'resultSchool'"
+          [translateParams]="{ facility: (facilityLabelKey | translate) }"
+        ></span
+        >:
         <span class="schoolID-txt">{{schoolId | uppercase}}</span>
       </div>
       <div class="label-txt">
         <span
           class="result-txt"
-          [innerHTML]="'invalidLocation.resultLocation' | translate:{country:country, selectedCountry:selectedCountry}"
+          [innerHTML]="'invalidLocation.resultLocation' | translate:{country:country, selectedCountry:selectedCountry, facility:(facilityLabelKey | translate)}"
         >
         </span>
       </div>
@@ -22,6 +27,7 @@
         <div
           class="unabletolocate-txt"
           [translate]="'invalidLocation.unableToLocate'"
+          [translateParams]="{ facility: (facilityLabelKey | translate) }"
         ></div>
       </div>
     </div>

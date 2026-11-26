@@ -38,9 +38,7 @@ describe('SettingsService', () => {
     let flags: any;
     service.getFeatureFlags().then((result) => (flags = result));
     flushMicrotasks();
-    const refresh = httpMock.expectOne((r) =>
-      r.url.endsWith('schools/features_flags/giga-1')
-    );
+    const refresh = httpMock.expectOne((r) => r.url.includes('feature-flags'));
 
     tick(FEATURE_FLAGS_TIMEOUT_MS);
     flushMicrotasks();
