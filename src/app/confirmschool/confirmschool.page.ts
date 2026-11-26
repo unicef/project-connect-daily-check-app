@@ -67,7 +67,7 @@ export class ConfirmschoolPage implements OnInit{
     private registrationContext: RegistrationContextService
   ) {
     const appLang = this.settings.get('applicationLanguage');
-    this.translate.use(appLang.code);
+    this.translate.use(appLang?.code ?? 'en');
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.schoolId = params.schoolId;
       this.selectedCountry = params.selectedCountry;

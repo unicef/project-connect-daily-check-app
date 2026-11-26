@@ -42,7 +42,7 @@ export class SearchschoolPage {
     private posthog: PosthogService
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
-    this.translate.use(appLang.code);
+    this.translate.use(appLang?.code ?? 'en');
     this.sub = this.activatedroute.params.subscribe((params) => {
       this.selectedCountry = params.selectedCountry;
       this.detectedCountry = params.detectedCountry;

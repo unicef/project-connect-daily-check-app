@@ -11,6 +11,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AlertController } from '@ionic/angular';
 import { SchoolService } from '../services/school.service';
 import { LoadingService } from '../services/loading.service';
+import { parseSchoolInfo } from '../utils/school-info.utils';
 import { MenuController } from '@ionic/angular';
 import { NetworkService } from '../services/network.service';
 import { SettingsService } from '../services/settings.service';
@@ -137,7 +138,7 @@ export class StarttestPage implements OnInit, OnDestroy {
     private indexedDBService: IndexedDBService
   ) {
     if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
       console.log(this.school, 'heheh');
     }
     this.onlineStatus = navigator.onLine;
@@ -373,16 +374,26 @@ export class StarttestPage implements OnInit, OnDestroy {
       </div>`;
 
       this.loading.present(loadingMsg, 15000, 'pdcaLoaderClass', 'null');
-      this.networkService.getNetInfo().then((res) => {
-        this.connectionStatus = 'success';
-        if (this.loading.isStillLoading()) {
-          this.loading.dismiss();
+      this.networkService.getNetInfo().then(
+        (res) => {
+          this.connectionStatus = 'success';
+          if (this.loading.isStillLoading()) {
+            this.loading.dismiss();
+          }
+          if (res) {
+            this.accessInformation = res;
+            console.log(this.accessInformation);
+          }
+        },
+        // getNetInfo rejects ("Failed to fetch") when the PC is offline and
+        // every IP lookup failed. The page's own online check shows that.
+        (error) => {
+          console.log('Network info unavailable:', error?.message ?? error);
+          if (this.loading.isStillLoading()) {
+            this.loading.dismiss();
+          }
         }
-        if (res) {
-          this.accessInformation = res;
-          console.log(this.accessInformation);
-        }
-      });
+      );
     });
   }
 

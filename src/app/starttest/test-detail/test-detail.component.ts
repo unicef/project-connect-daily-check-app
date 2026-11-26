@@ -2,6 +2,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { CountryService } from 'src/app/services/country.service';
+import { parseSchoolInfo } from 'src/app/utils/school-info.utils';
 import { HistoryService } from 'src/app/services/history.service';
 import { NetworkService } from 'src/app/services/network.service';
 import { StorageService } from 'src/app/services/storage.service';
@@ -72,10 +73,12 @@ export class TestDetailComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     if (this.storage.get('schoolId')) {
-      this.school = JSON.parse(this.storage.get('schoolInfo'));
+      this.school = parseSchoolInfo(this.storage.get('schoolInfo'));
+    }
+    if (this.school?.country) {
       this.countryService.getPcdcCountryByCode(this.school.country).subscribe(
         (response) => {
-          this.selectedCountry = response[0].name;
+          this.selectedCountry = response?.[0]?.name;
         },
         (err) => {
           console.log('ERROR: ' + err);

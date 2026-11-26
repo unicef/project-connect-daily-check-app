@@ -36,7 +36,7 @@ export class SchoolnotfoundPage {
     private navCtrl: NavController
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
-    this.translate.use(appLang.code);
+    this.translate.use(appLang?.code ?? 'en');
 
     this.querySub = this.activatedroute.queryParams.subscribe((query) => {
       this.reason = Object.values(NotFound).includes(query.reason)

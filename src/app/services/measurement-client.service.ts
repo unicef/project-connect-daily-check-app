@@ -97,9 +97,11 @@ export class MeasurementClientService {
   ).asObservable();
   private readonly testConfig = {
     userAcceptedDataPolicy: true,
-    // Copied from node_modules/@m-lab/ndt7 by the angular.json assets glob
-    downloadworkerfile: 'assets/js/ndt/ndt7-download-worker.js',
-    uploadworkerfile: 'assets/js/ndt/ndt7-upload-worker.js',
+    // Our wrappers (src/assets/js/ndt) around the library's workers, which
+    // angular.json copies next to them: they end a leg at once when the
+    // server lookup found no server, where the library's worker throws.
+    downloadworkerfile: 'assets/js/ndt/giga-ndt7-download-worker.js',
+    uploadworkerfile: 'assets/js/ndt/giga-ndt7-upload-worker.js',
     // Identifies our tests in M-Lab's data. ndt7-js adds its own
     // client_library_name and client_library_version.
     metadata: {

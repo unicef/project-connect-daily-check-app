@@ -53,7 +53,9 @@ export class RegisterSchoolPageComponent implements OnInit {
 
   ) {
     const appLang = this.settingsService.get('applicationLanguage');
-    this.translate.use(appLang.code);
+    // No saved settings yet (a fresh profile, or after a logout): English,
+    // the default the settings service uses too.
+    this.translate.use(appLang?.code ?? 'en');
   }
 
   ngOnInit() {
