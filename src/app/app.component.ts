@@ -19,11 +19,7 @@ import { HardwareIdService } from './services/hardware-id.service';
 import { SchoolService } from './services/school.service';
 import { PosthogService } from './services/posthog.service';
 import { AnalyticsHeartbeatService } from './analytics/analytics-heartbeat.service';
-import {
-  AnalyticsEvent,
-  describeError,
-  markLoggedOut,
-} from './analytics/analytics-events';
+import { AnalyticsEvent, markLoggedOut } from './analytics/analytics-events';
 
 // const shell = require('electron').shell;
 @Component({
@@ -41,6 +37,7 @@ export class AppComponent {
   isToastOpen = false;
   toastMessage = '';
   toastColor = 'success';
+  toastDuration = 3000;
   showCopySuccess = false;
   school: any;
   historyState: any;
@@ -380,14 +377,19 @@ export class AppComponent {
     document.body.removeChild(textArea);
   }
 
-  private showToast(message: string, color: string = 'success') {
+  private showToast(
+    message: string,
+    color: string = 'success',
+    duration = 3000
+  ) {
     this.toastMessage = message;
     this.toastColor = color;
+    this.toastDuration = duration;
     this.isToastOpen = true;
-    // Auto-close toast after 3 seconds
+    // Auto-close toast after its duration
     setTimeout(() => {
       this.isToastOpen = false;
-    }, 3000);
+    }, duration);
   }
 
   setOpen(isOpen: boolean) {
@@ -535,7 +537,8 @@ export class AppComponent {
   }
 
   /**
-   * Handle logout action - deactivate device, clear localStorage and redirect to home
+   * Handle logout action - deactivate device, then clear localStorage and
+   * redirect to home. Nothing local changes unless the backend confirmed.
    */
   private async handleLogout(): Promise<void> {
     try {
@@ -545,6 +548,59 @@ export class AppComponent {
       // Get hardware ID and giga ID before clearing storage
       const hardwareId = this.hardwareIdService.getHardwareId();
       const gigaId = this.storage.get('gigaId');
+
+      // The backend first. A registration still active there is found by
+      // hardware ID at the next start and the app registers this PC again,
+      // undoing the logout; so until the backend confirms, nothing local is
+      // touched and the user can simply try again.
+      let deactivation: Record<string, any>;
+      if (hardwareId && gigaId) {
+        console.log('Deactivating device:', { hardwareId, gigaId });
+        try {
+          const answer = await this.schoolService
+            .deactivateDevice(hardwareId, gigaId)
+            .toPromise();
+          console.log('✅ Device marked as inactive on backend');
+          // false: the backend had no active registration for this PC at this
+          // school (a retry after a request that timed out but got through, or
+          // another Windows user logged it out). Nothing for the next start to
+          // find either, and refusing would leave no way to log out.
+          deactivation =
+            answer?.data?.deactivated === false
+              ? {
+                  backend_deactivated: false,
+                  deactivate_error_code: 'nothing_active',
+                }
+              : { backend_deactivated: true };
+        } catch (deactivateError) {
+          console.error(
+            '⚠️ Error deactivating device on backend:',
+            deactivateError
+          );
+          this.posthogService.captureFailure(
+            AnalyticsEvent.LogoutFailed,
+            deactivateError,
+            { phase: 'deactivate' }
+          );
+          this.showToast(
+            this.translate.instant('logout.notLoggedOut'),
+            'danger',
+            8000
+          );
+          return;
+        }
+      } else {
+        // Nothing to ask the backend with, and refusing would leave no way to
+        // log out: log out here only.
+        console.warn(
+          '⚠️ Missing hardware ID or giga ID, skipping backend deactivation'
+        );
+        deactivation = {
+          backend_deactivated: false,
+          deactivate_error_code: hardwareId ? 'no_giga_id' : 'no_hardware_id',
+        };
+      }
+
       // Logout goes on without it: it gives up after a few seconds, and it
       // empties each database before trying to delete it.
       let databasesDeleted = true;
@@ -553,40 +609,6 @@ export class AppComponent {
       } catch (databaseError) {
         console.error('⚠️ Could not delete the local databases:', databaseError);
         databasesDeleted = false;
-      }
-
-      // Deactivate device on backend if we have the required IDs
-      let deactivation: Record<string, any> = { backend_deactivated: false };
-      if (hardwareId && gigaId) {
-        console.log('Deactivating device:', { hardwareId, gigaId });
-        try {
-          await this.schoolService
-            .deactivateDevice(hardwareId, gigaId)
-            .toPromise();
-          console.log('✅ Device marked as inactive on backend');
-          deactivation = { backend_deactivated: true };
-        } catch (deactivateError) {
-          console.error(
-            '⚠️ Error deactivating device on backend:',
-            deactivateError
-          );
-          // Continue with logout even if deactivation fails. The backend
-          // still counts this device as active, so say why.
-          const failure = describeError(deactivateError);
-          deactivation = {
-            backend_deactivated: false,
-            deactivate_error_code: failure.error_code,
-            deactivate_http_status: failure.http_status,
-          };
-        }
-      } else {
-        console.warn(
-          '⚠️ Missing hardware ID or giga ID, skipping backend deactivation'
-        );
-        deactivation = {
-          backend_deactivated: false,
-          deactivate_error_code: hardwareId ? 'no_giga_id' : 'no_hardware_id',
-        };
       }
 
       // Sent now: the page reloads in 500 ms and a batched event would be lost.

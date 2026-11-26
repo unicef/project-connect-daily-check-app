@@ -268,6 +268,7 @@
     "confirmText": "Please type <strong class=\"school-id-highlight\">{{ schoolId }}</strong> to confirm the school ID for unregistration.",
     "placeholder": "Enter school ID",
     "errorMessage": "School ID does not match. Please try again.",
+    "notLoggedOut": "You have not been logged out: logging out needs an internet connection. Check your connection and try again.",
     "logoutButton": "Logout",
     "cancelButton": "Cancel"
   },

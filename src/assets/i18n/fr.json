@@ -268,6 +268,7 @@
     "confirmText": "Veuillez saisir <strong class=\"school-id-highlight\">{{ schoolId }}</strong> pour confirmer l'identifiant de l'école pour le désenregistrement.",
     "placeholder": "Entrez l'identifiant de l'école",
     "errorMessage": "L'identifiant de l'école ne correspond pas. Veuillez réessayer.",
+    "notLoggedOut": "La déconnexion n'a pas eu lieu : elle nécessite une connexion Internet. Vérifiez votre connexion, puis réessayez.",
     "logoutButton": "Se déconnecter",
     "cancelButton": "Annuler"
   },

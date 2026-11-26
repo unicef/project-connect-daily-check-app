@@ -2,12 +2,19 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { environment } from 'src/environments/environment';
-import { catchError, map, tap } from 'rxjs/operators';
+import { catchError, map, tap, timeout } from 'rxjs/operators';
 import { Observable, throwError } from 'rxjs';
 import { School } from '../models/models';
 import { WrongGigaIdSchool } from './dto/school.dto';
 import { ResponseDto } from './dto/response.dto';
 import { rememberDeviceId } from '../analytics/analytics-events';
+
+/**
+ * How long logout waits for the backend to deactivate this PC. Past this it
+ * fails like any other error, and logout doesn't happen: without a limit, a
+ * request that never got an answer left logout waiting with nothing shown.
+ */
+export const DEACTIVATE_TIMEOUT_MS = 30 * 1000;
 
 @Injectable({
   providedIn: 'root',
@@ -179,7 +186,9 @@ export class SchoolService {
   }
 
   /**
-   * Deactivate device by setting is_active to false
+   * Deactivate device by setting is_active to false. The backend answers
+   * `data.deactivated` false when it had no active registration for this PC
+   * at this school. Fails after DEACTIVATE_TIMEOUT_MS.
    *
    * @param hardwareId - Device hardware ID
    * @param gigaId - School giga ID
@@ -197,6 +206,7 @@ export class SchoolService {
         this.options
       )
       .pipe(
+        timeout(DEACTIVATE_TIMEOUT_MS),
         tap((response) => console.log('Device deactivated:', response)),
         catchError(this.handleError)
       );

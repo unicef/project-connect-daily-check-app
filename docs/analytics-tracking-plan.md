@@ -143,8 +143,8 @@ and dev builds have the updater off; testing this flow needs a build with
 | Event | Sent when | Key properties |
 |---|---|---|
 | `logout_started` / `logout_cancelled` | Logout dialog opened / closed without logging out | |
-| `logout_failed` | Wrong school ID typed (`error_code: wrong_school_id`) or unexpected error | failure fields |
-| `logout_completed` | Logged out (sent at once: the page reloads) | `backend_deactivated`, `deactivate_error_code`, `deactivate_http_status`, `databases_deleted` (false: a local database, pings or the offline queue, failed to delete or took over 5 s; logout went on, having emptied it first) |
+| `logout_failed` | Wrong school ID typed (`error_code: wrong_school_id`), the backend didn't confirm the deactivation (`phase: deactivate`; error, no answer within 30 s or no connection: the app stays registered with nothing changed, and the user can try again), or unexpected error | failure fields, `phase` |
+| `logout_completed` | Logged out: the backend confirmed the deactivation, or the app had no hardware ID or giga ID to ask it with (sent at once: the page reloads) | `backend_deactivated` (true: this logout deactivated the PC's registrations at the school), `deactivate_error_code` (why false: `nothing_active`, the backend had no active registration left there, e.g. a retry after a request that got through but timed out, or another Windows user logged out first; `no_hardware_id` / `no_giga_id`, the backend wasn't asked). `deactivate_http_status` is no longer sent: a failed request is a `logout_failed`. `databases_deleted` (false: a local database, pings or the offline queue, failed to delete or took over 5 s; logout went on, having emptied it first) |
 | `device_deactivated_remotely` | Another app instance on this PC logged out: the backend deactivates every app instance of the PC at that school | |
 | `device_status_check_failed` | Startup registration checks failed (the app continues) | `check`, failure fields |
 
@@ -224,8 +224,10 @@ The filter drives every tile: the SQL tables take it through `{filters}`.
 5. **Updates**: adoption over time, `update_available` → `update_downloaded` →
    `update_prompt_answered (restart)` → `app_updated`, `update_failed` by
    `phase` and `error_code`.
-6. **Logout and re-registration**: logouts, `logout_failed` by code,
-   `backend_deactivated = false`, re-registration within 24 h.
+6. **Logout and re-registration**: logouts, `logout_failed` by code (with
+   `phase = deactivate`: logouts the backend didn't confirm),
+   `backend_deactivated = false` by `deactivate_error_code`, re-registration
+   within 24 h.
 7. **Background capture**: `geo_status` mix, `wifi_status` mix (the Windows 11
    24H2 Location-permission problem shows as `location_disabled`), hardware ID
    resolution, `server_measurement_flagged` by band.
