@@ -1,5 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { TimeoutError } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import { IndexedDBService } from './indexed-db.service';
 import { StorageService } from './storage.service';
 import { PosthogService } from './posthog.service';
@@ -9,6 +11,17 @@ import {
   AnalyticsEvent,
   parseMeasurementRejection,
 } from '../analytics/analytics-events';
+
+/**
+ * How long each sync request waits for the backend. Without a limit, a request
+ * that never gets an answer keeps its sync running for the rest of the session,
+ * and every later sync joins it (syncPendingMeasurements), so the queue is
+ * never sent again. A batch is up to five measurements the backend stores one
+ * after the other, so it gets twice the realtime upload's limit: a request cut
+ * off while the backend is still storing it gets stored anyway, and the next
+ * sync sends it again.
+ */
+export const SYNC_TIMEOUT_MS = 60 * 1000;
 
 @Injectable({
   providedIn: 'root',
@@ -32,7 +45,8 @@ export class SyncService {
    * several places (the 2-hour interval, app start, a successful upload), so a
    * call made while a sync is already running joins that sync instead of
    * starting another: two syncs would read the same pending records and post
-   * them twice.
+   * them twice. Each request has a time limit (SYNC_TIMEOUT_MS), so the sync
+   * always ends and the next call starts a new one.
    */
   syncPendingMeasurements(): Promise<void> {
     if (!this.pendingMeasurementsSync) {
@@ -129,6 +143,7 @@ export class SyncService {
     try {
       await this.http
         .post(`${environment.restAPI}measurements/multiple`, payload)
+        .pipe(timeout(SYNC_TIMEOUT_MS)) // also aborts the request
         .toPromise();
     } catch (error) {
       // A refusal is the backend's answer, not a glitch: posting again would
@@ -136,10 +151,20 @@ export class SyncService {
       if (parseMeasurementRejection(error)) {
         throw error;
       }
+      // No answer in time: the backend may be storing the batch still, and it
+      // keeps every copy it gets, so posting it again now would most likely
+      // store it twice. It stays queued for the next sync.
+      if (error instanceof TimeoutError) {
+        console.warn(
+          `Measurement sync got no answer within ${SYNC_TIMEOUT_MS} ms; not retrying until the next sync.`
+        );
+        throw error;
+      }
       console.warn('Initial measurement sync failed. Retrying once...');
       try {
         await this.http
           .post(`${environment.restAPI}measurements/multiple`, payload)
+          .pipe(timeout(SYNC_TIMEOUT_MS))
           .toPromise();
       } catch (retryError) {
         console.error('Retry for measurements failed:', retryError);
@@ -186,12 +211,15 @@ export class SyncService {
     const updatedUsers = batch.map(({ isSynced, ...rest }) => rest);
     const payload = updatedUsers.map(({ createdAt, ...rest }) => rest);
 
+    // A timeout is retried like any other failure here: the backend skips a
+    // ping it already has (app_local_uuid), so a second copy is harmless.
     try {
       await this.http
         .post(
           `${environment.restAPI}connectivity/${this.storage.get('gigaId')}`,
           { records: payload }
         )
+        .pipe(timeout(SYNC_TIMEOUT_MS))
         .toPromise();
     } catch (error) {
       console.warn('Initial sync attempt failed. Retrying...');
@@ -201,6 +229,7 @@ export class SyncService {
             `${environment.restAPI}connectivity/${this.storage.get('gigaId')}`,
             { records: payload }
           )
+          .pipe(timeout(SYNC_TIMEOUT_MS))
           .toPromise();
       } catch (retryError) {
         console.error('Retry failed:', retryError);

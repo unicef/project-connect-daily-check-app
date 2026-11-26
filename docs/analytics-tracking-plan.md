@@ -116,7 +116,7 @@ app instance at the same school by itself (`registration_completed`,
 | `measurement_uploaded` | Delivered in realtime | `notes`, `scheduled_slot`, geolocation fields (below) |
 | `measurement_queued_offline` | Upload failed, queued for sync | failure fields, geolocation fields |
 | `measurement_rejected` | Backend refused it (not queued: it is already in `measurements_failed`) | `source` (`realtime` / `sync`), `reason`, `count` |
-| `measurements_synced` / `measurements_sync_failed` | Offline queue sent / failed | `batch_size` + failure fields |
+| `measurements_synced` / `measurements_sync_failed` | Offline queue sent / failed (`error_code: timeout`: no answer within 60 s; not retried at once, the next sync sends it) | `batch_size` + failure fields |
 | `device_heartbeat` | Once per local day, per app instance | `registered`, `has_app_instance_id`, `registration_pending` (going on with the PC's registration until its own is stored), `app_instance_claim_pending`, `scheduled_testing`, `upload_enabled`, `online`, `hours_since_last_measurement`, `pending_measurements`, `ping_attempts_24h`, `ping_successes_24h`, `ping_unsynced`, `top_ping_error` |
 
 `error_code` for tests: `locate_failed`, `no_result`, `websocket_error`,
